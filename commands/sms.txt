@@ -7,7 +7,9 @@ from contextlib import closing
 from datetime import datetime, timedelta
 
 class Bet_view(View):
-    def __init__(self, timeout: int, ctx: Interaction, base: sqlite3.Connection, cur: sqlite3.Cursor, symbol: str, bet: int, function: filter):
+    lng_bt = ""
+    text_bt = {}
+    def __init__(self, timeout: int, ctx: Interaction, base: sqlite3.Connection, cur: sqlite3.Cursor, symbol: str, bet: int, function: filter, language: str):
         super().__init__(timeout=timeout)
         self.base = base
         self.cur = cur
@@ -16,36 +18,111 @@ class Bet_view(View):
         self.bet = bet
         self.check_user = function
         self.dueler = None
-
-    @nextcord.ui.button(label="Сделать ставку", style=ButtonStyle.green, emoji="💰", custom_id="Make")
+        global lng_bt
+        lng_bt = language
+        global text_bt
+        text_bt = {
+            'eng' : {
+                0 : "**`You can't make counter bet for yourself`**",
+                1 : "**`You can't make counter bet, because you need at least",
+                2 : "Make counter bet",
+                3 : "Cancel bet",
+                404 : 'Error',
+                4 : "You can't control bet made by another user",
+                5 : "Cancelling bet",
+                6 : "Bet was cancelled by user"
+            },
+            'rus' : {
+                0 : '**`Вы не можете делать встречную ставку самому себе`**',
+                1 : "**`Вы не можете сделать встречную ставку, так как Вам не хватает",
+                2 : "Сделать ставку",
+                3 : "Отменить ставку",
+                404 : 'Ошибка',
+                4 : 'Вы не можете управлять чужой ставкой',
+                5 : "Отмена ставки",
+                6 : "**`Ставка была отменена пользователем`**"
+            }
+        }
+    
+    @nextcord.ui.button(label=text_bt[lng_bt][2], style=ButtonStyle.green, emoji="💰", custom_id="Make")
     async def callback_make(self, button: Button, interaction: Interaction):
         if interaction.user == self.ctx.user:
-            await interaction.response.send_message('Вы не можете делать встречную ставку самому себе', ephemeral=True)
+            await interaction.response.send_message(text_bt[lng_bt][0], ephemeral=True)
             return
 
         member = self.check_user(self.base, self.cur, interaction.user.id)
         if member[1] < self.bet:
-            emb = Embed(title="Ошибка", description=f"**`Вы не можете сделать встречную ставку, так как Вам не хватает {self.bet-member[1]}`**{self.symbol}", colour=Colour.red())
+            emb = Embed(title=text_bt[lng_bt][404], description=f"{text_bt[lng_bt][1]} {self.bet-member[1]}`**{self.symbol}", colour=Colour.red())
             await interaction.response.send_message(embed=emb, ephemeral=True)
             return
         
         self.dueler = member
         self.stop()   
 
-    @nextcord.ui.button(label="Отменить ставку", style=ButtonStyle.red, emoji="❌", custom_id="Deny")
+    @nextcord.ui.button(label=text_bt[lng_bt][3], style=ButtonStyle.red, emoji="❌", custom_id="Deny")
     async def callback_deny(self, button: Button, interaction: Interaction):
         if interaction.user != self.ctx.user:
-            await interaction.response.send_message('Вы не можете управлять чужой ставкой', ephemeral=True)
+            await interaction.response.send_message(text_bt[lng_bt][4], ephemeral=True)
             return
 
-        emb = Embed(title="Отмена ставки", description="**`Ставка была отменена пользователем`**")
+        emb = Embed(title=text_bt[lng_bt][5], description=text_bt[lng_bt][6])
         for button in self.children:
             button.disabled = True
         await interaction.response.edit_message(embed=emb, view=self)
         self.stop()
+    
+class view_sell(View):
+    def __init__(self, timeout: int, ctx: Interaction, language: str):
+        super().__init__(timeout=timeout)
+        
+        self.ctx = ctx
+        self.is_sold = 0
+        global lng_sl
+        lng_sl = language
+        global text_sl
+        text_sl = {
+            'eng' : {
+                0 : 'Yes',
+                1 : "No, decline sale",
+                2 : "**`The sale has been canceled by user`**",
+                3 : "**`Sale status has changed`**",
+                4 : "You can't manage other's sale"
+            },
+            'rus' : {
+                1 : 'Да',
+                2 : "Нет, отменить продажу",
+                2 : '**`Продажа отмена пользователем`**',
+                3 : "Изменение статуса продажи",
+                4 : 'Вы не можете управлять чужой продажей'
+            }
+        }
+
+    @nextcord.ui.button(label=text_sl[lng_sl][0], style=ButtonStyle.green, emoji="✅", custom_id = "goodbye")
+    async def goodbye_role(self, button: Button, interaction: Interaction):
+        self.is_sold = 1
+        self.stop()
+
+    @nextcord.ui.button(label=text_sl[lng_sl][1], style=ButtonStyle.red, emoji="❌")
+    async def decline_sell(self, button: Button, interaction: Interaction):
+        button.disabled = True
+        button1 = [x for x in self.children if x.custom_id == "goodbye"][0]
+        button1.disabled=True
+        emb = interaction.message.embeds[0]
+        emb.description=text_sl[lng_sl][2]
+        emb.title=text_sl[lng_sl][3]
+        await interaction.response.edit_message(embed = emb, view=self)
+        self.stop()
+        
+    async def interaction_check(self, interaction):
+        if interaction.user != self.ctx.user:
+            await interaction.response.send_message(text_sl[lng_sl][4], ephemeral=True)
+            return False
+        return True
 
 class Myview_shop_slash(View):
-    def __init__(self, timeout: int, outer_shop: list, ctx: Interaction, in_row: int, coin: str):
+    lang = ""
+    text_shp = {}
+    def __init__(self, timeout: int, outer_shop: list, ctx: Interaction, in_row: int, coin: str, language: str):
         super().__init__(timeout=timeout)
         self.outer_shop = outer_shop
         self.ctx = ctx
@@ -53,7 +130,23 @@ class Myview_shop_slash(View):
         self.sort_d = 0 #by default - price, 1 - sort by date
         self.sort_grad = 0 #возрастание / убывание, от gradation, 0 - возрастание
         self.coin = coin
-    
+        global lang; lang = language
+        #self.lang = 
+        global text_shp
+        text_shp = {
+            'eng' : {
+                0 : "Page",
+                1 : "from",
+
+            },
+            'rus' : {
+                0 : "Страница",
+                1 : "из",
+                2 : "Цена",
+                3 : "Доход уникальной роли",
+            }
+        }
+
     def sort_by(self):
         outer = self.outer_shop
         sort_d = self.sort_d
@@ -105,8 +198,14 @@ class Myview_shop_slash(View):
         
     def click(self, interaction: Interaction, click: int, in_row: int):
         text = interaction.message.embeds[0].description
+        #t1 = max(text.find('Страница **`'), text.find('Page **`'))
+        #t2 = max(text.find('из', t1), text.find('from', t1))
         t1 = text.find('Страница **`')
-        t2 = text.find('из', t1)
+        if t1 == -1:
+            t1 = text.find('Page **`')
+            t2 = text.find('from', t1)
+        else:
+            t2 = text.find('из', t1)
         counter = int(text[t1+12:t2-4])
         counter = (counter - 1) * in_row
         outer = self.outer_shop
@@ -134,12 +233,17 @@ class Myview_shop_slash(View):
                 
         for r in outer[counter:last]:
             date = datetime.strptime(r[4], '%S/%M/%H/%d/%m/%Y').strftime('%H:%M %d-%m-%Y')
-            if r[5] == 1:
-                shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+            if r[5] == 0:
+                shop_list.append(f"**•** <@&{r[1]}>\n`{text_shp[lng]}` - `{r[3]}`{self.coin}\n`` - `{None}`\n`Выставленa на продажу:`\n*{date}*\n")#########################################################
+            elif r[5] == 1:
+                shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Осталось` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+            elif r[5] == 2:
+                shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Осталось` - `∞`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
             else:
-                shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Количество` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+                pass
+                
         
-        shop_list.append(f'\nСтраница **`{(counter // in_row) + 1}`** из **`{(len(outer)+in_row-1)//in_row}`**')
+        shop_list.append(f'\n{text_shp[lng][0]} **`{(counter // in_row) + 1}`** {text_shp[lng][1]} **`{(len(outer)+in_row-1)//in_row}`**')
         
         return shop_list
 
@@ -284,7 +388,7 @@ class shop_commands_slash(commands.Cog):
     def check_user(self, base: sqlite3.Connection, cur: sqlite3.Cursor, memb_id: int):
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
         if member == None:
-            cur.execute('INSERT INTO users(memb_id, money, owned_roles, sale_roles, work_date) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", "", "0"))
+            cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date) VALUES(?, ?, ?, ?)', (memb_id, 0, "", "0"))
             base.commit()
         else:
             if member[1] == None or member[1] < 0:
@@ -294,9 +398,6 @@ class shop_commands_slash(commands.Cog):
                 cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
                 base.commit()
             if member[3] == None:
-                cur.execute('UPDATE users SET sale_roles = ? WHERE memb_id = ?', ("", memb_id))
-                base.commit()
-            if member[4] == None:
                 cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', ("0", memb_id))
                 base.commit()
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
@@ -317,7 +418,7 @@ class shop_commands_slash(commands.Cog):
 
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
                 is_special = role_info[2]
-                if is_special == 1:
+                if is_special == 0:
                     outer = None
                     special_roles = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchall()
                     min_time = datetime.utcnow() + timedelta(hours=4)
@@ -339,7 +440,7 @@ class shop_commands_slash(commands.Cog):
                     return
 
                 
-                emb = Embed(title='Подтверждение покупки', description=f'**`Вы уверены, что хотите купить роль`** {role.mention}**`?\nС Вас будет списано {cost}`**{self.currency}')
+                emb = Embed(title='Подтверждение покупки', description=f'**`Вы уверены, что хотите купить роль`** {role.mention}?\nС Вас будет списано **`{cost}`**{self.currency}')
                 view = Myview_buy_slash(timeout=30, ctx=interaction)
                 await interaction.response.send_message(embed=emb, view=view)
                 msg = await interaction.original_message()
@@ -353,21 +454,6 @@ class shop_commands_slash(commands.Cog):
                     return
                 
                 if view.value:
-                    inter = cur.execute('SELECT * FROM inter_shop WHERE role_id = ?', (role.id,)).fetchall()
-                    seller = None
-                    min_time = datetime.utcnow() + timedelta(hours=4)
-
-                    for i in range(len(inter)):
-                        if datetime.strptime(inter[i][3], "%S/%M/%H/%d/%m/%Y") < min_time:
-                            seller = inter[i]
-                            min_time = datetime.strptime(inter[i][3], "%S/%M/%H/%d/%m/%Y")
-
-
-                    root = seller[2] == 404
-
-                    cur.execute('DELETE FROM inter_shop WHERE item_id = ?', (seller[0],))
-                    base.commit()
-
                     
                     await member_buyer.add_roles(role)                            
                     buyer_owned_roles = buyer[2]
@@ -375,26 +461,16 @@ class shop_commands_slash(commands.Cog):
                     cur.execute('UPDATE users SET money = money - ?, owned_roles = ? WHERE memb_id = ?', (cost, buyer_owned_roles, memb_id))
                     base.commit()
 
-                    if not root: 
-                        member_seller = await interaction.guild.fetch_member(seller[2])
-                        await member_seller.remove_roles(role)
-                        seller_user = cur.execute('SELECT * FROM users WHERE memb_id = ?', (seller[2],)).fetchone()
-                        seller_owned_roles = seller_user[2]
-                        seller_owned_roles = seller_owned_roles.replace(f"#{role.id}", "")
-                        seller_sale_roles = seller_user[3]
-                        seller_sale_roles = seller_sale_roles.replace(f"#{role.id}", "")
-                        cur.execute('UPDATE users SET money = money + ?, owned_roles = ?, sale_roles = ? WHERE memb_id = ?', (cost, seller_owned_roles, seller_sale_roles, seller[2]))
+                    if (outer[2] <= 1 and outer[2] != -404) or is_special == 0:
+                        item_id = cur.execute('SELECT item_id FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()[0]
+                        cur.execute('DELETE FROM outer_shop WHERE item_id = ?', (item_id,))
                         base.commit()
-
-                    if outer[2] <= 1 or role_info[2] == 1:
-                        cur.execute('DELETE FROM outer_shop WHERE role_id = ?', (role.id,))
-                        base.commit()
-                    else:
+                    elif is_special == 1:
                         cur.execute('UPDATE outer_shop SET quantity = quantity - ? WHERE role_id = ?', (1, role.id))
                         base.commit()
 
-                    emb.title, emb.description = 'Покупка совершена', '**`Если у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение покупки будет выслано Вам в личные сообщения`**'
-                    
+                    emb.title = 'Покупка совершена'
+                    emb.description = '**`Если у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение покупки будет выслано Вам в личные сообщения`**'
                     await msg.edit(embed=emb, view=None)
 
                     try:
@@ -403,13 +479,6 @@ class shop_commands_slash(commands.Cog):
                     except:
                         pass
                     
-                    if not root:    
-                        try:
-                            emb = Embed(title='Подтверждение оплаты', description=f'Ваша роль роль `{role.name}` на сервере `{interaction.guild.name}` была куплена {member_buyer.mention} за `{cost}`{self.currency}', colour=Colour.green())
-                            await member_seller.send(embed=emb)
-                        except:
-                            pass
-
     @nextcord.slash_command(name="shop", description="Вызывает меню с товарами", guild_ids=[863462268402532363, 934139154290339881])
     async def shop(self, interaction: Interaction):
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
@@ -434,9 +503,12 @@ class shop_commands_slash(commands.Cog):
                 for r in outer_list[counter:counter+in_row]:
                     date = datetime.strptime(r[4], '%S/%M/%H/%d/%m/%Y').strftime('%H:%M %d-%m-%Y')
                     if r[5] == 1:
-                        shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+                        shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Осталось` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+                    elif r[5] == 2:
+                        shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Осталось` - `∞`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
                     else:
-                        shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Количество` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+                        pass
+
                 shop_list.append(f'\nСтраница **`1`** из **`{(len(outer_list)+in_row-1)//in_row}`**')
 
                 emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(shop_list))
@@ -453,13 +525,13 @@ class shop_commands_slash(commands.Cog):
     async def sell(
         self,
         interaction: Interaction,
-        role: nextcord.Role = SlashOption(name="role", description="Ваша роль, которую Вы хотите выставить на продажу", required=True),
+        role: nextcord.Role = SlashOption(name="role", description="Ваша роль, которую Вы хотите продать", required=True),
     ):
         if not role in interaction.user.roles:
             await interaction.response.send_message(embed=Embed(
                 colour=Colour.red(),
                 title='Ошибка',
-                description='**`Вы не можете выставить на продажу роль, которой у Вас нет`**'
+                description='**`Вы не можете продать роль, которой у Вас нет`**'
             ))
             return
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
@@ -467,50 +539,23 @@ class shop_commands_slash(commands.Cog):
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
 
                 if role_info == None:
-                    await interaction.response.send_message(embed=Embed(title='Ошибка', description='Вы не можете выставить эту роль на продажу', colour=Colour.red()))
+                    await interaction.response.send_message(embed=Embed(title='Ошибка', description='Вы не можете продать эту роль', colour=Colour.red()))
                     return
 
                 memb_id = interaction.user.id
                 user = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 
-                owned_roles = user[2]
-                sale_roles = user[3]
-
-                if owned_roles.find(f"{role.id}") == -1:
-                    owned_roles += f"#{role.id}"
-                    cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', (owned_roles, memb_id))
-                    base.commit()
-
-                if str(role.id) in sale_roles:
-                    await interaction.response.send_message(embed=Embed(title='Ошибка', description='Вы не можете выставить на продажу роль, которую уже продаёте', colour=Colour.red()))
-                    return
-
-                sale_roles += f"#{role.id}"
-                cur.execute('UPDATE users SET sale_roles = ? WHERE memb_id = ?', (sale_roles, memb_id))
-                base.commit()
-                item_ids = [x[0] for x in cur.execute('SELECT item_id FROM inter_shop').fetchall()]
-                item_ids.sort()
-                free_id = 1
-                while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
-                    free_id += 1
+                
 
                 time_now = (datetime.utcnow() + timedelta(hours=3)).strftime('%S/%M/%H/%d/%m/%Y')
-                cur.execute('INSERT INTO inter_shop(item_id, role_id, seller_id, date) VALUES(?, ?, ?, ?)', (free_id, role.id, interaction.user.id, time_now))
-                base.commit()
-
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
-                is_special = role_info[2]
-                if is_special == 1:                  
-                    item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
-                    item_ids.sort()
-                    free_id = 1
-                    while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
-                        free_id += 1
-                    print(free_id)
-                    cur.execute('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, 1, role_info[1], time_now, 1))
+                if role_info[2] in [1, 2]:
+                    owned_roles = user[2]
+                    cur.execute('UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?', (owned_roles.replace(f"#{role.id}", ""), role_info[1], memb_id))
                     base.commit()
-                else:
-                    outer  = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()               
+                    outer  = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()      
+                             
+                if role_info[2] == 1:                   
                     if outer == None:
                         item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
                         item_ids.sort()
@@ -521,18 +566,107 @@ class shop_commands_slash(commands.Cog):
                         base.commit()            
                     else:
                         cur.execute('UPDATE outer_shop SET quantity = quantity + ?, last_date = ? WHERE role_id = ?', (1, time_now, role.id))
-                        base.commit()            
+                        base.commit()
+                elif role_info[2] == 2:
+                    if outer == None:
+                        item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
+                        item_ids.sort()
+                        free_id = 1
+                        while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
+                            free_id += 1
+                        cur.execute('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, -404, role_info[1], time_now, 2))
+                        base.commit()
+                elif role_info[2] == 0:
+                    sell_view = view_sell(timeout=60, ctx=interaction)
+                    await interaction.response.send_message(embed=Embed(title="Предупреждение", description="Вы точно хотите продать уникальную роль? Вы больше **`не сможете`** её купить."), view=sell_view)
+                    chk = await sell_view.wait()
+                    msg = await interaction.original_message()
+                    if chk:
+                        for button in sell_view.children:
+                            button.disabled = True
+                        emb.description = '**`Истекло время подтверждения покупки`**'
+                        await msg.edit(embed = emb, view=sell_view)
+                        return
+                    if not sell_view.is_sold:
+                        return
 
-                emb = Embed(title='Подтверждение', description=f'Вы успешно выставили роль **`{role}`** за **`{role_info[1]}`**{self.currency}')
+                    owned_roles = user[2]
+                    cur.execute('UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?', (owned_roles.replace(f"#{role.id}", ""), role_info[1], memb_id))
+                    base.commit()
+                    
+                    membs = cur.execute("SELECT members FROM money_roles WHERE role_id = ?", (role.id,)).fetchone()
+                    if membs != None and membs[0] != None:
+                        cur.execute("UPDATE money_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"#{memb_id}", ""), role.id))
+                        base.commit()
+
+                    await interaction.user.remove_roles(role)
+                    emb = Embed(title='Продажа совершена', description=f'Вы продали роль {role.mention} за **`{role_info[1]}`**{self.currency}\nЕсли у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение покупки будет выслано Вам в личные сообщения', colour=Colour.gold())
+                    await msg.edit(embed=emb, view=None)
+                    try:
+                        emb = Embed(title='Подтверждение продажи', description=f'Вы продали роль {role.mention} за **`{role_info[1]}`**{self.currency}', colour=Colour.green())
+                        await interaction.user.send(embed=emb)
+                    except:
+                        pass
+                    return
+
+                await interaction.user.remove_roles(role)
+                emb = Embed(title='Продажа совершена', description=f'Вы продали роль {role.mention} за **`{role_info[1]}`**{self.currency}\nЕсли у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение покупки будет выслано Вам в личные сообщения', colour=Colour.gold())
                 await interaction.response.send_message(embed=emb)
+                try:
+                    emb = Embed(title='Подтверждение продажи', description=f'Вы продали роль {role.mention} за **`{role_info[1]}`**{self.currency}', colour=Colour.green())
+                    await interaction.user.send(embed=emb)
+                except:
+                    pass
 
-    @nextcord.slash_command(name="balance", description="Показывает Ваш баланс", guild_ids=[863462268402532363, 934139154290339881])
-    async def balance(self, interaction: Interaction):
+    @nextcord.slash_command(name="profile", description="Показывает Ваш профиль", guild_ids=[863462268402532363, 934139154290339881])
+    async def profile(self, interaction: Interaction):
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
             with closing(base.cursor()) as cur:
-                member = self.check_user(base=base, cur=cur, memb_id=interaction.user.id)
-                emb = Embed(title='Личный счёт')
-                emb.description=f'Ваш баланс: `{member[1]}`{self.currency}'
+                memb_id = interaction.user.id
+                member = self.check_user(base=base, cur=cur, memb_id=memb_id)
+                server_roles = cur.execute('SELECT role_id FROM server_roles').fetchall()
+                server_roles = [x[0] for x in server_roles]
+                emb = Embed(title='Ваш профиль')
+                roles = ""
+                uniq_roles = []
+                descr = []
+                descr.append(f'**Ваш баланс:** `{member[1]}`{self.currency}\n')
+                flag = 0
+                for role_g in interaction.user.roles:
+                    id = role_g.id
+                    if id in server_roles:
+                        if flag == 0:
+                            descr.append('**Ваши личные роли:**')
+                            descr.append("**Роль** - **Цена** - **Доход** (для уникальных ролей)")
+                        flag = 1
+                        role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (id,)).fetchone()
+                        price = role_info[1]
+                        is_special = role_info[2]
+                        if is_special == 0:
+                            salary = cur.execute("SELECT salary FROM money_roles WHERE role_id = ?", (id,)).fetchone()[0]
+                            descr.append(f"**•** {role_g.mention} - `{price}`{self.currency} - `{salary}`{self.currency}")
+                            uniq_roles.append(id)
+                        else:
+                            descr.append(f"**•** {role_g.mention} - `{price}`{self.currency}")
+                        roles += f"#{id}"
+                try:
+                    for role in uniq_roles:
+                        membs = cur.execute("SELECT members FROM money_roles WHERE role_id = ?", (role,)).fetchone()[0]
+                        if membs == None:
+                            cur.execute("UPDATE money_roles SET members = ? WHERE role_id = ?", (f"#{memb_id}", role))
+                            base.commit()
+                        else:
+                            if not str(memb_id) in membs:
+                                membs += f"#{memb_id}"
+                                cur.execute("UPDATE money_roles SET members = ? WHERE role_id = ?", (membs, role))
+                                base.commit()
+                except Exception as e:
+                    raise e
+
+                if flag:
+                    cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', (roles, interaction.user.id))
+                    base.commit()
+                emb.description = "\n".join(descr)
                 await interaction.response.send_message(embed=emb)
 
     @nextcord.slash_command(name="work", description="Поработать", guild_ids=[863462268402532363, 934139154290339881])
@@ -542,11 +676,11 @@ class shop_commands_slash(commands.Cog):
             with closing(base.cursor()) as cur:
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 flag = 0
-                if member[4] == "0":
+                if member[3] == "0":
                     flag = 1
                 else:
                     lasted_time = datetime.strptime(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S") + \
-                        timedelta(hours=3) - datetime.strptime(member[4], '%S/%M/%H/%d/%m/%Y')
+                        timedelta(hours=3) - datetime.strptime(member[3], '%S/%M/%H/%d/%m/%Y')
                     if lasted_time >= timedelta(hours=4):
                         flag = 1
                 if not flag:
@@ -632,8 +766,6 @@ class shop_commands_slash(commands.Cog):
                     emb=Embed(title="Перевод совершён", description=f"Вы успешно перевели **`{value}`**{self.currency} пользователю {target.mention}", colour=Colour.green())
                     await interaction.response.send_message(embed=emb)
     
-
-
     
     """ @commands.Cog.listener()
     async def on_application_command_error(self, ctx, error):

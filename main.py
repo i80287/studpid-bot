@@ -13,7 +13,7 @@ cmd = Console(bot)
 async def on_ready():
     print(f'{Fore.CYAN}[>>>]Logged into Discord as {bot.user}\n')
 
-    opt =   f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
+    opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
         f'\n{Fore.GREEN} 1) recover <guild_id> - recovers database for selected server from restore file (guild_id_shop_res.db)\n' \
         f'{Fore.RED}   Warning: if old database exists, it will be restored to default and all infromation will be lost.\n' \
         f'\n{Fore.GREEN} 2) backup <guild_id> - creates a copy of database for selected server (guild_id_shop_res.db)\n' \
@@ -29,10 +29,10 @@ if __name__ == "__main__":
     for filename in os.listdir("./commands"):
         if filename.endswith(".py"):
             bot.load_extension(f"commands.{filename[:-3]}", extras={"prefix": prefix, "in_row": in_row, "currency": currency})
+            #pass
 
     cmd.load_extension(f'console')
-    #written by 8088 for Anime Shrine server
     cmd.start()
     print(f'\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}')
-    #bot.run(token)
-    bot.run(debug_token)
+    bot.run(token)
+    #bot.run(debug_token)

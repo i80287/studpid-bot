@@ -471,14 +471,17 @@ class shop_commands_slash(commands.Cog):
                 memb_id = interaction.user.id
                 user = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 
-                owned_roles = user[2]
-                cur.execute('UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?', (owned_roles.replace(f"#{role.id}", ""), role_info[1], memb_id))
-                base.commit()
+                
 
                 time_now = (datetime.utcnow() + timedelta(hours=3)).strftime('%S/%M/%H/%d/%m/%Y')
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
-                if role_info[2] == 1:
-                    outer  = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()               
+                if role_info[2] in [1, 2]:
+                    owned_roles = user[2]
+                    cur.execute('UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?', (owned_roles.replace(f"#{role.id}", ""), role_info[1], memb_id))
+                    base.commit()
+                    outer  = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()      
+                             
+                if role_info[2] == 1:                   
                     if outer == None:
                         item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
                         item_ids.sort()
@@ -491,7 +494,6 @@ class shop_commands_slash(commands.Cog):
                         cur.execute('UPDATE outer_shop SET quantity = quantity + ?, last_date = ? WHERE role_id = ?', (1, time_now, role.id))
                         base.commit()
                 elif role_info[2] == 2:
-                    outer  = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()
                     if outer == None:
                         item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
                         item_ids.sort()
@@ -508,11 +510,21 @@ class shop_commands_slash(commands.Cog):
                     if chk:
                         for button in sell_view.children:
                             button.disabled = True
-                            emb.description = '**`Истекло время подтверждения покупки`**'
-                            await msg.edit(embed = emb, view=sell_view)
-                            return
+                        emb.description = '**`Истекло время подтверждения покупки`**'
+                        await msg.edit(embed = emb, view=sell_view)
+                        return
                     if not sell_view.is_sold:
                         return
+
+                    owned_roles = user[2]
+                    cur.execute('UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?', (owned_roles.replace(f"#{role.id}", ""), role_info[1], memb_id))
+                    base.commit()
+                    
+                    membs = cur.execute("SELECT members FROM money_roles WHERE role_id = ?", (role.id,)).fetchone()
+                    if membs != None and membs[0] != None:
+                        cur.execute("UPDATE money_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"#{memb_id}", ""), role.id))
+                        base.commit()
+
                     await interaction.user.remove_roles(role)
                     emb = Embed(title='Продажа совершена', description=f'Вы продали роль {role.mention} за **`{role_info[1]}`**{self.currency}\nЕсли у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение покупки будет выслано Вам в личные сообщения', colour=Colour.gold())
                     await msg.edit(embed=emb, view=None)
@@ -536,11 +548,13 @@ class shop_commands_slash(commands.Cog):
     async def profile(self, interaction: Interaction):
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
             with closing(base.cursor()) as cur:
-                member = self.check_user(base=base, cur=cur, memb_id=interaction.user.id)
+                memb_id = interaction.user.id
+                member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 server_roles = cur.execute('SELECT role_id FROM server_roles').fetchall()
                 server_roles = [x[0] for x in server_roles]
                 emb = Embed(title='Ваш профиль')
                 roles = ""
+                uniq_roles = []
                 descr = []
                 descr.append(f'**Ваш баланс:** `{member[1]}`{self.currency}\n')
                 flag = 0
@@ -549,11 +563,32 @@ class shop_commands_slash(commands.Cog):
                     if id in server_roles:
                         if flag == 0:
                             descr.append('**Ваши личные роли:**')
+                            descr.append("**Роль** - **Цена** - **Доход** (для уникальных ролей)")
                         flag = 1
-                        price = cur.execute('SELECT price FROM server_roles WHERE role_id = ?', (id,)).fetchone()[0]
-                        descr.append(f"**•** {role_g.mention} - `{price}`{self.currency}")
+                        role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (id,)).fetchone()
+                        price = role_info[1]
+                        is_special = role_info[2]
+                        if is_special == 0:
+                            salary = cur.execute("SELECT salary FROM money_roles WHERE role_id = ?", (id,)).fetchone()[0]
+                            descr.append(f"**•** {role_g.mention} - `{price}`{self.currency} - `{salary}`{self.currency}")
+                            uniq_roles.append(id)
+                        else:
+                            descr.append(f"**•** {role_g.mention} - `{price}`{self.currency}")
                         roles += f"#{id}"
-                            
+                try:
+                    for role in uniq_roles:
+                        membs = cur.execute("SELECT members FROM money_roles WHERE role_id = ?", (role,)).fetchone()[0]
+                        if membs == None:
+                            cur.execute("UPDATE money_roles SET members = ? WHERE role_id = ?", (f"#{memb_id}", role))
+                            base.commit()
+                        else:
+                            if not str(memb_id) in membs:
+                                membs += f"#{memb_id}"
+                                cur.execute("UPDATE money_roles SET members = ? WHERE role_id = ?", (membs, role))
+                                base.commit()
+                except Exception as e:
+                    raise e
+
                 if flag:
                     cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', (roles, interaction.user.id))
                     base.commit()
