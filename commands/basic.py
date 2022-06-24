@@ -1,36 +1,59 @@
 import asyncio, os
 from contextlib import closing
 import sqlite3, nextcord
-from datetime import datetime, timedelta
+from datetime import datetime
 from time import time
 from nextcord.ext import commands
-from nextcord.ext.commands import has_permissions, CheckFailure
+from nextcord.ext.commands import CheckFailure
 from nextcord import Embed, Colour
 
-class basic_commands(commands.Cog):
+class mod_commands(commands.Cog):
   def __init__(self, bot: commands.Bot, prefix: str, in_row: int, currency: str):
     self.bot = bot
     self.prefix = prefix
-    self.cmds_list = [f'`{prefix}set`', f'`{prefix}update_cash`', f'`{prefix}add`', f'`{self.prefix}remove`', f'`{self.prefix}update_price`', f'`{self.prefix}list`', f'`{self.prefix}update_unique`']
+    self.cmds_list = [
+        f"`{prefix}set`",
+        f"`{prefix}update_cash`", 
+        f"`{prefix}add`", 
+        f"`{prefix}remove`", 
+        f"`{prefix}update_price`", 
+        f"`{prefix}list`", 
+        f"`{prefix}update_unique`",
+        f"`{prefix}mod_role`", 
+        f"`{prefix}log`", 
+        f"`{prefix}language`", 
+        f"`{prefix}time_zone`", 
+        f"`{prefix}zones`"
+    ]
     self.help_menu = {
-      0 : {
-        'set' : f"`{self.prefix}set` `<role>` `<quantity>` - sets the quantity of selected role for selling in shop. If role not in the list of roles available for buying/selling, add it via the `{self.prefix}add` command",
-        'update_cash' : f"`{self.prefix}update_cash` `<member>` `<value>` - sets cash of the member **equal** to selected value",
-        'add' : f"`{self.prefix}add` `<role>` `<price>` `<type_of_role>` `<salary (for unique roles)>` adds role to the list of roles available for buying/selling. Type of role: 0 is for unique, which has salary; 1 is for common, has quantity in the shop; 2 is for infinite (can't run out in the shop)",
-        'remove' : f"`{self.prefix}remove` `<role>` - removes role from list of available for buying/selling. Also removes this role from the shop",
-        'update_price' : f"`{self.prefix}update_price` `<role>` `<price>` - changes role's price and makes it equal to the selected price",
-        'list' : f"`{self.prefix}list` - shows the list of roles avaailable for buying/selling",
-        'update_unique' : f"`{self.prefix}update_unique` `<member>` `<role>`- adds unique role to the balance of member so he could start getting money (also role can be added if user calls command /balance)"
-      },
-      1 : {
-        'set' : f'`{self.prefix}set` `<роль>` `<количество>` - устанавливает количество продаваемых в магазине ролей. Если роли нет в списке доступных для продажи на сервере ролей, добавьте её при помощи команды `{self.prefix}add`. Для количества бесконечных ролей можно указать любое целое число',
-        'update_cash' : f'`{self.prefix}update_cash` `<участник>` `<сумма>` - изменяет баланс учатсника и делает его **равным** указанной сумме',
-        'add' : f'`{self.prefix}add` `<роль>` `<цена>` `<тип_роли>` `<зарплата (для уникальных ролей)>` - добавляет роль в список разрешённых для продажи на сервере ролей. Тип роли: 0, если уникальная; 1, если обычная, то есть конечная; 2, если бесконечная',
-        'remove' : f'`{self.prefix}remove` `<роль>` - убирает роль из списка разрешённых для продажи на сервере ролей. Также удаляет эту роль из магазина',
-        'update_price' : f'`{self.prefix}update_price` `<роль>` `<цена>` - изменяет цену роли и делает её **равной** указанной цене',
-        'list' : f'`{self.prefix}list` - показывет список ролей, доступных для продажи на сервере',
-        'update_unique' : f'`{self.prefix}update_unique` `<участник>` `<роль>`- добавляет уникальную роль на личный баланс пользователя, чтобы он начал получать пассивный заработок (также это можно сделать, если пользователь вызовет команду /balance)'
-      }
+        0 : {
+            "set" : f"`{prefix}set` `<role>` `<quantity>` - sets the quantity of selected role for selling in shop. If role not in the list of roles available for buying/selling, add it via the `{prefix}add` command",
+            "update_cash" : f"`{prefix}update_cash` `<member>` `<value>` sets cash of the member **equal** to selected value",
+            "add" : f"`{prefix}add` `<role>` `<price>` `<type_of_role>` `<salary (for unique roles)>` adds role to the list of roles available for buying/selling. Types of role: 0 is for unique, which has salary; 1 is for common, has quantity in the shop; 2 is for infinite (can't run out in the shop)",
+            "remove" : f"`{prefix}remove` `<role>` - removes role from list of available for buying/selling. Also removes this role from the shop. **All information about the role will be lost!**",
+            "update_price" : f"`{prefix}update_price` `<role>` `<price>` changes role's price and makes it equal to the selected price",
+            "list" : f"`{prefix}list` - shows the list of roles avaailable for buying/selling",
+            "update_unique" : f"`{prefix}update_unique` `<member>` `<role>` adds unique role to the balance of member so he could start getting money (also role can be added if user calls command `/balance`)",
+            "mod_role" : f"`{prefix}mod_role` `<role>` gives role permissions to use commands from `{prefix}help_mod`. Server can only have one role selected for this",
+            "log" : f"`{prefix}log` `<text_channel>` selects log channel for economic operations",
+            "language" : f"`{prefix}language` `<lang>` selects language for interface. Can be **`Eng`** (no matter Eng, eng, eNg etc.) for English and **`Rus`** (no matter Rus, rus, rUs etc.) for Russian",
+            "time_zone" : f"`{prefix}time_zone` `<name_of_time_zone_from_{prefix}zones or \nhour_difference_with_'-'_if_needed>` selects **`UTC`**±**`X`** format for the server",
+            "zones" : f"`{prefix}zones` shows available pre-named time zones"
+        },
+        1 : {
+            "set" : f"`{prefix}set` `<роль>` `<количество>` устанавливает количество продаваемых в магазине ролей. Если роли нет в списке доступных для продажи на сервере ролей, добавьте её при помощи команды `{prefix}add`. Для количества бесконечных ролей можно указать любое целое число",
+            "update_cash" : f"`{prefix}update_cash` `<участник>` `<сумма>` изменяет баланс учатсника и делает его **равным** указанной сумме",
+            "add" : f"`{prefix}add` `<роль>` `<цена>` `<тип_роли>` `<зарплата (для уникальных ролей)>` добавляет роль в список разрешённых для продажи на сервере ролей. Тип роли: 0, если уникальная, т.е. имеющая пассивный заработок; 1, если обычная, то есть конечная; 2, если бесконечная (не может закончиться в магазине)",
+            "remove" : f"`{prefix}remove` `<роль>` - убирает роль из списка разрешённых для продажи на сервере ролей. Также удаляет эту роль из магазина. **Вся информация о роли будет потеряна!**",
+            "update_price" : f"`{prefix}update_price` `<роль>` `<цена>` изменяет цену роли и делает её **равной** указанной цене",
+            "list" : f"`{prefix}list` показывет список ролей, доступных для продажи на сервере",
+            "update_unique" : f"`{prefix}update_unique` `<участник>` `<роль>`- добавляет уникальную роль на личный баланс пользователя, чтобы он начал получать пассивный заработок (также это можно сделать, если пользователь вызовет команду `/balance`)",
+            "mod_role" : f"`{prefix}mod_role` `<роль>` выбирает роль в качестве роли модератора экономики для доступа к командам из `{prefix}help_mod`. На сервере может быть только одна такая роль",
+            "log" : f"`{prefix}log` `<текстовый_канал>` устанавливает выбранный для хранения логов об операциях",
+            "language" : f"`{prefix}language` `<язык>` устанавливает выбранный язык в качестве языка интерфейса. Доступны: **`Eng`** (регист не важен) - для английского и **`Rus`** (регистр не важен) - для русского",
+            "time_zone" : f"`{prefix}time_zone` `<имя_часового_пояса_из_списка или часовой_сдвиг_от_UTC_со_знаком_'-'_при_необходимости>` устанавливает формат времени **`UTC`**±**`X`** для сервера",
+            "zones" : f"`{prefix}zones` показывет доступные именные часовые пояса"
+        }
     }
     self.currency = currency
     global text
@@ -38,37 +61,37 @@ class basic_commands(commands.Cog):
         0 : {
             0 : 'Role',
             1 : 'Commands',
-            2 : '**For more information about command type**:',
+            2 : '**For more information about command use**:',
             3 : 'name_of_the_command',
             4 : 'Information about command:',
             404 : 'Error',
-            5 : f'Please, type command like `{self.prefix}help` or\n`{self.prefix}help name_of_the_command`',
+            5 : f'Please, use command like `{prefix}help_mod` or\n`{prefix}help_mod <name_of_the_command>`',
             6 : 'Please, select command from list of command',
             7 : 'Error: this role is unavailable for buying/selling on the server. Change it via the command',
             8 : 'Third argument of the command must belong to the segment [0; 2]',
-            9 : 'Error: price must be non-negative integer number',
+            9 : 'Error: salary must be non-negative integer number',
             10 : 'was added to the list',
             11 : 'Error: you cant change type of the existing role. To do it, you should recreate role.\n**All information about the role will be lost!**',
             12 : 'Role was successfully updated',
             13 : 'has been withdrawn from server shop, not available for buying/selling  and doesnt bring money from now,',
             14 : 'From now the price of the role',
-            15 : f'role - id - price - type (look {self.prefix}help_mod add)',
+            15 : f'role - id - price - type (look {prefix}help_mod add)',
             16 : 'Error: this role is not unique',
             17 : 'added to the balance of',
             18 : '**`This user was not found on the server.`**',
-            19 : f'**`Please, use correct arguments for command. More info via {self.prefix}help_mod <name_of_the_command>`**',
+            19 : f'**`Please, use correct arguments for command. More info via {prefix}help_mod <name_of_the_command>`**',
             20 : '**`This command not found.`**',
             21 : '**`This user was not found.`**',
             22 : '**`Please, wait before reusing this command.`**',
             23 : "**`Sorry, but you don't have enough permissions for using this comamnd.`**",
-            24 : f"**`Economic moderation role is not chosen! Please, do it via {self.prefix}mod_role`**",
-            25 : f"**`was set as economic moderation role. Commands from {self.prefix}help_mod are available for users with this role`**",
+            24 : f"**`Economic moderation role is not chosen! User with administrator or manage server permission should do it via {prefix}mod_role`**",
+            25 : f"**`was set as economic moderation role. Commands from {prefix}help_mod are available for users with this role`**",
             26 : "was set as log channel",
             27 : "**`English language was set as main`**",
             28 : "Please, select language from list:",
-            29 : "Eng - for English language",
-            30 : "Rus - for Russian language",
-            31 : f"Please, type command in format **`{self.prefix}time_zone`** **`<name_of_time_zone_from_list or hour_difference_with_±>`**",
+            29 : "`Eng` - for English language",
+            30 : "`Rus` - for Russian language",
+            31 : f"Please, use command in format **`{prefix}time_zone`** **`<name_of_time_zone_from_{prefix}zones or hour_difference_with_'-'_if_needed>`**",
             32 : "Time zone **`UTC{}`** was set on the server",
             33 : "**`This server has time zone UTC",
             34 : "**`List of available named time zones:`**"
@@ -80,33 +103,33 @@ class basic_commands(commands.Cog):
             3 : 'название_команды',
             4 : 'Информация о команде',
             404 : 'Ошибка',
-            5 : f'Пожалуйста, укажите команду в формате`{self.prefix}help` или\n`{self.prefix}help название_команды`',
+            5 : f'Пожалуйста, укажите команду в формате`{prefix}help_mod` или\n`{prefix}help_mod <название_команды>`',
             6 : 'Пожалуйста, укажите команду из списка команды',
             7 : 'Ошибка: эту роль нельзя продавать и покупать на сервере. Измените это с помощью команды',
             8 : "Третий аргумент команды должен принадлежать отрезку [0; 2]",
-            9 : "Ошибка: укажите неотрицательное целое число в качестве цены для этой роли",
+            9 : "Ошибка: укажите неотрицательное целое число в качестве зарплаты для этой роли",
             10 : 'добавлена в список',
             11 : 'Ошибка: Вы не можете изменять тип существующе роли. Чтобы сделать это, Вам нужно пересоздать роль.\n**Вся информация о роли будет потеряна!**',
             12 : 'Роль была успешно обновлена',
             13 : 'изъята из обращения на сервере и больше не доступна для продажи/покупки, а также не приносит доход.',
             14 : 'Теперь цена роли',
-            15 : f"Роль - id - цена - тип (см. {self.prefix}help_mod add)",
+            15 : f"Роль - id - цена - тип (см. {prefix}help_mod add)",
             16 : "Ошибка: это не уникальная роль",
             17 : 'записана на личный счёт пользователя',
             18 : "**`На сервере не найден такой пользователь`**",
-            19 : f"**`Пожалуйста, укажите верные аргументы команды. Больше информации - {self.prefix}help_mod <название_команды>`**",
+            19 : f"**`Пожалуйста, укажите верные аргументы команды. Больше информации - {prefix}help_mod <название_команды>`**",
             20 : "**`Такая команда не найдена`**",
             21 : "**`Такой пользователь не найден`**",
             22 : "**`Пожалуйста, подождите перед повторным использованием команды`**",
             23 : "**`У Ваc недостаточно прав для использования этой команды`**",
-            24 : f"**`Роль модератора экономики не выбрана! Пожалуйста, сделайте это при помощи команды {self.prefix}mod_role`**",
-            25 : f"**`установлена в качестве роли модератора экономики. Этой роли доступны команды из списка {self.prefix}help_mod`**",
+            24 : f"**`Роль модератора экономики не выбрана! Пользователь с правами админитратора или управляющего сервером должен сделать это при помощи {prefix}mod_role`**",
+            25 : f"**`установлена в качестве роли модератора экономики. Этой роли доступны команды из списка {prefix}help_mod`**",
             26 : "установлен в качестве канала для логов",
             27 : "**`Русский язык установлен в качестве языка интерфейса`**",
             28 : "Пожалуйста, выберите язык из списка:",
-            29 : "Eng - для английского языка",
-            30 : "Rus - для русского языка",
-            31 : f"Пожалуйста, укажите команду в формате **`{self.prefix}time_zone`** **`<имя_пояса_из_списка или часовой_сдвиг_с_±>`**",
+            29 : "`Eng` - для английского языка",
+            30 : "`Rus` - для русского языка",
+            31 : f"Пожалуйста, укажите команду в формате **`{prefix}time_zone`** **`<имя_пояса_из_списка или часовой_сдвиг_со_знаком_'-'_при необходимости>`**",
             32 : "На сервере был установлен часовой пояс **`UTC{}`**",
             33 : "**`На этом сервере установлен часовой пояс UTC",
             34 : "**`Список именных часовых поясов:`**"
@@ -205,7 +228,7 @@ class basic_commands(commands.Cog):
 
   def needed_role(ctx: commands.Context):
     
-      if any(role.permissions.administrator for role in ctx.author.roles) or ctx.guild.owner == ctx.author:
+      if any(role.permissions.administrator or role.permissions.manage_guild for role in ctx.author.roles) or ctx.guild.owner == ctx.author:
           return 1
 
       with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
@@ -218,7 +241,7 @@ class basic_commands(commands.Cog):
   def check(self, base: sqlite3.Connection, cur: sqlite3.Cursor, memb_id: int):
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
         if member == None:
-            cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date) VALUES(?, ?, ?, ?)', (memb_id, 0, "", "0"))
+            cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date) VALUES(?, ?, ?, ?)', (memb_id, 0, "", 0))
             base.commit()
         else:
             if member[1] == None or member[1] < 0:
@@ -228,7 +251,7 @@ class basic_commands(commands.Cog):
                 cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
                 base.commit()
             if member[3] == None:
-                cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', ("0", memb_id))
+                cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
 
@@ -238,11 +261,11 @@ class basic_commands(commands.Cog):
           try:
               os.mkdir(f'./bases_{guild.id}/')
           except Exception as e:
-              open("report.txt", "a").write(f"\n{datetime.utcnow}: {str(e)}")
+              open("report.txt", "a").write(f"\n{datetime.utcnow()}: {str(e)}")
 
       with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_shop.db')) as base:
           with closing(base.cursor()) as cur:
-              cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date TEXT)')
+              cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
               base.commit()
               cur.execute('CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, special INTEGER)')
               base.commit()
@@ -286,7 +309,7 @@ class basic_commands(commands.Cog):
             for role, members, salary, last_time in r:
               #print(g, role, members, salary, last_time)
               flag = 0
-              if last_time == "0" or last_time == None:
+              if last_time == 0 or last_time == None:
                 flag = 1
               else:
                 #lasted_time = datetime.strptime(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S") + \
@@ -297,7 +320,7 @@ class basic_commands(commands.Cog):
                   flag = 1
               if flag:
                 #cur.execute("UPDATE money_roles SET last_time = ? WHERE role_id = ?", (datetime.utcnow().strftime('%S/%M/%H/%d/%m/%Y'), role))
-                cur.execute("UPDATE money_roles SET last_time = ? WHERE role_id = ?", (time(), role))
+                cur.execute("UPDATE money_roles SET last_time = ? WHERE role_id = ?", (int(time()), role))
                 base.commit()
                 for member in members.split('#'):
                   if member != "":
@@ -322,10 +345,22 @@ class basic_commands(commands.Cog):
         title=text[lng][1],
         description = '\n'.join(msg)
       )
-      emb.add_field(name=text[lng][2], value = f'\n`{self.prefix}help_mod {text[lng][3]}`')
+      emb.add_field(name=text[lng][2], value = f'\n`{self.prefix}help_mod <{text[lng][3]}>`')
 
     elif len(args) == 1:
-      msg.append(f"{self.help_menu[lng][args[0].replace(self.prefix, '')]}")
+      arg = args[0].replace(self.prefix, '')
+      if not arg in self.help_menu[lng]:
+          await ctx.reply(
+            embed=Embed(
+              title=text[lng][404],
+              description=f'{text[lng][6]} `{self.prefix}help_mod`',
+              colour=Colour.red()
+            ),
+            mention_author=False
+          )
+          return
+
+      msg.append(f"{self.help_menu[lng][arg]}")
       emb = Embed(
         colour=Colour.dark_purple(),
         title=text[lng][4],
@@ -341,14 +376,7 @@ class basic_commands(commands.Cog):
   async def _help_error(self, ctx: commands.Context, error):
     if isinstance(error, commands.CommandInvokeError):
       lng = self.lang(ctx=ctx)
-      await ctx.reply(
-        embed=Embed(
-          title=text[lng][404],
-          description=f'{text[lng][6]} `{self.prefix}help_mod`',
-          colour=Colour.red()
-        ),
-        mention_author=False
-      )
+      
 
   @commands.command(hidden=True, aliases=['set'])
   @commands.check(needed_role)
@@ -422,22 +450,22 @@ class basic_commands(commands.Cog):
   async def _add(self, ctx: commands.Context, role: nextcord.Role, price: int, is_special: int, salary: int = None):
     lng = self.lang(ctx=ctx)
     if not is_special in [0, 1, 2]:
-      await ctx.reply(text[lng][8], mention_author=False)
-      return
+        await ctx.reply(text[lng][8], mention_author=False)
+        return
     with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
         with closing(base.cursor()) as cur:
           rls = cur.execute('SELECT role_id FROM server_roles').fetchall()
           role_ids = [x[0] for x in rls]
           if not role.id in role_ids:
-            cur.execute('INSERT INTO server_roles(role_id, price, special) VALUES(?, ?, ?)', (role.id, price, is_special))
-            base.commit()
             if is_special == 0:
               if salary == None or salary < 0:
                 await ctx.reply(content=text[lng][9], mention_author=False)
                 return
-              cur.execute("INSERT INTO money_roles(role_id, members, salary, last_time) VALUES(?, ?, ?, ?)", (role.id, "", salary, "0"))
+              cur.execute("INSERT INTO money_roles(role_id, members, salary, last_time) VALUES(?, ?, ?, ?)", (role.id, "", salary, 0))
               base.commit()
             await ctx.reply(content=f"{role} {text[lng][10]}", mention_author=False)
+            cur.execute('INSERT INTO server_roles(role_id, price, special) VALUES(?, ?, ?)', (role.id, price, is_special))
+            base.commit()
           else:
             is_special_shop = cur.execute("SELECT special FORM server_roles WHERE role_id = ?", (role.id,)).fetchone()[0]
             if is_special != is_special_shop:
@@ -516,7 +544,7 @@ class basic_commands(commands.Cog):
           try:
             membs = cur.execute("SELECT members FROM money_roles WHERE role_id = ?", (role.id,)).fetchone()
             if membs == None:
-              cur.execute("INSERT INTO money_roles(role_id, members, salary, last_time) VALUES(?, ?, ?, ?)", (role.id, "", 0, "0"))
+              cur.execute("INSERT INTO money_roles(role_id, members, salary, last_time) VALUES(?, ?, ?, ?)", (role.id, "", 0, 0))
               membs = ""
             elif membs[0] == None:
               membs = ""
@@ -528,8 +556,7 @@ class basic_commands(commands.Cog):
             cur.execute('UPDATE money_roles SET members = ? WHERE role_id = ?', (membs, role.id))
             base.commit()
           except Exception as e:
-            raise e
-            pass
+            open("report.txt", "a").write(f"{datetime.utcnow()}: {str(e)}\n")
 
           await ctx.reply(content=f"{text[lng][0]} {role} {text[lng][17]} {member}", mention_author=False)
           
@@ -634,7 +661,7 @@ class basic_commands(commands.Cog):
         else:
           await ctx.reply(text[lng][23], mention_author=False)
       else:
-        open("report.txt", "a").write(f"{datetime.utcnow}: {str(error)}\n")
+        open("report.txt", "a").write(f"{datetime.utcnow()}: {str(error)}\n")
   
 def setup(bot: commands.Bot, **kwargs):
-  bot.add_cog(basic_commands(bot, **kwargs))
+  bot.add_cog(mod_commands(bot, **kwargs))
