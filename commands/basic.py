@@ -2,11 +2,11 @@ import asyncio, os
 from contextlib import closing
 import sqlite3, nextcord
 from datetime import datetime, timedelta
-import pytz
 from time import time
 from nextcord.ext import commands
 from nextcord.ext.commands import CheckFailure
 from nextcord import Embed, Colour
+from config import bot_guilds_e, bot_guilds_r
 
 class mod_commands(commands.Cog):
   def __init__(self, bot: commands.Bot, prefix: str, in_row: int, currency: str):
@@ -32,6 +32,8 @@ class mod_commands(commands.Cog):
         f"`{prefix}reset`"
     ]
     ryad = "{-12; -11; ...; 11; 12}"
+    global bot_guilds_e
+    global bot_guilds_r
     global help_menu
     help_menu = {
         0 : {
@@ -171,14 +173,14 @@ class mod_commands(commands.Cog):
             15 : f'role - id - price - type (look {prefix}help_mod add)',
             16 : 'Error: this role is not unique',
             17 : 'added to the balance of',
-            18 : '**`This user was not found on the server.`**',
+            18 : '**`This user not found on the server.`**',
             19 : f'**`Please, use correct arguments for command. More info via {prefix}help_mod <name_of_the_command>`**',
-            20 : '**`This command was not found.`**',
-            21 : '**`This user was not found.`**',
+            20 : '**`This command not found`**',
+            21 : '**`This user not found`**',
             22 : '**`Please, wait before reusing this command.`**',
             23 : "**`Sorry, but you don't have enough permissions for using this comamnd.`**",
-            24 : f"**`Economic moderation role is not chosen! User with administrator or manage server permission should do it via {prefix}mod_role`**",
-            25 : f"**`was set as economic moderation role. Commands from {prefix}help_mod are available for users with this role`**",
+            24 : f"**`Economic moderator role is not chosen! User with administrator or manage server permission should do it via {prefix}mod_role`**",
+            25 : f"**`was set as economic moderator role. Commands from {prefix}help_mod are available for users with this role`**",
             26 : "was set as log channel",
             27 : "**`English language was set as main`**",
             28 : "Please, select language from list:",
@@ -192,7 +194,9 @@ class mod_commands(commands.Cog):
             36 : "**`From now to reuse command /work members should wait at least {} seconds`**",
             37 : "**`Left and right borders must be integer non-negative numbers and the right must be at least as large as the left`**",
             38 : "**`{} и {} selected as borders for amount of money gained after using /work`**",
-            39 : "From now members with unique roles (type of roles - 0) will gain money once every {} seconds",
+            39 : "**`From now members with unique roles (type of roles - 0) will gain money once every {} seconds`**",
+            40 : "**`This role not found`**",
+            41 : "**`This channel not found`**"
             
         },
         1 : {
@@ -237,6 +241,8 @@ class mod_commands(commands.Cog):
             37 : "**`Границы заработка должны быть целыми неотрицательными числами, причём правая граница (в команде указывается второй) должна быть не меньше левой (в команде указывается первой)`**",
             38 : "**`{} и {} установлены в качестве границ заработка от команды /work`**",
             39 : "**`В качестве перерыва между начислением денег участникам с уникальными ролями (тип ролей - 0) установлено время {} секунд(а, ы)`**",
+            40 : "**`Такая роль не найдена`**",
+            41 : "**`Такой канал не найден`**"
         }
     }
     global zones
@@ -327,17 +333,21 @@ class mod_commands(commands.Cog):
             4 : "Server time zone:",
             5 : "Server cooldown for `/work`:",
             6 : "Salary from `/work`:",
-            7 : "Server cooldown for unique roles salary:"
+            7 : "Server cooldown for unique roles salary:",
+            8 : "```fix\nChannel not selected```",
+            9 : "```fix\nRole not selected```"
         },
         1 : {
             0 : "**`Настройки сервера`**",
             1 : "Язык сервера:",
             2 : "Id канала для логов:",
-            3 : "Id роли модера экономики:",
+            3 : "Id роли модератора экономики:",
             4 : "Часовой пояс сервера:",
             5 : "Кулдаун команды `/work`:",
             6 : "Заработок от команды `/work`:",
-            7 : "Кулдаун заработка уникальных ролей:"
+            7 : "Кулдаун заработка уникальных ролей:",
+            8 : "```fix\nКанал не выбран```",
+            9 : "```fix\nРоль не выбрана```"
         }
     }
 
@@ -386,12 +396,13 @@ class mod_commands(commands.Cog):
 
   @commands.Cog.listener()
   async def on_guild_join(self, guild: nextcord.Guild):
+      bot_guilds_e.add(guild.id)
       if not os.path.exists(f'./bases_{guild.id}'):
           try:
               os.mkdir(f'./bases_{guild.id}/')
           except Exception as E:
               with open("d.log", "a+", encoding="utf-8") as f:
-                  f.write(f"[{datetime.now(pytz.utc).__add__(timedelta(hours=3))}] [ERROR] [{str(E)}]\n")
+                  f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{str(E)}]\n")
 
       with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_shop.db')) as base:
           with closing(base.cursor()) as cur:
@@ -441,6 +452,20 @@ class mod_commands(commands.Cog):
               if cur.execute("SELECT value FROM server_info WHERE settings = 'uniq_timer'").fetchone() == None:
                   cur.execute("INSERT INTO server_info(settings, value) VALUES('uniq_timer', 14400)")
                   base.commit()
+
+  @commands.Cog.listener()
+  async def on_guild_remove(self, guild: nextcord.Guild):
+      with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_shop.db')) as base:
+          with closing(base.cursor()) as cur:
+              lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+              try:
+                  if lng == 0:
+                      bot_guilds_e.remove(guild.id)
+                  else:
+                      bot_guilds_r.remove(guild.id)
+              except Exception as E:
+                  with open("d.log", "a+", encoding="utf-8") as f:
+                      f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [guild_remove] [{str(E)}]\n")
 
   @commands.Cog.listener()
   async def on_ready(self):
@@ -711,7 +736,7 @@ class mod_commands(commands.Cog):
             base.commit()
           except Exception as E:
               with open("d.log", "a+", encoding="utf-8") as f:
-                  f.write(f"[{datetime.now(pytz.utc).__add__(timedelta(hours=3))}] [ERROR] [{str(E)}]\n")
+                  f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{str(E)}]\n")
 
           await ctx.reply(content=f"{text[lng][0]} {role} {text[lng][17]} {member}", mention_author=False)
 
@@ -863,11 +888,15 @@ class mod_commands(commands.Cog):
               if lng == 0:
                   emb.add_field(name=set_text[0][1], value="`English`", inline=False)
               else:
-                  emb.add_field(name=set_text[1][1], value="`Russian`", inline=False)
+                  emb.add_field(name=set_text[1][1], value="`Русский`", inline=False)
               if log_c != 0:
                   emb.add_field(name=set_text[lng][2], value=log_c, inline=False)
+              else:
+                  emb.add_field(name=set_text[lng][2], value=set_text[lng][8], inline=False)
               if m_r != 0:
                   emb.add_field(name=set_text[lng][3], value=m_r, inline=False)
+              else:
+                  emb.add_field(name=set_text[lng][3], value=set_text[lng][9], inline=False)
               if tz >= 0:
                   emb.add_field(name=set_text[lng][4], value=f"`UTC+{tz}`", inline=False)
               else:
@@ -915,6 +944,10 @@ class mod_commands(commands.Cog):
           await ctx.reply(text[lng][20], mention_author=False)
       elif isinstance(error, commands.UserNotFound):
           await ctx.reply(text[lng][21], mention_author=False)
+      elif isinstance(error, commands.RoleNotFound):
+          await ctx.reply(text[lng][40], mention_author=False)
+      elif isinstance(error, commands.ChannelNotFound):
+          await ctx.reply(text[lng][41], mention_author=False)
       elif isinstance(error, commands.CommandOnCooldown):
           await ctx.reply(text[lng][22], mention_author=False)
       elif isinstance(error, CheckFailure):
@@ -923,8 +956,9 @@ class mod_commands(commands.Cog):
           else:
               await ctx.reply(text[lng][23], mention_author=False)
       else:
+          raise error
           with open("d.log", "a+", encoding="utf-8") as f:
-              f.write(f"[{datetime.now(pytz.utc).__add__(timedelta(hours=3))}] [ERROR] [{str(error)}]\n")
+              f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{str(error)}]\n")
   
 def setup(bot: commands.Bot, **kwargs):
   bot.add_cog(mod_commands(bot, **kwargs))

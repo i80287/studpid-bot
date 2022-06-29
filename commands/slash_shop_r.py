@@ -1,4 +1,4 @@
-import sqlite3, nextcord, pytz
+import sqlite3, nextcord
 from time import time
 from random import randint
 from nextcord.ui import Button, View
@@ -6,7 +6,7 @@ from nextcord.ext import commands
 from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
-
+from config import bot_guilds_r
 
 class Bet_view(View):
     def __init__(self, timeout: int, ctx: Interaction, base: sqlite3.Connection, cur: sqlite3.Cursor, symbol: str, bet: int, function: filter):
@@ -320,6 +320,7 @@ class shop_commands_slash(commands.Cog):
         self.prefix = prefix
         self.in_row = in_row
         self.currency = currency
+        global bot_guilds_r
     
     def check_user(self, base: sqlite3.Connection, cur: sqlite3.Cursor, memb_id: int):
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
@@ -337,8 +338,12 @@ class shop_commands_slash(commands.Cog):
                 cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', ("0", memb_id))
                 base.commit()
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
+    
+    @nextcord.slash_command(name="help", description="Вызывает меню команд", guild_ids = bot_guilds_r)
+    async def buy(self, interaction: Interaction):
+        pass
 
-    @nextcord.slash_command(name="buy", description="Вызывает меню покупки роли в магазине", guild_ids=[863462268402532363, 934139154290339881])
+    @nextcord.slash_command(name="buy", description="Вызывает меню покупки роли в магазине", guild_ids=bot_guilds_r)
     async def buy(self, interaction: Interaction, role: nextcord.Role = SlashOption(name="role", description="Роль, которую Вы хотите купить", required=True)):
         member_buyer = interaction.user
         if role in member_buyer.roles:
@@ -415,7 +420,7 @@ class shop_commands_slash(commands.Cog):
                     except:
                         pass
                     
-    @nextcord.slash_command(name="shop", description="Вызывает меню с товарами", guild_ids=[863462268402532363, 934139154290339881])
+    @nextcord.slash_command(name="shop", description="Вызывает меню с товарами", guild_ids=bot_guilds_r)
     async def shop(self, interaction: Interaction):
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
             with closing(base.cursor()) as cur:
@@ -461,7 +466,7 @@ class shop_commands_slash(commands.Cog):
                         button.disabled = True
                     await msg.edit(view=myview_shop)
     
-    @nextcord.slash_command(name="sell", description="Выставляет указанную роль на продажу", guild_ids=[863462268402532363, 934139154290339881])
+    @nextcord.slash_command(name="sell", description="Выставляет указанную роль на продажу", guild_ids=bot_guilds_r)
     async def sell(
         self,
         interaction: Interaction,
@@ -541,7 +546,7 @@ class shop_commands_slash(commands.Cog):
                 except:
                     pass
 
-    @nextcord.slash_command(name="profile", description="Показывает Ваш профиль", guild_ids=[863462268402532363, 934139154290339881])
+    @nextcord.slash_command(name="profile", description="Показывает Ваш профиль", guild_ids=bot_guilds_r)
     async def profile(self, interaction: Interaction):
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
             with closing(base.cursor()) as cur:
@@ -587,7 +592,7 @@ class shop_commands_slash(commands.Cog):
 
                 except Exception as E:
                     with open("d.log", "a+", encoding="utf-8") as f:
-                        f.write(f"[{datetime.now(pytz.utc).__add__(timedelta(hours=3))}] [ERROR] [command /profile] [user: {memb_id}] [{str(E)}]\n")
+                        f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [command /profile] [user: {memb_id}] [{str(E)}]\n")
 
                 if flag:
                     cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', (roles, interaction.user.id))
@@ -595,7 +600,7 @@ class shop_commands_slash(commands.Cog):
                 emb.description = "\n".join(descr)
                 await interaction.response.send_message(embed=emb)
 
-    @nextcord.slash_command(name="work", description="Поработать", guild_ids=[863462268402532363, 934139154290339881])
+    @nextcord.slash_command(name="work", description="Поработать", guild_ids=bot_guilds_r)
     async def work(self, interaction: Interaction):
         memb_id = interaction.user.id
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
@@ -624,7 +629,7 @@ class shop_commands_slash(commands.Cog):
                 await interaction.response.send_message(embed=Embed(title="Успех", description=f"**`Вы заработали {salary}`**{self.currency}", colour=Colour.gold()))
                 return
 
-    @nextcord.slash_command(name="duel", description="Сделать ставку", guild_ids=[863462268402532363, 934139154290339881])
+    @nextcord.slash_command(name="duel", description="Сделать ставку", guild_ids=bot_guilds_r)
     async def duel(self, interaction: Interaction, bet: int = SlashOption(name="bet", description="Делает ставку указанной суммы", required=True, min_value=1)): 
 
         memb_id = interaction.user.id
@@ -673,7 +678,7 @@ class shop_commands_slash(commands.Cog):
                     button.disabled = True
                 await msg.edit(embed=emb, view=betview)
 
-    @nextcord.slash_command(name="transfer", description="Перадать валюту другому участнику", guild_ids=[863462268402532363, 934139154290339881])
+    @nextcord.slash_command(name="transfer", description="Перадать валюту другому участнику", guild_ids=bot_guilds_r)
     async def transfer(
         self,
         interaction: Interaction, 
