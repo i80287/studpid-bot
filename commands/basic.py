@@ -53,7 +53,7 @@ class mod_commands(commands.Cog):
             "log" : f"`{prefix}log` `<текстовый_канал>` устанавливает выбранный для хранения логов об операциях",
             "language" : f"`{prefix}language` `<язык>` устанавливает выбранный язык в качестве языка интерфейса. Доступны: **`Eng`** (регист не важен) - для английского и **`Rus`** (регистр не важен) - для русского",
             "time_zone" : f"`{prefix}time_zone` `<имя_часового_пояса_из_списка или часовой_сдвиг_от_UTC_со_знаком_'-'_при_необходимости>` устанавливает формат времени **`UTC`**±**`X`**, **`X`** Є {ryad}, для сервера",
-            "zones" : f"`{prefix}zones` показывет доступные именные часовые пояса"
+            "zones" : f"`{prefix}zones` показывет доступные именные часовые пояса",
         }
     }
     self.currency = currency
@@ -96,7 +96,11 @@ class mod_commands(commands.Cog):
             32 : "Time zone **`UTC{}`** was set on the server",
             33 : "**`This server has time zone UTC",
             34 : "**`List of available named time zones:`**",
-            35 : "Time (in seconds) must be integer positive number (without any additional symbols)"
+            35 : "**`Time (in seconds) must be integer positive number (without any additional symbols)`**",
+            36 : "**`From now to reuse command /work members should wait at least {} seconds`**",
+            37 : "**`Left and right borders must be integer non-negative numbers and the right must be at least as large as the left`**",
+            38 : "**`{} и {} selected as borders for amount of money gained after using /work`**"
+            
         },
         1 : {
             0 : 'Role',
@@ -135,7 +139,10 @@ class mod_commands(commands.Cog):
             32 : "На сервере был установлен часовой пояс **`UTC{}`**",
             33 : "**`На этом сервере установлен часовой пояс UTC",
             34 : "**`Список именных часовых поясов:`**",
-            35 : "Время (в секундах) должно быть целым положительным числом (только число, без дополнительных символов)"
+            35 : "**`Время (в секундах) должно быть целым положительным числом (только число, без дополнительных символов)`**",
+            36 : "**`В качестве перерыва между использованием /work установлено время {} секунд(а, ы)`**",
+            37 : "**`Границы заработка должны быть целыми неотрицательными числами, причём правая граница (в команде указывается второй) должна быть не меньше левой (в команде указывается первой)`**",
+            38 : "**`{} и {} установлены в качестве границ заработка от команды /work`**"
         }
     }
     global zones
@@ -670,6 +677,24 @@ class mod_commands(commands.Cog):
                   return
               cur.execute("UPDATE server_info SET value = ? WHERE settings = ?", (timer, 'time_reload'))
               base.commit()
+              await ctx.reply(content=text[lng][36].format(timer), mention_author=False)
+
+  @commands.command(hidden=True, aliases=['work_timer'])
+  @commands.check(needed_role)
+  async def _work_timer(self, ctx: commands.Context, a: int, b: int):
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+          with closing(base.cursor()) as cur:
+              lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+              if min(a, b) < 0 or a > b:
+                  await ctx.reply(content=text[lng][38], mention_author=False)
+                  return
+              cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_l'", (a,))
+              base.commit()
+              cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_r'", (b,))
+              base.commit()
+              await ctx.reply(content=text[lng][39].format(a, b), mention_author=False)
+
+
 
 
   @commands.Cog.listener()
