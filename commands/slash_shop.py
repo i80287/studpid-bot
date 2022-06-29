@@ -587,7 +587,7 @@ class shop_commands_slash(commands.Cog):
 
                 except Exception as E:
                     with open("d.log", "a+", encoding="utf-8") as f:
-                        f.write(f"[{datetime.now(pytz.utc).__add__(timedelta(hours=3))}] [ERROR] [command /profile] [user: {memb_id}] [{str(E)}]")
+                        f.write(f"[{datetime.now(pytz.utc).__add__(timedelta(hours=3))}] [ERROR] [command /profile] [user: {memb_id}] [{str(E)}]\n")
 
                 if flag:
                     cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', (roles, interaction.user.id))

@@ -26,60 +26,126 @@ class mod_commands(commands.Cog):
         f"`{prefix}time_zone`", 
         f"`{prefix}zones`",
         f"`{prefix}work_time`",
-        f"`{prefix}salary`"
+        f"`{prefix}salary`",
+        f"`{prefix}uniq_timer`",
+        f"`{prefix}settings`",
+        f"`{prefix}reset`"
     ]
     ryad = "{-12; -11; ...; 11; 12}"
-    self.help_menu = {
+    global help_menu
+    help_menu = {
         0 : {
             "set" : f"`{prefix}set` `<role>` `<quantity>` - sets the quantity of selected role for selling in shop. If role not in the list of roles available for buying/selling, \
-              add it via the `{prefix}add` command",
-            "update_cash" : f"`{prefix}update_cash` `<member>` `<value>` sets cash of the member **equal** to selected value",
+              add it via the `{prefix}add` command. \n**Example:**\n**`{prefix}set 972494065088200745 5`** sets 5 roles with id 972494065088200745 (you can use mention with @ \
+                instead of id) selling in the shop",
+
+            "update_cash" : f"`{prefix}update_cash` `<member>` `<value>` sets cash of the member **equal** to selected value. \n**Example:**\n**`{prefix}update_cash 931273285268832326 100 \
+              will set user's cash equal to 100 {currency} (you can mention user with @ instead of him id)",
+
             "add" : f"`{prefix}add` `<role>` `<price>` `<type_of_role>` `<salary (for unique roles)>` adds role to the list of roles available for buying/selling.\
               Types of role: \n0 is for unique, which has salary; \n1 is for common, has quantity in the shop; \n2 is for infinite (can't run out in the shop). \
               \n**Example:**\n **`{prefix}add 972494065088200745 100 0 10`** adds role with id 972494065088200745 (you can use mention with @ instead of id) to the list, it costs \
               100 {currency}, unique and brigns it's owner 10 every 4 hours",
+
             "remove" : f"`{prefix}remove` `<role>` - removes role from list of available for buying/selling. Also removes this role from the shop. **All information about the role \
-              will be lost!**",
-            "update_price" : f"`{prefix}update_price` `<role>` `<price>` changes role's price and makes it **equal** to the selected price",
+              will be lost!**\n**Example**\n**`{prefix}remove 972494065088200745`** will remove role with id 972494065088200745 (you can use mention with @ instead of id) from list \
+              of roles available for selling/buying on the server, also all information about the role will be deleted",
+
+            "update_price" : f"`{prefix}update_price` `<role>` `<price>` changes role's price and makes it **equal** to the selected price.\n**Example:**\n**`{prefix}update_price \
+              972494065088200745 100`** sets price of role with id 972494065088200745 (you can use mention with @ instead of id) equal to 100 {currency}",
+
             "list" : f"`{prefix}list` - shows the list of roles available for buying/selling",
+
             "give_unique" : f"`{prefix}give_unique` `<member>` `<role>` adds unique role to the balance of member so he could start getting money from this role (also role can be added \
-              if user calls command `/balance`)",
-            "mod_role" : f"`{prefix}mod_role` `<role>` gives permissions to use commands from `{prefix}help_mod` for the selected role. Server can only have one role selected for this",
-            "log" : f"`{prefix}log` `<text_channel>` selects log channel for economic operations",
+              if user calls command `/balance`)\n**Example:**\n**`{prefix}give_unique 931273285268832326 972494065088200745`** will add role with id 972494065088200745 (you can \
+                use mention with @ instead of id) to the balance of user with id 931273285268832326 (you can use mention with @ instead of id) so he could start getting money \
+                from that role",
+
+            "mod_role" : f"`{prefix}mod_role` `<role>` gives permissions to use commands from `{prefix}help_mod` for the selected role. Server can only have one role selected for this \
+              \n**Example:**\n**`{prefix}mod_role 972494065088200745`** will select role with id 972494065088200745 (you can use mention with @ instead of id) as economic mod role, \
+              so users with this role will be able to use commands from `{prefix}help_mod`",
+            
+            "log" : f"`{prefix}log` `<text_channel>` selects log channel for economic operations.\n**Example:**\n**`{prefix}log 863462268934422540`** will select **text** channel \
+              with id 863462268934422540 (you can use mention with # instead of id) as log channel",
+
             "language" : f"`{prefix}language` `<lang>` selects language for interface. Can be **`Eng`** (no matter Eng, eng, eNg etc.) for English and **`Rus`** (no matter Rus, rus, \
-              rUs etc.) for Russian",
+              rUs etc.) for Russian.\n**Example:**\n**`{prefix}language eng`** will select English language for bot interface",
+
             "time_zone" : f"`{prefix}time_zone` `<name_of_time_zone_from_{prefix}zones or \nhour_difference_with_'-'_if_needed>` selects **`UTC`**±**`X`**, **`X`** Є {ryad}, format for \
               the server. \n**Example:**\n{prefix}time_zone EDT will set time zone of Eastern Daylight Time UTC-4, а {prefix}time_zone -7 will set time zone UTC-7",
+
             "zones" : f"`{prefix}zones` shows available pre-named time zones",
-            "work_time" : f"`{prefix}work_time` `<time_in_seconds>` sets timeout for command /work",
-            "salary" : f"`{prefix}salary` `<left_border>` `<right_border>` sets borders for amount of money gained from command /work. This amount will be random integer number \
-              Є [left; right]. Both are integer non-negative numbers, right one must be at least as large as the left"
+
+            "work_time" : f"`{prefix}work_time` `<time_in_seconds>` sets cooldown for command `/work`.\n**Example:**\n**`{prefix}work_time 10800`** will set 3 hours cooldown \
+              (10800 seconds = 3 hours) for command `/work`",
+
+            "salary" : f"`{prefix}salary` `<left_border>` `<right_border>` sets borders for amount of money gained from command `/work`. This amount will be random integer number \
+              Є [left; right]. Both are integer non-negative numbers, right one must be at least as large as the left.\nExample:\n**`{prefix}salary 10 100`** changes amount of cash \
+              gained from `/work`, and this amount will be random integer from 10 to 100 (amount Є [10; 100])",
+
+            "uniq_timer" : f"`{prefix}uniq_timer` <time_in_seconds> sets cooldown for accruing money from unique roles (type of roles - 0).\n**Example:**\n\
+              **`{prefix}uniq_timer 10800`** will set 3 hours cooldown (10800 seconds = 3 hours)",
+
+            "settings" : f"`{prefix}settings` shows menu with current bot's settings",
+
+            "reset" : f"`{prefix}reset` resets current bot's settings"
+
         },
         1 : {
             "set" : f"`{prefix}set` `<роль>` `<количество>` устанавливает количество продаваемых в магазине ролей. Если роли нет в списке доступных для продажи на сервере ролей, добавьте \
-              её при помощи команды `{prefix}add`. Для количества бесконечных ролей можно указать любое целое число",
-            "update_cash" : f"`{prefix}update_cash` `<участник>` `<сумма>` изменяет баланс учатсника и делает его **равным** указанной сумме",
+              её при помощи команды `{prefix}add`. Для количества бесконечных ролей можно указать любое целое число.\n**Пример:**\n**`{prefix}set 972494065088200745 5`** сделает так, \
+                что в магазине будут продаваться 5 ролей с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id)",
+
+            "update_cash" : f"`{prefix}update_cash` `<участник>` `<сумма>` изменяет баланс учатсника и делает его **равным** указанной сумме. \n**Пример:**\n**`{prefix}update_cash \
+              931273285268832326 100`** сделает баланс юзера с id 931273285268832326 (Вы можете упомянуть юзера при помощи @ вместо id) равным 100 {currency}",
+
             "add" : f"`{prefix}add` `<роль>` `<цена>` `<тип_роли>` `<зарплата (для уникальных ролей)>` добавляет роль в список разрешённых для продажи на сервере ролей. \
               Тип роли: \n0, если уникальная, т.е. имеющая пассивный заработок; \n1, если обычная, то есть конечная; \n2, если бесконечная (не может закончиться в магазине). \
-              \n**Пример:**\n **`{prefix}add 972494065088200745 100 0 10`** добавит роль с id 972494065088200745 (можно указать не через id, а через @) в список, она будет уникальной, \
+              \n**Пример:**\n **`{prefix}add 972494065088200745 100 0 10`** добавит роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) в список, она будет уникальной, \
               будет стоить 100 {currency} и приносить своему владельцу 10 каждые 4 часа",
+
             "remove" : f"`{prefix}remove` `<роль>` - убирает роль из списка разрешённых для продажи на сервере ролей. Также удаляет эту роль из магазина. **Вся информация о роли будет \
-              потеряна!**",
-            "update_price" : f"`{prefix}update_price` `<роль>` `<цена>` изменяет цену роли и делает её **равной** указанной цене",
+              потеряна!**\n**Пример:**\n**`{prefix}remove 972494065088200745`** удалит роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) из списка ролей, \
+              доступных для покупки/продажи на сервере и из магазина, а также удалит информацию о роли (её цена, тип и заработок)",
+
+            "update_price" : f"`{prefix}update_price` `<роль>` `<цена>` изменяет цену роли и делает её **равной** указанной цене\n**Пример:**\n**`{prefix}update_price \
+              972494065088200745 100`** сделает цену роли с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) равной 100 {currency}",
+
             "list" : f"`{prefix}list` показывет список ролей, доступных для продажи на сервере",
+
             "give_unique" : f"`{prefix}give_unique` `<участник>` `<роль>`- добавляет уникальную роль на личный баланс пользователя, чтобы он начал получать пассивный заработок \
-              (также это можно сделать, если пользователь вызовет команду `/balance`)",
+              (также это можно сделать, если пользователь вызовет команду `/balance`)\nПример:\n**`{prefix}give_unique 931273285268832326 972494065088200745`** запишет роль \
+              c id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) на баланс юзера с id 931273285268832326 (Вы можете упомянуть юзера при помощи @ вместо id), \
+              чтобы он смог получать пассивный заработок с этой роли",
+
             "mod_role" : f"`{prefix}mod_role` `<роль>` выбирает роль в качестве роли модератора экономики для доступа к командам из `{prefix}help_mod`. На сервере может быть только \
-              одна такая роль",
-            "log" : f"`{prefix}log` `<текстовый_канал>` устанавливает выбранный для хранения логов об операциях",
+              одна такая роль.\n**Пример:**\n**`{prefix}mod_role 972494065088200745`** выберет роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) \
+              в качестве роли модератора экономики. Юзеры с этой ролью смогу использовать команды из списка команды `{prefix}help_mod` и управлять настройками бота",
+
+            "log" : f"`{prefix}log` `<текстовый_канал>` устанавливает выбранный для хранения логов об операциях.\n**Пример:**\n**`{prefix}log 863462268934422540`** установит \
+              канал с id 863462268934422540 (Вы можете упомянуть канал при помощи #, а не id) в качестве канала для логов бота",
+
             "language" : f"`{prefix}language` `<язык>` устанавливает выбранный язык в качестве языка интерфейса. Доступны: **`Eng`** (регист не важен) - для английского и **`Rus`** \
-              (регистр не важен) - для русского",
+              (регистр не важен) - для русского.\n**Пример:**\n**`{prefix}language rus`** установит русский язык для интерфейса бота",
+
             "time_zone" : f"`{prefix}time_zone` `<имя_часового_пояса_из_списка или часовой_сдвиг_от_UTC_со_знаком_'-'_при_необходимости>` устанавливает формат времени **`UTC`**±**`X`**, \
               **`X`** Є {ryad}, для сервера. \n**Пример:**\n{prefix}time_zone YAKT установит часовой пояс Якутска UTC+9, а {prefix}time_zone -7 установит часовой пояс UTC-7",
+
             "zones" : f"`{prefix}zones` показывет доступные именные часовые пояса",
-            "work_time" : f"`{prefix}work_time` <время_в_секундах> устанавливает кулдаун для использования команды /work",
+
+            "work_time" : f"`{prefix}work_time` <время_в_секундах> устанавливает кулдаун для использования команды `/work` .\n**Пример:**\n**`{prefix}work_time 10800`** \
+              установит кулдаун, равный 3 часам (10800 секунд = 3 часа), для команды `/work`",
+
             "salary" : f"`{prefix}salary` <левая_граница> <правая_граница> устанавливает количество денег, получаемое после использования команды /work. Это количество будет целым \
-              числом Є [левая_граница; правая_граница]. Оба числа должны быть целыми неотрицательными числами, правая граница должна быть не меньше левой"
+              числом Є [левая_граница; правая_граница]. Оба числа должны быть целыми неотрицательными числами, правая граница должна быть не меньше левой.\nПример:\n\
+              **`{prefix}salary 10 100`** изменяет заработок, получаемый после использования команды `/work`, этот заработок будет рандомным целым числом от 10 до 100 (заработок Є [10; 100])",
+            
+            "uniq_timer" : f"`{prefix}uniq_timer` <время_в_секундах> устанавливает перерыв между начислением денег участникам с уникальными ролями (тип ролей - 0).\n**Пример:**\n\
+              **`{prefix}uniq_timer 10800`** установит перерыв, равный 3 часам (10800 секунд = 3 часа)",
+
+            "settings" : f"`{prefix}settings` вызывает меню, в котором отображены текущие настройки бота",
+            
+            "reset" : f"`{prefix}reset` сбрасывает текущие настройки бота"
         }
     }
     self.currency = currency
@@ -107,7 +173,7 @@ class mod_commands(commands.Cog):
             17 : 'added to the balance of',
             18 : '**`This user was not found on the server.`**',
             19 : f'**`Please, use correct arguments for command. More info via {prefix}help_mod <name_of_the_command>`**',
-            20 : '**`This command not found.`**',
+            20 : '**`This command was not found.`**',
             21 : '**`This user was not found.`**',
             22 : '**`Please, wait before reusing this command.`**',
             23 : "**`Sorry, but you don't have enough permissions for using this comamnd.`**",
@@ -126,7 +192,7 @@ class mod_commands(commands.Cog):
             36 : "**`From now to reuse command /work members should wait at least {} seconds`**",
             37 : "**`Left and right borders must be integer non-negative numbers and the right must be at least as large as the left`**",
             38 : "**`{} и {} selected as borders for amount of money gained after using /work`**",
-            39 : "",
+            39 : "From now members with unique roles (type of roles - 0) will gain money once every {} seconds",
             
         },
         1 : {
@@ -170,7 +236,7 @@ class mod_commands(commands.Cog):
             36 : "**`В качестве перерыва между использованием /work установлено время {} секунд(а, ы)`**",
             37 : "**`Границы заработка должны быть целыми неотрицательными числами, причём правая граница (в команде указывается второй) должна быть не меньше левой (в команде указывается первой)`**",
             38 : "**`{} и {} установлены в качестве границ заработка от команды /work`**",
-            39 : "",
+            39 : "**`В качестве перерыва между начислением денег участникам с уникальными ролями (тип ролей - 0) установлено время {} секунд(а, ы)`**",
         }
     }
     global zones
@@ -251,7 +317,29 @@ class mod_commands(commands.Cog):
         "HDT" : "Hawaii-Aleutian, Daylight UTC-9",           
         "HST" :	"Hawaii Standard, Time UTC-10"
     }
-
+    global set_text
+    set_text = {
+        0 : {
+            0 : "**`Server settings`**",
+            1 : "Server language:",
+            2 : "Server log channel id:",
+            3 : "Server economic mod role id:",
+            4 : "Server time zone:",
+            5 : "Server cooldown for `/work`:",
+            6 : "Salary from `/work`:",
+            7 : "Server cooldown for unique roles salary:"
+        },
+        1 : {
+            0 : "**`Настройки сервера`**",
+            1 : "Язык сервера:",
+            2 : "Id канала для логов:",
+            3 : "Id роли модера экономики:",
+            4 : "Часовой пояс сервера:",
+            5 : "Кулдаун команды `/work`:",
+            6 : "Заработок от команды `/work`:",
+            7 : "Кулдаун заработка уникальных ролей:"
+        }
+    }
 
   def mod_role_set(self, ctx: commands.Context):
     with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
@@ -301,8 +389,9 @@ class mod_commands(commands.Cog):
       if not os.path.exists(f'./bases_{guild.id}'):
           try:
               os.mkdir(f'./bases_{guild.id}/')
-          except Exception as e:
-              open("report.txt", "a").write(f"\n{datetime.utcnow()}: {str(e)}")
+          except Exception as E:
+              with open("d.log", "a+", encoding="utf-8") as f:
+                  f.write(f"[{datetime.now(pytz.utc).__add__(timedelta(hours=3))}] [ERROR] [{str(E)}]\n")
 
       with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_shop.db')) as base:
           with closing(base.cursor()) as cur:
@@ -348,8 +437,10 @@ class mod_commands(commands.Cog):
               if cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r'").fetchone() == None:
                   cur.execute("INSERT INTO server_info(settings, value) VALUES('sal_r', 250)")
                   base.commit()
-              
 
+              if cur.execute("SELECT value FROM server_info WHERE settings = 'uniq_timer'").fetchone() == None:
+                  cur.execute("INSERT INTO server_info(settings, value) VALUES('uniq_timer', 14400)")
+                  base.commit()
 
   @commands.Cog.listener()
   async def on_ready(self):
@@ -406,7 +497,7 @@ class mod_commands(commands.Cog):
 
     elif len(args) == 1:
       arg = args[0].replace(self.prefix, '')
-      if not arg in self.help_menu[lng]:
+      if not arg in help_menu[lng]:
           await ctx.reply(
             embed=Embed(
               title=text[lng][404],
@@ -417,7 +508,7 @@ class mod_commands(commands.Cog):
           )
           return
 
-      msg.append(f"{self.help_menu[lng][arg]}")
+      msg.append(f"{help_menu[lng][arg]}")
       emb = Embed(
         colour=Colour.dark_purple(),
         title=text[lng][4],
@@ -618,8 +709,9 @@ class mod_commands(commands.Cog):
               membs += f"#{member.id}"                 
             cur.execute('UPDATE money_roles SET members = ? WHERE role_id = ?', (membs, role.id))
             base.commit()
-          except Exception as e:
-            open("report.txt", "a").write(f"{datetime.utcnow()}: {str(e)}\n")
+          except Exception as E:
+              with open("d.log", "a+", encoding="utf-8") as f:
+                  f.write(f"[{datetime.now(pytz.utc).__add__(timedelta(hours=3))}] [ERROR] [{str(E)}]\n")
 
           await ctx.reply(content=f"{text[lng][0]} {role} {text[lng][17]} {member}", mention_author=False)
 
@@ -629,8 +721,8 @@ class mod_commands(commands.Cog):
   async def _mod_role(self, ctx: commands.Context, role: nextcord.Role):
       with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
           with closing(base.cursor()) as cur:
-              lng = cur.execute("SELECT lang FROM server_info").fetchone()[0]
-              cur.execute("UPDATE server_info SET mod_role = ?", (role.id,))
+              lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+              cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mod_role'", (role.id,))
               base.commit()
               await ctx.reply(f"**`{text[lng][0]}`** {role.name} {text[lng][25]}", mention_author=False)
 
@@ -640,8 +732,8 @@ class mod_commands(commands.Cog):
   async def _log(self, ctx: commands.Context, channel: nextcord.TextChannel):
       with closing(sqlite3.connect(f'./bases_{ctx. guild.id}/{ctx.guild.id}_shop.db')) as base:
           with closing(base.cursor()) as cur:
-              lng = cur.execute("SELECT lang FROM server_info").fetchone()[0]
-              cur.execute("UPDATE server_info SET log = ?", (channel.id,))
+              lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+              cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_channel'", (channel.id,))
               base.commit()
               await ctx.reply(f"{channel.mention} {text[lng][26]}", mention_author=False)
   
@@ -720,7 +812,7 @@ class mod_commands(commands.Cog):
               if timer <= 0:
                   await ctx.reply(content=text[lng][35], mention_author=False)
                   return
-              cur.execute("UPDATE server_info SET value = ? WHERE settings = ?", (timer, 'time_reload'))
+              cur.execute("UPDATE server_info SET value = ? WHERE settings = 'time_reload'", (timer,))
               base.commit()
               await ctx.reply(content=text[lng][36].format(timer), mention_author=False)
 
@@ -740,27 +832,99 @@ class mod_commands(commands.Cog):
               base.commit()
               await ctx.reply(content=text[lng][38].format(a, b), mention_author=False)
 
+  @commands.command(hidden=True, aliases=['uniq_timer'])
+  @commands.check(needed_role)
+  async def _uniq_timer(self, ctx: commands.Context, timer: int):
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+          with closing(base.cursor()) as cur:
+              lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+              if timer <= 0:
+                  await ctx.reply(content=text[lng][35], mention_author=False)
+                  return
+              cur.execute("UPDATE server_info SET value = ? WHERE settings = 'uniq_timer'", (timer,))
+              base.commit()
+              await ctx.reply(content=text[lng][39].format(timer), mention_author=False)
+
+  @commands.command(hidden=True, aliases=['settings'])
+  @commands.check(needed_role)
+  async def _settings(self, ctx: commands.Context):
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+          with closing(base.cursor()) as cur:
+              sets = cur.execute("SELECT * FROM server_info").fetchall()
+              lng = sets[0][1]
+              log_c = sets[1][1]
+              m_r = sets[3][1]
+              tz = sets[4][1]
+              t_r = sets[5][1]
+              s_l = sets[6][1]
+              s_r = sets[7][1]
+              u_t = sets[8][1]
+              emb = Embed(title=set_text[lng][0])
+              if lng == 0:
+                  emb.add_field(name=set_text[0][1], value="`English`", inline=False)
+              else:
+                  emb.add_field(name=set_text[1][1], value="`Russian`", inline=False)
+              if log_c != 0:
+                  emb.add_field(name=set_text[lng][2], value=log_c, inline=False)
+              if m_r != 0:
+                  emb.add_field(name=set_text[lng][3], value=m_r, inline=False)
+              if tz >= 0:
+                  emb.add_field(name=set_text[lng][4], value=f"`UTC+{tz}`", inline=False)
+              else:
+                  emb.add_field(name=set_text[lng][4], value=f"`UTC{tz}`", inline=False)
+              if lng == 0:
+                  emb.add_field(name=set_text[0][5], value=f"`{t_r} seconds`", inline=False)
+                  emb.add_field(name=set_text[0][6], value=f"`From {s_l} to {s_r}`", inline=False)
+                  emb.add_field(name=set_text[0][7], value=f"`{u_t} seconds`", inline=False)
+              else:
+                  emb.add_field(name=set_text[1][5], value=f"`{t_r} секунд(а, ы)`", inline=False)
+                  emb.add_field(name=set_text[1][6], value=f"`От {s_l} до {s_r}`", inline=False)
+                  emb.add_field(name=set_text[1][7], value=f"`{u_t} секунд(а, ы)`", inline=False)
+              await ctx.reply(embed=emb, mention_author=False)
+
+  @commands.command(hidden=True, aliases=['reset'])
+  @commands.check(needed_role)
+  async def _reset(self, ctx: commands.Context):
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+          with closing(base.cursor()) as cur:
+              lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+              cur.execute("DROP TABLE IF EXISTS server_info")
+              base.commit()
+              cur.execute("CREATE TABLE server_info(settings TEXT PRIMARY KEY, value INTEGER)")
+              base.commit()
+              r = [
+                ('lang', 0), ('log_channel', 0), ('error_log', 0), 
+                ('mod_role', 0), ('tz', 0), ('time_r', 14400), 
+                ('sal_l', 1), ('sal_r', 250), ('uniq_timer', 14400)
+              ]
+              cur.executemany("INSERT INTO server_info(settings, value) VALUES(?, ?)", r)
+              base.commit()
+              if lng == 1:       
+                  await ctx.reply("**`Setting were reseted. Настройки были сброшены.`**", mention_author=False)
+              else:
+                  await ctx.reply("**`Setting were reseted.`**", mention_author=False)
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx: commands.Context, error):
       lng = self.lang(ctx=ctx)
       if isinstance(error, commands.MemberNotFound):
-        await ctx.reply(text[lng][18], mention_author=False)
+          await ctx.reply(text[lng][18], mention_author=False)
       elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.reply(text[lng][19], mention_author=False)
+          await ctx.reply(text[lng][19], mention_author=False)
       elif isinstance(error, commands.CommandNotFound):
-        await ctx.reply(text[lng][20], mention_author=False)
+          await ctx.reply(text[lng][20], mention_author=False)
       elif isinstance(error, commands.UserNotFound):
-        await ctx.reply(text[lng][21], mention_author=False)
+          await ctx.reply(text[lng][21], mention_author=False)
       elif isinstance(error, commands.CommandOnCooldown):
-        await ctx.reply(text[lng][22], mention_author=False)
+          await ctx.reply(text[lng][22], mention_author=False)
       elif isinstance(error, CheckFailure):
-        if not self.mod_role_set(ctx=ctx):
-          await ctx.reply(text[lng][24], mention_author=False)
-        else:
-          await ctx.reply(text[lng][23], mention_author=False)
+          if not self.mod_role_set(ctx=ctx):
+              await ctx.reply(text[lng][24], mention_author=False)
+          else:
+              await ctx.reply(text[lng][23], mention_author=False)
       else:
-        open("d.log", "a+").write(f"[{datetime.now(pytz.utc).__add__(timedelta(hours=3))}] [ERROR] [{str(error)}]\n")
+          with open("d.log", "a+", encoding="utf-8") as f:
+              f.write(f"[{datetime.now(pytz.utc).__add__(timedelta(hours=3))}] [ERROR] [{str(error)}]\n")
   
 def setup(bot: commands.Bot, **kwargs):
   bot.add_cog(mod_commands(bot, **kwargs))

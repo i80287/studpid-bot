@@ -22,7 +22,8 @@ async def on_ready():
         f'{Fore.RED}\n[>>>]Enter command:'
 
     print(opt, end=' ')
-    await bot.change_presence(status=nextcord.Status.idle, activity=nextcord.Game("/shop"))
+    #status=nextcord.Status.dnd,
+    await bot.change_presence(activity=nextcord.Game("/shop"))
 
 if __name__ == "__main__":
 

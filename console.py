@@ -72,19 +72,16 @@ class ConsoleCog(Cog):
                 cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
                 base.commit()
            
-                cur.execute("INSERT INTO server_info(settings, value) VALUES('lang', 0)")
-                base.commit()           
-                cur.execute("INSERT INTO server_info(settings, value) VALUES('log_channel', 0)")
-                base.commit()           
-                cur.execute("INSERT INTO server_info(settings, value) VALUES('error_log', 0)")
-                base.commit()          
-                cur.execute("INSERT INTO server_info(settings, value) VALUES('mod_role', 0)")
+                r = [
+                    ('lang', 0), ('log_channel', 0), ('error_log', 0), 
+                    ('mod_role', 0), ('tz', 0), ('time_r', 14400), 
+                    ('sal_l', 1), ('sal_r', 250), ('uniq_timer', 14400)
+                ]
+                cur.executemany("INSERT INTO server_info(settings, value) VALUES(?, ?)", r)
                 base.commit()
-                cur.execute("INSERT INTO server_info(settings, value) VALUES('tz', 0)")
-                base.commit()
-                cur.execute("INSERT INTO server_info(settings, value) VALUES('time_r', 14400)")
-                base.commit()
-                
+
+
+
         print(f'{Fore.CYAN}[>>>]created and setuped database for {guild_id}{Fore.RED}')
 
         opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
