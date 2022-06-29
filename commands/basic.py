@@ -18,13 +18,14 @@ class mod_commands(commands.Cog):
         f"`{prefix}remove`", 
         f"`{prefix}update_price`", 
         f"`{prefix}list`", 
-        f"`{prefix}update_unique`",
+        f"`{prefix}give_unique`",
         f"`{prefix}mod_role`", 
         f"`{prefix}log`", 
         f"`{prefix}language`", 
         f"`{prefix}time_zone`", 
         f"`{prefix}zones`"
     ]
+    ryad = "{-12; -11; ...; 11; 12}"
     self.help_menu = {
         0 : {
             "set" : f"`{prefix}set` `<role>` `<quantity>` - sets the quantity of selected role for selling in shop. If role not in the list of roles available for buying/selling, add it via the `{prefix}add` command",
@@ -33,11 +34,11 @@ class mod_commands(commands.Cog):
             "remove" : f"`{prefix}remove` `<role>` - removes role from list of available for buying/selling. Also removes this role from the shop. **All information about the role will be lost!**",
             "update_price" : f"`{prefix}update_price` `<role>` `<price>` changes role's price and makes it equal to the selected price",
             "list" : f"`{prefix}list` - shows the list of roles avaailable for buying/selling",
-            "update_unique" : f"`{prefix}update_unique` `<member>` `<role>` adds unique role to the balance of member so he could start getting money (also role can be added if user calls command `/balance`)",
+            "give_unique" : f"`{prefix}give_unique` `<member>` `<role>` adds unique role to the balance of member so he could start getting money (also role can be added if user calls command `/balance`)",
             "mod_role" : f"`{prefix}mod_role` `<role>` gives role permissions to use commands from `{prefix}help_mod`. Server can only have one role selected for this",
             "log" : f"`{prefix}log` `<text_channel>` selects log channel for economic operations",
             "language" : f"`{prefix}language` `<lang>` selects language for interface. Can be **`Eng`** (no matter Eng, eng, eNg etc.) for English and **`Rus`** (no matter Rus, rus, rUs etc.) for Russian",
-            "time_zone" : f"`{prefix}time_zone` `<name_of_time_zone_from_{prefix}zones or \nhour_difference_with_'-'_if_needed>` selects **`UTC`**±**`X`** format for the server",
+            "time_zone" : f"`{prefix}time_zone` `<name_of_time_zone_from_{prefix}zones or \nhour_difference_with_'-'_if_needed>` selects **`UTC`**±**`X`**, **`X`** Є {ryad}, format for the server",
             "zones" : f"`{prefix}zones` shows available pre-named time zones"
         },
         1 : {
@@ -47,11 +48,11 @@ class mod_commands(commands.Cog):
             "remove" : f"`{prefix}remove` `<роль>` - убирает роль из списка разрешённых для продажи на сервере ролей. Также удаляет эту роль из магазина. **Вся информация о роли будет потеряна!**",
             "update_price" : f"`{prefix}update_price` `<роль>` `<цена>` изменяет цену роли и делает её **равной** указанной цене",
             "list" : f"`{prefix}list` показывет список ролей, доступных для продажи на сервере",
-            "update_unique" : f"`{prefix}update_unique` `<участник>` `<роль>`- добавляет уникальную роль на личный баланс пользователя, чтобы он начал получать пассивный заработок (также это можно сделать, если пользователь вызовет команду `/balance`)",
+            "give_unique" : f"`{prefix}give_unique` `<участник>` `<роль>`- добавляет уникальную роль на личный баланс пользователя, чтобы он начал получать пассивный заработок (также это можно сделать, если пользователь вызовет команду `/balance`)",
             "mod_role" : f"`{prefix}mod_role` `<роль>` выбирает роль в качестве роли модератора экономики для доступа к командам из `{prefix}help_mod`. На сервере может быть только одна такая роль",
             "log" : f"`{prefix}log` `<текстовый_канал>` устанавливает выбранный для хранения логов об операциях",
             "language" : f"`{prefix}language` `<язык>` устанавливает выбранный язык в качестве языка интерфейса. Доступны: **`Eng`** (регист не важен) - для английского и **`Rus`** (регистр не важен) - для русского",
-            "time_zone" : f"`{prefix}time_zone` `<имя_часового_пояса_из_списка или часовой_сдвиг_от_UTC_со_знаком_'-'_при_необходимости>` устанавливает формат времени **`UTC`**±**`X`** для сервера",
+            "time_zone" : f"`{prefix}time_zone` `<имя_часового_пояса_из_списка или часовой_сдвиг_от_UTC_со_знаком_'-'_при_необходимости>` устанавливает формат времени **`UTC`**±**`X`**, **`X`** Є {ryad}, для сервера",
             "zones" : f"`{prefix}zones` показывет доступные именные часовые пояса"
         }
     }
@@ -94,7 +95,8 @@ class mod_commands(commands.Cog):
             31 : f"Please, use command in format **`{prefix}time_zone`** **`<name_of_time_zone_from_{prefix}zones or hour_difference_with_'-'_if_needed>`**",
             32 : "Time zone **`UTC{}`** was set on the server",
             33 : "**`This server has time zone UTC",
-            34 : "**`List of available named time zones:`**"
+            34 : "**`List of available named time zones:`**",
+            35 : "Time (in seconds) must be integer positive number (without any additional symbols)"
         },
         1 : {
             0 : 'Role',
@@ -132,7 +134,8 @@ class mod_commands(commands.Cog):
             31 : f"Пожалуйста, укажите команду в формате **`{prefix}time_zone`** **`<имя_пояса_из_списка или часовой_сдвиг_со_знаком_'-'_при необходимости>`**",
             32 : "На сервере был установлен часовой пояс **`UTC{}`**",
             33 : "**`На этом сервере установлен часовой пояс UTC",
-            34 : "**`Список именных часовых поясов:`**"
+            34 : "**`Список именных часовых поясов:`**",
+            35 : "Время (в секундах) должно быть целым положительным числом (только число, без дополнительных символов)"
         }
     }
     global zones
@@ -296,6 +299,20 @@ class mod_commands(commands.Cog):
                   cur.execute("INSERT INTO server_info(settings, value) VALUES('tz', 0)")
                   base.commit()
 
+              if cur.execute("SELECT value FROM server_info WHERE settings = 'time_r'").fetchone() == None:
+                  cur.execute("INSERT INTO server_info(settings, value) VALUES('time_r', 14400)")
+                  base.commit()
+              
+              if cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l'").fetchone() == None:
+                  cur.execute("INSERT INTO server_info(settings, value) VALUES('sal_l', 1)")
+                  base.commit()
+              
+              if cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r'").fetchone() == None:
+                  cur.execute("INSERT INTO server_info(settings, value) VALUES('sal_r', 250)")
+                  base.commit()
+              
+
+
   @commands.Cog.listener()
   async def on_ready(self):
       await self.passive()
@@ -370,7 +387,7 @@ class mod_commands(commands.Cog):
     else:
       emb = Embed(colour=Colour.red(), title=text[lng][404], description=text[lng][5])
 
-    await ctx.reply(embed=emb, mention_author = False)
+    await ctx.reply(embed=emb, mention_author=False)
 
   @_help_mod.error
   async def _help_error(self, ctx: commands.Context, error):
@@ -517,7 +534,7 @@ class mod_commands(commands.Cog):
           emb = Embed(title=text[lng][15], description="\n".join(descr))
           await ctx.reply(embed=emb, mention_author=False)
 
-  @commands.command(hidden=True, aliases=['update_unique'])
+  @commands.command(hidden=True, aliases=['give_unique'])
   @commands.check(needed_role)
   async def _unique(self, ctx: commands.Context, member: nextcord.Member, role: nextcord.Role):
     with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
@@ -609,14 +626,14 @@ class mod_commands(commands.Cog):
       tz = tz.upper()
       if not tz in zones:
           lng = self.lang(ctx=ctx)
-          await ctx.reply(content=text[lng][31])
+          await ctx.reply(content=text[lng][31], mention_author=False)
           return
       with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (zones[tz],))
               base.commit()
-              if zones[tz] > 0:
+              if zones[tz] >= 0:
                 await ctx.reply(content=text[lng][32].format(f"+{zones[tz]}"), mention_author=False)
               else:
                 await ctx.reply(content=text[lng][32].format(zones[tz]), mention_author=False)
@@ -631,7 +648,7 @@ class mod_commands(commands.Cog):
       msg = []
       for i in zone_text:
           msg.append(f" **`{i}`** - **`{zone_text[i]}`**")
-      if tz > 0:
+      if tz >= 0:
           msg.append("\n" + text[lng][33] + f"+{tz}`**")
       else:
           msg.append("\n" + text[lng][33] + f"{tz}`**")
@@ -642,13 +659,26 @@ class mod_commands(commands.Cog):
       )
       await ctx.reply(embed=emb, mention_author=False)
 
+  @commands.command(hidden=True, aliases=['work_timer'])
+  @commands.check(needed_role)
+  async def _work_timer(self, ctx: commands.Context, timer: int):
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+          with closing(base.cursor()) as cur:
+              lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+              if timer <= 0:
+                  await ctx.reply(content=text[lng][35], mention_author=False)
+                  return
+              cur.execute("UPDATE server_info SET value = ? WHERE settings = ?", (timer, 'time_reload'))
+              base.commit()
+
+
   @commands.Cog.listener()
   async def on_command_error(self, ctx: commands.Context, error):
       lng = self.lang(ctx=ctx)
       if isinstance(error, commands.MemberNotFound):
-        await ctx.reply(text[lng][18], mention_author = False)
+        await ctx.reply(text[lng][18], mention_author=False)
       elif isinstance(error, commands.MissingRequiredArgument):
-        await ctx.reply(text[lng][19], mention_author = False)
+        await ctx.reply(text[lng][19], mention_author=False)
       elif isinstance(error, commands.CommandNotFound):
         await ctx.reply(text[lng][20], mention_author=False)
       elif isinstance(error, commands.UserNotFound):

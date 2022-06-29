@@ -82,6 +82,8 @@ class ConsoleCog(Cog):
                 base.commit()
                 cur.execute("INSERT INTO server_info(settings, value) VALUES('tz', 0)")
                 base.commit()
+                cur.execute("INSERT INTO server_info(settings, value) VALUES('time_r', 14400)")
+                base.commit()
                 
         print(f'{Fore.CYAN}[>>>]created and setuped database for {guild_id}{Fore.RED}')
 
