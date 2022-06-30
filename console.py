@@ -11,7 +11,7 @@ class ConsoleCog(Cog):
     @console.command()
     async def recover(self, guild_id):
         try:
-            shutil.copy2(f'./bases_{guild_id}/{guild_id}_shop_rec_2.db', f'./bases_{guild_id}/{guild_id}_shop.db')
+            shutil.copy2(f'./bases_{guild_id}/{guild_id}_shop_rec_2.db', f'./bases_{guild_id}/{guild_id}_store.db')
             print(f'{Fore.CYAN}Recovered database for {guild_id}{Fore.RED}')
         except:
             print(f"{Fore.YELLOW}Can't recover database!{Fore.RED}\n")
@@ -28,12 +28,12 @@ class ConsoleCog(Cog):
     @console.command()
     async def backup(self, guild_id):
         try:
-            src = sqlite3.connect(f'./bases_{guild_id}/{guild_id}_shop.db')
+            src = sqlite3.connect(f'./bases_{guild_id}/{guild_id}_store.db')
             bck = sqlite3.connect(f'./bases_{guild_id}/{guild_id}_shop_rec_1.db')
             src.backup(bck)
             src.close()
             bck.close()
-            shutil.copy2(f'./bases_{guild_id}/{guild_id}_shop.db', f'./bases_{guild_id}/{guild_id}_shop_rec_2.db')
+            shutil.copy2(f'./bases_{guild_id}/{guild_id}_store.db', f'./bases_{guild_id}/{guild_id}_shop_rec_2.db')
             print(f'{Fore.CYAN}Created a backup for {guild_id}{Fore.RED}\n')
         except:
             print(f"{Fore.YELLOW}Can't create a backup for the {guild_id}{Fore.RED}")
@@ -49,8 +49,8 @@ class ConsoleCog(Cog):
     
     @console.command()
     async def setup(self, guild_id):
-        if os.path.exists(f'./bases_{guild_id}/{guild_id}_shop.db'):
-            os.remove(f'./bases_{guild_id}/{guild_id}_shop.db')
+        if os.path.exists(f'./bases_{guild_id}/{guild_id}_store.db'):
+            os.remove(f'./bases_{guild_id}/{guild_id}_store.db')
         else:
             if not os.path.exists(f'./bases_{guild_id}'):
                 try:
@@ -58,7 +58,7 @@ class ConsoleCog(Cog):
                 except:
                     print(f"{Fore.YELLOW}Can't create database!{Fore.RED}\n")
         
-        with closing(sqlite3.connect(f'./bases_{guild_id}/{guild_id}_shop.db')) as base:
+        with closing(sqlite3.connect(f'./bases_{guild_id}/{guild_id}_store.db')) as base:
             with closing(base.cursor()) as cur:
 
                 cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
@@ -85,9 +85,9 @@ class ConsoleCog(Cog):
         print(f'{Fore.CYAN}[>>>]created and setuped database for {guild_id}{Fore.RED}')
 
         opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
-            f'\n{Fore.GREEN} 1) recover <guild_id> - recovers database for selected server from restore file (guild_id_shop_res.db)\n' \
+            f'\n{Fore.GREEN} 1) recover <guild_id> - recovers database for selected server from restore file (guild_id_store_res.db)\n' \
             f'{Fore.RED}   Warning: if old database exists, it will be restored to default and all infromation will be lost.\n' \
-            f'\n{Fore.GREEN} 2) backup <guild_id> - creates a copy of database for selected server (guild_id_shop_res.db)\n' \
+            f'\n{Fore.GREEN} 2) backup <guild_id> - creates a copy of database for selected server (guild_id_store_res.db)\n' \
             f'\n 3) setup <guild_id> - creates and setups new database for selected server.\n' \
             f'{Fore.RED}   Warning: if old database exists, it will be restored to default and all infromation will be lost.\n\n[>>>]Enter command:'
         

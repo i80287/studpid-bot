@@ -19,7 +19,7 @@ class bet_slash_r(View):
         self.check_user = function
         self.dueler = None
 
-    @nextcord.ui.button(label="Сделать ставку", style=ButtonStyle.green, emoji="💰", custom_id="Make")
+    @nextcord.ui.button(label="Сделать встречную ставку", style=ButtonStyle.green, emoji="💰", custom_id="Make")
     async def callback_make(self, button: Button, interaction: Interaction):
         if interaction.user == self.ctx.user:
             await interaction.response.send_message("**`Извините, но Вы не можете делать встречную ставку самому себе`**", ephemeral=True)
@@ -58,7 +58,7 @@ class bet_slash_e(View):
         self.check_user = function
         self.dueler = None
 
-    @nextcord.ui.button(label="Make counter bet", style=ButtonStyle.green, emoji="💰", custom_id="Make")
+    @nextcord.ui.button(label="Make a counter bet", style=ButtonStyle.green, emoji="💰", custom_id="Make")
     async def callback_make(self, button: Button, interaction: Interaction):
         if interaction.user == self.ctx.user:
             await interaction.response.send_message("**`Sorry, but you can't make counter bet for yourself`**", ephemeral=True)
@@ -621,13 +621,13 @@ class slash(commands.Cog):
                     ("`/store`", "Shows store"), ("`/buy`", "Makes a role purchase"), \
                     ("`/sell`", "Sells the role"), ("`/profile`", "Shows your profile"), \
                     ("`/work`", "Starts working, so you get salary"), ("`/duel`", "Makes a bet"), \
-                    ("`/transfer`", "Transfers money to other members")
+                    ("`/transfer`", "Transfers money to another member"), ("`>>moderation`", "Calls menu with bot's settings")
             ],
             1 : [
                     ("`/store`", "Открывает меню магазина"), ("`/buy`", "Совершает покупку роли"), \
                     ("`/sell`", "Совершает продажу роли"), ("`/profile`", "Показывает меню Вашего профиля"), \
                     ("`/work`", "Начинает работу, за которую Вы полчите заработок"), ("`/duel`", "Делает ставку"), \
-                    ("`/transfer`", "Совершает перевод валюты другому юзеру")
+                    ("`/transfer`", "Совершает перевод валюты другому пользователю"), ("`>>moderation`", "Вызывает меню команд настройки бота")
             ],
         }
 
@@ -658,15 +658,26 @@ class slash(commands.Cog):
                 21 : "**`You sold role {} for {}`** {}",
                 22 : "Role sale",
                 23 : "{} sold role {} for {} {}",
-                24 : "Your profile",
+                24 : "Your balance",
                 25 : "**Your personal roles:**\n**Role** --- **Price** --- **Salary** (if it has)",
                 26 : "**`Please, wait {} before using this command`**",
                 27 : "Success",
                 28 : "**`You gained {}`** {}",
                 29 : "Work",
-                30 : "{} gained {} {}"
-
-
+                30 : "{} gained {} {}",
+                31 : "**`You can't make a bet, because you need {}`** {} **`more`**",
+                32 : "Bet",
+                33 : "**`You bet {}`** {}\n**`Now another user must make a counter bet`**",
+                34 : "**`Time for the counter bet has expired`**",
+                35 : "We have a winner!",
+                36 : "won",
+                37 : "Duel",
+                38 : "<@{}> gained {} {}, <@{}> lost",
+                39 : "**`Sorry, but for money transfering you need {}`** {} **`more`**",
+                40 : "Transaction completed", #title
+                41 : "**`You successfully transfered {}`** {} **`to`** {}",
+                42 : "Transaction",
+                43 : "{} transfered {} {} to {}"
             },
             1 : {
                 0 : "Ошибка", #title
@@ -694,13 +705,26 @@ class slash(commands.Cog):
                 21 : "**`Вы продали роль {} за {}`** {}",
                 22 : "Продажа роли",
                 23 : "{} продал роль {} за {} {}",
-                24 : "Ваш профиль",
+                24 : "Ваш баланс",
                 25 : "**Ваши личные роли:**\n**Роль** --- **Цена** --- **Доход** (если есть)",
                 26 : "**`Пожалуйста, подождите {} перед тем, как снова использовать эту команду`**",
                 27 : "Успех",
                 28 : "**`Вы заработали {}`** {}",
                 29 : "Работа",
-                30 : "{} заработал {} {}"
+                30 : "{} заработал {} {}",
+                31 : "**`Вы не можете сделать ставку, так как Вам не хватает {}`** {}",
+                32 : "Ставка",
+                33 : "**`Вы сделали ставку в размере {}`** {}\n**`Теперь кто-то должен принять Ваш вызов`**",
+                34 : "**`Истекло время ожидания встречной ставки`**",
+                35 : "У нас победитель!",
+                36 : "выиграл(a)",
+                37 : "Дуэль",
+                38 : "<@{}> заработал(a) {} {}, <@{}> - проиграл(a)",
+                39 : "**`Извините, но для совершения перевода Вам не хватает {}`** {}",
+                40 : "Перевод совершён",
+                41 : "**`Вы успешно перевели {}`** {} **`пользователю`** {}",
+                42 : "Транзакция",
+                43 : "{} передал {} {} пользователю {}"
 
 
             }
@@ -738,6 +762,7 @@ class slash(commands.Cog):
                 base.commit()
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
     
+
     @nextcord.slash_command(name="help", description="Calls menu with commands | Вызывает меню команд")
     async def help(self, interaction: Interaction):
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
@@ -829,7 +854,6 @@ class slash(commands.Cog):
                     emb.title = text_slash[lng][10]
                     emb.description = text_slash[lng][11]
                     await msg.edit(embed=emb, view=None)
-                    chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
 
                     try:
                         emb = Embed(title=text_slash[lng][7], description=text_slash[lng][12].format(role.name, interaction.guild.name, cost, self.currency), colour=Colour.green())
@@ -837,11 +861,13 @@ class slash(commands.Cog):
                     except:
                         pass
 
-                    try:
-                        channel = interaction.guild.get_channel(chnl_id)
-                        await channel.send(embed=Embed(title=text_slash[lng][13], description=text_slash[lng][14].format(interaction.user.mention, role.mention, cost, self.currency)))
-                    except:
-                        pass
+                    chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
+                    if chnl_id != 0:
+                        try:
+                            channel = interaction.guild.get_channel(chnl_id)
+                            await channel.send(embed=Embed(title=text_slash[lng][13], description=text_slash[lng][14].format(interaction.user.mention, role.mention, cost, self.currency)))
+                        except:
+                            pass
                     
                     
     @nextcord.slash_command(name="store", description="Shows store | Открывает меню магазина", guild_ids=[])
@@ -902,6 +928,7 @@ class slash(commands.Cog):
                     for button in myview_store.children:
                         button.disabled = True
                     await msg.edit(view=myview_store)
+    
     
     @nextcord.slash_command(name="sell", description="Sells the role | Совершает продажу роли", guild_ids=[])
     async def sell(
@@ -987,11 +1014,13 @@ class slash(commands.Cog):
                     pass
 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
-                try:
-                    channel = interaction.guild.get_channel(chnl_id)
-                    await channel.send(embed=Embed(title=text_slash[lng][22], description=text_slash[lng][23].format(interaction.user.mention, role.mention, role_info[1])))
-                except:
-                    pass
+                if chnl_id != 0:
+                    try:
+                        channel = interaction.guild.get_channel(chnl_id)
+                        await channel.send(embed=Embed(title=text_slash[lng][22], description=text_slash[lng][23].format(interaction.user.mention, role.mention, role_info[1])))
+                    except:
+                        pass
+
 
     @nextcord.slash_command(name="profile", description="Show your profile | Показывает меню Вашего профиля", guild_ids=[])
     async def profile(self, interaction: Interaction):
@@ -1047,6 +1076,7 @@ class slash(commands.Cog):
                 emb.description = "\n".join(descr)
                 await interaction.response.send_message(embed=emb)
 
+
     @nextcord.slash_command(name="work", description="Allows to gain money | Позволяет заработать деньги", guild_ids=[])
     async def work(self, interaction: Interaction):
         memb_id = interaction.user.id
@@ -1077,15 +1107,16 @@ class slash(commands.Cog):
                 await interaction.response.send_message(embed=Embed(title=text_slash[lng][27], description=text_slash[lng][28].format(salary, self.currency), colour=Colour.gold()))
 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
-                try:
-                    channel = interaction.guild.get_channel(chnl_id)
-                    await channel.send(embed=Embed(title=text_slash[lng][29], description=text_slash[lng][30].format(interaction.user.mention, salary)))
-                except:
-                    pass
+                if chnl_id != 0:
+                    try:
+                        channel = interaction.guild.get_channel(chnl_id)
+                        await channel.send(embed=Embed(title=text_slash[lng][29], description=text_slash[lng][30].format(interaction.user.mention, salary)))
+                    except:
+                        pass
 
 
-    @nextcord.slash_command(name="bet", description="Сделать ставку", guild_ids=[])
-    async def bet(self, interaction: Interaction, amount: int = SlashOption(name="amount", description="Сумма ставки", required=True, min_value=1)): 
+    @nextcord.slash_command(name="duel", description="Make a bet | Сделать ставку", guild_ids=[])
+    async def duel(self, interaction: Interaction, amount: int = SlashOption(name="amount", description="Bet amount | Сумма ставки", required=True, min_value=1)): 
 
         memb_id = interaction.user.id
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
@@ -1093,14 +1124,13 @@ class slash(commands.Cog):
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 if amount > member[1]:
-                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=f'Вы не можете сделать ставку, так как Вам не хватает **`{amount - member[1]}`**{self.currency}', colour=Colour.red()), ephemeral=True)
+                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][31].format(amount - member[1], self.currency), colour=Colour.red()), ephemeral=True)
                     return
                 if lng == 0:
-                    print(interaction.guild.name.replace(" ", ""))
                     betview = bet_slash_e(timeout=30, ctx=interaction, base=base, cur=cur, symbol=self.currency, bet=amount, function=self.check_user)
                 else:
                     betview = bet_slash_r(timeout=30, ctx=interaction, base=base, cur=cur, symbol=self.currency, bet=amount, function=self.check_user)
-                emb = Embed(title='Ставка', description=f'Вы сделали ставку в размере **`{amount}`**{self.currency}\nТеперь кто-то должен принять Ваш вызов')
+                emb = Embed(title=text_slash[lng][32], description=text_slash[lng][33].format(amount, self.currency))
                 await interaction.response.send_message(embed=emb, view=betview)
                 msg = await interaction.original_message()
 
@@ -1109,7 +1139,7 @@ class slash(commands.Cog):
                 if chk:
                     for button in betview.children:
                         button.disabled = True
-                    emb.description = '**`Истекло время ожидания встречной ставки`**'
+                    emb.description = text_slash[lng][34]
                     await msg.edit(embed = emb, view=betview)
                     return
                 
@@ -1120,16 +1150,16 @@ class slash(commands.Cog):
                 dueler = betview.dueler
 
                 winner = randint(0, 1)
-                emb = Embed(title='У нас победитель!', colour=Colour.gold())
+                emb = Embed(title=text_slash[lng][35], colour=Colour.gold())
                 if winner:
                     loser_id = dueler[0]
                     winner_id = interaction.user.id
-                    emb.description = f"{interaction.user.mention} выиграл(a) `{amount}`{self.currency}"
+                    emb.description = f"{interaction.user.mention} {text_slash[lng][36]} `{amount}`{self.currency}"
                     
                 else:
                     winner_id = dueler[0]
                     loser_id = interaction.user.id
-                    emb.description = f"<@{dueler[0]}> выиграл `{amount}`{self.currency}"        
+                    emb.description = f"<@{dueler[0]}> {text_slash[lng][36]} `{amount}`{self.currency}"        
 
                 cur.execute('UPDATE users SET money = money - ? WHERE memb_id = ?', (amount, loser_id))
                 base.commit()
@@ -1140,47 +1170,51 @@ class slash(commands.Cog):
                 await msg.edit(embed=emb, view=betview)
 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
-                try:
-                    channel = interaction.guild.get_channel(chnl_id)
-                    await channel.send(embed=Embed(title="Ставка", description=f"<@{winner_id}> заработал {amount}, <@{loser_id}> - проиграл"))
-                except:
-                    pass
+                if chnl_id != 0:
+                    try:
+                        channel = interaction.guild.get_channel(chnl_id)
+                        await channel.send(embed=Embed(title=text_slash[lng][37], description=text_slash[lng][38].format(winner_id, amount, self.currency, loser_id)))
+                    except:
+                        pass
 
-    @nextcord.slash_command(name="transfer", description="Перадать валюту другому участнику", guild_ids=[])
+
+    @nextcord.slash_command(name="transfer", description="Transfers money to another member | Совершает перевод валюты другому пользователю", guild_ids=[])
     async def transfer(
         self,
         interaction: Interaction, 
-        value: int = SlashOption(name="value", description="Передаваемая сумма денег", required=True, min_value=1),
-        target: nextcord.Member = SlashOption(name="target", description="Кому Вы хотите передать валюту", required=True)
+        value: int = SlashOption(name="value", description="Amount of money to transfer | Переводимая сумма денег", required=True, min_value=1),
+        target: nextcord.Member = SlashOption(name="target", description="The member you want to transfer money to | Пользователь, которому Вы хотите перевести деньги", required=True)
     ):
         memb_id = interaction.user.id
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 act = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 self.check_user(base=base, cur=cur, memb_id=target.id)
+                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 if value > act[1]:
-                    emb=Embed(title="Ошибка", description=f"Для совершения перевода Вам не хватает **`{value - act[1]}`**{self.currency}", colour=Colour.red())
+                    emb=Embed(title=text_slash[lng][0], description=text_slash[lng][39].format(value - act[1], self.currency), colour=Colour.red())
                     await interaction.response.send_message(embed=emb)
                 else:
                     cur.execute('UPDATE users SET money = money - ? WHERE memb_id = ?', (value, memb_id))
                     base.commit()
                     cur.execute('UPDATE users SET money = money + ? WHERE memb_id = ?', (value, target.id))
                     base.commit()
-                    emb=Embed(title="Перевод совершён", description=f"Вы успешно перевели **`{value}`**{self.currency} пользователю {target.mention}", colour=Colour.green())
+                    emb=Embed(title=text_slash[lng][40], description=text_slash[lng][41].format(value, self.currency, target.mention), colour=Colour.green())
                     await interaction.response.send_message(embed=emb)
 
                     chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
-                    try:
-                        channel = interaction.guild.get_channel(chnl_id)
-                        await channel.send(embed=Embed(title="Транзакция", description=f"{interaction.user.mention} передал {value} {self.currency} пользователю {target.mention}"))
-                    except:
-                        pass
+                    if chnl_id != 0:
+                        try:
+                            channel = interaction.guild.get_channel(chnl_id)
+                            await channel.send(embed=Embed(title=text_slash[lng][42], description= text_slash[lng][43].format(interaction.user.mention, value, self.currency, target.mention)))
+                        except:
+                            pass
     
     
-    """ @commands.Cog.listener()
-    async def on_application_command_error(self, ctx, error):
-        if isinstance(error, commands.CommandOnCooldown):
-            await ctx.respond(error) """
+    @commands.Cog.listener()
+    async def on_application_command_error(self, interaction, exception):
+        with open("d.log", "a+", encoding="utf-8") as f:
+            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{str(exception)}]\n")
 
 def setup(bot: commands.Bot, **kwargs):
   bot.add_cog(slash(bot, **kwargs))

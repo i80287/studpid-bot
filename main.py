@@ -17,7 +17,7 @@ async def on_ready():
     for guild in bot.guilds:
         if not os.path.exists(f'./bases_{guild.id}'):
             os.mkdir(f'./bases_{guild.id}/')
-            with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_shop.db')) as base:
+            with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_store.db')) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
                     base.commit()

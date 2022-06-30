@@ -24,7 +24,7 @@ class mod_commands(commands.Cog):
         f"`{prefix}language`", 
         f"`{prefix}time_zone`", 
         f"`{prefix}zones`",
-        f"`{prefix}work_time`",
+        f"`{prefix}work_timer`",
         f"`{prefix}salary`",
         f"`{prefix}uniq_timer`",
         f"`{prefix}settings`",
@@ -75,7 +75,7 @@ class mod_commands(commands.Cog):
 
             "zones" : f"`{prefix}zones` shows available pre-named time zones",
 
-            "work_time" : f"`{prefix}work_time` `<time_in_seconds>` sets cooldown for command `/work`.\n**Example:**\n**`{prefix}work_time 10800`** will set 3 hours cooldown \
+            "work_timer" : f"`{prefix}work_timer` `<time_in_seconds>` sets cooldown for command `/work`.\n**Example:**\n**`{prefix}work_timer 10800`** will set 3 hours cooldown \
               (10800 seconds = 3 hours) for command `/work`",
 
             "salary" : f"`{prefix}salary` `<left_border>` `<right_border>` sets borders for amount of money gained from command `/work`. This amount will be random integer number \
@@ -132,7 +132,7 @@ class mod_commands(commands.Cog):
 
             "zones" : f"`{prefix}zones` показывет доступные именные часовые пояса",
 
-            "work_time" : f"`{prefix}work_time` <время_в_секундах> устанавливает кулдаун для использования команды `/work` .\n**Пример:**\n**`{prefix}work_time 10800`** \
+            "work_time" : f"`{prefix}work_time` <время_в_секундах> устанавливает кулдаун для использования команды `/work` .\n**Пример:**\n**`{prefix}work_timer 10800`** \
               установит кулдаун, равный 3 часам (10800 секунд = 3 часа), для команды `/work`",
 
             "salary" : f"`{prefix}salary` <левая_граница> <правая_граница> устанавливает количество денег, получаемое после использования команды /work. Это количество будет целым \
@@ -355,7 +355,7 @@ class mod_commands(commands.Cog):
     }
 
   def mod_role_set(self, ctx: commands.Context):
-    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
       with closing(base.cursor()) as cur:
         r = cur.execute("SELECT value FROM server_info WHERE settings = 'mod_role'").fetchone()
         if r == None or r[0] == 0:
@@ -363,7 +363,7 @@ class mod_commands(commands.Cog):
         return 1
 
   def lang(self, ctx: commands.Context):
-      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               return cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
@@ -372,7 +372,7 @@ class mod_commands(commands.Cog):
       if any(role.permissions.administrator or role.permissions.manage_guild for role in ctx.author.roles) or ctx.guild.owner == ctx.author:
           return 1
 
-      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               mod_id = cur.execute("SELECT value FROM server_info WHERE settings = 'mod_role'").fetchone()
               if mod_id != None and mod_id[0] != 0:
@@ -437,7 +437,7 @@ class mod_commands(commands.Cog):
               with open("d.log", "a+", encoding="utf-8") as f:
                   f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{str(E)}]\n")
 
-      with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
               base.commit()
@@ -488,7 +488,7 @@ class mod_commands(commands.Cog):
 
   """ @commands.Cog.listener()
   async def on_guild_remove(self, guild: nextcord.Guild):
-      with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               try:
@@ -508,7 +508,7 @@ class mod_commands(commands.Cog):
   async def passive(self):
     while True:
       for g in self.bot.guilds: 
-        with closing(sqlite3.connect(f'./bases_{g.id}/{g.id}_shop.db')) as base:
+        with closing(sqlite3.connect(f'./bases_{g.id}/{g.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
             r = cur.execute("SELECT * FROM money_roles").fetchall()
             for role, members, salary, last_time in r:
@@ -587,7 +587,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=['set'])
   @commands.check(needed_role)
   async def _set(self, ctx: commands.Context, role: nextcord.Role, nums: int):
-    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
       with closing(base.cursor()) as cur: 
         lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
         role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
@@ -635,7 +635,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=['update_cash'])
   @commands.check(needed_role)
   async def _update(self, ctx: commands.Context, member: nextcord.Member, value: int):
-    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
       with closing(base.cursor()) as cur:
         memb_id = member.id
         self.check(base=base, cur=cur, memb_id=memb_id)
@@ -658,7 +658,7 @@ class mod_commands(commands.Cog):
     if not is_special in [0, 1, 2]:
         await ctx.reply(text[lng][8], mention_author=False)
         return
-    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
         with closing(base.cursor()) as cur:
           rls = cur.execute('SELECT role_id FROM server_roles').fetchall()
           role_ids = [x[0] for x in rls]
@@ -686,7 +686,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=['remove'])
   @commands.check(needed_role)
   async def _remove(self, ctx: commands.Context, role: nextcord.Role):
-    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
         with closing(base.cursor()) as cur:
           lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
           cur.execute('DELETE FROM server_roles WHERE role_id = ?', (role.id,))
@@ -701,7 +701,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=['update_price'])
   @commands.check(needed_role)
   async def _update_price(self, ctx: commands.Context, role: nextcord.Role, price: int):
-    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
         with closing(base.cursor()) as cur:
           lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
           is_in = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
@@ -716,7 +716,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=['list'])
   @commands.check(needed_role)
   async def _list(self, ctx: commands.Context):
-    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
         with closing(base.cursor()) as cur:
           lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
           roles = cur.execute('SELECT * FROM server_roles').fetchall()
@@ -730,7 +730,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=['give_unique'])
   @commands.check(needed_role)
   async def _unique(self, ctx: commands.Context, member: nextcord.Member, role: nextcord.Role):
-    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
         with closing(base.cursor()) as cur:
           lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
           memb = self.check(base=base, cur=cur, memb_id=member.id)
@@ -775,7 +775,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=["mod_role"])
   @commands.check(needed_role)
   async def _mod_role(self, ctx: commands.Context, role: nextcord.Role):
-      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mod_role'", (role.id,))
@@ -786,7 +786,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=["log"])
   @commands.check(needed_role)
   async def _log(self, ctx: commands.Context, channel: nextcord.TextChannel):
-      with closing(sqlite3.connect(f'./bases_{ctx. guild.id}/{ctx.guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{ctx. guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_channel'", (channel.id,))
@@ -797,7 +797,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=["language"])
   @commands.check(needed_role)
   async def _language(self, ctx: commands.Context, language: str):
-      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               if language.lower() == "eng":
                   cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lang'", (0,))
@@ -826,7 +826,7 @@ class mod_commands(commands.Cog):
           lng = self.lang(ctx=ctx)
           await ctx.reply(content=text[lng][31], mention_author=False)
           return
-      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (zones[tz],))
@@ -840,7 +840,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=["zones"])
   @commands.check(needed_role)
   async def _zones_list(self, ctx: commands.Context):
-      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               tz = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
@@ -862,13 +862,13 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=['work_timer'])
   @commands.check(needed_role)
   async def _work_timer(self, ctx: commands.Context, timer: int):
-      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               if timer <= 0:
                   await ctx.reply(content=text[lng][35], mention_author=False)
                   return
-              cur.execute("UPDATE server_info SET value = ? WHERE settings = 'time_reload'", (timer,))
+              cur.execute("UPDATE server_info SET value = ? WHERE settings = 'time_r'", (timer,))
               base.commit()
               await ctx.reply(content=text[lng][36].format(timer), mention_author=False)
 
@@ -876,7 +876,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=['salary'])
   @commands.check(needed_role)
   async def _salary(self, ctx: commands.Context, a: int, b: int):
-      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               if min(a, b) < 0 or a > b:
@@ -891,7 +891,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=['uniq_timer'])
   @commands.check(needed_role)
   async def _uniq_timer(self, ctx: commands.Context, timer: int):
-      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               if timer <= 0:
@@ -904,7 +904,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=['settings'])
   @commands.check(needed_role)
   async def _settings(self, ctx: commands.Context):
-      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               sets = cur.execute("SELECT * FROM server_info").fetchall()
               lng = sets[0][1]
@@ -945,7 +945,7 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=['reset'])
   @commands.check(needed_role)
   async def _reset(self, ctx: commands.Context):
-      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_shop.db')) as base:
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               cur.execute("DROP TABLE IF EXISTS server_info")
