@@ -22,12 +22,12 @@ class bet_slash_r(View):
     @nextcord.ui.button(label="Сделать ставку", style=ButtonStyle.green, emoji="💰", custom_id="Make")
     async def callback_make(self, button: Button, interaction: Interaction):
         if interaction.user == self.ctx.user:
-            await interaction.response.send_message("**`Вы не можете делать встречную ставку самому себе`**", ephemeral=True)
+            await interaction.response.send_message("**`Извините, но Вы не можете делать встречную ставку самому себе`**", ephemeral=True)
             return
 
         member = self.check_user(self.base, self.cur, interaction.user.id)
         if member[1] < self.bet:
-            emb = Embed(title="Ошибка", description=f"**`Вы не можете сделать встречную ставку, так как Вам не хватает {self.bet-member[1]}`** {self.symbol}", colour=Colour.red())
+            emb = Embed(title="Ошибка", description=f"**`Извините, но Вы не можете сделать встречную ставку, так как Вам не хватает {self.bet-member[1]}`** {self.symbol}", colour=Colour.red())
             await interaction.response.send_message(embed=emb, ephemeral=True)
             return
         
@@ -37,7 +37,7 @@ class bet_slash_r(View):
     @nextcord.ui.button(label="Отменить ставку", style=ButtonStyle.red, emoji="❌", custom_id="Deny")
     async def callback_deny(self, button: Button, interaction: Interaction):
         if interaction.user != self.ctx.user:
-            await interaction.response.send_message("Вы не можете управлять чужой ставкой", ephemeral=True)
+            await interaction.response.send_message("**`Извините, но Вы не можете управлять чужой ставкой`**", ephemeral=True)
             return
 
         emb = Embed(title="Отмена ставки", description="**`Ставка была отменена пользователем`**")
@@ -61,12 +61,12 @@ class bet_slash_e(View):
     @nextcord.ui.button(label="Make counter bet", style=ButtonStyle.green, emoji="💰", custom_id="Make")
     async def callback_make(self, button: Button, interaction: Interaction):
         if interaction.user == self.ctx.user:
-            await interaction.response.send_message("**`You can't make counter bet for yourself`**", ephemeral=True)
+            await interaction.response.send_message("**`Sorry, but you can't make counter bet for yourself`**", ephemeral=True)
             return
 
         member = self.check_user(self.base, self.cur, interaction.user.id)
         if member[1] < self.bet:
-            emb = Embed(title="Error", description=f"**`You can't make counter bet, because you need at least {self.bet-member[1]}`** {self.symbol}", colour=Colour.red())
+            emb = Embed(title="Error", description=f"**`Sorry, but you can't make counter bet, because you need at least {self.bet-member[1]}`** {self.symbol}", colour=Colour.red())
             await interaction.response.send_message(embed=emb, ephemeral=True)
             return
         
@@ -76,7 +76,7 @@ class bet_slash_e(View):
     @nextcord.ui.button(label="Cancel bet", style=ButtonStyle.red, emoji="❌", custom_id="Deny")
     async def callback_deny(self, button: Button, interaction: Interaction):
         if interaction.user != self.ctx.user:
-            await interaction.response.send_message("You can't control bet made by another user", ephemeral=True)
+            await interaction.response.send_message("**`Sorry, but you can't control bet made by another user`**", ephemeral=True)
             return
 
         emb = Embed(title="Cancelling bet", description="**`Bet was cancelled by user`**")
@@ -129,10 +129,10 @@ class bet_slash_e(View):
             return False
         return True """
 
-class shop_slash_r(View):
-    def __init__(self, timeout: int, outer_shop: list, ctx: Interaction, in_row: int, coin: str, tz: int):
+class store_slash_r(View):
+    def __init__(self, timeout: int, outer_store: list, ctx: Interaction, in_row: int, coin: str, tz: int):
         super().__init__(timeout=timeout)
-        self.outer_shop = outer_shop
+        self.outer_store = outer_store
         self.ctx = ctx
         self.in_row = in_row
         self.sort_d = 0 #by default - sort by price, 1 - sort by date (time)
@@ -141,7 +141,7 @@ class shop_slash_r(View):
         self.tz = tz #time zone of the guild
     
     def sort_by(self):
-        outer = self.outer_shop
+        outer = self.outer_store
         sort_d = self.sort_d
         sort_grad = self.sort_grad
         if sort_d == 0:
@@ -190,7 +190,7 @@ class shop_slash_r(View):
                             outer[j] = outer[i]
                             outer[i] = temp
 
-        self.outer_shop = outer
+        self.outer_store = outer
         return
 
         
@@ -200,7 +200,7 @@ class shop_slash_r(View):
         t2 = text.find('из', t1)
         counter = int(text[t1+12:t2-4])
         counter = (counter - 1) * in_row
-        outer = self.outer_shop
+        outer = self.outer_store
         if counter < 0 or counter >= len(outer):
             return ["-1"]
         if click == 0:
@@ -216,7 +216,7 @@ class shop_slash_r(View):
         elif click == 3:
             counter = (len(outer) + in_row - 1) // in_row * in_row - in_row
 
-        shop_list = []
+        store_list = []
 
         if counter + in_row < len(outer):
             last = counter + in_row
@@ -228,43 +228,43 @@ class shop_slash_r(View):
             tzinfo = timezone(timedelta(hours=self.tz))
             date = datetime.fromtimestamp(r[4], tz=tzinfo).strftime("%H:%M %d-%m-%Y")
             if r[5] == 1:
-                shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Осталось` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+                store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Осталось` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
             elif r[5] == 2:
-                shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Осталось` - `∞`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+                store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Осталось` - `∞`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
             elif r[5] == 0:
-                shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Выставленa на продажу:`\n*{date}*\n")
+                store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Выставленa на продажу:`\n*{date}*\n")
                 
         
-        shop_list.append(f'\nСтраница **`{(counter // in_row) + 1}`** из **`{(len(outer)+in_row-1)//in_row}`**')
+        store_list.append(f'\nСтраница **`{(counter // in_row) + 1}`** из **`{(len(outer)+in_row-1)//in_row}`**')
         
-        return shop_list
+        return store_list
 
     @nextcord.ui.button(emoji="⏮️")
     async def callback_l_end(self, button: Button, interaction: Interaction):
-        shop_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
-        if shop_list[0] != "-1":
-            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(shop_list))
+        store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
+        if store_list[0] != "-1":
+            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb)
 
     @nextcord.ui.button(emoji="◀️")
     async def callback_l(self, button: Button, interaction: Interaction):
-        shop_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
-        if shop_list[0] != "-1":
-            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(shop_list))
+        store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
+        if store_list[0] != "-1":
+            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb)
 
     @nextcord.ui.button(emoji="▶️")
     async def callback_r(self, button: Button, interaction: Interaction):
-        shop_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
-        if shop_list[0] != "-1":
-            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(shop_list))
+        store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
+        if store_list[0] != "-1":
+            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb)
 
     @nextcord.ui.button(emoji="⏭")
     async def callback_r_end(self, button: Button, interaction: Interaction):
-        shop_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
-        if shop_list[0] != "-1":
-            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(shop_list))
+        store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
+        if store_list[0] != "-1":
+            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb)
         
 
@@ -297,9 +297,9 @@ class shop_slash_r(View):
             self.children[4].options[1].default=True
         self.sort_by()
 
-        shop_list=self.click(interaction=interaction, click=4, in_row=self.in_row)
-        if shop_list[0] != "-1":
-            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(shop_list))
+        store_list=self.click(interaction=interaction, click=4, in_row=self.in_row)
+        if store_list[0] != "-1":
+            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb, view=self)
 
     @nextcord.ui.select(
@@ -330,14 +330,226 @@ class shop_slash_r(View):
             self.children[5].options[1].default = True
         self.sort_by()
         
-        shop_list=self.click(interaction=interaction, click=4, in_row=self.in_row)
-        if shop_list[0] != "-1":
-            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(shop_list))
+        store_list=self.click(interaction=interaction, click=4, in_row=self.in_row)
+        if store_list[0] != "-1":
+            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb, view=self)
 
     async def interaction_check(self, interaction):
             if interaction.user != self.ctx.user:
-                await interaction.response.send_message('Вы не можете управлять меню, которое вызвано другим человеком', ephemeral=True)
+                await interaction.response.send_message('**`Извините, но Вы не можете управлять меню, которое вызвано другим человеком`**', ephemeral=True)
+                return False
+            return True
+
+class store_slash_e(View):
+    def __init__(self, timeout: int, outer_store: list, ctx: Interaction, in_row: int, coin: str, tz: int):
+        super().__init__(timeout=timeout)
+        self.outer_store = outer_store
+        self.ctx = ctx
+        self.in_row = in_row
+        self.sort_d = 0 #by default - sort by price, 1 - sort by date (time)
+        self.sort_grad = 0 #возрастание / убывание, от gradation, 0 - возрастание
+        self.coin = coin
+        self.tz = tz #time zone of the guild
+    
+    def sort_by(self):
+        outer = self.outer_store
+        sort_d = self.sort_d
+        sort_grad = self.sort_grad
+        if sort_d == 0:
+            #price
+            array = [rr[3] for rr in outer]
+        elif sort_d == 1:
+            #time
+            array = [rr[4] for rr in outer]
+            
+        for i in range(len(array)-1):
+            for j in range(i+1, len(array)):
+                if sort_d == 0:
+                    if (sort_grad == 0 and array[i] > array[j]) or (sort_grad == 1 and array[i] < array[j]):
+                        temp = array[j]
+                        array[j] = array[i]
+                        array[i] = temp
+                        temp = outer[j]
+                        outer[j] = outer[i]
+                        outer[i] = temp
+                    elif array[i] == array[j]:
+                        #if datetime.strptime(outer[i][4], '%S/%M/%H/%d/%m/%Y') < datetime.strptime(outer[j][4], '%S/%M/%H/%d/%m/%Y'):
+                        #if prices are equal, at first select позже выставленную роль
+                        if outer[i][4] < outer[j][4]:
+                            temp = array[j]
+                            array[j] = array[i]
+                            array[i] = temp
+                            temp = outer[j]
+                            outer[j] = outer[i]
+                            outer[i] = temp
+
+                elif sort_d == 1:
+                    if (sort_grad == 0 and array[i] < array[j]) or (sort_grad == 1 and array[i] > array[j]):
+                        temp = array[j]
+                        array[j] = array[i]
+                        array[i] = temp
+                        temp = outer[j]
+                        outer[j] = outer[i]
+                        outer[i] = temp
+                    elif array[i] == array[j]:
+                        #if dates are equal, at first select role with lower price
+                        if outer[i][3] > outer[j][3]:
+                            temp = array[j]
+                            array[j] = array[i]
+                            array[i] = temp
+                            temp = outer[j]
+                            outer[j] = outer[i]
+                            outer[i] = temp
+
+        self.outer_store = outer
+        return
+
+        
+    def click(self, interaction: Interaction, click: int, in_row: int):
+        text = interaction.message.embeds[0].description
+        t1 = text.find('Page **`')
+        t2 = text.find('from', t1)
+        counter = int(text[t1+8:t2-4])
+        counter = (counter - 1) * in_row
+        outer = self.outer_store
+        if counter < 0 or counter >= len(outer):
+            return ["-1"]
+        if click == 0:
+            if counter == 0:
+                return ["-1"]
+            counter -= in_row
+        elif click == 1:
+            if counter == (len(outer) + in_row - 1) // in_row * in_row - in_row:
+                return ["-1"]
+            counter += in_row
+        elif click == 2:
+            counter = 0
+        elif click == 3:
+            counter = (len(outer) + in_row - 1) // in_row * in_row - in_row
+
+        store_list = []
+
+        if counter + in_row < len(outer):
+            last = counter + in_row
+        else:
+            last = len(outer)
+                
+        for r in outer[counter:last]:
+            #date = datetime.strptime(r[4], '%S/%M/%H/%d/%m/%Y').strftime('%H:%M %d-%m-%Y')
+            tzinfo = timezone(timedelta(hours=self.tz))
+            date = datetime.fromtimestamp(r[4], tz=tzinfo).strftime("%H:%M %d-%m-%Y")
+            if r[5] == 1:
+                store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}`{self.coin}\n`Left` - `{r[2]}`\n`Last listed for sale:`\n*{date}*\n")
+            elif r[5] == 2:
+                store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}`{self.coin}\n`Left` - `∞`\n`Last listed for sale:`\n*{date}*\n")
+            elif r[5] == 0:
+                store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}`{self.coin}\n`Listed for sale:`\n*{date}*\n")
+                
+        
+        store_list.append(f'\Page **`{(counter // in_row) + 1}`** from **`{(len(outer)+in_row-1)//in_row}`**')
+        
+        return store_list
+
+    @nextcord.ui.button(emoji="⏮️")
+    async def callback_l_end(self, button: Button, interaction: Interaction):
+        store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
+        if store_list[0] != "-1":
+            emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
+            await interaction.response.edit_message(embed=emb)
+
+    @nextcord.ui.button(emoji="◀️")
+    async def callback_l(self, button: Button, interaction: Interaction):
+        store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
+        if store_list[0] != "-1":
+            emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
+            await interaction.response.edit_message(embed=emb)
+
+    @nextcord.ui.button(emoji="▶️")
+    async def callback_r(self, button: Button, interaction: Interaction):
+        store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
+        if store_list[0] != "-1":
+            emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
+            await interaction.response.edit_message(embed=emb)
+
+    @nextcord.ui.button(emoji="⏭")
+    async def callback_r_end(self, button: Button, interaction: Interaction):
+        store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
+        if store_list[0] != "-1":
+            emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
+            await interaction.response.edit_message(embed=emb)
+        
+
+    @nextcord.ui.select(
+        placeholder="Sort by...",
+        options=[
+            nextcord.SelectOption(
+                label="Sort by price",
+                emoji="💰",
+                default=True
+            ),
+            nextcord.SelectOption(
+                label="Sort by date",
+                emoji="📅"
+            )
+
+        ], 
+        min_values=1, 
+        max_values=1
+    )
+    async def callback_select_value(self, menu: nextcord.ui.Select, interaction: Interaction):
+
+        if menu._selected_values[0] == "Sort by price":
+            self.sort_d = 0
+            self.children[4].options[0].default=True
+            self.children[4].options[1].default=False
+        else:
+            self.sort_d = 1
+            self.children[4].options[0].default=False
+            self.children[4].options[1].default=True
+        self.sort_by()
+
+        store_list=self.click(interaction=interaction, click=4, in_row=self.in_row)
+        if store_list[0] != "-1":
+            emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
+            await interaction.response.edit_message(embed=emb, view=self)
+
+    @nextcord.ui.select(
+        placeholder="Sort from...",
+        options=[
+            nextcord.SelectOption(
+                label="From the lower price / newer role",
+                emoji="↗️",
+                default=True
+            ),
+            nextcord.SelectOption(
+                label="From the higher price / older role",
+                emoji="↘️"
+            )
+        ], 
+        min_values=1, 
+        max_values=1
+    )
+    async def callback_select_how(self, menu: nextcord.ui.Select, interaction: Interaction):
+        
+        if menu._selected_values[0].startswith("From the lower"):
+            self.sort_grad = 0
+            self.children[5].options[0].default = True
+            self.children[5].options[1].default = False
+        else:
+            self.sort_grad = 1
+            self.children[5].options[0].default = False
+            self.children[5].options[1].default = True
+        self.sort_by()
+        
+        store_list=self.click(interaction=interaction, click=4, in_row=self.in_row)
+        if store_list[0] != "-1":
+            emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
+            await interaction.response.edit_message(embed=emb, view=self)
+
+    async def interaction_check(self, interaction):
+            if interaction.user != self.ctx.user:
+                await interaction.response.send_message("**`Sorry, but you can't manage menu called by another user`**", ephemeral=True)
                 return False
             return True
 
@@ -365,7 +577,35 @@ class buy_slash_r(View):
             
         async def interaction_check(self, interaction):
             if interaction.user != self.ctx.user:
-                await interaction.response.send_message('Вы не можете управлять чужой покупкой', ephemeral=True)
+                await interaction.response.send_message('**`Извините, но Вы не можете управлять чужой покупкой`**', ephemeral=True)
+                return False
+            return True
+
+class buy_slash_e(View):
+
+        def __init__(self, timeout, ctx: Interaction):
+            super().__init__(timeout=timeout)
+            self.ctx = ctx
+            self.value = 0
+
+        @nextcord.ui.button(label='Yes', style=ButtonStyle.green, emoji="✅", custom_id = "second")
+        async def agr_callback(self, button: Button, interaction: Interaction):
+            self.value = 1
+            self.stop()
+
+        @nextcord.ui.button(label="No, cancel purchase", style=ButtonStyle.red, emoji="❌")
+        async def decl_callback(self, button: Button, interaction: Interaction):
+            button.disabled = True
+            button1 = [x for x in self.children if x.custom_id == "second"][0]
+            button1.disabled=True
+            emb = interaction.message.embeds[0]
+            emb.description='**`Purchase was cancelled by user`**'
+            await interaction.response.edit_message(embed = emb, view=self)
+            self.stop()
+            
+        async def interaction_check(self, interaction):
+            if interaction.user != self.ctx.user:
+                await interaction.response.send_message("**`Sorry, but you can't manage other's purchase`**", ephemeral=True)
                 return False
             return True
 
@@ -378,29 +618,50 @@ class slash(commands.Cog):
         self.currency = currency
         global cmds
         cmds = {
-        0 : [
-                ("`/shop`", "Вызывает меню товаров"), ("`/buy`", "Совершает покупку роли"), \
-                ("`/sell`", "Совершает продажу роли"), ("`/profile`", "Показывает меню Вашего профиля"), \
-                ("`/work`", "Начинает работу, за которую Вы полчите заработок"), ("`/duel`", "Делает ставку"), \
-                ("`/transfer`", "Совершает перевод валюты другому юзеру")
-        ],
-        1 : [
-                ("`/shop`", "shows shop menu"), ("`/buy`", "makes a role purchase"), \
-                ("`/sell`", "sells the role"), ("`/profile`", "shows your profile"), \
-                ("`/work`", "Starts working, so you get salary"), ("`/duel`", "Makes a bet"), \
-                ("`/transfer`", "Transfers money to other members")
-            ]
+            0 : [
+                    ("`/store`", "shows store"), ("`/buy`", "makes a role purchase"), \
+                    ("`/sell`", "sells the role"), ("`/profile`", "shows your profile"), \
+                    ("`/work`", "Starts working, so you get salary"), ("`/duel`", "Makes a bet"), \
+                    ("`/transfer`", "Transfers money to other members")
+            ],
+            1 : [
+                    ("`/store`", "Вызывает меню товаров"), ("`/buy`", "Совершает покупку роли"), \
+                    ("`/sell`", "Совершает продажу роли"), ("`/profile`", "Показывает меню Вашего профиля"), \
+                    ("`/work`", "Начинает работу, за которую Вы полчите заработок"), ("`/duel`", "Делает ставку"), \
+                    ("`/transfer`", "Совершает перевод валюты другому юзеру")
+            ],
+        }
+        print("-------------------------------------")
+        global text_slash
+        text_slash = {
+            0 : {
+                0 : "Error",
+                1 : "I don't have permission to manage roles on the server.",
+                2 : "I don't have permission to manage this role. My role should be higher than this role",
+                3 : "Commands",
+                4 : "**`You already have this role`**",
+
+
+            },
+            1 : {
+                0 : "Ошибка",
+                1 : "У меня нет прав управлять ролями на сервере.",
+                2 : "У меня нет прав управлять этой ролью. Моя роль должна быть выше, чем указанная Вами роль.",
+                3 : "Команды",
+                4 : "**`У Вас уже есть эта роль`**",
+
+            }
         }
     
-    async def can_role(self, interaction: Interaction, role: nextcord.Role):
+    async def can_role(self, interaction: Interaction, role: nextcord.Role, lng: int):
         
         if not interaction.guild.me.guild_permissions.manage_roles:
-            emb = Embed(title="Ошибка", colour=Colour.red(), description="У меня нет прав управлять ролями на сервере. Попросите администратора выдать мне это право.")
+            emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][1])
             await interaction.response.send_message(embed=emb)
             return 0
 
         elif not role.is_assignable():
-            emb = Embed(title="Ошибка", colour=Colour.red(), description="У меня нет прав управлять этой ролью. Попросите администратора поднять мою роль выше указанной Вами роли.")
+            emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][2])
             await interaction.response.send_message(embed=emb)
             return 0
         
@@ -424,38 +685,36 @@ class slash(commands.Cog):
                 base.commit()
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
     
-    @nextcord.slash_command(name="help", description="Calls menu with commands  | Вызывает меню команд", guild_ids=[])
+    @nextcord.slash_command(name="help", description="Calls menu with commands | Вызывает меню команд")
     async def help(self, interaction: Interaction):
-        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
+        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                emb = Embed(title="Команды", colour=Colour.dark_purple())
+                emb = Embed(title=text_slash[lng][3], colour=Colour.dark_purple())
                 for n, v in cmds[lng]:
                     emb.add_field(name=n, value=v, inline=False)
                 await interaction.response.send_message(embed=emb)
     
     
-    @nextcord.slash_command(name="buy", description="Вызывает меню покупки роли в магазине", guild_ids=[])
+    @nextcord.slash_command(name="buy", description="Makes a role purchase from the store | Совершает покупку роли из магазина", guild_ids=[])
     async def buy(self, interaction: Interaction, role: nextcord.Role = SlashOption(name="role", description="Роль, которую Вы хотите купить", required=True)):
         
         if not await self.can_role(interaction=interaction, role=role):
             return
 
-        
-
-        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
+        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
 
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 member_buyer = interaction.user
                 if role in member_buyer.roles:
-                    emb = Embed(title='Ошибка', description='**`У Вас уже есть эта роль`**', colour=Colour.red())
+                    emb = Embed(title=text_slash[lng][0], description=text_slash[lng][4], colour=Colour.red())
                     await interaction.response.send_message(embed=emb)
                     return
                 
-                outer = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()
+                outer = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchone()
                 if outer == [] or outer == None:
-                    await interaction.response.send_message(embed=Embed(title = 'Ошибка', description='**`Такой товар не найден. Пожалуйста, проверьте правильность выбранной роли`**', colour=Colour.red()))
+                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description='**`Такой товар не найден. Пожалуйста, проверьте правильность выбранной роли`**', colour=Colour.red()))
                     return
 
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
@@ -465,7 +724,7 @@ class slash(commands.Cog):
                 buyer_cash = buyer[1]
                 cost = role_info[1]
                 if buyer_cash < cost:
-                    emb = Embed(title='Ошибка', colour=Colour.red(), description=f'**`Для покупки роли Вам не хватает {cost - buyer_cash}`**{self.currency}')
+                    emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=f'**`Для покупки роли Вам не хватает {cost - buyer_cash}`**{self.currency}')
                     await interaction.response.send_message(embed=emb)
                     return
 
@@ -490,7 +749,7 @@ class slash(commands.Cog):
                     is_special = role_info[2]
                     if is_special == 0:
                         outer = None
-                        special_roles = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchall()
+                        special_roles = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchall()
                         #min_time = datetime.utcnow() + timedelta(hours=4)
                         min_time = int(time()) + 57600
                         for i in range(len(special_roles)):
@@ -507,11 +766,11 @@ class slash(commands.Cog):
                     base.commit()
                     
                     if (outer[2] <= 1 and outer[2] != -404) or is_special == 0:
-                        item_id = cur.execute('SELECT item_id FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()[0]
-                        cur.execute('DELETE FROM outer_shop WHERE item_id = ?', (item_id,))
+                        item_id = cur.execute('SELECT item_id FROM outer_store WHERE role_id = ?', (role.id,)).fetchone()[0]
+                        cur.execute('DELETE FROM outer_store WHERE item_id = ?', (item_id,))
                         base.commit()
                     elif is_special == 1:
-                        cur.execute('UPDATE outer_shop SET quantity = quantity - ? WHERE role_id = ?', (1, role.id))
+                        cur.execute('UPDATE outer_store SET quantity = quantity - ? WHERE role_id = ?', (1, role.id))
                         base.commit()
 
                     emb.title = 'Покупка совершена'
@@ -529,16 +788,16 @@ class slash(commands.Cog):
                     except:
                         pass
                     
-    @nextcord.slash_command(name="shop", description="Вызывает меню с товарами", guild_ids=[])
-    async def shop(self, interaction: Interaction):
-        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
+    @nextcord.slash_command(name="store", description="Вызывает меню с товарами", guild_ids=[])
+    async def store(self, interaction: Interaction):
+        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 in_row = self.in_row
                 counter = 0
-                shop_list = []
+                store_list = []
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 tz = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
-                outer_list = cur.execute('SELECT * FROM outer_shop').fetchall()
+                outer_list = cur.execute('SELECT * FROM outer_store').fetchall()
                 for i in range(len(outer_list)-1):
                     for j in range(i+1, len(outer_list)):
                         if outer_list[i][3] > outer_list[j][3]:
@@ -557,27 +816,27 @@ class slash(commands.Cog):
                     tzinfo = timezone(timedelta(hours=tz))
                     date = datetime.fromtimestamp(r[4], tz=tzinfo).strftime("%H:%M %d-%m-%Y")
                     if r[5] == 1:
-                        shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Осталось` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+                        store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Осталось` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
                     elif r[5] == 2:
-                        shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Осталось` - `∞`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+                        store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Осталось` - `∞`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
                     elif r[5] == 0:
-                        shop_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Выставленa на продажу:`\n*{date}*\n")
+                        store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Выставленa на продажу:`\n*{date}*\n")
                         
 
-                shop_list.append(f'\nСтраница **`1`** из **`{(len(outer_list)+in_row-1)//in_row}`**')
+                store_list.append(f'\nСтраница **`1`** из **`{(len(outer_list)+in_row-1)//in_row}`**')
 
-                emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(shop_list))
+                emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
                 if lng == 0:
-                    myview_shop = shop_slash_e(timeout=60, outer_shop=outer_list, ctx=interaction, in_row=3, coin=self.currency, tz=tz)
+                    myview_store = store_slash_e(timeout=60, outer_store=outer_list, ctx=interaction, in_row=3, coin=self.currency, tz=tz)
                 else:
-                    myview_shop = shop_slash_r(timeout=60, outer_shop=outer_list, ctx=interaction, in_row=3, coin=self.currency, tz=tz)
-                await interaction.response.send_message(embed=emb, view=myview_shop)
+                    myview_store = store_slash_r(timeout=60, outer_store=outer_list, ctx=interaction, in_row=3, coin=self.currency, tz=tz)
+                await interaction.response.send_message(embed=emb, view=myview_store)
                 msg = await interaction.original_message()
-                chk = await myview_shop.wait()
+                chk = await myview_store.wait()
                 if chk:
-                    for button in myview_shop.children:
+                    for button in myview_store.children:
                         button.disabled = True
-                    await msg.edit(view=myview_shop)
+                    await msg.edit(view=myview_store)
     
     @nextcord.slash_command(name="sell", description="Выставляет указанную роль на продажу", guild_ids=[])
     async def sell(
@@ -588,7 +847,7 @@ class slash(commands.Cog):
         if not role in interaction.user.roles:
             await interaction.response.send_message(embed=Embed(
                 colour=Colour.red(),
-                title='Ошибка',
+                title=text_slash[lng][0],
                 description='**`Вы не можете продать роль, которой у Вас нет`**'
             ))
             return
@@ -596,12 +855,12 @@ class slash(commands.Cog):
         if not await self.can_role(interaction=interaction, role=role):
             return
 
-        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
+        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
 
                 if role_info == None:
-                    await interaction.response.send_message(embed=Embed(title='Ошибка', description='Вы не можете продать эту роль', colour=Colour.red()))
+                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description='Вы не можете продать эту роль', colour=Colour.red()))
                     return
 
                 memb_id = interaction.user.id
@@ -613,38 +872,38 @@ class slash(commands.Cog):
                 owned_roles = user[2]
                 cur.execute('UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?', (owned_roles.replace(f"#{role.id}", ""), role_info[1], memb_id))
                 base.commit()
-                outer  = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()      
+                outer  = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchone()      
                 time_now = int(time())
                 if role_info[2] == 1:                   
                     if outer == None:
-                        item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
+                        item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_store').fetchall()]
                         item_ids.sort()
                         free_id = 1
                         while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
                             free_id += 1
-                        cur.execute('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, 1, role_info[1], time_now, 1))
+                        cur.execute('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, 1, role_info[1], time_now, 1))
                         base.commit()            
                     else:
-                        cur.execute('UPDATE outer_shop SET quantity = quantity + ?, last_date = ? WHERE role_id = ?', (1, time_now, role.id))
+                        cur.execute('UPDATE outer_store SET quantity = quantity + ?, last_date = ? WHERE role_id = ?', (1, time_now, role.id))
                         base.commit()
                 elif role_info[2] == 2:
                     if outer == None:
-                        item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
+                        item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_store').fetchall()]
                         item_ids.sort()
                         free_id = 1
                         while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
                             free_id += 1
-                        cur.execute('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, -404, role_info[1], time_now, 2))
+                        cur.execute('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, -404, role_info[1], time_now, 2))
                         base.commit()
 
                 elif role_info[2] == 0:
                     
-                    item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
+                    item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_store').fetchall()]
                     item_ids.sort()
                     free_id = 1
                     while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
                         free_id += 1
-                    cur.execute('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, 1, role_info[1], time_now, 0))
+                    cur.execute('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, 1, role_info[1], time_now, 0))
                     base.commit()
 
                     membs = cur.execute("SELECT members FROM money_roles WHERE role_id = ?", (role.id,)).fetchone()
@@ -671,7 +930,7 @@ class slash(commands.Cog):
 
     @nextcord.slash_command(name="profile", description="Показывает Ваш профиль", guild_ids=[])
     async def profile(self, interaction: Interaction):
-        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
+        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 memb_id = interaction.user.id
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
@@ -726,7 +985,7 @@ class slash(commands.Cog):
     @nextcord.slash_command(name="work", description="Поработать", guild_ids=[])
     async def work(self, interaction: Interaction):
         memb_id = interaction.user.id
-        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
+        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 time_reload = cur.execute("SELECT value FROM server_info WHERE settings = 'time_r'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
@@ -763,12 +1022,12 @@ class slash(commands.Cog):
     async def bet(self, interaction: Interaction, amount: int = SlashOption(name="amount", description="Сумма ставки", required=True, min_value=1)): 
 
         memb_id = interaction.user.id
-        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
+        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 if amount > member[1]:
-                    await interaction.response.send_message(embed=Embed(title='Ошибка', description=f'Вы не можете сделать ставку, так как Вам не хватает **`{amount - member[1]}`**{self.currency}', colour=Colour.red()), ephemeral=True)
+                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=f'Вы не можете сделать ставку, так как Вам не хватает **`{amount - member[1]}`**{self.currency}', colour=Colour.red()), ephemeral=True)
                     return
                 if lng == 0:
                     print(interaction.guild.name.replace(" ", ""))
@@ -829,7 +1088,7 @@ class slash(commands.Cog):
         target: nextcord.Member = SlashOption(name="target", description="Кому Вы хотите передать валюту", required=True)
     ):
         memb_id = interaction.user.id
-        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
+        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 act = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 self.check_user(base=base, cur=cur, memb_id=target.id)

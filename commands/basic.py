@@ -34,19 +34,19 @@ class mod_commands(commands.Cog):
     global help_menu
     help_menu = {
         0 : {
-            "set" : f"`{prefix}set` `<role>` `<quantity>` - sets the quantity of selected role for selling in shop. If role not in the list of roles available for buying/selling, \
+            "set" : f"`{prefix}set` `<role>` `<quantity>` - sets the quantity of selected role for selling in store. If role not in the list of roles available for buying/selling, \
               add it via the `{prefix}add` command. \n**Example:**\n**`{prefix}set 972494065088200745 5`** sets 5 roles with id 972494065088200745 (you can use mention with @ \
-                instead of id) selling in the shop",
+                instead of id) selling in the store",
 
             "update_cash" : f"`{prefix}update_cash` `<member>` `<value>` sets cash of the member **equal** to selected value. \n**Example:**\n**`{prefix}update_cash 931273285268832326 100 \
               will set user's cash equal to 100 {currency} (you can mention user with @ instead of him id)",
 
             "add" : f"`{prefix}add` `<role>` `<price>` `<type_of_role>` `<salary (for unique roles)>` adds role to the list of roles available for buying/selling.\
-              Types of role: \n0 is for unique, which has salary; \n1 is for common, has quantity in the shop; \n2 is for infinite (can't run out in the shop). \
+              Types of role: \n0 is for unique, which has salary; \n1 is for common, has quantity in the store; \n2 is for infinite (can't run out in the store). \
               \n**Example:**\n **`{prefix}add 972494065088200745 100 0 10`** adds role with id 972494065088200745 (you can use mention with @ instead of id) to the list, it costs \
               100 {currency}, unique and brigns it's owner 10 every 4 hours",
 
-            "remove" : f"`{prefix}remove` `<role>` - removes role from list of available for buying/selling. Also removes this role from the shop. **All information about the role \
+            "remove" : f"`{prefix}remove` `<role>` - removes role from list of available for buying/selling. Also removes this role from the store. **All information about the role \
               will be lost!**\n**Example**\n**`{prefix}remove 972494065088200745`** will remove role with id 972494065088200745 (you can use mention with @ instead of id) from list \
               of roles available for selling/buying on the server, also all information about the role will be deleted",
 
@@ -165,7 +165,7 @@ class mod_commands(commands.Cog):
             10 : 'was added to the list',
             11 : 'Error: you cant change type of the existing role. To do it, you should recreate role.\n**All information about the role will be lost!**',
             12 : 'Role was successfully updated',
-            13 : 'has been withdrawn from server shop, not available for buying/selling  and doesnt bring money from now,',
+            13 : 'has been withdrawn from server store, not available for buying/selling  and doesnt bring money from now,',
             14 : 'From now the price of the role',
             15 : f'role - id - price - type (look {prefix}help_mod add)',
             16 : 'Error: this role is not unique',
@@ -194,7 +194,7 @@ class mod_commands(commands.Cog):
             39 : "**`From now members with unique roles (type of roles - 0) will gain money once every {} seconds`**",
             40 : "**`This role not found`**",
             41 : "**`This channel not found`**",
-            42 : "**`This amount of role already in the shop`**",
+            42 : "**`This amount of role already in the store`**",
             43 : "**`Amount of roles {} was made equal to {}`**",
             44 : "**`Now cash of the {} is equal to {}`** {}"
             
