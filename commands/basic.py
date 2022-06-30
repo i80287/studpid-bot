@@ -196,7 +196,9 @@ class mod_commands(commands.Cog):
             38 : "**`{} и {} selected as borders for amount of money gained after using /work`**",
             39 : "**`From now members with unique roles (type of roles - 0) will gain money once every {} seconds`**",
             40 : "**`This role not found`**",
-            41 : "**`This channel not found`**"
+            41 : "**`This channel not found`**",
+            42 : "**`This amount of role already in the shop`**",
+            43 : "**`Amount of roles {} was made equal to {}`**"
             
         },
         1 : {
@@ -242,7 +244,9 @@ class mod_commands(commands.Cog):
             38 : "**`{} и {} установлены в качестве границ заработка от команды /work`**",
             39 : "**`В качестве перерыва между начислением денег участникам с уникальными ролями (тип ролей - 0) установлено время {} секунд(а, ы)`**",
             40 : "**`Такая роль не найдена`**",
-            41 : "**`Такой канал не найден`**"
+            41 : "**`Такой канал не найден`**",
+            42 : "**`Нужное количество ролей уже находится в магазине`**",
+            43 : "**`Количество ролей {} в магазине установлено равным {}`**"
         }
     }
     global zones
@@ -392,6 +396,37 @@ class mod_commands(commands.Cog):
                 cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
+
+  async def insert_uniq(self, base: sqlite3.Connection, cur: sqlite3.Cursor, nums: int, role_id: int, outer: list, price: int, time_now: int, ctx, lng: int):
+      l = 0 if outer == None else len(outer)
+      if nums > l:
+          item_ids = set([x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()])
+          free_ids = []
+          for i in range(1, max(item_ids) + 1):
+              if i not in item_ids:
+                  free_ids.append(i)
+          if len(free_ids) >= nums - l:
+              r = [(free_ids[i], role_id, 1, price, time_now, 0) for i in range(nums-l)]
+              cur.executemany('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
+              base.commit()
+          else:
+              r = [(x, role_id, 1, price, time_now, 0) for x in free_ids]
+              cur.executemany('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
+              base.commit()
+              r = [(x, role_id, 1, price, time_now, 0) for x in range(max(item_ids)+1, max(item_ids) + nums - l- len(free_ids) + 1)]
+              cur.executemany('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
+              base.commit()
+          await ctx.reply(text[lng][43].format(role_id, nums), mention_author=False)
+
+      elif nums < l:
+          to_delete = cur.execute("SELECT item_id FROM outer_shop WHERE role_id = ? ORDER BY last_date LIMIT ?", (role_id, l-nums)).fetchall()
+          for item in to_delete:
+              cur.execute("DELETE FROM outer_shop WHERE item_id = ?", (item[0],))
+          base.commit()
+          await ctx.reply(text[lng][43].format(role_id, nums), mention_author=False)
+
+      elif nums == l:
+          await ctx.reply(text[lng][42], mention_author=False)
 
 
   @commands.Cog.listener()
@@ -562,20 +597,15 @@ class mod_commands(commands.Cog):
             await ctx.reply(content=f"{text[lng][7]} {self.prefix}add", mention_author=False)
             return
         is_special = role_info[2]
+        outer = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchall()
         if nums > 0:
           #time_now = (datetime.utcnow()+timedelta(hours=3)).strftime('%S/%M/%H/%d/%m/%Y')
-          time_now = int(time())
+          time_now = int(time()) #inside of the bot without time zone
           if is_special == 0:
-            for _ in range(nums):                
-              item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
-              item_ids.sort()
-              free_id = 1
-              while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
-                  free_id += 1
-              cur.execute('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, 1, role_info[1], time_now, 0))
-              base.commit()
+              await self.insert_uniq(base=base, cur=cur, nums=nums, role_id=role.id, outer=outer, price=role_info[1], time_now=time_now, ctx=ctx, lng=lng)
+              return
+
           elif is_special == 1:
-              outer = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()
               if outer == None:
                   item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
                   item_ids.sort()
@@ -588,21 +618,20 @@ class mod_commands(commands.Cog):
                   cur.execute('UPDATE outer_shop SET quantity = ?, last_date = ? WHERE role_id = ?', (nums, time_now, role.id))
                   base.commit()
           elif is_special == 2:
-            outer = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()
-            if outer == None:
-              item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
-              item_ids.sort()
-              free_id = 1
-              while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
-                  free_id += 1
-              cur.execute('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, -404, role_info[1], time_now, 2))
-              base.commit()      
+              if outer == None:
+                item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
+                item_ids.sort()
+                free_id = 1
+                while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
+                    free_id += 1
+                cur.execute('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, -404, role_info[1], time_now, 2))
+                base.commit()     
         else:
-          item_id = cur.execute('SELECT item_id FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()[0]
-          cur.execute('DELETE FROM outer_shop WHERE item_id = ?', (item_id,))
-          base.commit()
+            item_id = cur.execute('SELECT item_id FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()[0]
+            cur.execute('DELETE FROM outer_shop WHERE item_id = ?', (item_id,))
+            base.commit()
 
-        await ctx.reply(content=f"{nums} role(s) {role.name} was(ere) added to database", mention_author=False)
+        await ctx.reply(content=text[lng][43].format(role.id, nums), mention_author=False)
 
 
   @commands.command(hidden=True, aliases=['update_cash'])

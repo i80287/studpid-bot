@@ -17,18 +17,44 @@ async def on_ready():
     global bot_guilds_e
     global bot_guilds_r
     for guild in bot.guilds:
-        try:
+        bot_guilds_e.add(guild.id)
+        if not os.path.exists(f'./bases_{guild.id}'):
+            os.mkdir(f'./bases_{guild.id}/')
             with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_shop.db')) as base:
                 with closing(base.cursor()) as cur:
-                    lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                    if lng == 0:
-                        bot_guilds_e.add(guild.id)
-                    else:
-                        bot_guilds_r.add(guild.id)
-                        
-        except Exception as E:
-            with open("d.log", "a+", encoding="utf-8") as f:
-                  f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{str(E)}]\n")
+                    cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
+                    base.commit()
+                    cur.execute('CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, special INTEGER)')
+                    base.commit()
+                    cur.execute('CREATE TABLE IF NOT EXISTS outer_shop(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, special INTEGER)')
+                    base.commit()
+                    cur.execute('CREATE TABLE IF NOT EXISTS money_roles(role_id INTEGER NOT NULL PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, last_time INTEGER)')
+                    base.commit()
+                    cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
+                    base.commit()
+            
+                    r = [
+                        ('lang', 0), ('log_channel', 0), ('error_log', 0), 
+                        ('mod_role', 0), ('tz', 0), ('time_r', 14400), 
+                        ('sal_l', 1), ('sal_r', 250), ('uniq_timer', 14400)
+                    ]
+                    cur.executemany("INSERT INTO server_info(settings, value) VALUES(?, ?)", r)
+                    base.commit()
+
+                    bot_guilds_e.add(guild.id)
+        else:
+            try:
+                with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_shop.db')) as base:
+                    with closing(base.cursor()) as cur:
+                        lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                        if lng == 0:
+                            bot_guilds_e.add(guild.id)
+                        else:
+                            bot_guilds_r.add(guild.id)
+
+            except Exception as E:
+                with open("d.log", "a+", encoding="utf-8") as f:
+                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{str(E)}]\n")
 
     print(f'{Fore.CYAN}[>>>]Logged into Discord as {bot.user}\n')
 
@@ -42,7 +68,7 @@ async def on_ready():
 
     print(opt, end=' ')
     #status=nextcord.Status.dnd,
-    await bot.change_presence(activity=nextcord.Game("/shop"))
+    await bot.change_presence(activity=nextcord.Game("/help"))
 
 if __name__ == "__main__":
     for filename in os.listdir("./commands"):
