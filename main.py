@@ -14,10 +14,7 @@ cmd = Console(bot)
 @bot.event
 async def on_ready():
 
-    global bot_guilds_e
-    global bot_guilds_r
     for guild in bot.guilds:
-        bot_guilds_e.add(guild.id)
         if not os.path.exists(f'./bases_{guild.id}'):
             os.mkdir(f'./bases_{guild.id}/')
             with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_shop.db')) as base:
@@ -40,22 +37,7 @@ async def on_ready():
                     ]
                     cur.executemany("INSERT INTO server_info(settings, value) VALUES(?, ?)", r)
                     base.commit()
-
-                    bot_guilds_e.add(guild.id)
-        else:
-            try:
-                with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_shop.db')) as base:
-                    with closing(base.cursor()) as cur:
-                        lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                        if lng == 0:
-                            bot_guilds_e.add(guild.id)
-                        else:
-                            bot_guilds_r.add(guild.id)
-
-            except Exception as E:
-                with open("d.log", "a+", encoding="utf-8") as f:
-                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{str(E)}]\n")
-
+                
     print(f'{Fore.CYAN}[>>>]Logged into Discord as {bot.user}\n')
 
     opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
@@ -69,6 +51,7 @@ async def on_ready():
     print(opt, end=' ')
     #status=nextcord.Status.dnd,
     await bot.change_presence(activity=nextcord.Game("/help"))
+
 
 if __name__ == "__main__":
     for filename in os.listdir("./commands"):

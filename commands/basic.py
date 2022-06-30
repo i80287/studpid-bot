@@ -6,7 +6,6 @@ from time import time
 from nextcord.ext import commands
 from nextcord.ext.commands import CheckFailure
 from nextcord import Embed, Colour
-from config import bot_guilds_e, bot_guilds_r
 
 class mod_commands(commands.Cog):
   def __init__(self, bot: commands.Bot, prefix: str, in_row: int, currency: str):
@@ -32,8 +31,6 @@ class mod_commands(commands.Cog):
         f"`{prefix}reset`"
     ]
     ryad = "{-12; -11; ...; 11; 12}"
-    global bot_guilds_e
-    global bot_guilds_r
     global help_menu
     help_menu = {
         0 : {
@@ -198,7 +195,8 @@ class mod_commands(commands.Cog):
             40 : "**`This role not found`**",
             41 : "**`This channel not found`**",
             42 : "**`This amount of role already in the shop`**",
-            43 : "**`Amount of roles {} was made equal to {}`**"
+            43 : "**`Amount of roles {} was made equal to {}`**",
+            44 : "**`Now cash of the {} is equal to {}`** {}"
             
         },
         1 : {
@@ -246,7 +244,8 @@ class mod_commands(commands.Cog):
             40 : "**`Такая роль не найдена`**",
             41 : "**`Такой канал не найден`**",
             42 : "**`Нужное количество ролей уже находится в магазине`**",
-            43 : "**`Количество ролей {} в магазине установлено равным {}`**"
+            43 : "**`Количество ролей {} в магазине установлено равным {}`**",
+            44 : "**`Теперь баланс пользователя {} равен {}`** {}"
         }
     }
     global zones
@@ -431,7 +430,6 @@ class mod_commands(commands.Cog):
 
   @commands.Cog.listener()
   async def on_guild_join(self, guild: nextcord.Guild):
-      bot_guilds_e.add(guild.id)
       if not os.path.exists(f'./bases_{guild.id}'):
           try:
               os.mkdir(f'./bases_{guild.id}/')
@@ -488,7 +486,7 @@ class mod_commands(commands.Cog):
                   cur.execute("INSERT INTO server_info(settings, value) VALUES('uniq_timer', 14400)")
                   base.commit()
 
-  @commands.Cog.listener()
+  """ @commands.Cog.listener()
   async def on_guild_remove(self, guild: nextcord.Guild):
       with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_shop.db')) as base:
           with closing(base.cursor()) as cur:
@@ -500,7 +498,7 @@ class mod_commands(commands.Cog):
                       bot_guilds_r.remove(guild.id)
               except Exception as E:
                   with open("d.log", "a+", encoding="utf-8") as f:
-                      f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [guild_remove] [{str(E)}]\n")
+                      f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [guild_remove] [{str(E)}]\n") """
 
   @commands.Cog.listener()
   async def on_ready(self):
@@ -641,13 +639,17 @@ class mod_commands(commands.Cog):
       with closing(base.cursor()) as cur:
         memb_id = member.id
         self.check(base=base, cur=cur, memb_id=memb_id)
+        lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
         if value < 0:
-          cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
-          base.commit()
+            cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
+            base.commit()
+            value = 0
         else:
-          cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (value, memb_id))
-          base.commit()
-  
+            cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (value, memb_id))
+            base.commit()
+
+        await ctx.reply(content=text[lng][44].format(member.name, value, self.currency), mention_author = False)
+
 
   @commands.command(hidden=True, aliases=['add'])
   @commands.check(needed_role)

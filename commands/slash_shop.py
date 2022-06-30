@@ -6,9 +6,9 @@ from nextcord.ext import commands
 from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
-from config import bot_guilds_r
 
-class Bet_view(View):
+class bet_slash_r(View):
+
     def __init__(self, timeout: int, ctx: Interaction, base: sqlite3.Connection, cur: sqlite3.Cursor, symbol: str, bet: int, function: filter):
         super().__init__(timeout=timeout)
         self.base = base
@@ -22,12 +22,12 @@ class Bet_view(View):
     @nextcord.ui.button(label="Сделать ставку", style=ButtonStyle.green, emoji="💰", custom_id="Make")
     async def callback_make(self, button: Button, interaction: Interaction):
         if interaction.user == self.ctx.user:
-            await interaction.response.send_message('Вы не можете делать встречную ставку самому себе', ephemeral=True)
+            await interaction.response.send_message("**`Вы не можете делать встречную ставку самому себе`**", ephemeral=True)
             return
 
         member = self.check_user(self.base, self.cur, interaction.user.id)
         if member[1] < self.bet:
-            emb = Embed(title="Ошибка", description=f"**`Вы не можете сделать встречную ставку, так как Вам не хватает {self.bet-member[1]}`**{self.symbol}", colour=Colour.red())
+            emb = Embed(title="Ошибка", description=f"**`Вы не можете сделать встречную ставку, так как Вам не хватает {self.bet-member[1]}`** {self.symbol}", colour=Colour.red())
             await interaction.response.send_message(embed=emb, ephemeral=True)
             return
         
@@ -37,7 +37,7 @@ class Bet_view(View):
     @nextcord.ui.button(label="Отменить ставку", style=ButtonStyle.red, emoji="❌", custom_id="Deny")
     async def callback_deny(self, button: Button, interaction: Interaction):
         if interaction.user != self.ctx.user:
-            await interaction.response.send_message('Вы не можете управлять чужой ставкой', ephemeral=True)
+            await interaction.response.send_message("Вы не можете управлять чужой ставкой", ephemeral=True)
             return
 
         emb = Embed(title="Отмена ставки", description="**`Ставка была отменена пользователем`**")
@@ -45,12 +45,68 @@ class Bet_view(View):
             button.disabled = True
         await interaction.response.edit_message(embed=emb, view=self)
         self.stop()
-    
+
+class bet_slash_e(View):
+
+    def __init__(self, timeout: int, ctx: Interaction, base: sqlite3.Connection, cur: sqlite3.Cursor, symbol: str, bet: int, function: filter):
+        super().__init__(timeout=timeout)
+        self.base = base
+        self.cur = cur
+        self.ctx = ctx
+        self.symbol = symbol
+        self.bet = bet
+        self.check_user = function
+        self.dueler = None
+
+    @nextcord.ui.button(label="Make counter bet", style=ButtonStyle.green, emoji="💰", custom_id="Make")
+    async def callback_make(self, button: Button, interaction: Interaction):
+        if interaction.user == self.ctx.user:
+            await interaction.response.send_message("**`You can't make counter bet for yourself`**", ephemeral=True)
+            return
+
+        member = self.check_user(self.base, self.cur, interaction.user.id)
+        if member[1] < self.bet:
+            emb = Embed(title="Error", description=f"**`You can't make counter bet, because you need at least {self.bet-member[1]}`** {self.symbol}", colour=Colour.red())
+            await interaction.response.send_message(embed=emb, ephemeral=True)
+            return
+        
+        self.dueler = member
+        self.stop()   
+
+    @nextcord.ui.button(label="Cancel bet", style=ButtonStyle.red, emoji="❌", custom_id="Deny")
+    async def callback_deny(self, button: Button, interaction: Interaction):
+        if interaction.user != self.ctx.user:
+            await interaction.response.send_message("You can't control bet made by another user", ephemeral=True)
+            return
+
+        emb = Embed(title="Cancelling bet", description="**`Bet was cancelled by user`**")
+        for button in self.children:
+            button.disabled = True
+        await interaction.response.edit_message(embed=emb, view=self)
+        self.stop()
+
 """ class view_sell(View):
     def __init__(self, timeout: int, ctx: Interaction):
         super().__init__(timeout=timeout)
         self.ctx = ctx
         self.is_sold = 0
+        global text_sl
+        text_sl = {
+            'eng' : {
+                0 : 'Yes',
+                1 : "No, decline sale",
+                2 : "**`The sale has been canceled by user`**",
+                3 : "**`Sale status has changed`**",
+                4 : "You can't manage other's sale"
+            },
+            'rus' : {
+                1 : 'Да',
+                2 : "Нет, отменить продажу",
+                2 : '**`Продажа отмена пользователем`**',
+                3 : "Изменение статуса продажи",
+                4 : 'Вы не можете управлять чужой продажей'
+            }
+        }
     @nextcord.ui.button(label='Да', style=ButtonStyle.green, emoji="✅", custom_id = "goodbye")
     async def goodbye_role(self, button: Button, interaction: Interaction):
         self.is_sold = 1
@@ -73,7 +129,7 @@ class Bet_view(View):
             return False
         return True """
 
-class Myview_shop_slash(View):
+class shop_slash_r(View):
     def __init__(self, timeout: int, outer_shop: list, ctx: Interaction, in_row: int, coin: str, tz: int):
         super().__init__(timeout=timeout)
         self.outer_shop = outer_shop
@@ -285,7 +341,7 @@ class Myview_shop_slash(View):
                 return False
             return True
 
-class Myview_buy_slash(View):
+class buy_slash_r(View):
 
         def __init__(self, timeout, ctx: Interaction):
             super().__init__(timeout=timeout)
@@ -313,21 +369,28 @@ class Myview_buy_slash(View):
                 return False
             return True
 
-class shop_commands_slash(commands.Cog):
+class slash(commands.Cog):
 
     def __init__(self, bot: commands.Bot, prefix: str, in_row: int, currency: str):
         self.bot = bot
         self.prefix = prefix
         self.in_row = in_row
         self.currency = currency
-        global bot_guilds_r
-        global cmds_r 
-        cmds_r = [
-            ("`/shop`", "Вызывает меню товаров"), ("`/buy`", "Совершает покупку роли"), \
-            ("`/sell`", "Совершает продажу роли"), ("`/profile`", "Показывает меню Вашего профиля"), \
-            ("`/work`", "Начинает работу, за которую Вы полчите заработок"), ("`/bet`", "Делает ставку"), \
-            ("`/transfer`", "Совершает перевод валюты другому юзеру")
-        ]
+        global cmds
+        cmds = {
+        0 : [
+                ("`/shop`", "Вызывает меню товаров"), ("`/buy`", "Совершает покупку роли"), \
+                ("`/sell`", "Совершает продажу роли"), ("`/profile`", "Показывает меню Вашего профиля"), \
+                ("`/work`", "Начинает работу, за которую Вы полчите заработок"), ("`/duel`", "Делает ставку"), \
+                ("`/transfer`", "Совершает перевод валюты другому юзеру")
+        ],
+        1 : [
+                ("`/shop`", "shows shop menu"), ("`/buy`", "makes a role purchase"), \
+                ("`/sell`", "sells the role"), ("`/profile`", "shows your profile"), \
+                ("`/work`", "Starts working, so you get salary"), ("`/duel`", "Makes a bet"), \
+                ("`/transfer`", "Transfers money to other members")
+            ]
+        }
     
     async def can_role(self, interaction: Interaction, role: nextcord.Role):
         
@@ -361,28 +424,35 @@ class shop_commands_slash(commands.Cog):
                 base.commit()
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
     
-    @nextcord.slash_command(name="help", description="Вызывает меню команд", guild_ids = bot_guilds_r)
+    @nextcord.slash_command(name="help", description="Calls menu with commands  | Вызывает меню команд", guild_ids=[])
     async def help(self, interaction: Interaction):
-        emb = Embed(title="Команды", colour=Colour.dark_purple())
-        for n, v in cmds_r:
-            emb.add_field(name=n, value=v, inline=False)
-        await interaction.response.send_message(embed=emb)
+        with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
+            with closing(base.cursor()) as cur:
+                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                emb = Embed(title="Команды", colour=Colour.dark_purple())
+                for n, v in cmds[lng]:
+                    emb.add_field(name=n, value=v, inline=False)
+                await interaction.response.send_message(embed=emb)
     
     
-    @nextcord.slash_command(name="buy", description="Вызывает меню покупки роли в магазине", guild_ids=bot_guilds_r)
+    @nextcord.slash_command(name="buy", description="Вызывает меню покупки роли в магазине", guild_ids=[])
     async def buy(self, interaction: Interaction, role: nextcord.Role = SlashOption(name="role", description="Роль, которую Вы хотите купить", required=True)):
         
         if not await self.can_role(interaction=interaction, role=role):
             return
 
-        member_buyer = interaction.user
-        if role in member_buyer.roles:
-            emb = Embed(title='Ошибка', description='**`У Вас уже есть эта роль`**', colour=Colour.red())
-            await interaction.response.send_message(embed=emb)
-            return
+        
 
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
-            with closing(base.cursor()) as cur:            
+            with closing(base.cursor()) as cur:
+
+                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                member_buyer = interaction.user
+                if role in member_buyer.roles:
+                    emb = Embed(title='Ошибка', description='**`У Вас уже есть эта роль`**', colour=Colour.red())
+                    await interaction.response.send_message(embed=emb)
+                    return
+                
                 outer = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()
                 if outer == [] or outer == None:
                     await interaction.response.send_message(embed=Embed(title = 'Ошибка', description='**`Такой товар не найден. Пожалуйста, проверьте правильность выбранной роли`**', colour=Colour.red()))
@@ -400,7 +470,10 @@ class shop_commands_slash(commands.Cog):
                     return
 
                 emb = Embed(title='Подтверждение покупки', description=f'**`Вы уверены, что хотите купить роль`** {role.mention}?\nС Вас будет списано **`{cost}`**{self.currency}')
-                view = Myview_buy_slash(timeout=30, ctx=interaction)
+                if lng == 0:
+                    view = buy_slash_e(timeout=30, ctx=interaction)
+                else:
+                    view = buy_slash_r(timeout=30, ctx=interaction)
                 await interaction.response.send_message(embed=emb, view=view)
                 msg = await interaction.original_message()
 
@@ -456,13 +529,14 @@ class shop_commands_slash(commands.Cog):
                     except:
                         pass
                     
-    @nextcord.slash_command(name="shop", description="Вызывает меню с товарами", guild_ids=bot_guilds_r)
+    @nextcord.slash_command(name="shop", description="Вызывает меню с товарами", guild_ids=[])
     async def shop(self, interaction: Interaction):
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
             with closing(base.cursor()) as cur:
                 in_row = self.in_row
                 counter = 0
                 shop_list = []
+                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 tz = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
                 outer_list = cur.execute('SELECT * FROM outer_shop').fetchall()
                 for i in range(len(outer_list)-1):
@@ -493,7 +567,10 @@ class shop_commands_slash(commands.Cog):
                 shop_list.append(f'\nСтраница **`1`** из **`{(len(outer_list)+in_row-1)//in_row}`**')
 
                 emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(shop_list))
-                myview_shop = Myview_shop_slash(timeout=60, outer_shop=outer_list, ctx=interaction, in_row=3, coin=self.currency, tz=tz)
+                if lng == 0:
+                    myview_shop = shop_slash_e(timeout=60, outer_shop=outer_list, ctx=interaction, in_row=3, coin=self.currency, tz=tz)
+                else:
+                    myview_shop = shop_slash_r(timeout=60, outer_shop=outer_list, ctx=interaction, in_row=3, coin=self.currency, tz=tz)
                 await interaction.response.send_message(embed=emb, view=myview_shop)
                 msg = await interaction.original_message()
                 chk = await myview_shop.wait()
@@ -502,7 +579,7 @@ class shop_commands_slash(commands.Cog):
                         button.disabled = True
                     await msg.edit(view=myview_shop)
     
-    @nextcord.slash_command(name="sell", description="Выставляет указанную роль на продажу", guild_ids=bot_guilds_r)
+    @nextcord.slash_command(name="sell", description="Выставляет указанную роль на продажу", guild_ids=[])
     async def sell(
         self,
         interaction: Interaction,
@@ -592,7 +669,7 @@ class shop_commands_slash(commands.Cog):
                 except:
                     pass
 
-    @nextcord.slash_command(name="profile", description="Показывает Ваш профиль", guild_ids=bot_guilds_r)
+    @nextcord.slash_command(name="profile", description="Показывает Ваш профиль", guild_ids=[])
     async def profile(self, interaction: Interaction):
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
             with closing(base.cursor()) as cur:
@@ -646,7 +723,7 @@ class shop_commands_slash(commands.Cog):
                 emb.description = "\n".join(descr)
                 await interaction.response.send_message(embed=emb)
 
-    @nextcord.slash_command(name="work", description="Поработать", guild_ids=bot_guilds_r)
+    @nextcord.slash_command(name="work", description="Поработать", guild_ids=[])
     async def work(self, interaction: Interaction):
         memb_id = interaction.user.id
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
@@ -682,17 +759,22 @@ class shop_commands_slash(commands.Cog):
                     pass
 
 
-    @nextcord.slash_command(name="bet", description="Сделать ставку", guild_ids=bot_guilds_r)
+    @nextcord.slash_command(name="bet", description="Сделать ставку", guild_ids=[])
     async def bet(self, interaction: Interaction, amount: int = SlashOption(name="amount", description="Сумма ставки", required=True, min_value=1)): 
 
         memb_id = interaction.user.id
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_shop.db')) as base:
             with closing(base.cursor()) as cur:
+                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 if amount > member[1]:
                     await interaction.response.send_message(embed=Embed(title='Ошибка', description=f'Вы не можете сделать ставку, так как Вам не хватает **`{amount - member[1]}`**{self.currency}', colour=Colour.red()), ephemeral=True)
                     return
-                betview = Bet_view(timeout=30, ctx=interaction, base=base, cur=cur, symbol=self.currency, bet=amount, function=self.check_user)
+                if lng == 0:
+                    print(interaction.guild.name.replace(" ", ""))
+                    betview = bet_slash_e(timeout=30, ctx=interaction, base=base, cur=cur, symbol=self.currency, bet=amount, function=self.check_user)
+                else:
+                    betview = bet_slash_r(timeout=30, ctx=interaction, base=base, cur=cur, symbol=self.currency, bet=amount, function=self.check_user)
                 emb = Embed(title='Ставка', description=f'Вы сделали ставку в размере **`{amount}`**{self.currency}\nТеперь кто-то должен принять Ваш вызов')
                 await interaction.response.send_message(embed=emb, view=betview)
                 msg = await interaction.original_message()
@@ -739,7 +821,7 @@ class shop_commands_slash(commands.Cog):
                 except:
                     pass
 
-    @nextcord.slash_command(name="transfer", description="Перадать валюту другому участнику", guild_ids=bot_guilds_r)
+    @nextcord.slash_command(name="transfer", description="Перадать валюту другому участнику", guild_ids=[])
     async def transfer(
         self,
         interaction: Interaction, 
@@ -776,4 +858,4 @@ class shop_commands_slash(commands.Cog):
             await ctx.respond(error) """
 
 def setup(bot: commands.Bot, **kwargs):
-  bot.add_cog(shop_commands_slash(bot, **kwargs))
+  bot.add_cog(slash(bot, **kwargs))
