@@ -640,15 +640,34 @@ class slash(commands.Cog):
                 2 : "I don't have permission to manage this role. My role should be higher than this role",
                 3 : "Commands",
                 4 : "**`You already have this role`**",
-
+                5 : "**`This item not found. Please, check if you selected right role`**",
+                6 : "**`For purchasing this role you need {} {} more`**",
+                7 : "Purchase confirmation",
+                8 : "**`Are you sure that you want to buy`** {}?\n{} {} will be debited from your balance",
+                9 : "**`Purchase has expired`**",
+                10 : "Purchase completed",
+                11 : "**`If your DM are open, then purchase confirmation will be message you`**",
+                12 : "You successfully bought role `{}` on the server `{}` for `{}` {}",
+                13 : "Role purchase",
+                14 : "{} bought role {} for {} {}"
 
             },
             1 : {
-                0 : "Ошибка",
+                0 : "Ошибка", #title
                 1 : "У меня нет прав управлять ролями на сервере.",
                 2 : "У меня нет прав управлять этой ролью. Моя роль должна быть выше, чем указанная Вами роль.",
-                3 : "Команды",
+                3 : "Команды", #title
                 4 : "**`У Вас уже есть эта роль`**",
+                5 : "**`Такой товар не найден. Пожалуйста, проверьте правильность выбранной роли`**",
+                6 : "**`Для покупки роли Вам не хватает {} {}`**",
+                7 : "Подтверждение покупки",
+                8 : "**`Вы уверены, что хотите купить роль`** {}?\nС Вас будет списано **`{}`** {}",
+                9 : '**`Истекло время подтверждения покупки`**',
+                10 : "Покупка совершена", #title
+                11 : "**`Если у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение покупки будет выслано Вам в личные сообщения`**",
+                12 : "Вы успешно купили роль `{}` на сервере `{}` за `{}` {}",
+                13 : "Покупка роли",
+                14 : "{} купил роль {} за {} {}"
 
             }
         }
@@ -697,7 +716,7 @@ class slash(commands.Cog):
     
     
     @nextcord.slash_command(name="buy", description="Makes a role purchase from the store | Совершает покупку роли из магазина", guild_ids=[])
-    async def buy(self, interaction: Interaction, role: nextcord.Role = SlashOption(name="role", description="Роль, которую Вы хотите купить", required=True)):
+    async def buy(self, interaction: Interaction, role: nextcord.Role = SlashOption(name="role", description="Role that you want to buy | Роль, которую Вы хотите купить", required=True)):
         
         if not await self.can_role(interaction=interaction, role=role):
             return
@@ -714,7 +733,7 @@ class slash(commands.Cog):
                 
                 outer = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchone()
                 if outer == [] or outer == None:
-                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description='**`Такой товар не найден. Пожалуйста, проверьте правильность выбранной роли`**', colour=Colour.red()))
+                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][5], colour=Colour.red()))
                     return
 
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
@@ -724,11 +743,11 @@ class slash(commands.Cog):
                 buyer_cash = buyer[1]
                 cost = role_info[1]
                 if buyer_cash < cost:
-                    emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=f'**`Для покупки роли Вам не хватает {cost - buyer_cash}`**{self.currency}')
+                    emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=f"{text_slash[lng][6].format(cost - buyer_cash, self.currency)}")
                     await interaction.response.send_message(embed=emb)
                     return
 
-                emb = Embed(title='Подтверждение покупки', description=f'**`Вы уверены, что хотите купить роль`** {role.mention}?\nС Вас будет списано **`{cost}`**{self.currency}')
+                emb = Embed(title=text_slash[lng][7], description=text_slash[lng][8].format(role.mention, cost, self.currency))
                 if lng == 0:
                     view = buy_slash_e(timeout=30, ctx=interaction)
                 else:
@@ -740,7 +759,7 @@ class slash(commands.Cog):
                 if chk:
                     for button in view.children:
                         button.disabled = True
-                    emb.description = '**`Истекло время подтверждения покупки`**'
+                    emb.description = text_slash[lng][9]
                     await msg.edit(embed = emb, view=view)
                     return
                 
@@ -773,20 +792,23 @@ class slash(commands.Cog):
                         cur.execute('UPDATE outer_store SET quantity = quantity - ? WHERE role_id = ?', (1, role.id))
                         base.commit()
 
-                    emb.title = 'Покупка совершена'
-                    emb.description = '**`Если у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение покупки будет выслано Вам в личные сообщения`**'
+                    emb.title = text_slash[lng][10]
+                    emb.description = text_slash[lng][11]
                     await msg.edit(embed=emb, view=None)
                     chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
+
                     try:
-                        channel = interaction.guild.get_channel(chnl_id)
-                        await channel.send(embed=Embed(title="Покупка роли", description=f"{interaction.user.mention} купил роль {role.mention} за {cost}"))
-                    except:
-                        pass
-                    try:
-                        emb = Embed(title='Подтверждение оплаты', description=f'Вы успешно купили роль `{role.name}` на сервере `{interaction.guild.name}` за `{cost}`{self.currency}', colour=Colour.green())
+                        emb = Embed(title=text_slash[lng][7], description=text_slash[lng][12].format(role.name, interaction.guild.name, cost, self.currency), colour=Colour.green())
                         await member_buyer.send(embed=emb)
                     except:
                         pass
+
+                    try:
+                        channel = interaction.guild.get_channel(chnl_id)
+                        await channel.send(embed=Embed(title=text_slash[lng][13], description=text_slash[lng][14].format(interaction.user.mention, role.mention, cost, self.currency)))
+                    except:
+                        pass
+                    
                     
     @nextcord.slash_command(name="store", description="Вызывает меню с товарами", guild_ids=[])
     async def store(self, interaction: Interaction):
@@ -858,7 +880,7 @@ class slash(commands.Cog):
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
-
+                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()
                 if role_info == None:
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description='Вы не можете продать эту роль', colour=Colour.red()))
                     return
