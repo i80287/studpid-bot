@@ -222,17 +222,17 @@ class store_slash_r(View):
             last = counter + in_row
         else:
             last = len(outer)
-                
+
+        tzinfo = timezone(timedelta(hours=self.tz))                
         for r in outer[counter:last]:
             #date = datetime.strptime(r[4], '%S/%M/%H/%d/%m/%Y').strftime('%H:%M %d-%m-%Y')
-            tzinfo = timezone(timedelta(hours=self.tz))
             date = datetime.fromtimestamp(r[4], tz=tzinfo).strftime("%H:%M %d-%m-%Y")
             if r[5] == 1:
-                store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Осталось` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+                store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.coin}\n`Осталось` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
             elif r[5] == 2:
-                store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Осталось` - `∞`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+                store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.coin}\n`Осталось` - `∞`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
             elif r[5] == 0:
-                store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.coin}\n`Выставленa на продажу:`\n*{date}*\n")
+                store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.coin}\n`Выставленa на продажу:`\n*{date}*\n")
                 
         
         store_list.append(f'\nСтраница **`{(counter // in_row) + 1}`** из **`{(len(outer)+in_row-1)//in_row}`**')
@@ -434,17 +434,16 @@ class store_slash_e(View):
             last = counter + in_row
         else:
             last = len(outer)
-                
+        tzinfo = timezone(timedelta(hours=self.tz))    
         for r in outer[counter:last]:
             #date = datetime.strptime(r[4], '%S/%M/%H/%d/%m/%Y').strftime('%H:%M %d-%m-%Y')
-            tzinfo = timezone(timedelta(hours=self.tz))
             date = datetime.fromtimestamp(r[4], tz=tzinfo).strftime("%H:%M %d-%m-%Y")
             if r[5] == 1:
-                store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}`{self.coin}\n`Left` - `{r[2]}`\n`Last listed for sale:`\n*{date}*\n")
+                store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}` {self.coin}\n`Left` - `{r[2]}`\n`Last listed for sale:`\n*{date}*\n")
             elif r[5] == 2:
-                store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}`{self.coin}\n`Left` - `∞`\n`Last listed for sale:`\n*{date}*\n")
+                store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}` {self.coin}\n`Left` - `∞`\n`Last listed for sale:`\n*{date}*\n")
             elif r[5] == 0:
-                store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}`{self.coin}\n`Listed for sale:`\n*{date}*\n")
+                store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}` {self.coin}\n`Listed for sale:`\n*{date}*\n")
                 
         
         store_list.append(f'\Page **`{(counter // in_row) + 1}`** from **`{(len(outer)+in_row-1)//in_row}`**')
@@ -619,19 +618,19 @@ class slash(commands.Cog):
         global cmds
         cmds = {
             0 : [
-                    ("`/store`", "shows store"), ("`/buy`", "makes a role purchase"), \
-                    ("`/sell`", "sells the role"), ("`/profile`", "shows your profile"), \
+                    ("`/store`", "Shows store"), ("`/buy`", "Makes a role purchase"), \
+                    ("`/sell`", "Sells the role"), ("`/profile`", "Shows your profile"), \
                     ("`/work`", "Starts working, so you get salary"), ("`/duel`", "Makes a bet"), \
                     ("`/transfer`", "Transfers money to other members")
             ],
             1 : [
-                    ("`/store`", "Вызывает меню товаров"), ("`/buy`", "Совершает покупку роли"), \
+                    ("`/store`", "Открывает меню магазина"), ("`/buy`", "Совершает покупку роли"), \
                     ("`/sell`", "Совершает продажу роли"), ("`/profile`", "Показывает меню Вашего профиля"), \
                     ("`/work`", "Начинает работу, за которую Вы полчите заработок"), ("`/duel`", "Делает ставку"), \
                     ("`/transfer`", "Совершает перевод валюты другому юзеру")
             ],
         }
-        print("-------------------------------------")
+
         global text_slash
         text_slash = {
             0 : {
@@ -649,7 +648,24 @@ class slash(commands.Cog):
                 11 : "**`If your DM are open, then purchase confirmation will be message you`**",
                 12 : "You successfully bought role `{}` on the server `{}` for `{}` {}",
                 13 : "Role purchase",
-                14 : "{} bought role {} for {} {}"
+                14 : "{} bought role {} for {} {}",
+                15 : "Roles for sale:",
+                16 : "You can't sell the role that you don't have",
+                17 : "**`You can't sell that role because it isn't in the list of roles available for purchase/sale on the server`**",
+                18 : "The sale is completed",
+                19 : "**`You sold role {} for {}`** {}\n**`If your DM are open, then confirmation of sale will be message you`**",
+                20 : "Confirmation of sale",
+                21 : "**`You sold role {} for {}`** {}",
+                22 : "Role sale",
+                23 : "{} sold role {} for {} {}",
+                24 : "Your profile",
+                25 : "**Your personal roles:**\n**Role** --- **Price** --- **Salary** (if it has)",
+                26 : "**`Please, wait {} before using this command`**",
+                27 : "Success",
+                28 : "**`You gained {}`** {}",
+                29 : "Work",
+                30 : "{} gained {} {}"
+
 
             },
             1 : {
@@ -667,7 +683,25 @@ class slash(commands.Cog):
                 11 : "**`Если у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение покупки будет выслано Вам в личные сообщения`**",
                 12 : "Вы успешно купили роль `{}` на сервере `{}` за `{}` {}",
                 13 : "Покупка роли",
-                14 : "{} купил роль {} за {} {}"
+                14 : "{} купил роль {} за {} {}",
+                15 : "Роли на продажу:",
+                16 : "**`Вы не можете продать роль, которой у Вас нет`**",
+                17 : "**`Продажа этой роли невозможна, т.к. она не находится в списке ролей, доступных для покупки/продажи на сервере`**",
+                18 : "Продажа совершена", #title
+                19 : "**`Вы продали роль {} за {}`** {}\n**`Если у Вас включена возможность получения личных сообщений от участников серверов, \
+                    то подтверждение покупки будет выслано Вам в личные сообщения`**",
+                20 : "Подтверждение продажи",
+                21 : "**`Вы продали роль {} за {}`** {}",
+                22 : "Продажа роли",
+                23 : "{} продал роль {} за {} {}",
+                24 : "Ваш профиль",
+                25 : "**Ваши личные роли:**\n**Роль** --- **Цена** --- **Доход** (если есть)",
+                26 : "**`Пожалуйста, подождите {} перед тем, как снова использовать эту команду`**",
+                27 : "Успех",
+                28 : "**`Вы заработали {}`** {}",
+                29 : "Работа",
+                30 : "{} заработал {} {}"
+
 
             }
         }
@@ -810,7 +844,7 @@ class slash(commands.Cog):
                         pass
                     
                     
-    @nextcord.slash_command(name="store", description="Вызывает меню с товарами", guild_ids=[])
+    @nextcord.slash_command(name="store", description="Shows store | Открывает меню магазина", guild_ids=[])
     async def store(self, interaction: Interaction):
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
@@ -832,22 +866,31 @@ class slash(commands.Cog):
                                 temp = outer_list[j]
                                 outer_list[j] = outer_list[i]
                                 outer_list[i] = temp
-                
-                for r in outer_list[counter:counter+in_row]:
-                    #date = datetime.strptime(r[4], '%S/%M/%H/%d/%m/%Y').strftime('%H:%M %d-%m-%Y')
-                    tzinfo = timezone(timedelta(hours=tz))
-                    date = datetime.fromtimestamp(r[4], tz=tzinfo).strftime("%H:%M %d-%m-%Y")
-                    if r[5] == 1:
-                        store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Осталось` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
-                    elif r[5] == 2:
-                        store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Осталось` - `∞`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
-                    elif r[5] == 0:
-                        store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}`{self.currency}\n`Выставленa на продажу:`\n*{date}*\n")
-                        
+                tzinfo = timezone(timedelta(hours=tz))
+                if lng == 0:
+                    for r in outer_list[counter:counter+in_row]:
+                        #date = datetime.strptime(r[4], '%S/%M/%H/%d/%m/%Y').strftime('%H:%M %d-%m-%Y')
+                        date = datetime.fromtimestamp(r[4], tz=tzinfo).strftime("%H:%M %d-%m-%Y")
+                        if r[5] == 1:
+                            store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}` {self.currency}\n`Left` - `{r[2]}`\n`Last listed for sale:`\n*{date}*\n")
+                        elif r[5] == 2:
+                            store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}` {self.currency}\n`Left` - `∞`\n`Last listed for sale:`\n*{date}*\n")
+                        elif r[5] == 0:
+                            store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}` {self.currency}\n`Listed for sale:`\n*{date}*\n")
+                    store_list.append(f'\nСтраница **`1`** из **`{(len(outer_list)+in_row-1)//in_row}`**')
+                else:
+                    for r in outer_list[counter:counter+in_row]:
+                        #date = datetime.strptime(r[4], '%S/%M/%H/%d/%m/%Y').strftime('%H:%M %d-%m-%Y')
+                        date = datetime.fromtimestamp(r[4], tz=tzinfo).strftime("%H:%M %d-%m-%Y")
+                        if r[5] == 1:
+                            store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.currency}\n`Осталось` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+                        elif r[5] == 2:
+                            store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.currency}\n`Осталось` - `∞`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
+                        elif r[5] == 0:
+                            store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.currency}\n`Выставленa на продажу:`\n*{date}*\n")
+                    store_list.append(f'\nPage **`1`** from **`{(len(outer_list)+in_row-1)//in_row}`**')
 
-                store_list.append(f'\nСтраница **`1`** из **`{(len(outer_list)+in_row-1)//in_row}`**')
-
-                emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
+                emb = Embed(title=text_slash[lng][15], colour=Colour.dark_gray(), description='\n'.join(store_list))
                 if lng == 0:
                     myview_store = store_slash_e(timeout=60, outer_store=outer_list, ctx=interaction, in_row=3, coin=self.currency, tz=tz)
                 else:
@@ -860,17 +903,17 @@ class slash(commands.Cog):
                         button.disabled = True
                     await msg.edit(view=myview_store)
     
-    @nextcord.slash_command(name="sell", description="Выставляет указанную роль на продажу", guild_ids=[])
+    @nextcord.slash_command(name="sell", description="Sells the role | Совершает продажу роли", guild_ids=[])
     async def sell(
         self,
         interaction: Interaction,
-        role: nextcord.Role = SlashOption(name="role", description="Ваша роль, которую Вы хотите продать", required=True),
+        role: nextcord.Role = SlashOption(name="role", description="Your role that you want to sell | Ваша роль, которую Вы хотите продать", required=True),
     ):
         if not role in interaction.user.roles:
             await interaction.response.send_message(embed=Embed(
                 colour=Colour.red(),
                 title=text_slash[lng][0],
-                description='**`Вы не можете продать роль, которой у Вас нет`**'
+                description=text_slash[lng][16]
             ))
             return
         
@@ -882,7 +925,7 @@ class slash(commands.Cog):
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()
                 if role_info == None:
-                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description='Вы не можете продать эту роль', colour=Colour.red()))
+                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][17], colour=Colour.red()))
                     return
 
                 memb_id = interaction.user.id
@@ -934,11 +977,11 @@ class slash(commands.Cog):
                         base.commit()
 
                 await interaction.user.remove_roles(role)
-                emb = Embed(title='Продажа совершена', description=f'Вы продали роль {role.mention} за **`{role_info[1]}`**{self.currency}\nЕсли у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение покупки будет выслано Вам в личные сообщения', colour=Colour.gold())
+                emb = Embed(title=text_slash[lng][18], description=text_slash[lng][19].format(role.mention, role_info[1], self.currency), colour=Colour.gold())
                 await interaction.response.send_message(embed=emb)
 
                 try:
-                    emb = Embed(title='Подтверждение продажи', description=f'Вы продали роль {role.id} за **`{role_info[1]}`**{self.currency}', colour=Colour.green())
+                    emb = Embed(title=text_slash[lng][20], description=text_slash[lng][20].format(role.id, role_info[1], self.currency), colour=Colour.green())
                     await interaction.user.send(embed=emb)
                 except:
                     pass
@@ -946,11 +989,11 @@ class slash(commands.Cog):
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
                 try:
                     channel = interaction.guild.get_channel(chnl_id)
-                    await channel.send(embed=Embed(title="Продажа роли", description=f"{interaction.user.mention} продал роль {role.mention} за {role_info[1]}"))
+                    await channel.send(embed=Embed(title=text_slash[lng][22], description=text_slash[lng][23].format(interaction.user.mention, role.mention, role_info[1])))
                 except:
                     pass
 
-    @nextcord.slash_command(name="profile", description="Показывает Ваш профиль", guild_ids=[])
+    @nextcord.slash_command(name="profile", description="Show your profile | Показывает меню Вашего профиля", guild_ids=[])
     async def profile(self, interaction: Interaction):
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
@@ -958,18 +1001,18 @@ class slash(commands.Cog):
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 server_roles = cur.execute('SELECT role_id FROM server_roles').fetchall()
                 server_roles = set([x[0] for x in server_roles]) #ids of roles that user might has, set for quick searching in
-                emb = Embed(title='Ваш профиль')
+                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                emb = Embed(title=text_slash[lng][24])
                 roles = ""
                 uniq_roles = []
                 descr = []
-                descr.append(f'**Ваш баланс:** `{member[1]}`{self.currency}\n')
+                descr.append(f'**{text_slash[lng][24]}** `{member[1]}`{self.currency}\n')
                 flag = 0
                 for role_g in interaction.user.roles:
                     id = role_g.id
                     if id in server_roles:
                         if flag == 0:
-                            descr.append('**Ваши личные роли:**')
-                            descr.append("**Роль** - **Цена** - **Доход** (для уникальных ролей)")
+                            descr.append(text_slash[lng][25])
                         flag = 1
                         role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (id,)).fetchone()
                         price = role_info[1]
@@ -1004,12 +1047,13 @@ class slash(commands.Cog):
                 emb.description = "\n".join(descr)
                 await interaction.response.send_message(embed=emb)
 
-    @nextcord.slash_command(name="work", description="Поработать", guild_ids=[])
+    @nextcord.slash_command(name="work", description="Allows to gain money | Позволяет заработать деньги", guild_ids=[])
     async def work(self, interaction: Interaction):
         memb_id = interaction.user.id
         with closing(sqlite3.connect(f'./bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 time_reload = cur.execute("SELECT value FROM server_info WHERE settings = 'time_r'").fetchone()[0]
+                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 flag = 0
                 if member[3] == 0:
@@ -1023,19 +1067,19 @@ class slash(commands.Cog):
                 if not flag:
                     time_l = time_reload - lasted_time
                     t_l = f"{time_l // 3600}:{(time_l % 3600)//60}:{time_l % 60}"
-                    await interaction.response.send_message(embed=Embed(title="Ошибка", description=f"Пожалуйста, подождите **`{t_l}`** перед тем, как снова вызвать команду работы"))
+                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][26].format(t_l)))
                     return 
                 sal_l = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l'").fetchone()[0]
                 sal_r = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r'").fetchone()[0]
                 salary = randint(sal_l, sal_r)
                 cur.execute('UPDATE users SET money = money + ?, work_date = ? WHERE memb_id = ?', (salary, int(time()), memb_id))
                 base.commit()
-                await interaction.response.send_message(embed=Embed(title="Успех", description=f"**`Вы заработали {salary}`**{self.currency}", colour=Colour.gold()))
+                await interaction.response.send_message(embed=Embed(title=text_slash[lng][27], description=text_slash[lng][28].format(salary, self.currency), colour=Colour.gold()))
 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
                 try:
                     channel = interaction.guild.get_channel(chnl_id)
-                    await channel.send(embed=Embed(title="Работа", description=f"{interaction.user.mention} заработал {salary}"))
+                    await channel.send(embed=Embed(title=text_slash[lng][29], description=text_slash[lng][30].format(interaction.user.mention, salary)))
                 except:
                     pass
 

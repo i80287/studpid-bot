@@ -34,35 +34,35 @@ class mod_commands(commands.Cog):
     global help_menu
     help_menu = {
         0 : {
-            "set" : f"`{prefix}set` `<role>` `<quantity>` - sets the quantity of selected role for selling in store. If role not in the list of roles available for buying/selling, \
+            "set" : f"`{prefix}set` `<role>` `<quantity>` - sets the quantity of selected role for selling in store. If role not in the list of roles available for purchase/sale, \
               add it via the `{prefix}add` command. \n**Example:**\n**`{prefix}set 972494065088200745 5`** sets 5 roles with id 972494065088200745 (you can use mention with @ \
                 instead of id) selling in the store",
 
             "update_cash" : f"`{prefix}update_cash` `<member>` `<value>` sets cash of the member **equal** to selected value. \n**Example:**\n**`{prefix}update_cash 931273285268832326 100 \
               will set user's cash equal to 100 {currency} (you can mention user with @ instead of him id)",
 
-            "add" : f"`{prefix}add` `<role>` `<price>` `<type_of_role>` `<salary (for unique roles)>` adds role to the list of roles available for buying/selling.\
+            "add" : f"`{prefix}add` `<role>` `<price>` `<type_of_role>` `<salary (for unique roles)>` adds role to the list of roles available for purchase/sale.\
               Types of role: \n0 is for unique, which has salary; \n1 is for common, has quantity in the store; \n2 is for infinite (can't run out in the store). \
               \n**Example:**\n **`{prefix}add 972494065088200745 100 0 10`** adds role with id 972494065088200745 (you can use mention with @ instead of id) to the list, it costs \
               100 {currency}, unique and brigns it's owner 10 every 4 hours",
 
-            "remove" : f"`{prefix}remove` `<role>` - removes role from list of available for buying/selling. Also removes this role from the store. **All information about the role \
+            "remove" : f"`{prefix}remove` `<role>` - removes role from list of available for purchase/sale. Also removes this role from the store. **All information about the role \
               will be lost!**\n**Example**\n**`{prefix}remove 972494065088200745`** will remove role with id 972494065088200745 (you can use mention with @ instead of id) from list \
-              of roles available for selling/buying on the server, also all information about the role will be deleted",
+              of roles available for purchase/sale on the server, also all information about the role will be deleted",
 
             "update_price" : f"`{prefix}update_price` `<role>` `<price>` changes role's price and makes it **equal** to the selected price.\n**Example:**\n**`{prefix}update_price \
               972494065088200745 100`** sets price of role with id 972494065088200745 (you can use mention with @ instead of id) equal to 100 {currency}",
 
-            "list" : f"`{prefix}list` - shows the list of roles available for buying/selling",
+            "list" : f"`{prefix}list` - shows the list of roles available for purchase/sale",
 
             "give_unique" : f"`{prefix}give_unique` `<member>` `<role>` adds unique role to the balance of member so he could start getting money from this role (also role can be added \
               if user calls command `/balance`)\n**Example:**\n**`{prefix}give_unique 931273285268832326 972494065088200745`** will add role with id 972494065088200745 (you can \
                 use mention with @ instead of id) to the balance of user with id 931273285268832326 (you can use mention with @ instead of id) so he could start getting money \
                 from that role",
 
-            "mod_role" : f"`{prefix}mod_role` `<role>` gives permissions to use commands from `{prefix}help_mod` for the selected role. Server can only have one role selected for this \
+            "mod_role" : f"`{prefix}mod_role` `<role>` gives permissions to use commands from `{prefix}moderation` for the selected role. Server can only have one role selected for this \
               \n**Example:**\n**`{prefix}mod_role 972494065088200745`** will select role with id 972494065088200745 (you can use mention with @ instead of id) as economic mod role, \
-              so users with this role will be able to use commands from `{prefix}help_mod`",
+              so users with this role will be able to use commands from `{prefix}moderation`",
             
             "log" : f"`{prefix}log` `<text_channel>` selects log channel for economic operations.\n**Example:**\n**`{prefix}log 863462268934422540`** will select **text** channel \
               with id 863462268934422540 (you can use mention with # instead of id) as log channel",
@@ -91,35 +91,35 @@ class mod_commands(commands.Cog):
 
         },
         1 : {
-            "set" : f"`{prefix}set` `<роль>` `<количество>` устанавливает количество продаваемых в магазине ролей. Если роли нет в списке доступных для продажи на сервере ролей, добавьте \
-              её при помощи команды `{prefix}add`. Для количества бесконечных ролей можно указать любое целое число.\n**Пример:**\n**`{prefix}set 972494065088200745 5`** сделает так, \
-                что в магазине будут продаваться 5 ролей с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id)",
+            "set" : f"`{prefix}set` `<роль>` `<количество>` устанавливает количество продаваемых в магазине ролей. Если роли нет в списке ролей, доступных для покупки/продажи \
+              на сервере , добавьте её при помощи команды `{prefix}add`. Для количества бесконечных ролей можно указать любое целое число.\n**Пример:**\n**`{prefix}set 972494065088200745 5`** \
+              сделает так, что в магазине будут продаваться 5 ролей с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id)",
 
             "update_cash" : f"`{prefix}update_cash` `<участник>` `<сумма>` изменяет баланс учатсника и делает его **равным** указанной сумме. \n**Пример:**\n**`{prefix}update_cash \
               931273285268832326 100`** сделает баланс юзера с id 931273285268832326 (Вы можете упомянуть юзера при помощи @ вместо id) равным 100 {currency}",
 
-            "add" : f"`{prefix}add` `<роль>` `<цена>` `<тип_роли>` `<зарплата (для уникальных ролей)>` добавляет роль в список разрешённых для продажи на сервере ролей. \
+            "add" : f"`{prefix}add` `<роль>` `<цена>` `<тип_роли>` `<зарплата (для уникальных ролей)>` добавляет роль в список ролей, доступных для покупки/продажи на сервере. \
               Тип роли: \n0, если уникальная, т.е. имеющая пассивный заработок; \n1, если обычная, то есть конечная; \n2, если бесконечная (не может закончиться в магазине). \
               \n**Пример:**\n **`{prefix}add 972494065088200745 100 0 10`** добавит роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) в список, она будет уникальной, \
               будет стоить 100 {currency} и приносить своему владельцу 10 каждые 4 часа",
 
-            "remove" : f"`{prefix}remove` `<роль>` - убирает роль из списка разрешённых для продажи на сервере ролей. Также удаляет эту роль из магазина. **Вся информация о роли будет \
+            "remove" : f"`{prefix}remove` `<роль>` - убирает роль из списка ролей, доступных для покупки/продажи на сервере. Также удаляет эту роль из магазина. **Вся информация о роли будет \
               потеряна!**\n**Пример:**\n**`{prefix}remove 972494065088200745`** удалит роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) из списка ролей, \
-              доступных для покупки/продажи на сервере и из магазина, а также удалит информацию о роли (её цена, тип и заработок)",
+              доступных для покупки/продажи на сервере, и из магазина, а также удалит информацию о роли (её цена, тип и заработок)",
 
             "update_price" : f"`{prefix}update_price` `<роль>` `<цена>` изменяет цену роли и делает её **равной** указанной цене\n**Пример:**\n**`{prefix}update_price \
               972494065088200745 100`** сделает цену роли с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) равной 100 {currency}",
 
-            "list" : f"`{prefix}list` показывет список ролей, доступных для продажи на сервере",
+            "list" : f"`{prefix}list` показывет список ролей, доступных для покупки/продажи на сервере",
 
             "give_unique" : f"`{prefix}give_unique` `<участник>` `<роль>`- добавляет уникальную роль на личный баланс пользователя, чтобы он начал получать пассивный заработок \
               (также это можно сделать, если пользователь вызовет команду `/balance`)\nПример:\n**`{prefix}give_unique 931273285268832326 972494065088200745`** запишет роль \
               c id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) на баланс юзера с id 931273285268832326 (Вы можете упомянуть юзера при помощи @ вместо id), \
               чтобы он смог получать пассивный заработок с этой роли",
 
-            "mod_role" : f"`{prefix}mod_role` `<роль>` выбирает роль в качестве роли модератора экономики для доступа к командам из `{prefix}help_mod`. На сервере может быть только \
+            "mod_role" : f"`{prefix}mod_role` `<роль>` выбирает роль в качестве роли модератора экономики для доступа к командам из `{prefix}moderation`. На сервере может быть только \
               одна такая роль.\n**Пример:**\n**`{prefix}mod_role 972494065088200745`** выберет роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) \
-              в качестве роли модератора экономики. Юзеры с этой ролью смогу использовать команды из списка команды `{prefix}help_mod` и управлять настройками бота",
+              в качестве роли модератора экономики. Юзеры с этой ролью смогу использовать команды из списка команды `{prefix}moderation` и управлять настройками бота",
 
             "log" : f"`{prefix}log` `<текстовый_канал>` устанавливает выбранный для хранения логов об операциях.\n**Пример:**\n**`{prefix}log 863462268934422540`** установит \
               канал с id 863462268934422540 (Вы можете упомянуть канал при помощи #, а не id) в качестве канала для логов бота",
@@ -157,27 +157,27 @@ class mod_commands(commands.Cog):
             3 : 'name_of_the_command',
             4 : 'Information about command:',
             404 : 'Error',
-            5 : f'Please, use command like `{prefix}help_mod` or\n`{prefix}help_mod <name_of_the_command>`',
+            5 : f'Please, use command like `{prefix}moderation` or\n`{prefix}moderation <name_of_the_command>`',
             6 : 'Please, select command from list of command',
-            7 : 'Error: this role is unavailable for buying/selling on the server. Change it via the command',
+            7 : 'Error: this role is unavailable for purchase/sale on the server. Change it via the command',
             8 : 'Third argument of the command must belong to the segment [0; 2]',
             9 : 'Error: salary must be non-negative integer number',
             10 : 'was added to the list',
             11 : 'Error: you cant change type of the existing role. To do it, you should recreate role.\n**All information about the role will be lost!**',
             12 : 'Role was successfully updated',
-            13 : 'has been withdrawn from server store, not available for buying/selling  and doesnt bring money from now,',
+            13 : "has been withdrawn from server store, unavailable for purchase/sale and doesnt bring money to it's owners from now",
             14 : 'From now the price of the role',
-            15 : f'role - id - price - type (look {prefix}help_mod add)',
+            15 : f'role - id - price - type (look {prefix}moderation add)',
             16 : 'Error: this role is not unique',
             17 : 'added to the balance of',
             18 : '**`This user not found on the server.`**',
-            19 : f'**`Please, use correct arguments for command. More info via {prefix}help_mod <name_of_the_command>`**',
+            19 : f'**`Please, use correct arguments for command. More info via {prefix}moderation <name_of_the_command>`**',
             20 : '**`This command not found`**',
             21 : '**`This user not found`**',
             22 : '**`Please, wait before reusing this command.`**',
             23 : "**`Sorry, but you don't have enough permissions for using this comamnd.`**",
             24 : f"**`Economic moderator role is not chosen! User with administrator or manage server permission should do it via {prefix}mod_role`**",
-            25 : f"**`was set as economic moderator role. Commands from {prefix}help_mod are available for users with this role`**",
+            25 : f"**`was set as economic moderator role. Commands from {prefix}moderation are available for users with this role`**",
             26 : "was set as log channel",
             27 : "**`English language was set as main`**",
             28 : "Please, select language from list:",
@@ -206,27 +206,27 @@ class mod_commands(commands.Cog):
             3 : 'название_команды',
             4 : 'Информация о команде',
             404 : 'Ошибка',
-            5 : f'Пожалуйста, укажите команду в формате`{prefix}help_mod` или\n`{prefix}help_mod <название_команды>`',
+            5 : f'Пожалуйста, укажите команду в формате`{prefix}moderation` или\n`{prefix}moderation <название_команды>`',
             6 : 'Пожалуйста, укажите команду из списка команды',
-            7 : 'Ошибка: эту роль нельзя продавать и покупать на сервере. Измените это с помощью команды',
+            7 : 'Ошибка: эта роль не находится в списке ролей, доступных для покупки/на сервере. Измените это с помощью команды',
             8 : "Третий аргумент команды должен принадлежать отрезку [0; 2]",
             9 : "Ошибка: укажите неотрицательное целое число в качестве зарплаты для этой роли",
             10 : 'добавлена в список',
             11 : 'Ошибка: Вы не можете изменять тип существующе роли. Чтобы сделать это, Вам нужно пересоздать роль.\n**Вся информация о роли будет потеряна!**',
             12 : 'Роль была успешно обновлена',
-            13 : 'изъята из обращения на сервере и больше не доступна для продажи/покупки, а также не приносит доход.',
+            13 : 'изъята из обращения на сервере и больше не доступна для покупки/продажи, а также не приносит доход',
             14 : 'Теперь цена роли',
-            15 : f"Роль - id - цена - тип (см. {prefix}help_mod add)",
+            15 : f"Роль - id - цена - тип (см. {prefix}moderation add)",
             16 : "Ошибка: это не уникальная роль",
             17 : 'записана на личный счёт пользователя',
             18 : "**`На сервере не найден такой пользователь`**",
-            19 : f"**`Пожалуйста, укажите верные аргументы команды. Больше информации - {prefix}help_mod <название_команды>`**",
+            19 : f"**`Пожалуйста, укажите верные аргументы команды. Больше информации - {prefix}moderation <название_команды>`**",
             20 : "**`Такая команда не найдена`**",
             21 : "**`Такой пользователь не найден`**",
             22 : "**`Пожалуйста, подождите перед повторным использованием команды`**",
             23 : "**`У Ваc недостаточно прав для использования этой команды`**",
             24 : f"**`Роль модератора экономики не выбрана! Пользователь с правами админитратора или управляющего сервером должен сделать это при помощи {prefix}mod_role`**",
-            25 : f"**`установлена в качестве роли модератора экономики. Этой роли доступны команды из списка {prefix}help_mod`**",
+            25 : f"**`установлена в качестве роли модератора экономики. Этой роли доступны команды из списка {prefix}moderation`**",
             26 : "установлен в качестве канала для логов",
             27 : "**`Русский язык установлен в качестве языка интерфейса`**",
             28 : "Пожалуйста, выберите язык из списка:",
@@ -538,9 +538,9 @@ class mod_commands(commands.Cog):
       await asyncio.sleep(20)
 
 
-  @commands.command(aliases = ["help_mod"])
+  @commands.command(aliases = ["moderation"])
   @commands.check(needed_role)
-  async def _help_mod(self, ctx: commands.Context, *args):
+  async def _moderation(self, ctx: commands.Context, *args):
     msg = []
     lng = self.lang(ctx=ctx)
     if len(args) == 0:
@@ -551,7 +551,7 @@ class mod_commands(commands.Cog):
         title=text[lng][1],
         description = '\n'.join(msg)
       )
-      emb.add_field(name=text[lng][2], value = f'\n`{self.prefix}help_mod <{text[lng][3]}>`')
+      emb.add_field(name=text[lng][2], value = f'\n`{self.prefix}moderation <{text[lng][3]}>`')
 
     elif len(args) == 1:
       arg = args[0].replace(self.prefix, '')
@@ -559,7 +559,7 @@ class mod_commands(commands.Cog):
           await ctx.reply(
             embed=Embed(
               title=text[lng][404],
-              description=f'{text[lng][6]} `{self.prefix}help_mod`',
+              description=f'{text[lng][6]} `{self.prefix}moderation`',
               colour=Colour.red()
             ),
             mention_author=False
@@ -578,8 +578,8 @@ class mod_commands(commands.Cog):
 
     await ctx.reply(embed=emb, mention_author=False)
 
-  @_help_mod.error
-  async def _help_error(self, ctx: commands.Context, error):
+  @_moderation.error
+  async def _moderation_error(self, ctx: commands.Context, error):
     if isinstance(error, commands.CommandInvokeError):
       lng = self.lang(ctx=ctx)
       
