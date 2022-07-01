@@ -196,7 +196,8 @@ class mod_commands(commands.Cog):
             41 : "**`This channel not found`**",
             42 : "**`This amount of role already in the store`**",
             43 : "**`Amount of roles {} was made equal to {}`**",
-            44 : "**`Now cash of the {} is equal to {}`** {}"
+            44 : "**`Now cash of the {} is equal to {}`** {}",
+            45 : "**`Time for answer has expired`**"
             
         },
         1 : {
@@ -246,7 +247,8 @@ class mod_commands(commands.Cog):
             41 : "**`Такой канал не найден`**",
             42 : "**`Нужное количество ролей уже находится в магазине`**",
             43 : "**`Количество ролей {} в магазине установлено равным {}`**",
-            44 : "**`Теперь баланс пользователя {} равен {}`** {}"
+            44 : "**`Теперь баланс пользователя {} равен {}`** {}",
+            45 : "**`Время ответа истекло`**"
         }
     }
     global zones
@@ -354,7 +356,24 @@ class mod_commands(commands.Cog):
             9 : "```fix\nРоль не выбрана```"
         }
     }
-
+    global questions
+    questions = {
+        0 : {
+            1 : "Select server's language: eng for English or rus for Russian",
+            2 : "Select log channel: id of text channel or 0 if not needed",
+            3 : "Select economic mode role: id of role or 0 if not needed",
+            4 : "Select server's time zone: integer number from -12 to 12 (format UTC±X, X є {-12; -11; ...; 11; 12})",
+            5 : "Select cooldown for `/work` command (in seconds). Must be integer positive number",
+            6 : "Select salary for `/work` command: two integer positive numbers, right one must be at least as \
+              large as the left.\n Salary will be random integer number є [left; right]",
+            7 : "Select cooldown for unique roles (in seconds). Must be positive integer number. Members with unique roles will gain money once every this time"
+        },
+        1 : {
+            1 : "Выберите язык сервера: eng для английского или rus для русского",
+            2 : "Выберите канал для логов: id текстового канала или 0, если оставить без изменений",
+            3 : "Выберите "
+        }
+    }
   def mod_role_set(self, ctx: commands.Context):
       with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
@@ -974,6 +993,27 @@ class mod_commands(commands.Cog):
                   await ctx.reply("**`Setting were reseted. Настройки были сброшены.`**", mention_author=False)
               else:
                   await ctx.reply("**`Setting were reseted.`**", mention_author=False)
+
+  
+  @commands.command(hidden=True, aliases=["quick", "setup", " qs"])
+  @commands.check(needed_role)
+  async def _quick(self, ctx: commands.Context):
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+          with closing(base.cursor()) as cur:
+              lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+              flag = 1
+              while flag:
+                  try:
+                      message = self.bot.wait_for(event="message", check= lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id, timeout=20.0)
+                  except asyncio.TimeoutError:
+                      emb = Embed(title=text[lng][404], description=text[lng][45], colour=Colour.red())
+                      flag = 0
+                  else:
+                      if message.content == answer:
+                          pass
+                  
+
+
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx: commands.Context, error):
