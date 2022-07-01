@@ -489,24 +489,31 @@ class mod_commands(commands.Cog):
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
 
   async def insert_uniq(self, base: sqlite3.Connection, cur: sqlite3.Cursor, nums: int, role_id: int, outer: list, price: int, time_now: int, ctx, lng: int):
-      l = 0 if outer == None else len(outer)
+      l = 0 if outer == None or outer == [] else len(outer)
       if nums > l:
-          item_ids = set([x[0] for x in cur.execute('SELECT item_id FROM outer_store').fetchall()])
-          free_ids = []
-          for i in range(1, max(item_ids) + 1):
-              if i not in item_ids:
-                  free_ids.append(i)
-          if len(free_ids) >= nums - l:
-              r = [(free_ids[i], role_id, 1, price, time_now, 0) for i in range(nums-l)]
-              cur.executemany('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
-              base.commit()
-          else:
+          items = cur.execute('SELECT item_id FROM outer_store').fetchall()
+          if items == None or items == []:
+              free_ids = [i for i in range(1, nums-l+1)]
               r = [(x, role_id, 1, price, time_now, 0) for x in free_ids]
               cur.executemany('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
               base.commit()
-              r = [(x, role_id, 1, price, time_now, 0) for x in range(max(item_ids)+1, max(item_ids) + nums - l- len(free_ids) + 1)]
-              cur.executemany('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
-              base.commit()
+          else:
+            item_ids = set([x[0] for x in items])
+            free_ids = []
+            for i in range(1, max(item_ids) + 1):
+                if i not in item_ids:
+                    free_ids.append(i)
+            if len(free_ids) >= nums - l:
+                r = [(free_ids[i], role_id, 1, price, time_now, 0) for i in range(nums-l)]
+                cur.executemany('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
+                base.commit()
+            else:
+                r = [(x, role_id, 1, price, time_now, 0) for x in free_ids]
+                cur.executemany('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
+                base.commit()
+                r = [(x, role_id, 1, price, time_now, 0) for x in range(max(item_ids)+1, max(item_ids) + nums - l- len(free_ids) + 1)]
+                cur.executemany('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
+                base.commit()
           await ctx.reply(text[lng][43].format(role_id, nums), mention_author=False)
 
       elif nums < l:
@@ -723,7 +730,6 @@ class mod_commands(commands.Cog):
                   cur.execute('UPDATE outer_store SET quantity = ?, last_date = ? WHERE role_id = ?', (nums, time_now, role.id))
                   base.commit()
           elif is_special == 2:
-              print(outer)
               if outer == None or outer == []:
                 items = cur.execute('SELECT item_id FROM outer_store').fetchall()
                 free_id = 1
@@ -732,7 +738,6 @@ class mod_commands(commands.Cog):
                   item_ids.sort()
                   while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
                       free_id += 1
-                print(items, free_id)
                 cur.execute('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, -404, role_info[1], time_now, 2))
                 base.commit()     
         else:

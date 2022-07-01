@@ -140,6 +140,10 @@ class store_slash_r(View):
         self.sort_grad = 0 #возрастание / убывание, от gradation, 0 - возрастание
         self.coin = coin
         self.tz = tz #time zone of the guild
+        self.children[4].options[0].default=True
+        self.children[4].options[1].default=False
+        self.children[5].options[0].default=True
+        self.children[5].options[1].default=False
     
     def sort_by(self):
         outer = self.outer_store
@@ -196,6 +200,7 @@ class store_slash_r(View):
 
         
     def click(self, interaction: Interaction, click: int, in_row: int):
+        print("Цена / Дата", self.sort_d, "Возрастание / убывание", self.sort_grad, interaction.user.id)
         text = interaction.message.embeds[0].description
         t1 = text.find('Страница **`')
         t2 = text.find('из', t1)
@@ -235,7 +240,7 @@ class store_slash_r(View):
             elif r[5] == 0:
                 store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.coin}\n`Выставленa на продажу:`\n*{date}*\n")
                 
-        
+        #print(outer)
         store_list.append(f'\nСтраница **`{(counter // in_row) + 1}`** из **`{(len(outer)+in_row-1)//in_row}`**')
         
         return store_list
@@ -275,11 +280,12 @@ class store_slash_r(View):
             nextcord.SelectOption(
                 label="Сортировать по цене",
                 emoji="💰",
-                default=True
+                default=False
             ),
             nextcord.SelectOption(
                 label="Сортировать по дате",
-                emoji="📅"
+                emoji="📅",
+                default=False
             )
 
         ], 
@@ -309,11 +315,12 @@ class store_slash_r(View):
             nextcord.SelectOption(
                 label="От меньшей цены (более свежого товара)",
                 emoji="↗️",
-                default=True
+                default=False
             ),
             nextcord.SelectOption(
                 label="От большей цены (более старого товара)",
-                emoji="↘️"
+                emoji="↘️",
+                default=False
             )
         ], 
         min_values=1, 
@@ -352,7 +359,11 @@ class store_slash_e(View):
         self.sort_grad = 0 #возрастание / убывание, от gradation, 0 - возрастание
         self.coin = coin
         self.tz = tz #time zone of the guild
-    
+        self.children[4].options[0].default=True
+        self.children[4].options[1].default=False
+        self.children[5].options[0].default=True
+        self.children[5].options[1].default=False
+
     def sort_by(self):
         outer = self.outer_store
         sort_d = self.sort_d
@@ -486,11 +497,12 @@ class store_slash_e(View):
             nextcord.SelectOption(
                 label="Sort by price",
                 emoji="💰",
-                default=True
+                default=False
             ),
             nextcord.SelectOption(
                 label="Sort by date",
-                emoji="📅"
+                emoji="📅",
+                default=False
             )
 
         ], 
@@ -918,9 +930,9 @@ class slash(commands.Cog):
 
                 emb = Embed(title=text_slash[lng][15], colour=Colour.dark_gray(), description='\n'.join(store_list))
                 if lng == 0:
-                    myview_store = store_slash_e(timeout=60, outer_store=outer_list, ctx=interaction, in_row=3, coin=self.currency, tz=tz)
+                    myview_store = store_slash_e(timeout=600, outer_store=outer_list, ctx=interaction, in_row=in_row, coin=self.currency, tz=tz)
                 else:
-                    myview_store = store_slash_r(timeout=60, outer_store=outer_list, ctx=interaction, in_row=3, coin=self.currency, tz=tz)
+                    myview_store = store_slash_r(timeout=600, outer_store=outer_list, ctx=interaction, in_row=in_row, coin=self.currency, tz=tz)
                 await interaction.response.send_message(embed=emb, view=myview_store)
                 msg = await interaction.original_message()
                 chk = await myview_store.wait()
