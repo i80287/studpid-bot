@@ -28,7 +28,8 @@ class mod_commands(commands.Cog):
         f"`{prefix}salary`",
         f"`{prefix}uniq_timer`",
         f"`{prefix}settings`",
-        f"`{prefix}reset`"
+        f"`{prefix}reset`",
+        f"`{prefix}quick`"
     ]
     ryad = "{-12; -11; ...; 11; 12}"
     global help_menu
@@ -87,7 +88,9 @@ class mod_commands(commands.Cog):
 
             "settings" : f"`{prefix}settings` shows menu with current bot's settings",
 
-            "reset" : f"`{prefix}reset` resets current bot's settings"
+            "reset" : f"`{prefix}reset` resets current bot's settings",
+
+            "quick" : f"`{prefix}quick` starts quick setup of all bot's settings"
 
         },
         1 : {
@@ -144,7 +147,9 @@ class mod_commands(commands.Cog):
 
             "settings" : f"`{prefix}settings` вызывает меню, в котором отображены текущие настройки бота",
             
-            "reset" : f"`{prefix}reset` сбрасывает текущие настройки бота"
+            "reset" : f"`{prefix}reset` сбрасывает текущие настройки бота",
+
+            "quick" : f"`{prefix}quick` начинает быструю настройку параметров бота"
         }
     }
     self.currency = currency
@@ -359,21 +364,33 @@ class mod_commands(commands.Cog):
     global questions
     questions = {
         0 : {
-            1 : "Select server's language: eng for English or rus for Russian",
-            2 : "Select log channel: id of text channel or 0 if not needed",
-            3 : "Select economic mode role: id of role or 0 if not needed",
-            4 : "Select server's time zone: integer number from -12 to 12 (format UTC±X, X є {-12; -11; ...; 11; 12})",
-            5 : "Select cooldown for `/work` command (in seconds). Must be integer positive number",
-            6 : "Select salary for `/work` command: two integer positive numbers, right one must be at least as \
-              large as the left.\n Salary will be random integer number є [left; right]",
-            7 : "Select cooldown for unique roles (in seconds). Must be positive integer number. Members with unique roles will gain money once every this time"
+            1 : "1. Select server's language: eng for English or rus for Russian",
+            2 : "2. Select log channel: id of text channel or 0 if not change current setting",
+            3 : "3. Select economic mode role: id of role or 0 if not change current setting",
+            4 : "4. Select server's time zone: integer number from -12 to 12 (format UTC±X, X Є {-12; -11; ...; 11; 12})",
+            5 : "5. Select cooldown for `/work` command (in seconds) (must be integer positive number). Members will able to \
+              use `/work` once per this time. 0 if not change current setting",
+            6 : "6. Select salary for `/work` command: two integer positive numbers, second one must be at least as \
+              large as the first.\n Salary will be random integer number є [first; second]. 0 and 0 if not change current setting",
+            7 : "7. Select cooldown for gaining money from unique roles (in seconds). Must be positive integer number. Members with unique roles will gain money once per this time. \
+              0 if not change current setting",
+            8 : "8. You finished setup. To check chosen settings use {}settings"
         },
         1 : {
-            1 : "Выберите язык сервера: eng для английского или rus для русского",
-            2 : "Выберите канал для логов: id текстового канала или 0, если оставить без изменений",
-            3 : "Выберите "
+            1 : "1. Укажите язык сервера: eng для английского или rus для русского",
+            2 : "2. Укажите канал для логов: id текстового канала или 0, если оставить без изменений",
+            3 : "3. Укажите роль модератора экономики: id роли или 0, если оставить без изменений",
+            4 : "4. Укажите часовой пояс сервера: целое число от -12 до 12 (формат UTC±X, X Є {-12; -11; ...; 11; 12})",
+            5 : "5. Укажите кулдаун (время) для команды `/work` (в секундах) (должно быть целое положительное число). Пользователи смогут \
+              использовать команду `/work` один раз в это время. 0, если оставить без изменений",
+            6 : "6. Укажите заработок от команды `/work`: два целых положительных числа, где второе не менее первого. \nЗаработок \
+              будет рандомным целым числом из отрезка [первое; второе]. 0 и 0, если оставить без изменений",
+            7 : "7. Укажите кулдаун (время) для заработка от уникальных ролей (в секундах). (должно быть целым положительным числом). Пользователи с \
+              уникальными ролями будут получать деньги от них один раз в это время. 0, если оставить без изменений",
+            8 : "8. Вы завершили настройку сервера. Чтобы посмотреть выбранные настройки, используйте {}settings"
         }
     }
+
   def mod_role_set(self, ctx: commands.Context):
       with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
@@ -1002,18 +1019,103 @@ class mod_commands(commands.Cog):
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               flag = 1
-              while flag:
+              msg_ans = None
+              while flag and flag < 8:
                   try:
-                      message = self.bot.wait_for(event="message", check= lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id, timeout=20.0)
+                      emb = Embed(description=questions[lng][flag])
+                      if msg_ans == None:
+                          msg_ans = await ctx.reply(embed=emb, mention_author=False)
+                      else:
+                          await msg_ans.edit(embed=emb)
+                      message = await self.bot.wait_for(event="message", check= lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id, timeout=20.0)
                   except asyncio.TimeoutError:
                       emb = Embed(title=text[lng][404], description=text[lng][45], colour=Colour.red())
                       flag = 0
                   else:
-                      if message.content == answer:
-                          pass
-                  
-
-
+                      ans: str = message.content.lower()
+                      if ans == "cancel":
+                          flag = 0
+                      elif flag == 1:
+                          if ans in ["eng", "rus"]:
+                              flag += 1
+                              if ans == "eng":
+                                  cur.execute("UPDATE server_info SET value = 0 WHERE settings = 'lang'")
+                                  base.commit()
+                                  lng = 0
+                              else:
+                                  cur.execute("UPDATE server_info SET value = 1 WHERE settings = 'lang'")
+                                  base.commit()
+                                  lng = 1
+                      elif flag == 2:
+                          try:
+                              ans = int(ans)
+                              if ans == 0:
+                                  flag += 1
+                              elif ans in [x.id for x in ctx.guild.text_channels]:
+                                  cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_channel'", (ans,))
+                                  base.commit()
+                                  flag += 1
+                          except:
+                              pass
+                      elif flag == 3:
+                          try:
+                              ans = int(ans)
+                              if ans == 0:
+                                  flag += 1
+                              elif ans in [x.id for x in ctx.guild.roles]:
+                                  cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mod_role'", (ans,))
+                                  base.commit()
+                                  flag += 1
+                          except:
+                              pass
+                      elif flag == 4:
+                          try:
+                              ans = int(ans)
+                              if -12 <= ans <= 12:
+                                  cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (ans,))
+                                  base.commit()
+                                  flag += 1
+                          except:
+                              pass
+                      elif flag == 5:
+                          try:
+                              ans = int(ans)
+                              if ans == 0:
+                                  flag += 1
+                              elif ans > 0:
+                                  cur.execute("UPDATE server_info SET value = ? WHERE settings = 'time_r'", (ans,))
+                                  base.commit()
+                                  flag += 1
+                          except:
+                              pass
+                      elif flag == 6:
+                          try:
+                              a, b = map(int, ans.split(" "))
+                              if a == 0 and b == 0:
+                                  flag += 1
+                              elif 0 < a <= b:
+                                  cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_l'", (a,))
+                                  base.commit()
+                                  cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_r'", (b,))
+                                  base.commit()
+                                  flag += 1
+                          except:
+                              pass
+                      elif flag == 7:
+                          try:
+                              ans = int(ans)
+                              if ans == 0:
+                                  flag += 1
+                              elif ans > 0:
+                                  cur.execute("UPDATE server_info SET value = ? WHERE settings = 'uniq_timer'", (ans,))
+                                  base.commit()
+                                  flag += 1
+                          except:
+                              pass
+              
+              emb.description = questions[lng][8].format(self.prefix)
+              await msg_ans.edit(embed=emb)
+              
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx: commands.Context, error):
