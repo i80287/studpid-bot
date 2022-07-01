@@ -65,7 +65,7 @@ class ConsoleCog(Cog):
                 base.commit()
                 cur.execute('CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, special INTEGER)')
                 base.commit()
-                cur.execute('CREATE TABLE IF NOT EXISTS outer_shop(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, special INTEGER)')
+                cur.execute('CREATE TABLE IF NOT EXISTS outer_store(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, special INTEGER)')
                 base.commit()
                 cur.execute('CREATE TABLE IF NOT EXISTS money_roles(role_id INTEGER NOT NULL PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, last_time INTEGER)')
                 base.commit()

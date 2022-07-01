@@ -621,13 +621,13 @@ class slash(commands.Cog):
                     ("`/store`", "Shows store"), ("`/buy`", "Makes a role purchase"), \
                     ("`/sell`", "Sells the role"), ("`/profile`", "Shows your profile"), \
                     ("`/work`", "Starts working, so you get salary"), ("`/duel`", "Makes a bet"), \
-                    ("`/transfer`", "Transfers money to another member"), ("`>>moderation`", "Calls menu with bot's settings")
+                    ("`/transfer`", "Transfers money to another member"), (f"`{prefix}help_m`", "Calls menu with bot's settings")
             ],
             1 : [
                     ("`/store`", "Открывает меню магазина"), ("`/buy`", "Совершает покупку роли"), \
                     ("`/sell`", "Совершает продажу роли"), ("`/profile`", "Показывает меню Вашего профиля"), \
                     ("`/work`", "Начинает работу, за которую Вы полчите заработок"), ("`/duel`", "Делает ставку"), \
-                    ("`/transfer`", "Совершает перевод валюты другому пользователю"), ("`>>moderation`", "Вызывает меню команд настройки бота")
+                    ("`/transfer`", "Совершает перевод валюты другому пользователю"), (f"{prefix}help_m`", "Вызывает меню команд настройки бота")
             ],
         }
 
@@ -827,16 +827,16 @@ class slash(commands.Cog):
                     is_special = role_info[2]
                     if is_special == 0:
                         outer = None
-                        special_roles = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchall()
+                        #special_roles = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchall()
                         #min_time = datetime.utcnow() + timedelta(hours=4)
-                        min_time = int(time()) + 57600
+                        """ min_time = int(time()) + 57600
                         for i in range(len(special_roles)):
                             #if datetime.strptime(special_roles[i][4], "%S/%M/%H/%d/%m/%Y") < min_time:
                             if special_roles[i][4] < min_time:
                                 outer = special_roles[i]
                                 #min_time = datetime.strptime(special_roles[i][4], "%S/%M/%H/%d/%m/%Y")
-                                min_time = special_roles[i][4]
-
+                                min_time = special_roles[i][4] """
+                        outer = cur.execute("SELECT * FROM outer_store")
                     await member_buyer.add_roles(role)                            
                     buyer_owned_roles = buyer[2]
                     buyer_owned_roles += f"#{role.id}"                        

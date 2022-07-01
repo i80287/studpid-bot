@@ -60,9 +60,9 @@ class mod_commands(commands.Cog):
                 use mention with @ instead of id) to the balance of user with id 931273285268832326 (you can use mention with @ instead of id) so he could start getting money \
                 from that role",
 
-            "mod_role" : f"`{prefix}mod_role` `<role>` gives permissions to use commands from `{prefix}moderation` for the selected role. Server can only have one role selected for this \
+            "mod_role" : f"`{prefix}mod_role` `<role>` gives permissions to use commands from `{prefix}help_m` for the selected role. Server can only have one role selected for this \
               \n**Example:**\n**`{prefix}mod_role 972494065088200745`** will select role with id 972494065088200745 (you can use mention with @ instead of id) as economic mod role, \
-              so users with this role will be able to use commands from `{prefix}moderation`",
+              so users with this role will be able to use commands from `{prefix}help_m`",
             
             "log" : f"`{prefix}log` `<text_channel>` selects log channel for economic operations.\n**Example:**\n**`{prefix}log 863462268934422540`** will select **text** channel \
               with id 863462268934422540 (you can use mention with # instead of id) as log channel",
@@ -117,9 +117,9 @@ class mod_commands(commands.Cog):
               c id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) на баланс юзера с id 931273285268832326 (Вы можете упомянуть юзера при помощи @ вместо id), \
               чтобы он смог получать пассивный заработок с этой роли",
 
-            "mod_role" : f"`{prefix}mod_role` `<роль>` выбирает роль в качестве роли модератора экономики для доступа к командам из `{prefix}moderation`. На сервере может быть только \
+            "mod_role" : f"`{prefix}mod_role` `<роль>` выбирает роль в качестве роли модератора экономики для доступа к командам из `{prefix}help_m`. На сервере может быть только \
               одна такая роль.\n**Пример:**\n**`{prefix}mod_role 972494065088200745`** выберет роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) \
-              в качестве роли модератора экономики. Юзеры с этой ролью смогу использовать команды из списка команды `{prefix}moderation` и управлять настройками бота",
+              в качестве роли модератора экономики. Юзеры с этой ролью смогу использовать команды из списка команды `{prefix}help_m` и управлять настройками бота",
 
             "log" : f"`{prefix}log` `<текстовый_канал>` устанавливает выбранный для хранения логов об операциях.\n**Пример:**\n**`{prefix}log 863462268934422540`** установит \
               канал с id 863462268934422540 (Вы можете упомянуть канал при помощи #, а не id) в качестве канала для логов бота",
@@ -157,27 +157,27 @@ class mod_commands(commands.Cog):
             3 : 'name_of_the_command',
             4 : 'Information about command:',
             404 : 'Error',
-            5 : f'Please, use command like `{prefix}moderation` or\n`{prefix}moderation <name_of_the_command>`',
-            6 : 'Please, select command from list of command',
-            7 : 'Error: this role is unavailable for purchase/sale on the server. Change it via the command',
-            8 : 'Third argument of the command must belong to the segment [0; 2]',
-            9 : 'Error: salary must be non-negative integer number',
-            10 : 'was added to the list',
-            11 : 'Error: you cant change type of the existing role. To do it, you should recreate role.\n**All information about the role will be lost!**',
+            5 : f'Please, use command like `{prefix}help_m` or\n`{prefix}help_m <name_of_the_command>`', #
+            6 : 'Please, select command from list of command', #
+            7 : '**This role is unavailable for purchase/sale on the server. Change it via the command**',
+            8 : 'Role type must be integer number belongs to the segment [0; 2]',
+            9 : '**`Salary of unique role must be non-negative integer number`**',
+            10 : '**`was added to the list of roles available for purchase/sale on the server`**',
+            11 : 'You cant change type of the existing role. To do it, you should recreate role.\n**All information about the role will be lost!**',
             12 : 'Role was successfully updated',
             13 : "has been withdrawn from server store, unavailable for purchase/sale and doesnt bring money to it's owners from now",
             14 : 'From now the price of the role',
-            15 : f'role - id - price - type (look {prefix}moderation add)',
-            16 : 'Error: this role is not unique',
+            15 : f'role - id - price - type (look {prefix}help_m add)',
+            16 : 'This role is not unique',
             17 : 'added to the balance of',
             18 : '**`This user not found on the server.`**',
-            19 : f'**`Please, use correct arguments for command. More info via {prefix}moderation <name_of_the_command>`**',
+            19 : '**`Please, use correct arguments for command. More info via \n{}help_m {}`**',
             20 : '**`This command not found`**',
             21 : '**`This user not found`**',
             22 : '**`Please, wait before reusing this command.`**',
-            23 : "**`Sorry, but you don't have enough permissions for using this comamnd.`**",
-            24 : f"**`Economic moderator role is not chosen! User with administrator or manage server permission should do it via {prefix}mod_role`**",
-            25 : f"**`was set as economic moderator role. Commands from {prefix}moderation are available for users with this role`**",
+            23 : "**Sorry, but you don't have enough permissions for using this comamnd.**",
+            24 : f"**Economic moderator role is not chosen! User with administrator or manage server permission should do it via {prefix}mod_role <role_id>**",
+            25 : f"**`was set as economic moderator role. Commands from {prefix}help_m are available for users with this role`**",
             26 : "was set as log channel",
             27 : "**`English language was set as main`**",
             28 : "Please, select language from list:",
@@ -189,7 +189,7 @@ class mod_commands(commands.Cog):
             34 : "**`List of available named time zones:`**",
             35 : "**`Time (in seconds) must be integer positive number (without any additional symbols)`**",
             36 : "**`From now to reuse command /work members should wait at least {} seconds`**",
-            37 : "**`Left and right borders must be integer non-negative numbers and the right must be at least as large as the left`**",
+            37 : "**Left and right borders must be `integer non-negative` numbers and the `right must be at least as large as the left`**",
             38 : "**`{} и {} selected as borders for amount of money gained after using /work`**",
             39 : "**`From now members with unique roles (type of roles - 0) will gain money once every {} seconds`**",
             40 : "**`This role not found`**",
@@ -206,27 +206,27 @@ class mod_commands(commands.Cog):
             3 : 'название_команды',
             4 : 'Информация о команде',
             404 : 'Ошибка',
-            5 : f'Пожалуйста, укажите команду в формате`{prefix}moderation` или\n`{prefix}moderation <название_команды>`',
+            5 : f'Пожалуйста, укажите команду в формате`{prefix}help_m` или\n`{prefix}help_m <название_команды>`',
             6 : 'Пожалуйста, укажите команду из списка команды',
-            7 : 'Ошибка: эта роль не находится в списке ролей, доступных для покупки/на сервере. Измените это с помощью команды',
-            8 : "Третий аргумент команды должен принадлежать отрезку [0; 2]",
-            9 : "Ошибка: укажите неотрицательное целое число в качестве зарплаты для этой роли",
-            10 : 'добавлена в список',
-            11 : 'Ошибка: Вы не можете изменять тип существующе роли. Чтобы сделать это, Вам нужно пересоздать роль.\n**Вся информация о роли будет потеряна!**',
+            7 : '**Эта роль не находится в списке ролей, доступных для покупки/на сервере. Измените это с помощью команды**',
+            8 : "Тип роли должен быть целым числом, принадлежащим отрезку [0; 2]",
+            9 : "**`Пассивный заработок уникальной роли должен быть целым неотрицательным числом`**",
+            10 : '**`была добавлена в список ролей, разрешённых для покупки/продажи на сервере`**',
+            11 : 'Вы не можете изменять тип существующе роли. Чтобы сделать это, Вам нужно пересоздать роль.\n**Вся информация о роли будет потеряна!**',
             12 : 'Роль была успешно обновлена',
             13 : 'изъята из обращения на сервере и больше не доступна для покупки/продажи, а также не приносит доход',
             14 : 'Теперь цена роли',
-            15 : f"Роль - id - цена - тип (см. {prefix}moderation add)",
-            16 : "Ошибка: это не уникальная роль",
+            15 : f"Роль - id - цена - тип (см. {prefix}help_m add)",
+            16 : "Эта роль не уникальная",
             17 : 'записана на личный счёт пользователя',
             18 : "**`На сервере не найден такой пользователь`**",
-            19 : f"**`Пожалуйста, укажите верные аргументы команды. Больше информации - {prefix}moderation <название_команды>`**",
+            19 : "**`Пожалуйста, укажите верные аргументы команды. Подробнее - {}help_m {}`**",
             20 : "**`Такая команда не найдена`**",
             21 : "**`Такой пользователь не найден`**",
             22 : "**`Пожалуйста, подождите перед повторным использованием команды`**",
             23 : "**`У Ваc недостаточно прав для использования этой команды`**",
-            24 : f"**`Роль модератора экономики не выбрана! Пользователь с правами админитратора или управляющего сервером должен сделать это при помощи {prefix}mod_role`**",
-            25 : f"**`установлена в качестве роли модератора экономики. Этой роли доступны команды из списка {prefix}moderation`**",
+            24 : f"**`Роль модератора экономики не выбрана! Пользователь с правами админитратора или управляющего сервером должен сделать это при помощи {prefix}mod_role <role_id>`**",
+            25 : f"**`установлена в качестве роли модератора экономики. Этой роли доступны команды из списка {prefix}help_m`**",
             26 : "установлен в качестве канала для логов",
             27 : "**`Русский язык установлен в качестве языка интерфейса`**",
             28 : "Пожалуйста, выберите язык из списка:",
@@ -238,7 +238,8 @@ class mod_commands(commands.Cog):
             34 : "**`Список именных часовых поясов:`**",
             35 : "**`Время (в секундах) должно быть целым положительным числом (только число, без дополнительных символов)`**",
             36 : "**`В качестве перерыва между использованием /work установлено время {} секунд(а, ы)`**",
-            37 : "**`Границы заработка должны быть целыми неотрицательными числами, причём правая граница (в команде указывается второй) должна быть не меньше левой (в команде указывается первой)`**",
+            37 : "**Границы заработка должны быть `целыми неотрицательными` числами, причём `правая граница` (в команде указывается второй) \
+              **`должна быть не меньше левой`** (в команде указывается первой)**",
             38 : "**`{} и {} установлены в качестве границ заработка от команды /work`**",
             39 : "**`В качестве перерыва между начислением денег участникам с уникальными ролями (тип ролей - 0) установлено время {} секунд(а, ы)`**",
             40 : "**`Такая роль не найдена`**",
@@ -355,12 +356,12 @@ class mod_commands(commands.Cog):
     }
 
   def mod_role_set(self, ctx: commands.Context):
-    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
-      with closing(base.cursor()) as cur:
-        r = cur.execute("SELECT value FROM server_info WHERE settings = 'mod_role'").fetchone()
-        if r == None or r[0] == 0:
-          return 0
-        return 1
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+          with closing(base.cursor()) as cur:
+              r = cur.execute("SELECT value FROM server_info WHERE settings = 'mod_role'").fetchone()
+              if r == None or r[0] == 0:
+                  return 0
+              return 1
 
   def lang(self, ctx: commands.Context):
       with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
@@ -399,28 +400,28 @@ class mod_commands(commands.Cog):
   async def insert_uniq(self, base: sqlite3.Connection, cur: sqlite3.Cursor, nums: int, role_id: int, outer: list, price: int, time_now: int, ctx, lng: int):
       l = 0 if outer == None else len(outer)
       if nums > l:
-          item_ids = set([x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()])
+          item_ids = set([x[0] for x in cur.execute('SELECT item_id FROM outer_store').fetchall()])
           free_ids = []
           for i in range(1, max(item_ids) + 1):
               if i not in item_ids:
                   free_ids.append(i)
           if len(free_ids) >= nums - l:
               r = [(free_ids[i], role_id, 1, price, time_now, 0) for i in range(nums-l)]
-              cur.executemany('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
+              cur.executemany('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
               base.commit()
           else:
               r = [(x, role_id, 1, price, time_now, 0) for x in free_ids]
-              cur.executemany('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
+              cur.executemany('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
               base.commit()
               r = [(x, role_id, 1, price, time_now, 0) for x in range(max(item_ids)+1, max(item_ids) + nums - l- len(free_ids) + 1)]
-              cur.executemany('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
+              cur.executemany('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', r)
               base.commit()
           await ctx.reply(text[lng][43].format(role_id, nums), mention_author=False)
 
       elif nums < l:
-          to_delete = cur.execute("SELECT item_id FROM outer_shop WHERE role_id = ? ORDER BY last_date LIMIT ?", (role_id, l-nums)).fetchall()
+          to_delete = cur.execute("SELECT item_id FROM outer_store WHERE role_id = ? ORDER BY last_date LIMIT ?", (role_id, l-nums)).fetchall()
           for item in to_delete:
-              cur.execute("DELETE FROM outer_shop WHERE item_id = ?", (item[0],))
+              cur.execute("DELETE FROM outer_store WHERE item_id = ?", (item[0],))
           base.commit()
           await ctx.reply(text[lng][43].format(role_id, nums), mention_author=False)
 
@@ -443,7 +444,7 @@ class mod_commands(commands.Cog):
               base.commit()
               cur.execute('CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, special INTEGER)')
               base.commit()
-              cur.execute('CREATE TABLE IF NOT EXISTS outer_shop(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, special INTEGER)')
+              cur.execute('CREATE TABLE IF NOT EXISTS outer_store(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, special INTEGER)')
               base.commit()
               cur.execute('CREATE TABLE IF NOT EXISTS money_roles(role_id INTEGER NOT NULL PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, last_time INTEGER)')
               base.commit()
@@ -511,36 +512,37 @@ class mod_commands(commands.Cog):
         with closing(sqlite3.connect(f'./bases_{g.id}/{g.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
             r = cur.execute("SELECT * FROM money_roles").fetchall()
-            for role, members, salary, last_time in r:
-              #print(g, role, members, salary, last_time)
-              flag = 0
-              if last_time == 0 or last_time == None:
-                flag = 1
-              else:
-                #lasted_time = datetime.strptime(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S") + \
-                #    timedelta(hours=3) - datetime.strptime(last_time, '%S/%M/%H/%d/%m/%Y')
-                #if lasted_time >= timedelta(hours=4):
-                #    flag = 1
-                if last_time - int(time()) >= 14400:
+            if r != None:
+              for role, members, salary, last_time in r:
+                #print(g, role, members, salary, last_time)
+                flag = 0
+                if last_time == 0 or last_time == None:
                   flag = 1
-              if flag:
-                #cur.execute("UPDATE money_roles SET last_time = ? WHERE role_id = ?", (datetime.utcnow().strftime('%S/%M/%H/%d/%m/%Y'), role))
-                cur.execute("UPDATE money_roles SET last_time = ? WHERE role_id = ?", (int(time()), role))
-                base.commit()
-                for member in members.split('#'):
-                  if member != "":
-                    member = int(member)
-                    self.check(base=base, cur=cur, memb_id=member)
-                    #print(user)
-                    cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, member))
-                    base.commit()
-                  
+                else:
+                  #lasted_time = datetime.strptime(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S") + \
+                  #    timedelta(hours=3) - datetime.strptime(last_time, '%S/%M/%H/%d/%m/%Y')
+                  #if lasted_time >= timedelta(hours=4):
+                  #    flag = 1
+                  if last_time - int(time()) >= 14400:
+                    flag = 1
+                if flag:
+                  #cur.execute("UPDATE money_roles SET last_time = ? WHERE role_id = ?", (datetime.utcnow().strftime('%S/%M/%H/%d/%m/%Y'), role))
+                  cur.execute("UPDATE money_roles SET last_time = ? WHERE role_id = ?", (int(time()), role))
+                  base.commit()
+                  for member in members.split('#'):
+                    if member != "":
+                      member = int(member)
+                      self.check(base=base, cur=cur, memb_id=member)
+                      #print(user)
+                      cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, member))
+                      base.commit()
+        await asyncio.sleep(0.5)            
       await asyncio.sleep(20)
 
 
-  @commands.command(aliases = ["moderation"])
+  @commands.command(aliases = ["help_m"])
   @commands.check(needed_role)
-  async def _moderation(self, ctx: commands.Context, *args):
+  async def _help_m(self, ctx: commands.Context, *args):
     msg = []
     lng = self.lang(ctx=ctx)
     if len(args) == 0:
@@ -551,7 +553,7 @@ class mod_commands(commands.Cog):
         title=text[lng][1],
         description = '\n'.join(msg)
       )
-      emb.add_field(name=text[lng][2], value = f'\n`{self.prefix}moderation <{text[lng][3]}>`')
+      emb.add_field(name=text[lng][2], value = f'\n`{self.prefix}help_m <{text[lng][3]}>`')
 
     elif len(args) == 1:
       arg = args[0].replace(self.prefix, '')
@@ -559,7 +561,7 @@ class mod_commands(commands.Cog):
           await ctx.reply(
             embed=Embed(
               title=text[lng][404],
-              description=f'{text[lng][6]} `{self.prefix}moderation`',
+              description=f'{text[lng][6]} `{self.prefix}help_m`',
               colour=Colour.red()
             ),
             mention_author=False
@@ -578,10 +580,10 @@ class mod_commands(commands.Cog):
 
     await ctx.reply(embed=emb, mention_author=False)
 
-  @_moderation.error
-  async def _moderation_error(self, ctx: commands.Context, error):
+  """ @_help_m.error
+  async def _help_m_error(self, ctx: commands.Context, error):
     if isinstance(error, commands.CommandInvokeError):
-      lng = self.lang(ctx=ctx)
+        lng = self.lang(ctx=ctx) """
       
 
   @commands.command(hidden=True, aliases=['set'])
@@ -592,10 +594,10 @@ class mod_commands(commands.Cog):
         lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
         role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
         if role_info == None:
-            await ctx.reply(content=f"{text[lng][7]} {self.prefix}add", mention_author=False)
+            await ctx.reply(embed=Embed(title=text[lng][404],description=f"{text[lng][7]} `{self.prefix}add`",colour=Colour.red()), mention_author=False)
             return
         is_special = role_info[2]
-        outer = cur.execute('SELECT * FROM outer_shop WHERE role_id = ?', (role.id,)).fetchall()
+        outer = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchall()
         if nums > 0:
           #time_now = (datetime.utcnow()+timedelta(hours=3)).strftime('%S/%M/%H/%d/%m/%Y')
           time_now = int(time()) #inside of the bot without time zone
@@ -605,28 +607,32 @@ class mod_commands(commands.Cog):
 
           elif is_special == 1:
               if outer == None:
-                  item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
-                  item_ids.sort()
+                  items = cur.execute('SELECT item_id FROM outer_store').fetchall()
                   free_id = 1
-                  while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
-                      free_id += 1
-                  cur.execute('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, nums, role_info[1], time_now, 1))
-                  base.commit()            
+                  if items != None:
+                      item_ids = [x[0] for x in items]
+                      item_ids.sort()
+                      while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
+                          free_id += 1
+                  cur.execute('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, nums, role_info[1], time_now, 1))
+                  base.commit()
               else:
-                  cur.execute('UPDATE outer_shop SET quantity = ?, last_date = ? WHERE role_id = ?', (nums, time_now, role.id))
+                  cur.execute('UPDATE outer_store SET quantity = ?, last_date = ? WHERE role_id = ?', (nums, time_now, role.id))
                   base.commit()
           elif is_special == 2:
               if outer == None:
-                item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_shop').fetchall()]
-                item_ids.sort()
+                items = cur.execute('SELECT item_id FROM outer_store').fetchall()
                 free_id = 1
-                while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
-                    free_id += 1
-                cur.execute('INSERT INTO outer_shop(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, -404, role_info[1], time_now, 2))
+                if items != None:
+                  item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_store').fetchall()]
+                  item_ids.sort()
+                  while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
+                      free_id += 1
+                cur.execute('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, -404, role_info[1], time_now, 2))
                 base.commit()     
         else:
-            item_id = cur.execute('SELECT item_id FROM outer_shop WHERE role_id = ?', (role.id,)).fetchone()[0]
-            cur.execute('DELETE FROM outer_shop WHERE item_id = ?', (item_id,))
+            nums = 0
+            cur.execute('DELETE FROM outer_store WHERE role_id = ?', (role.id,))
             base.commit()
 
         await ctx.reply(content=text[lng][43].format(role.id, nums), mention_author=False)
@@ -634,7 +640,7 @@ class mod_commands(commands.Cog):
 
   @commands.command(hidden=True, aliases=['update_cash'])
   @commands.check(needed_role)
-  async def _update(self, ctx: commands.Context, member: nextcord.Member, value: int):
+  async def _update_cash(self, ctx: commands.Context, member: nextcord.Member, value: int):
     with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
       with closing(base.cursor()) as cur:
         memb_id = member.id
@@ -656,26 +662,27 @@ class mod_commands(commands.Cog):
   async def _add(self, ctx: commands.Context, role: nextcord.Role, price: int, is_special: int, salary: int = None):
     lng = self.lang(ctx=ctx)
     if not is_special in [0, 1, 2]:
-        await ctx.reply(text[lng][8], mention_author=False)
+        await ctx.reply(embed=Embed(title=text[lng][404], description=text[lng][8], colour=Colour.red()), mention_author=False)
         return
     with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
         with closing(base.cursor()) as cur:
           rls = cur.execute('SELECT role_id FROM server_roles').fetchall()
-          role_ids = [x[0] for x in rls]
+          role_ids = [] if rls == None else [x[0] for x in rls]
           if not role.id in role_ids:
             if is_special == 0:
               if salary == None or salary < 0:
-                await ctx.reply(content=text[lng][9], mention_author=False)
+                await ctx.reply(embed=Embed(title=text[lng][404], description=text[lng][9], colour=Colour.red()), mention_author=False)
                 return
               cur.execute("INSERT INTO money_roles(role_id, members, salary, last_time) VALUES(?, ?, ?, ?)", (role.id, "", salary, 0))
               base.commit()
-            await ctx.reply(content=f"{role} {text[lng][10]}", mention_author=False)
+            await ctx.reply(embed=Embed(description=f"{role.mention} {text[lng][10]}"), mention_author=False)
             cur.execute('INSERT INTO server_roles(role_id, price, special) VALUES(?, ?, ?)', (role.id, price, is_special))
             base.commit()
           else:
-            is_special_shop = cur.execute("SELECT special FORM server_roles WHERE role_id = ?", (role.id,)).fetchone()[0]
+            is_special_shop = cur.execute("SELECT special FROM server_roles WHERE role_id = ?", (role.id,)).fetchone()[0]
             if is_special != is_special_shop:
-              await ctx.reply(content = text[lng][11], mention_author=False)
+                await ctx.reply(content = text[lng][11], mention_author=False)
+                return
             cur.execute("UPDATE server_roles SET price = ? WHERE role_id = ?", (price, role.id))
             base.commit()
             cur.execute("UPDATE money_roles SET salary = ? WHERE role_id = ?", (salary, role.id))
@@ -686,16 +693,16 @@ class mod_commands(commands.Cog):
   @commands.command(hidden=True, aliases=['remove'])
   @commands.check(needed_role)
   async def _remove(self, ctx: commands.Context, role: nextcord.Role):
-    with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
-        with closing(base.cursor()) as cur:
-          lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-          cur.execute('DELETE FROM server_roles WHERE role_id = ?', (role.id,))
-          base.commit()
-          cur.execute('DELETE FROM outer_shop WHERE role_id = ?', (role.id,))
-          base.commit()
-          cur.execute("DELETE FROM money_roles WHERE role_id = ?", (role.id,))
-          base.commit()
-          await ctx.reply(content=f"{text[lng][0]} {role} {text[lng][13]}", mention_author=False)
+      with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+          with closing(base.cursor()) as cur:
+            lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+            cur.execute('DELETE FROM server_roles WHERE role_id = ?', (role.id,))
+            base.commit()
+            cur.execute('DELETE FROM outer_store WHERE role_id = ?', (role.id,))
+            base.commit()
+            cur.execute("DELETE FROM money_roles WHERE role_id = ?", (role.id,))
+            base.commit()
+            await ctx.reply(content=f"{text[lng][0]} {role} {text[lng][13]}", mention_author=False)
 
 
   @commands.command(hidden=True, aliases=['update_price'])
@@ -706,7 +713,8 @@ class mod_commands(commands.Cog):
           lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
           is_in = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
           if is_in == None:
-            await ctx.reply(f"{text[lng][7]} {self.prefix}add", mention_author=False)
+            emb = Embed(colour=Colour.red(), title=text[lng][404], description=f"{text[lng][7]} `{self.prefix}add`")
+            await ctx.reply(embed=emb, mention_author=False)
             return
           cur.execute('UPDATE server_roles SET price = ? WHERE role_id = ?', (price, role.id))
           base.commit()
@@ -729,27 +737,26 @@ class mod_commands(commands.Cog):
 
   @commands.command(hidden=True, aliases=['give_unique'])
   @commands.check(needed_role)
-  async def _unique(self, ctx: commands.Context, member: nextcord.Member, role: nextcord.Role):
+  async def _give_unique(self, ctx: commands.Context, member: nextcord.Member, role: nextcord.Role):
     with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
         with closing(base.cursor()) as cur:
           lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
           memb = self.check(base=base, cur=cur, memb_id=member.id)
           role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
           if role_info == None:
-              await ctx.reply(content=f"{text[lng][7]} {self.prefix}add", mention_author=False)
+              emb = Embed(colour=Colour.red(), title=text[lng][404], description=f"{text[lng][7]} `{self.prefix}add`")
+              await ctx.reply(embed=emb, mention_author=False)
               return
           elif role_info[2] != 0:
-            await ctx.reply(content=text[lng][16], mention_author=False)
+            emb = Embed(colour=Colour.red(), title=text[lng][404], description=text[lng][16])
+            await ctx.reply(content=emb, mention_author=False)
             return
 
-          try:
-            owned_roles = memb[2]
-            if not str(role.id) in owned_roles.split('#'):
-              owned_roles += f"#{role.id}"                        
-            cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', (owned_roles, member.id))
-            base.commit()
-          except:
-            pass
+          owned_roles = memb[2]
+          if not str(role.id) in owned_roles.split('#'):
+            owned_roles += f"#{role.id}"                        
+          cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', (owned_roles, member.id))
+          base.commit()
 
           try:
             membs = cur.execute("SELECT members FROM money_roles WHERE role_id = ?", (role.id,)).fetchone()
@@ -810,7 +817,7 @@ class mod_commands(commands.Cog):
                 emb = Embed(
                     title=text[lng][28],
                     description="\n".join([text[lng][29], text[lng][30]]), 
-                    colour=Colour.dark_purple(),
+                    colour=Colour.red(),
                 )
                 await ctx.reply(embed=emb, mention_author=False)
                 return
@@ -820,11 +827,12 @@ class mod_commands(commands.Cog):
 
   @commands.command(hidden=True, aliases=["time_zone", "tz"])
   @commands.check(needed_role)
-  async def _tz(self, ctx: commands.Context, tz: str):
+  async def _time_zone(self, ctx: commands.Context, tz: str):
       tz = tz.upper()
       if not tz in zones:
           lng = self.lang(ctx=ctx)
-          await ctx.reply(content=text[lng][31], mention_author=False)
+          emb = Embed(colour=Colour.red(), title=text[lng][404], description=text[lng][31])
+          await ctx.reply(embed=emb, mention_author=False)
           return
       with closing(sqlite3.connect(f'./bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
@@ -866,7 +874,8 @@ class mod_commands(commands.Cog):
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               if timer <= 0:
-                  await ctx.reply(content=text[lng][35], mention_author=False)
+                  emb = Embed(colour=Colour.red(), title=text[lng][404], description=text[lng][35])
+                  await ctx.reply(embed=emb, mention_author=False)
                   return
               cur.execute("UPDATE server_info SET value = ? WHERE settings = 'time_r'", (timer,))
               base.commit()
@@ -880,7 +889,8 @@ class mod_commands(commands.Cog):
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               if min(a, b) < 0 or a > b:
-                  await ctx.reply(content=text[lng][37], mention_author=False)
+                  emb = Embed(colour=Colour.red(), title=text[lng][404], description=text[lng][37])
+                  await ctx.reply(embed=emb, mention_author=False)
                   return
               cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_l'", (a,))
               base.commit()
@@ -895,7 +905,8 @@ class mod_commands(commands.Cog):
           with closing(base.cursor()) as cur:
               lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
               if timer <= 0:
-                  await ctx.reply(content=text[lng][35], mention_author=False)
+                  emb = Embed(colour=Colour.red(), title=text[lng][404], description=text[lng][35])
+                  await ctx.reply(embed=emb, mention_author=False)
                   return
               cur.execute("UPDATE server_info SET value = ? WHERE settings = 'uniq_timer'", (timer,))
               base.commit()
@@ -967,29 +978,35 @@ class mod_commands(commands.Cog):
   @commands.Cog.listener()
   async def on_command_error(self, ctx: commands.Context, error):
       lng = self.lang(ctx=ctx)
+      emb=Embed(title=text[lng][404],colour=Colour.red())
       if isinstance(error, commands.MemberNotFound):
-          await ctx.reply(text[lng][18], mention_author=False)
-      elif isinstance(error, commands.MissingRequiredArgument):
-          await ctx.reply(text[lng][19], mention_author=False)
+          emb.description = text[lng][18]
+      elif isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
+          try:
+              emb.description = text[lng][19].format(self.prefix, str(ctx.command)[1:])
+          except:
+              emb.description = text[lng][19].format(self.prefix, "<name_of_the_command>")
       elif isinstance(error, commands.CommandNotFound):
-          await ctx.reply(text[lng][20], mention_author=False)
+          emb.description = text[lng][20]
       elif isinstance(error, commands.UserNotFound):
-          await ctx.reply(text[lng][21], mention_author=False)
+          emb.description = text[lng][21]
       elif isinstance(error, commands.RoleNotFound):
-          await ctx.reply(text[lng][40], mention_author=False)
+          emb.description = text[lng][40]
       elif isinstance(error, commands.ChannelNotFound):
-          await ctx.reply(text[lng][41], mention_author=False)
+          emb.description = text[lng][41]
       elif isinstance(error, commands.CommandOnCooldown):
-          await ctx.reply(text[lng][22], mention_author=False)
+          emb.description = text[lng][22]
       elif isinstance(error, CheckFailure):
           if not self.mod_role_set(ctx=ctx):
-              await ctx.reply(text[lng][24], mention_author=False)
+              emb.description = text[lng][24]
           else:
-              await ctx.reply(text[lng][23], mention_author=False)
+              emb.description = text[lng][23]
       else:
           raise error
           with open("d.log", "a+", encoding="utf-8") as f:
               f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{str(error)}]\n")
+          return
+      await ctx.reply(embed=emb, mention_author=False)
   
 def setup(bot: commands.Bot, **kwargs):
   bot.add_cog(mod_commands(bot, **kwargs))
