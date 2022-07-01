@@ -15,9 +15,9 @@ cmd = Console(bot)
 async def on_ready():
 
     for guild in bot.guilds:
-        if not os.path.exists(f'./bases_{guild.id}'):
-            os.mkdir(f'./bases_{guild.id}/')
-            with closing(sqlite3.connect(f'./bases_{guild.id}/{guild.id}_store.db')) as base:
+        if not os.path.exists(f'{path}bases_{guild.id}'):
+            os.mkdir(f'{path}bases_{guild.id}/')
+            with closing(sqlite3.connect(f'{path}bases_{guild.id}/{guild.id}_store.db')) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
                     base.commit()
@@ -54,7 +54,7 @@ async def on_ready():
 
 
 if __name__ == "__main__":
-    for filename in os.listdir("./commands"):
+    for filename in os.listdir(f"{path}commands"):
         if filename.endswith(".py"):
             bot.load_extension(f"commands.{filename[:-3]}", extras={"prefix": prefix, "in_row": in_row, "currency": currency})
     cmd.load_extension(f'console')

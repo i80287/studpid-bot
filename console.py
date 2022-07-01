@@ -2,6 +2,7 @@ from colorama import Fore
 from dpyConsole import console, Cog
 import shutil, sqlite3, os, dpyConsole
 from contextlib import closing
+from config import path
 
 class ConsoleCog(Cog):
     def __init__(self, console: dpyConsole.Console):
@@ -11,7 +12,7 @@ class ConsoleCog(Cog):
     @console.command()
     async def recover(self, guild_id):
         try:
-            shutil.copy2(f'./bases_{guild_id}/{guild_id}_shop_rec_2.db', f'./bases_{guild_id}/{guild_id}_store.db')
+            shutil.copy2(f'{path}bases_{guild_id}/{guild_id}_shop_rec_2.db', f'{path}bases_{guild_id}/{guild_id}_store.db')
             print(f'{Fore.CYAN}Recovered database for {guild_id}{Fore.RED}')
         except:
             print(f"{Fore.YELLOW}Can't recover database!{Fore.RED}\n")
@@ -28,12 +29,12 @@ class ConsoleCog(Cog):
     @console.command()
     async def backup(self, guild_id):
         try:
-            src = sqlite3.connect(f'./bases_{guild_id}/{guild_id}_store.db')
-            bck = sqlite3.connect(f'./bases_{guild_id}/{guild_id}_shop_rec_1.db')
+            src = sqlite3.connect(f'{path}bases_{guild_id}/{guild_id}_store.db')
+            bck = sqlite3.connect(f'{path}bases_{guild_id}/{guild_id}_shop_rec_1.db')
             src.backup(bck)
             src.close()
             bck.close()
-            shutil.copy2(f'./bases_{guild_id}/{guild_id}_store.db', f'./bases_{guild_id}/{guild_id}_shop_rec_2.db')
+            shutil.copy2(f'{path}bases_{guild_id}/{guild_id}_store.db', f'{path}bases_{guild_id}/{guild_id}_shop_rec_2.db')
             print(f'{Fore.CYAN}Created a backup for {guild_id}{Fore.RED}\n')
         except:
             print(f"{Fore.YELLOW}Can't create a backup for the {guild_id}{Fore.RED}")
@@ -49,16 +50,16 @@ class ConsoleCog(Cog):
     
     @console.command()
     async def setup(self, guild_id):
-        if os.path.exists(f'./bases_{guild_id}/{guild_id}_store.db'):
-            os.remove(f'./bases_{guild_id}/{guild_id}_store.db')
+        if os.path.exists(f'{path}bases_{guild_id}/{guild_id}_store.db'):
+            os.remove(f'{path}bases_{guild_id}/{guild_id}_store.db')
         else:
-            if not os.path.exists(f'./bases_{guild_id}'):
+            if not os.path.exists(f'{path}bases_{guild_id}'):
                 try:
-                    os.mkdir(f'./bases_{guild_id}/')
+                    os.mkdir(f'{path}bases_{guild_id}/')
                 except:
                     print(f"{Fore.YELLOW}Can't create database!{Fore.RED}\n")
         
-        with closing(sqlite3.connect(f'./bases_{guild_id}/{guild_id}_store.db')) as base:
+        with closing(sqlite3.connect(f'{path}bases_{guild_id}/{guild_id}_store.db')) as base:
             with closing(base.cursor()) as cur:
 
                 cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
