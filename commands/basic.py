@@ -13,6 +13,7 @@ class mod_commands(commands.Cog):
     self.bot = bot
     self.prefix = prefix
     self.cmds_list = [
+        f"`{prefix}guide`",
         f"`{prefix}quick`",
         f"`{prefix}set`",
         f"`{prefix}update_cash`", 
@@ -36,57 +37,61 @@ class mod_commands(commands.Cog):
     global help_menu
     help_menu = {
         0 : {
+            "guide" : f"`{prefix}guide` shows guide about bot's economic system",
+            
             "quick" : f"`{prefix}quick` starts quick setup of all bot's settings",
 
-            "set" : f"`{prefix}set` `role` `quantity` - sets the quantity of selected role for selling in store. If role not in the list of roles available for purchase/sale, \
-              add it via the `{prefix}add` command\n**Example:**\n**`{prefix}set`** **`972494065088200745`** **`5`** sets 5 roles with id 972494065088200745 (you can use mention with @ \
-              instead of id) selling in the store",
+            "set" : f"`{prefix}set` `role` `quantity` - sets the quantity of selected role for selling in store. If quantity <= 0, then role will be removed from store. If \
+              role not in the list of roles available for the purchase/sale, add it via the `{prefix}add` command\n\n**Example:**\n**`{prefix}set`** **`972494065088200745`** \
+              **`5`** sets 5 roles with id 972494065088200745 (you can use mention with @ instead of id) selling in the store",
 
-            "update_cash" : f"`{prefix}update_cash` `member` `value` sets cash of the member **equal** to selected value. \n**Example:**\n**`{prefix}update_cash`** **`931273285268832326`** \
-              **`100 will set user's cash equal to 100 {currency} (you can mention user with @ instead of him id)",
+            "update_cash" : f"`{prefix}update_cash` `member` `value` sets cash of the member **equal** to selected value. \n\n**Example:**\n**`{prefix}update_cash`** \
+              **`931273285268832326`** **`100`** will set user's cash **equal** to 100 {currency} (you can mention user with @ instead of him id)",
 
-            "add" : f"`{prefix}add` `role` `price` `type_of_role` `salary (for unique roles)` adds role to the list of roles available for purchase/sale.\
-              Types of role: \n0 is for unique, which has salary; \n1 is for common, has quantity in the store; \n2 is for infinite (can't run out in the store). \
-              \n**Example:**\n**`{prefix}add`** **`972494065088200745`** **`100`** **`0`** **`10`** adds role with id 972494065088200745 (you can use mention with @ instead of id) to \
-              the list, it costs 100 {currency}, unique and brigns it's owner 10 every 4 hours",
+            "add" : f"`{prefix}add` `role` `price` `type_of_role` `salary (for unique roles)` adds role to the list of roles available for the purchase/sale.\
+              Types of role:\n**`0`** is for unique, which has salary;\n**`1`** is for common, has quantity in the store;\n**`2`** is for infinite (can't run out in the store).\
+              \nMore info via **`{prefix}guide`**\n\n**Example:**\n**`{prefix}add`** **`972494065088200745`** **`100`** **`0`** **`10`** adds role with id 972494065088200745 \
+              (you can use mention with @ instead of id) to the list, it costs 100 {currency}, unique and brigns it's owner 10 {currency} one per every unique's roles cooldown \
+              (see **`{prefix}help_m`** **`uniq_timer`**)",
 
-            "remove" : f"`{prefix}remove` `role` - removes role from list of available for purchase/sale. Also removes this role from the store. **All information about the role \
-              will be lost!**\n**Example:**\n**`{prefix}remove`** **`972494065088200745`** will remove role with id 972494065088200745 (you can use mention with @ instead of id) from \
-              list of roles available for purchase/sale on the server, also all information about the role will be deleted",
+            "remove" : f"`{prefix}remove` `role` - removes role from list of available for the purchase/sale. Also removes this role from the store. **All information about \
+              the role will be lost!**\n\n**Example:**\n**`{prefix}remove`** **`972494065088200745`** will remove role with id 972494065088200745 (you can use mention with \
+              @ instead of id) from list of roles available for the purchase/sale on the server, also all information about the role will be deleted",
 
-            "update_price" : f"`{prefix}update_price` `role` `price` changes role's price and makes it **equal** to the selected price.\n**Example:**\n**`{prefix}update_price`** **`\
-              972494065088200745`** **`100`** sets price of role with id 972494065088200745 (you can use mention with @ instead of id) equal to 100 {currency}",
+            "update_price" : f"`{prefix}update_price` `role` `price` changes role's price and makes it **equal** to the selected price.\n\n**Example:**\n**`{prefix}update_price`** \
+              **`972494065088200745`** **`100`** sets price of role with id 972494065088200745 (you can use mention with @ instead of id) **equal** to 100 {currency}",
 
-            "list" : f"`{prefix}list` - shows the list of roles available for purchase/sale",
+            "list" : f"`{prefix}list` - shows the list of roles available for the purchase/sale",
 
-            "give_unique" : f"`{prefix}give_unique` `member` `role` adds unique role to the balance of member so he could start getting money from this role (also role can be added \
-              if user calls command `/balance`)\n**Example:**\n**`{prefix}give_unique`** **`931273285268832326`** **`972494065088200745`** will add role with id 972494065088200745 \
-                (you can use mention with @ instead of id) to the balance of user with id 931273285268832326 (you can use mention with @ instead of id) so he could start getting \
-                money from that role",
+            "give_unique" : f"`{prefix}give_unique` `member` `role` adds unique role to the balance of member so he could start getting money from this role (also role can \
+              be added if user calls command `/balance`)\n\n**Example:**\n**`{prefix}give_unique`** **`931273285268832326`** **`972494065088200745`** will add role with id \
+              972494065088200745 (you can use mention with @ instead of id) to the balance of user with id 931273285268832326 (you can use mention with @ instead of id) so \
+              he could start getting money from that role",
 
-            "mod_role" : f"`{prefix}mod_role` `role` gives permissions to use commands from `{prefix}help_m` for the selected role. Server can only have one role selected for this \
-              \n**Example:**\n**`{prefix}mod_role`** **`972494065088200745`** will select role with id 972494065088200745 (you can use mention with @ instead of id) as economic mod role, \
-              so users with this role will be able to use commands from `{prefix}help_m`",
+            "mod_role" : f"`{prefix}mod_role` `role` gives permissions to use commands from `{prefix}help_m` for the selected role. Server can only have one role selected for \
+              this\n\n**Example:**\n**`{prefix}mod_role`** **`972494065088200745`** will select role with id 972494065088200745 (you can use mention with @ instead of id) as \
+              economic mod role, so users with this role will be able to use commands from `{prefix}help_m`",
             
-            "log" : f"`{prefix}log` `text_channel` selects log channel for economic operations.\n**Example:**\n**`{prefix}log`** **`863462268934422540`** will select **text** channel \
-              with id 863462268934422540 (you can use mention with # instead of id) as log channel",
+            "log" : f"`{prefix}log` `text_channel` selects log channel for economic operations.\n\n**Example:**\n**`{prefix}log`** **`863462268934422540`** will select **text** \
+              channel with id 863462268934422540 (you can use mention with # instead of id) as log channel",
 
-            "language" : f"`{prefix}language` `lang` selects language for interface. Can be **`Eng`** (no matter Eng, eng, eNg etc.) for English and **`Rus`** (no matter Rus, rus, \
-              rUs etc.) for Russian.\n**Example:**\n**`{prefix}language`** **`eng`** will select English language for bot interface",
+            "language" : f"`{prefix}language` `lang` selects language for interface. Can be **`Eng`** (no matter Eng, eng, eNg etc.) for English and **`Rus`** (no matter Rus, \
+              rus, rUs etc.) for Russian.\n\n**Example:**\n**`{prefix}language`** **`eng`** will select English language for bot interface",
 
-            "time_zone" : f"`{prefix}time_zone` `name_of_time_zone_from_{prefix}zones or \nhour_difference_with_'-'_if_needed` selects **`UTC`**±**`X`**, **`X`** Є {ryad}, format for \
-              the server. \n**Example:**\n**`{prefix}time_zone`** **`EDT`** will set time zone of Eastern Daylight Time UTC-4, **`{prefix}time_zone`** **`-7`** will set time zone UTC-7",
+            "time_zone" : f"`{prefix}time_zone` `name_of_time_zone_from_{prefix}zones or \nhour_difference_with_'-'_if_needed` selects **`UTC`**±**`X`**, **`X`** Є {ryad}, \
+              format for the server. \n\n**Example:**\n**`{prefix}time_zone`** **`EDT`** will set time zone of Eastern Daylight Time UTC-4, **`{prefix}time_zone`** **`-7`** \
+              will set time zone UTC-7",
 
             "zones" : f"`{prefix}zones` shows available pre-named time zones",
 
-            "work_timer" : f"`{prefix}work_timer` `time_in_seconds` sets cooldown for command `/work`.\n**Example:**\n**`{prefix}work_timer`** **`10800`** will set 3 hours cooldown \
-              (10800 seconds = 3 hours) for command `/work`",
+            "work_timer" : f"`{prefix}work_timer` `time_in_seconds` sets cooldown for command `/work`.\n\n**Example:**\n**`{prefix}work_timer`** **`10800`** will set 3 hours \
+              cooldown (10800 seconds = 3 hours) for command `/work`",
 
             "salary" : f"`{prefix}salary` `left_border` `right_border` sets borders for amount of money gained from command `/work`. This amount will be random integer number \
-              Є [left; right]. Both are integer non-negative numbers, right one must be at least as large as the left.\n**Example:**\n**`{prefix}salary`** **`10`** **`100`** changes \
-              amount of cash gained from `/work`, and this amount will be random integer from 10 to 100 (amount Є [10; 100])",
+              Є [left; right]. Both are integer non-negative numbers, right one must be at least as large as the left.\n\n**Example:**\n**`{prefix}salary`** **`10`** \
+              **`100`** changes amount of cash gained from `/work`, and this amount will be random integer from 10 to 100 (amount Є [10; 100])",
 
-            "uniq_timer" : f"`{prefix}uniq_timer` `time_in_seconds` sets cooldown for accruing money from unique roles (type of roles - 0).\n**Example:**\n\
+            "uniq_timer" : f"`{prefix}uniq_timer` `time_in_seconds` sets cooldown for accruing money from unique roles (type of roles - 0).\n\n**Example:**\n\
               **`{prefix}uniq_timer`** **`10800`** will set 3 hours cooldown (10800 seconds = 3 hours)",
 
             "settings" : f"`{prefix}settings` shows menu with current bot's settings",
@@ -95,58 +100,63 @@ class mod_commands(commands.Cog):
 
         },
         1 : {
+            "guide" : f"`{prefix}guide` показывает гайд об экономической системе ботаы",
+
             "quick" : f"`{prefix}quick` начинает быструю настройку параметров бота",
 
-            "set" : f"`{prefix}set` `роль` `количество` устанавливает количество продаваемых в магазине ролей. Если роли нет в списке ролей, доступных для покупки/продажи \
-              на сервере , добавьте её при помощи команды `{prefix}add`. Для количества бесконечных ролей можно указать любое целое число.\n**Пример:**\n**`{prefix}set`** \
-              **`972494065088200745`** **`5`** сделает так, что в магазине будут продаваться 5 ролей с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id)",
+            "set" : f"`{prefix}set` `роль` `количество` устанавливает количество продаваемых в магазине ролей. Если количество <= 0, то роль будет убрана из магазина. Если роли \
+              нет в списке ролей, доступных для покупки/продажи на сервере , добавьте её при помощи команды `{prefix}add`. Для количества бесконечных ролей можно указать любое \
+              целое число.\n\n**Пример:**\n**`{prefix}set`** **`972494065088200745`** **`5`** сделает так, что в магазине будут продаваться 5 ролей с id 972494065088200745 \
+              (Вы можете упомянуть роль при помощи @ вместо id)",
 
-            "update_cash" : f"`{prefix}update_cash` `участник` `сумма` изменяет баланс учатсника и делает его **равным** указанной сумме. \n**Пример:**\n**`{prefix}update_cash`** \
-              **`931273285268832326`** **`100`** сделает баланс юзера с id 931273285268832326 (Вы можете упомянуть юзера при помощи @ вместо id) равным 100 {currency}",
+            "update_cash" : f"`{prefix}update_cash` `участник` `сумма` изменяет баланс учатсника и делает его **равным** указанной сумме.\
+              \n\n**Пример:**\n**`{prefix}update_cash`** **`931273285268832326`** **`100`** сделает баланс юзера с id 931273285268832326 (Вы можете упомянуть юзера при \
+              помощи @ вместо id) **равным** 100 {currency}",
 
             "add" : f"`{prefix}add` `роль` `цена` `тип_роли` `зарплата (для уникальных ролей)` добавляет роль в список ролей, доступных для покупки/продажи на сервере. \
-              Тип роли: \n0, если уникальная, т.е. имеющая пассивный заработок; \n1, если обычная, то есть конечная; \n2, если бесконечная (не может закончиться в магазине). \
-              \n**Пример:**\n**`{prefix}add`** **`972494065088200745`** **`100`** **`0`** **`10`** добавит роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ \
-              вместо id) в список, она будет уникальной, будет стоить 100 {currency} и приносить своему владельцу 10 каждые 4 часа",
+              Тип роли:\n**`0`**, если уникальная, т.е. имеющая пассивный заработок;\n**`1`**, если обычная, то есть конечная;\n**`2`**, если бесконечная (не может закончиться \
+              в магазине)\nПодробнее - **`{prefix}guide`**\n\n**Пример:**\n**`{prefix}add`** **`972494065088200745`** **`100`** **`0`** **`10`** добавит роль с id \
+              972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) в список, она будет уникальной, будет стоить 100 {currency} и приносить своему владельцу \
+              10 {currency} один раз за время кулдауна (см. **`{prefix}help_m`** **`uniq_timer`**)",
 
             "remove" : f"`{prefix}remove` `роль` - убирает роль из списка ролей, доступных для покупки/продажи на сервере. Также удаляет эту роль из магазина. **Вся информация о роли \
-              будет потеряна!**\n**Пример:**\n**`{prefix}remove`** **`972494065088200745`** удалит роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) из \
+              будет потеряна!**\n\n**Пример:**\n**`{prefix}remove`** **`972494065088200745`** удалит роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) из \
               списка ролей, доступных для покупки/продажи на сервере, и из магазина, а также удалит информацию о роли (её цена, тип и заработок)",
 
-            "update_price" : f"`{prefix}update_price` `роль` `цена` изменяет цену роли и делает её **равной** указанной цене\n**Пример:**\n**`{prefix}update_price`** \
-              **`972494065088200745`** **`100`** сделает цену роли с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) равной 100 {currency}",
+            "update_price" : f"`{prefix}update_price` `роль` `цена` изменяет цену роли и делает её **равной** указанной цене\n\n**Пример:**\n**`{prefix}update_price`** \
+              **`972494065088200745`** **`100`** сделает цену роли с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) **равной** 100 {currency}",
 
             "list" : f"`{prefix}list` показывет список ролей, доступных для покупки/продажи на сервере",
 
             "give_unique" : f"`{prefix}give_unique` `участник` `роль`- добавляет уникальную роль на личный баланс пользователя, чтобы он начал получать пассивный заработок \
-              (также это можно сделать, если пользователь вызовет команду `/balance`)\n**Пример:**\n**`{prefix}give_unique`** **`931273285268832326`** **`972494065088200745`** запишет \
+              (также это можно сделать, если пользователь вызовет команду `/balance`)\n\n**Пример:**\n**`{prefix}give_unique`** **`931273285268832326`** **`972494065088200745`** запишет \
               роль c id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) на баланс юзера с id 931273285268832326 (Вы можете упомянуть юзера при помощи @ вместо id), \
               чтобы он смог получать пассивный заработок с этой роли",
 
             "mod_role" : f"`{prefix}mod_role` `роль` выбирает роль в качестве роли модератора экономики для доступа к командам из `{prefix}help_m`. На сервере может быть только \
-              одна такая роль.\n**Пример:**\n**`{prefix}mod_role`** **`972494065088200745`** выберет роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) \
+              одна такая роль.\n\n**Пример:**\n**`{prefix}mod_role`** **`972494065088200745`** выберет роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) \
               в качестве роли модератора экономики. Юзеры с этой ролью смогу использовать команды из списка команды `{prefix}help_m` и управлять настройками бота",
 
-            "log" : f"`{prefix}log` `текстовый_канал` устанавливает выбранный для хранения логов об операциях.\n**Пример:**\n**`{prefix}log`** **`863462268934422540`** установит \
+            "log" : f"`{prefix}log` `текстовый_канал` устанавливает выбранный для хранения логов об операциях.\n\n**Пример:**\n**`{prefix}log`** **`863462268934422540`** установит \
               канал с id 863462268934422540 (Вы можете упомянуть канал при помощи #, а не id) в качестве канала для логов бота",
 
             "language" : f"`{prefix}language` `язык` устанавливает выбранный язык в качестве языка интерфейса. Доступны: **`Eng`** (регист не важен) - для английского и **`Rus`** \
-              (регистр не важен) - для русского.\n**Пример:**\n**`{prefix}language`** **`rus`** установит русский язык для интерфейса бота",
+              (регистр не важен) - для русского.\n\n**Пример:**\n**`{prefix}language`** **`rus`** установит русский язык для интерфейса бота",
 
             "time_zone" : f"`{prefix}time_zone` `имя_часового_пояса_из_списка или часовой_сдвиг_от_UTC_со_знаком_'-'_при_необходимости` устанавливает формат времени **`UTC`**±**`X`**, \
-              **`X`** Є {ryad}, для сервера. \n**Пример:**\n**`{prefix}time_zone`** **`YAKT`** установит часовой пояс Якутска UTC+9, а **`{prefix}time_zone`** **`-7`** установит \
+              **`X`** Є {ryad}, для сервера. \n\n**Пример:**\n**`{prefix}time_zone`** **`YAKT`** установит часовой пояс Якутска UTC+9, а **`{prefix}time_zone`** **`-7`** установит \
               часовой пояс UTC-7",
 
             "zones" : f"`{prefix}zones` показывет доступные именные часовые пояса",
 
-            "work_time" : f"`{prefix}work_time` `время_в_секундах` устанавливает кулдаун для использования команды `/work` .\n**Пример:**\n**`{prefix}work_timer`** **`10800`** \
+            "work_time" : f"`{prefix}work_time` `время_в_секундах` устанавливает кулдаун для использования команды `/work` .\n\n**Пример:**\n**`{prefix}work_timer`** **`10800`** \
               установит кулдаун, равный 3 часам (10800 секунд = 3 часа), для команды `/work`",
 
             "salary" : f"`{prefix}salary` `левая_граница` `правая_граница` устанавливает количество денег, получаемое после использования команды /work. Это количество будет целым \
-              числом Є [левая_граница; правая_граница]. Оба числа должны быть целыми неотрицательными числами, правая граница должна быть не меньше левой.\n**Пример:**\n\
+              числом Є [левая_граница; правая_граница]. Оба числа должны быть целыми неотрицательными числами, правая граница должна быть не меньше левой.\n\n**Пример:**\n\
               **`{prefix}salary`** **`10`** **`100`** изменяет заработок, получаемый после использования команды `/work`, этот заработок будет рандомным целым числом от 10 до 100 (заработок Є [10; 100])",
             
-            "uniq_timer" : f"`{prefix}uniq_timer` `время_в_секундах` устанавливает перерыв между начислением денег участникам с уникальными ролями (тип ролей - 0).\n**Пример:**\n\
+            "uniq_timer" : f"`{prefix}uniq_timer` `время_в_секундах` устанавливает перерыв между начислением денег участникам с уникальными ролями (тип ролей - 0).\n\n**Пример:**\n\
               **`{prefix}uniq_timer`** **`10800`** установит перерыв, равный 3 часам (10800 секунд = 3 часа)",
 
             "settings" : f"`{prefix}settings` вызывает меню, в котором отображены текущие настройки бота",
@@ -167,13 +177,13 @@ class mod_commands(commands.Cog):
             404 : 'Error',
             5 : f'Please, use command like **`{prefix}help_m`** or\n**`{prefix}help_m`** **`name_of_the_command`**', #
             6 : 'Please, select command from list of command', #
-            7 : '**This role is unavailable for purchase/sale on the server. Change it via the command**',
+            7 : '**This role is unavailable for the purchase/sale on the server. Change it via the command**',
             8 : 'Role type must be integer number belongs to the segment [0; 2]',
             9 : '**`Salary of unique role must be non-negative integer number`**',
-            10 : '**`was added to the list of roles available for purchase/sale on the server`**',
+            10 : '**`was added to the list of roles available for the purchase/sale on the server`**',
             11 : 'You cant change type of the existing role. To do it, you should recreate role.\n**All information about the role will be lost!**',
             12 : 'Role was successfully updated',
-            13 : "has been withdrawn from server store, unavailable for purchase/sale and doesnt bring money to it's owners from now",
+            13 : "has been withdrawn from server store, unavailable for the purchase/sale and doesnt bring money to it's owners from now",
             14 : 'From now the price of the role',
             15 : f'role - id - price - type (look {prefix}help_m add)',
             16 : 'This role is not unique',
@@ -395,7 +405,47 @@ class mod_commands(commands.Cog):
             9 : "Напишите cancel для остановки настроек"
         }
     }
-
+    global guide
+    guide = {
+        0 : {
+            0 : "The guide",
+            1 : "The basis of trade",
+            2 : f"In order to make role able to be bought and sold on the server you should add it to the list of roles, available for the purchase/sale via command \
+              **`{prefix}add`** \n(more info via **`{prefix}help_m`** **`add`**)",
+            3 : "List of roles, available for the purchase/sale on the server",
+            4 : f"To see this list you should use command **`{prefix}list`**",
+            5 : "Bot devides roles on three types:",
+            6 : "0, 1 and 2",
+            7 : "Type 0",
+            8 : '"Unique" ' + f"roles, that are not stacking in the store (are shown as different items in the store) and have salary: once per evety cooldown time \
+              (more info via \n**`{prefix}help_m`** **`uniq_timer`**) members that have this role on their balance will gain money (salary) that has been selected by \
+              command **`{prefix}add`**",
+            9 : "Type 1",
+            10 : '"Common" ' + "roles that are stacking in the store (are shown as one item with quantity). Don't have salary",
+            11 : "Type 2",
+            12 : '"Infinite" ' + f"roles that can't run out in the store (you can buy them endless times), can be added and removed to/from the store via command \
+              **`{prefix}set`** (more info via **`{prefix}help_m`** **`set`**)"
+        },
+        1 : {
+            0 : "Гайд",
+            1 : "Базис торговли",
+            2 : f"Чтобы роль можно было покупать и продавать на сервере, а также она могла приносить заработок, нужно добавить её в список ролей, \
+              доступных для покупки/продажи на сервере при помощи команды **`{prefix}add`** (см. **`{prefix}help_m`** **`add`**)",
+            3 : "Список ролей, доступных для покупки/продажи на сервере",
+            4 : f"Посмотреть список добавленных ролей можно при помощи команды **`{prefix}list`**",
+            5 : "Бот делит роли на 3 типа:",
+            6 : "0, 1 и 2",
+            7 : "Тип 0",
+            8 : '"Уникальные" ' + f"роли, которые не стакаются в магазине (т.е. отображаются как отдельные товары), а также имеют пассивный заработок: раз в \
+              некоторое установленно время (см. **`{prefix}help_m`**  **`uniq_timer`**) участники, на балансе которых находится эта роль, получают заработок, \
+                установленный для каждой роли при её добавлении (см. **`{prefix}help_m`** **`add`**)",
+            9 : "Тип 1",
+            10 : '"Обычные" ' + "роли, которые стакаются в магазине (т.е. отображаются как один товар с указанным количеством). Не имеют пассивного заработка",
+            11 : "Тип 2",
+            12 : '"Бесконечные" ' + f"роли, которые не заканчиваются в магазине (т.е. их можно купить бесконечное количество раз), добавляются и убираются в \
+              магазин при помощи команды **`{prefix}set`** (см. **`{prefix}help_m`** **`set`**)"
+        }
+    }
   def mod_role_set(self, ctx: commands.Context):
       with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
           with closing(base.cursor()) as cur:
@@ -577,49 +627,61 @@ class mod_commands(commands.Cog):
                       #print(user)
                       cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, member))
                       base.commit()
-        await asyncio.sleep(0.5)            
+
+        await asyncio.sleep(0.5)
+
       await asyncio.sleep(20)
-
-
+  
+  
+  @commands.command(aliases = ["guide"])
+  @commands.check(needed_role)
+  async def _guide(self, ctx: commands.Context):
+      lng = self.lang(ctx=ctx)
+      emb = Embed(title=guide[lng][0])
+      for i in range(1, 12, 2):
+          emb.add_field(name=guide[lng][i], value=guide[lng][i+1], inline=False)
+      await ctx.reply(embed=emb, mention_author=False)
+  
+  
   @commands.command(aliases = ["help_m"])
   @commands.check(needed_role)
   async def _help_m(self, ctx: commands.Context, *args):
-    msg = []
-    lng = self.lang(ctx=ctx)
-    if len(args) == 0:
-      for command in self.cmds_list:
-        msg.append(command)
-      emb = Embed(
-        colour=Colour.dark_purple(),
-        title=text[lng][1],
-        description = '\n'.join(msg)
-      )
-      emb.add_field(name=text[lng][2], value = f'\n**`{self.prefix}help_m`** **`{text[lng][3]}`**')
-
-    elif len(args) == 1:
-      arg = args[0].replace(self.prefix, '')
-      if not arg in help_menu[lng]:
-          await ctx.reply(
-            embed=Embed(
-              title=text[lng][404],
-              description=f'{text[lng][6]} `{self.prefix}help_m`',
-              colour=Colour.red()
-            ),
-            mention_author=False
+      msg = []
+      lng = self.lang(ctx=ctx)
+      if len(args) == 0:
+          for command in self.cmds_list:
+              msg.append(command)
+          emb = Embed(
+              colour=Colour.dark_purple(),
+              title=text[lng][1],
+              description = '\n'.join(msg)
           )
-          return
+          emb.add_field(name=text[lng][2], value = f'\n**`{self.prefix}help_m`** **`{text[lng][3]}`**')
 
-      msg.append(f"{help_menu[lng][arg]}")
-      emb = Embed(
-        colour=Colour.dark_purple(),
-        title=text[lng][4],
-        description='\n'.join(msg)
-      )
-    
-    else:
-      emb = Embed(colour=Colour.red(), title=text[lng][404], description=text[lng][5])
+      elif len(args) == 1:
+          arg = args[0].replace(self.prefix, '')
+          if not arg in help_menu[lng]:
+              await ctx.reply(
+                  embed=Embed(
+                      title=text[lng][404],
+                      description=f'{text[lng][6]} `{self.prefix}help_m`',
+                      colour=Colour.red()
+                  ),
+                  mention_author=False
+              )
+              return
 
-    await ctx.reply(embed=emb, mention_author=False)
+          msg.append(f"{help_menu[lng][arg]}")
+          emb = Embed(
+            colour=Colour.dark_purple(),
+            title=text[lng][4],
+            description='\n'.join(msg)
+          )
+      
+      else:
+          emb = Embed(colour=Colour.red(), title=text[lng][404], description=text[lng][5])
+
+      await ctx.reply(embed=emb, mention_author=False)
 
   """ @_help_m.error
   async def _help_m_error(self, ctx: commands.Context, error):
@@ -647,7 +709,7 @@ class mod_commands(commands.Cog):
               return
 
           elif is_special == 1:
-              if outer == None:
+              if outer == None or outer == []:
                   items = cur.execute('SELECT item_id FROM outer_store').fetchall()
                   free_id = 1
                   if items != None:
@@ -661,7 +723,8 @@ class mod_commands(commands.Cog):
                   cur.execute('UPDATE outer_store SET quantity = ?, last_date = ? WHERE role_id = ?', (nums, time_now, role.id))
                   base.commit()
           elif is_special == 2:
-              if outer == None:
+              print(outer)
+              if outer == None or outer == []:
                 items = cur.execute('SELECT item_id FROM outer_store').fetchall()
                 free_id = 1
                 if items != None:
@@ -669,6 +732,7 @@ class mod_commands(commands.Cog):
                   item_ids.sort()
                   while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
                       free_id += 1
+                print(items, free_id)
                 cur.execute('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, -404, role_info[1], time_now, 2))
                 base.commit()     
         else:
