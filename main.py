@@ -1,5 +1,4 @@
 import nextcord, os, sqlite3
-from datetime import datetime, timedelta
 from nextcord.ext import commands
 #from nextcord.abc import GuildChannel
 from contextlib import closing

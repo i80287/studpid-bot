@@ -598,6 +598,8 @@ class mod_commands(commands.Cog):
               if cur.execute("SELECT value FROM server_info WHERE settings = 'uniq_timer'").fetchone() == None:
                   cur.execute("INSERT INTO server_info(settings, value) VALUES('uniq_timer', 14400)")
                   base.commit()
+      with open("guild.log", "a+", encoding="utf-8") as f:
+            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.id}]\n")
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild: nextcord.Guild):
