@@ -200,7 +200,7 @@ class store_slash_r(View):
 
         
     def click(self, interaction: Interaction, click: int, in_row: int):
-        print("Цена / Дата", self.sort_d, "Возрастание / убывание", self.sort_grad, interaction.user.id)
+        #print("Цена / Дата", self.sort_d, "Возрастание / убывание", self.sort_grad, interaction.user.id)
         text = interaction.message.embeds[0].description
         t1 = text.find('Страница **`')
         t2 = text.find('из', t1)
@@ -344,10 +344,10 @@ class store_slash_r(View):
             await interaction.response.edit_message(embed=emb, view=self)
 
     async def interaction_check(self, interaction):
-            if interaction.user != self.ctx.user:
-                await interaction.response.send_message('**`Извините, но Вы не можете управлять меню, которое вызвано другим человеком`**', ephemeral=True)
-                return False
-            return True
+        if interaction.user != self.ctx.user:
+            await interaction.response.send_message('**`Извините, но Вы не можете управлять меню, которое вызвано другим человеком`**', ephemeral=True)
+            return False
+        return True
 
 class store_slash_e(View):
     def __init__(self, timeout: int, outer_store: list, ctx: Interaction, in_row: int, coin: str, tz: int):
@@ -621,6 +621,93 @@ class buy_slash_e(View):
                 return False
             return True
 
+class rating_slash_r(View):
+    def __init__(self, timeout, membs: list, in_row: int, curr: str, auth_id: int):
+        super().__init__(timeout=timeout)
+        self.membs = membs
+        self.pages = (len(membs) + in_row - 1) // in_row
+        self.curr = curr
+        self.in_row = in_row
+        self.auth_id = auth_id
+    
+    def click(self, interaction: Interaction, click: int, in_row: int):
+        text = interaction.message.embeds[0].footer.text
+        t1 = text.find("Страница ")
+        t2 = text.find(" из")
+        page = int(text[t1+9:t2])
+        if click <= 1 and page == 1:
+            return [("-1", "-1")]
+        elif click >= 2 and page == self.pages:
+            return [("-1", "-1")]
+        if click == 0:
+            page = 1
+        elif click == 3:
+            page = self.pages
+        elif click == 1:
+            page -= 1
+        elif click == 2:
+            page += 1
+        msg = []
+        counter = (page-1) * in_row + 1
+        for r in self.membs[(page-1) * in_row:min(page * in_row - 1, len(self.membs)-1)]:
+            msg.append((f"{counter} место", f"<@{r[0]}>\n{r[1]} {self.curr}"))
+            counter += 1
+        msg.append((f"Страница {page} из {self.pages}", ""))
+        return msg
+
+
+    @nextcord.ui.button(emoji="⏮️")
+    async def callback_l_top(self, button: Button, interaction: Interaction):
+        store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
+        if store_list[0] != ("-1", "-1"):
+            emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
+            emb.set_footer(text=store_list[-1][0])
+            for r in store_list[:-1]:
+                emb.add_field(name=r[0], value=r[1], inline=False)
+            await interaction.response.edit_message(embed=emb)
+
+    @nextcord.ui.button(emoji="◀️")
+    async def callback_l(self, button: Button, interaction: Interaction):
+        store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
+        if store_list[0] != ("-1", "-1"):
+            emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
+            emb.set_footer(text=store_list[-1][0])
+            for r in store_list[:-1]:
+                emb.add_field(name=r[0], value=r[1], inline=False)
+            await interaction.response.edit_message(embed=emb)
+
+    @nextcord.ui.button(emoji="▶️")
+    async def callback_r(self, button: Button, interaction: Interaction):
+        store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
+        if store_list[0] != ("-1", "-1"):
+            emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
+            emb.set_footer(text=store_list[-1][0])
+            for r in store_list[:-1]:
+                emb.add_field(name=r[0], value=r[1], inline=False)
+            await interaction.response.edit_message(embed=emb)
+
+    @nextcord.ui.button(emoji="⏭")
+    async def callback_r_top(self, button: Button, interaction: Interaction):
+        store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
+        if store_list[0] != ("-1", "-1"):
+            emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
+            emb.set_footer(text=store_list[-1][0])
+            for r in store_list[:-1]:
+                emb.add_field(name=r[0], value=r[1], inline=False)
+            await interaction.response.edit_message(embed=emb)
+
+    async def interaction_check(self, interaction):
+            if interaction.user.id != self.auth_id:
+                await interaction.response.send_message('**`Извините, но Вы не можете управлять чужой покупкой`**', ephemeral=True)
+                return False
+            return True
+
+    async def on_timeout(self):
+        #return await super().on_timeout()()
+        for child in self.children:
+            child.disabled = True
+        
+
 class slash(commands.Cog):
 
     def __init__(self, bot: commands.Bot, prefix: str, in_row: int, currency: str):
@@ -633,16 +720,18 @@ class slash(commands.Cog):
         #(f"`{prefix}quick`", "Начинает быструю настройку параметров бота")
         cmds = {
             0 : [
-                    ("`/store`", "Shows store"), ("`/buy`", "Makes a role purchase"), \
-                    ("`/sell`", "Sells the role"), ("`/profile`", "Shows your profile"), \
-                    ("`/work`", "Starts working, so you get salary"), ("`/duel`", "Makes a bet"), \
-                    ("`/transfer`", "Transfers money to another member"), (f"`{prefix}help_m`", "Calls menu with bot's settings")
+                    ("`/store`", "Shows store"), ("`/buy`", "Makes a role purchase"),
+                    ("`/sell`", "Sells the role"), ("`/profile`", "Shows your profile"),
+                    ("`/work`", "Starts working, so you get salary"), ("`/duel`", "Makes a bet"),
+                    ("`/transfer`", "Transfers money to another member"), ("`/top`", "Shows top members by balance"),
+                    (f"`{prefix}help_m`", "Calls menu with bot's settings")
             ],
             1 : [
-                    ("`/store`", "Открывает меню магазина"), ("`/buy`", "Совершает покупку роли"), \
-                    ("`/sell`", "Совершает продажу роли"), ("`/profile`", "Показывает меню Вашего профиля"), \
-                    ("`/work`", "Начинает работу, за которую Вы полчите заработок"), ("`/duel`", "Делает ставку"), \
-                    ("`/transfer`", "Совершает перевод валюты другому пользователю"), (f"`{prefix}help_m`", "Вызывает меню команд настройки бота") 
+                    ("`/store`", "Открывает меню магазина"), ("`/buy`", "Совершает покупку роли"), 
+                    ("`/sell`", "Совершает продажу роли"), ("`/profile`", "Показывает меню Вашего профиля"),
+                    ("`/work`", "Начинает работу, за которую Вы полчите заработок"), ("`/duel`", "Делает ставку"),
+                    ("`/transfer`", "Совершает перевод валюты другому пользователю"), ("`/top`", "Показывет топ пользователей по балансу"),
+                    (f"`{prefix}help_m`", "Вызывает меню команд настройки бота") 
             ],
         }
 
@@ -1042,7 +1131,8 @@ class slash(commands.Cog):
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 server_roles = cur.execute('SELECT role_id FROM server_roles').fetchall()
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                emb = Embed(title=text_slash[lng][24])
+                #emb = Embed(title=text_slash[lng][24])
+                emb = Embed()
                 roles = ""
                 uniq_roles = []
                 descr = []
@@ -1218,6 +1308,32 @@ class slash(commands.Cog):
                             await channel.send(embed=Embed(title=text_slash[lng][42], description= text_slash[lng][43].format(interaction.user.mention, value, self.currency, target.mention)))
                         except:
                             pass
+    
+
+    @nextcord.slash_command(name="top", description="Shows top members by balance | Показывет топ пользователей по балансу")
+    async def top(self, interaction: Interaction):
+        with closing(sqlite3.connect(f"{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db")) as base:
+            with closing(base.cursor()) as cur:
+                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                self.check_user(base=base, cur=cur, memb_id=interaction.user.id)
+                membs = cur.execute("SELECT * FROM users ORDER BY money DESC").fetchall()
+                counter = 1
+                emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
+                emb.set_footer(text=f"Страница 1 из {(len(membs) + self.in_row - 1) // self.in_row}")
+                for r in membs[0:min(self.in_row, len(membs))]:
+                    emb.add_field(name=f"{counter} место", value=f"<@{r[0]}>\n{r[1]} {self.currency}", inline=False)
+                    counter += 1  
+                if lng == 0:
+                    view_r = rating_slash_e(timeout=30, membs=membs, in_row=self.in_row, curr=self.currency, auth_id=interaction.user.id)
+                else:
+                    view_r = rating_slash_r(timeout=30, membs=membs, in_row=self.in_row, curr=self.currency, auth_id=interaction.user.id)
+                await interaction.response.send_message(embed=emb, view=view_r)
+                end = await view_r.wait()
+                if end:
+                    for child in view_r.children:
+                        child.disable = True
+                    msg = await interaction.original_message()
+                    await msg.edit(view=view_r)
     
     
     @commands.Cog.listener()

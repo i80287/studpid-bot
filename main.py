@@ -13,7 +13,7 @@ cmd = Console(bot)
 
 @bot.event
 async def on_ready():
-
+    global bot_guilds
     for guild in bot.guilds:
         if not os.path.exists(f'{path}bases_{guild.id}'):
             os.mkdir(f'{path}bases_{guild.id}/')
@@ -37,6 +37,7 @@ async def on_ready():
                     ]
                     cur.executemany("INSERT INTO server_info(settings, value) VALUES(?, ?)", r)
                     base.commit()
+        bot_guilds.append(guild.id)
                 
     print(f'{Fore.CYAN}[>>>]Logged into Discord as {bot.user}\n')
 
