@@ -546,7 +546,8 @@ class mod_commands(commands.Cog):
               bot_guilds.append(guild.id)
           except Exception as E:
               with open("d.log", "a+", encoding="utf-8") as f:
-                  f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{str(E)}]\n")
+                  f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{guild.id}] [{str(E)}]\n")
+                  f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{guild.id}] [{guild.name}] [{str(E)}]\n")
       else:
           bot_guilds.append(guild.id)
 
@@ -600,10 +601,14 @@ class mod_commands(commands.Cog):
                   base.commit()
       with open("guild.log", "a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.id}]\n")
+            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.name}] [{guild.id}]\n")
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild: nextcord.Guild):
-      bot_guilds.remove(guild.id)
+    bot_guilds.remove(guild.id)
+    with open("guild.log", "a+", encoding="utf-8") as f:
+        f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_remove] [{guild.id}]\n")
+        f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_remove] [{guild.name}] [{guild.id}]\n")
 
   @commands.Cog.listener()
   async def on_ready(self):
@@ -889,8 +894,9 @@ class mod_commands(commands.Cog):
             cur.execute('UPDATE money_roles SET members = ? WHERE role_id = ?', (membs, role.id))
             base.commit()
           except Exception as E:
-              with open("d.log", "a+", encoding="utf-8") as f:
-                  f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{str(E)}]\n")
+                with open("d.log", "a+", encoding="utf-8") as f:
+                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{str(E)}]\n")
+                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{ctx.guild.name}] [{str(E)}]\n")
 
           await ctx.reply(content=f"{text[lng][0]} {role} {text[lng][17]} {member}", mention_author=False)
 
@@ -1212,36 +1218,38 @@ class mod_commands(commands.Cog):
 
   @commands.Cog.listener()
   async def on_command_error(self, ctx: commands.Context, error):
-      lng = self.lang(ctx=ctx)
-      emb=Embed(title=text[lng][404],colour=Colour.red())
-      if isinstance(error, commands.MemberNotFound):
-          emb.description = text[lng][18]
-      elif isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
-          try:
-              emb.description = text[lng][19].format(self.prefix, str(ctx.command)[1:])
-          except:
-              emb.description = text[lng][19].format(self.prefix, "name_of_the_command")
-      elif isinstance(error, commands.CommandNotFound):
-          emb.description = text[lng][20]
-      elif isinstance(error, commands.UserNotFound):
-          emb.description = text[lng][21]
-      elif isinstance(error, commands.RoleNotFound):
-          emb.description = text[lng][40]
-      elif isinstance(error, commands.ChannelNotFound):
-          emb.description = text[lng][41]
-      elif isinstance(error, commands.CommandOnCooldown):
-          emb.description = text[lng][22]
-      elif isinstance(error, CheckFailure):
-          if not self.mod_role_set(ctx=ctx):
-              emb.description = text[lng][24]
-          else:
-              emb.description = text[lng][23]
-      else:
-          raise error
-          with open("d.log", "a+", encoding="utf-8") as f:
-              f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{str(error)}]\n")
-          return
-      await ctx.reply(embed=emb, mention_author=False)
+        lng = self.lang(ctx=ctx)
+        emb=Embed(title=text[lng][404],colour=Colour.red())
+        if isinstance(error, commands.MemberNotFound):
+            emb.description = text[lng][18]
+        elif isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
+            try:
+                emb.description = text[lng][19].format(self.prefix, str(ctx.command)[1:])
+            except:
+                emb.description = text[lng][19].format(self.prefix, "name_of_the_command")
+        elif isinstance(error, commands.CommandNotFound):
+            return
+            #emb.description = text[lng][20]
+        elif isinstance(error, commands.UserNotFound):
+            emb.description = text[lng][21]
+        elif isinstance(error, commands.RoleNotFound):
+            emb.description = text[lng][40]
+        elif isinstance(error, commands.ChannelNotFound):
+            emb.description = text[lng][41]
+        elif isinstance(error, commands.CommandOnCooldown):
+            emb.description = text[lng][22]
+        elif isinstance(error, CheckFailure):
+            if not self.mod_role_set(ctx=ctx):
+                emb.description = text[lng][24]
+            else:
+                emb.description = text[lng][23]
+        else:
+                #raise error
+                with open("d.log", "a+", encoding="utf-8") as f:
+                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{str(error)}]\n")
+                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{ctx.guild.name}] [{str(error)}]\n")
+                return
+        await ctx.reply(embed=emb, mention_author=False)
   
 def setup(bot: commands.Bot, **kwargs):
   bot.add_cog(mod_commands(bot, **kwargs))
