@@ -1,11 +1,15 @@
-import asyncio, os
+import asyncio
+import os
+import sqlite3
 from contextlib import closing
-import sqlite3, nextcord
 from datetime import datetime, timedelta
 from time import time
+
+import nextcord
 from nextcord.ext import commands
 from nextcord.ext.commands import CheckFailure
 from nextcord import Embed, Colour
+
 from config import path, bot_guilds
 
 class mod_commands(commands.Cog):
@@ -546,7 +550,6 @@ class mod_commands(commands.Cog):
               bot_guilds.append(guild.id)
           except Exception as E:
               with open("d.log", "a+", encoding="utf-8") as f:
-                  f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{guild.id}] [{str(E)}]\n")
                   f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{guild.id}] [{guild.name}] [{str(E)}]\n")
       else:
           bot_guilds.append(guild.id)
@@ -600,15 +603,13 @@ class mod_commands(commands.Cog):
                   cur.execute("INSERT INTO server_info(settings, value) VALUES('uniq_timer', 14400)")
                   base.commit()
       with open("guild.log", "a+", encoding="utf-8") as f:
-            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.id}]\n")
-            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.name}] [{guild.id}]\n")
+            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.id}] [{guild.name}] \n")
 
   @commands.Cog.listener()
   async def on_guild_remove(self, guild: nextcord.Guild):
     bot_guilds.remove(guild.id)
     with open("guild.log", "a+", encoding="utf-8") as f:
-        f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_remove] [{guild.id}]\n")
-        f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_remove] [{guild.name}] [{guild.id}]\n")
+        f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_remove] [{guild.id}] [{guild.name}]\n")
 
   @commands.Cog.listener()
   async def on_ready(self):
@@ -895,7 +896,6 @@ class mod_commands(commands.Cog):
             base.commit()
           except Exception as E:
                 with open("d.log", "a+", encoding="utf-8") as f:
-                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{str(E)}]\n")
                     f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{ctx.guild.name}] [{str(E)}]\n")
 
           await ctx.reply(content=f"{text[lng][0]} {role} {text[lng][17]} {member}", mention_author=False)
@@ -1246,7 +1246,6 @@ class mod_commands(commands.Cog):
         else:
                 #raise error
                 with open("d.log", "a+", encoding="utf-8") as f:
-                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{str(error)}]\n")
                     f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{ctx.guild.name}] [{str(error)}]\n")
                 return
         await ctx.reply(embed=emb, mention_author=False)

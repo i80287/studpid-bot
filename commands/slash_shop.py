@@ -1,16 +1,20 @@
-import sqlite3, nextcord
-from time import time
-from random import randint
-from nextcord.ui import Button, View
-from nextcord.ext import commands
-from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction
+
+from sqlite3 import Connection, Cursor, connect
 from contextlib import closing
 from datetime import datetime, timedelta, timezone
-from config import path
+from time import time
+from random import randint
+
+import nextcord
+from nextcord.ui import Button, View
+from nextcord.ext import commands
+from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Locale
+
+from config import path, bot_guilds_e, bot_guilds_r
 
 class bet_slash_r(View):
 
-    def __init__(self, timeout: int, ctx: Interaction, base: sqlite3.Connection, cur: sqlite3.Cursor, symbol: str, bet: int, function: filter):
+    def __init__(self, timeout: int, ctx: Interaction, base: Connection, cur: Cursor, symbol: str, bet: int, function: filter):
         super().__init__(timeout=timeout)
         self.base = base
         self.cur = cur
@@ -49,7 +53,7 @@ class bet_slash_r(View):
 
 class bet_slash_e(View):
 
-    def __init__(self, timeout: int, ctx: Interaction, base: sqlite3.Connection, cur: sqlite3.Cursor, symbol: str, bet: int, function: filter):
+    def __init__(self, timeout: int, ctx: Interaction, base: Connection, cur: Cursor, symbol: str, bet: int, function: filter):
         super().__init__(timeout=timeout)
         self.base = base
         self.cur = cur
@@ -798,7 +802,9 @@ class slash(commands.Cog):
         self.prefix = prefix
         self.in_row = in_row
         self.currency = currency
-        global cmds
+        global bot_guilds_e
+        global bot_guilds_r
+        global cmds     
         #(f"`{prefix}quick`", "Starts quick setup of all bot's settings")
         #(f"`{prefix}quick`", "Начинает быструю настройку параметров бота")
         cmds = {
@@ -917,7 +923,8 @@ class slash(commands.Cog):
             }
         }
     
-    async def can_role(self, interaction: Interaction, role: nextcord.Role, lng: int):
+    
+    async def can_role(self, interaction: Interaction, role: nextcord.Role, lng: int) -> bool:
         
         if not interaction.guild.me.guild_permissions.manage_roles:
             emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][1])
@@ -932,7 +939,7 @@ class slash(commands.Cog):
         return 1
 
 
-    def check_user(self, base: sqlite3.Connection, cur: sqlite3.Cursor, memb_id: int):
+    def check_user(self, base: Connection, cur: Cursor, memb_id: int):
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
         if member == None:
             cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date) VALUES(?, ?, ?, ?)', (memb_id, 0, "", "0"))
@@ -950,30 +957,29 @@ class slash(commands.Cog):
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
     
 
-    @nextcord.slash_command(name="help", description="Calls menu with commands | Вызывает меню команд")
-    async def help(self, interaction: Interaction):
-        with closing(sqlite3.connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+    async def help(self, interaction: Interaction) -> None:
+        lng = 1 if "ru" in interaction.locale else 0
+        with closing(connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
-                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 emb = Embed(title=text_slash[lng][3], colour=Colour.dark_purple())
                 for n, v in cmds[lng]:
                     emb.add_field(name=n, value=v, inline=False)
                 await interaction.response.send_message(embed=emb)
-    
-    
-    @nextcord.slash_command(name="buy", description="Makes a role purchase from the store | Совершает покупку роли из магазина", guild_ids=[])
-    async def buy(self, interaction: Interaction, role: nextcord.Role = SlashOption(name="role", description="Role that you want to buy | Роль, которую Вы хотите купить", required=True)):
-        with closing(sqlite3.connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+
+
+    async def buy(self, interaction: Interaction, role: nextcord.Role) -> None:
+        lng = 1 if "ru" in interaction.locale else 0
+        if not await self.can_role(interaction=interaction, role=role, lng=lng):
+            return
+        member_buyer = interaction.user
+        if role in member_buyer.roles:
+            emb = Embed(title=text_slash[lng][0], description=text_slash[lng][4], colour=Colour.red())
+            await interaction.response.send_message(embed=emb)
+            return
+        with closing(connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
-                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                if not await self.can_role(interaction=interaction, role=role, lng=lng):
-                    return
-                member_buyer = interaction.user
-                if role in member_buyer.roles:
-                    emb = Embed(title=text_slash[lng][0], description=text_slash[lng][4], colour=Colour.red())
-                    await interaction.response.send_message(embed=emb)
-                    return
-                
+                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 outer = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchone()
                 if outer == [] or outer == None:
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][5], colour=Colour.red()))
@@ -1052,16 +1058,16 @@ class slash(commands.Cog):
                             await channel.send(embed=Embed(title=text_slash[lng][13], description=text_slash[lng][14].format(interaction.user.mention, role.mention, cost, self.currency)))
                         except:
                             pass
-                    
-                    
-    @nextcord.slash_command(name="store", description="Shows store | Открывает меню магазина", guild_ids=[])
-    async def store(self, interaction: Interaction):
-        with closing(sqlite3.connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+
+
+    async def store(self, interaction: Interaction) -> None:
+        lng = 1 if "ru" in interaction.locale else 0
+        with closing(connect(f"{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db")) as base:
             with closing(base.cursor()) as cur:
                 in_row = self.in_row
                 counter = 0
                 store_list = []
-                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 tz = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
                 outer_list = cur.execute('SELECT * FROM outer_store').fetchall()
                 for i in range(len(outer_list)-1):
@@ -1112,29 +1118,161 @@ class slash(commands.Cog):
                     for button in myview_store.children:
                         button.disabled = True
                     await msg.edit(view=myview_store)
+
+
+    
+    @nextcord.slash_command(
+        name="help", 
+        name_localizations={
+            Locale.ru: "помощь"
+        },
+        description="Calls menu with commands",
+        description_localizations={
+            Locale.ru : "Вызывает меню команд"
+        },
+        guild_ids=bot_guilds_e
+    )
+    async def help_e(self, interaction: Interaction) -> None:
+        await self.help(interaction=interaction)
+    
+
+    @nextcord.slash_command(
+        name="помощь", 
+        name_localizations={
+            Locale.en_GB: "help",
+            Locale.en_US: "help"
+        },
+        description="Вызывает меню команд",
+        description_localizations={
+            Locale.en_GB: "Calls menu with commands",
+            Locale.en_US: "Calls menu with commands"
+        },
+        guild_ids=bot_guilds_r
+    )
+    async def help_r(self, interaction: Interaction) -> None:
+        await self.help(interaction=interaction)
+
+    
+    @nextcord.slash_command(
+        name="buy", 
+        name_localizations={
+            Locale.ru: "купить"
+        },
+        description="Makes a role purchase from the store",
+        description_localizations={
+            Locale.ru : "Совершает покупку роли из магазина"
+        }
+    )
+    async def buy_e(
+        self, 
+        interaction: Interaction, 
+        role: nextcord.Role = SlashOption(
+            name="role",
+            name_localizations={
+                Locale.ru: "роль"
+            },
+            description="Role that you want to buy", 
+            description_localizations={
+                Locale.ru: "Роль, которую Вы хотите купить"
+            },
+            required=True
+        )
+    ):
+        await self.buy(interaction=interaction, role=role)
+                    
+
+    @nextcord.slash_command(
+        name="купить", 
+        name_localizations={
+            Locale.en_GB: "buy",
+            Locale.en_US: "buy"
+        },
+        description="Совершает покупку роли из магазина",
+        description_localizations={
+            Locale.en_GB : "Makes a role purchase from the store",
+            Locale.en_US : "Makes a role purchase from the store",
+        }
+    )
+    async def buy_r(
+        self, 
+        interaction: Interaction, 
+        role: nextcord.Role = SlashOption(
+            name="роль",
+            name_localizations={
+                Locale.en_GB: "role",
+                Locale.en_US: "role"
+            },
+            description="Роль, которую Вы хотите купить", 
+            description_localizations={
+                Locale.en_GB: "Role that you want to buy",
+                Locale.en_US: "Role that you want to buy"
+            },
+            required=True
+        )
+    ):
+        await self.buy(interaction=interaction, role=role)
+
+
+    @nextcord.slash_command(
+        name="store",
+        description="Shows store",
+        description_localizations={
+            Locale.ru : "Открывает меню магазина"
+        }
+    )
+    async def store_e(self, interaction: Interaction):
+        await self.store(interaction=interaction)
     
     
-    @nextcord.slash_command(name="sell", description="Sells the role | Совершает продажу роли", guild_ids=[])
+    @nextcord.slash_command(
+        name="store",
+        description="Shows store",
+        description_localizations={
+            Locale.ru : "Открывает меню магазина"
+        }
+    )
+    async def store_r(self, interaction: Interaction):
+        await self.store(interaction=interaction)
+    
+
+    @nextcord.slash_command(
+        name="sell", 
+        description="Sells the role",
+        description_localizations={
+            Locale.ru: "Совершает продажу роли"
+        }
+    )
     async def sell(
         self,
         interaction: Interaction,
-        role: nextcord.Role = SlashOption(name="role", description="Your role that you want to sell | Ваша роль, которую Вы хотите продать", required=True),
+        role: nextcord.Role = SlashOption(
+            name="role",
+            name_localizations={
+                Locale.ru: "роль"
+            },
+            description="Your role that you want to sell",
+            description_localizations={
+                Locale.ru: "Ваша роль, которую Вы хотите продать"
+            },
+            required=True
+        )
     ):
-
-        with closing(sqlite3.connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+        lng = 1 if "ru" in interaction.locale else 0
+        if not role in interaction.user.roles:
+            await interaction.response.send_message(
+                embed=Embed(
+                    colour=Colour.red(),
+                    title=text_slash[lng][0],
+                    description=text_slash[lng][16]
+                )
+            )
+            return
+        if not await self.can_role(interaction=interaction, role=role, lng=lng):
+            return
+        with closing(connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
-                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                if not role in interaction.user.roles:
-                    await interaction.response.send_message(embed=Embed(
-                        colour=Colour.red(),
-                        title=text_slash[lng][0],
-                        description=text_slash[lng][16]
-                    ))
-                    return
-                if not await self.can_role(interaction=interaction, role=role, lng=lng):
-                    return
-                role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
-                
+                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()      
                 if role_info == None:
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][17], colour=Colour.red()))
                     return
@@ -1206,14 +1344,21 @@ class slash(commands.Cog):
                         pass
 
 
-    @nextcord.slash_command(name="profile", description="Show your profile | Показывает меню Вашего профиля", guild_ids=[])
+    @nextcord.slash_command(
+        name="profile", 
+        description="Show your profile",
+        description_localizations={
+            Locale.ru: "Показывает меню Вашего профиля"
+        }
+    )
     async def profile(self, interaction: Interaction):
-        with closing(sqlite3.connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+        lng = 1 if "ru" in interaction.locale else 0
+        with closing(connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 memb_id = interaction.user.id
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 server_roles = cur.execute('SELECT role_id FROM server_roles').fetchall()
-                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 #emb = Embed(title=text_slash[lng][24])
                 emb = Embed()
                 roles = ""
@@ -1259,13 +1404,20 @@ class slash(commands.Cog):
                 await interaction.response.send_message(embed=emb)
 
 
-    @nextcord.slash_command(name="work", description="Allows to gain money | Позволяет заработать деньги", guild_ids=[])
+    @nextcord.slash_command(
+        name="work", 
+        description="Allows to gain money",
+        description_localizations={
+            Locale.ru: "Позволяет заработать деньги"
+        }
+    )
     async def work(self, interaction: Interaction):
         memb_id = interaction.user.id
-        with closing(sqlite3.connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+        lng = 1 if "ru" in interaction.locale else 0
+        with closing(connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 time_reload = cur.execute("SELECT value FROM server_info WHERE settings = 'time_r'").fetchone()[0]
-                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 flag = 0
                 if member[3] == 0:
@@ -1297,13 +1449,34 @@ class slash(commands.Cog):
                         pass
 
 
-    @nextcord.slash_command(name="duel", description="Make a bet | Сделать ставку", guild_ids=[])
-    async def duel(self, interaction: Interaction, amount: int = SlashOption(name="amount", description="Bet amount | Сумма ставки", required=True, min_value=1)): 
-
+    @nextcord.slash_command(
+        name="duel", 
+        description="Make a bet",
+        description_localizations={
+            Locale.ru: "Сделать ставку"
+        }
+    )
+    async def duel(
+        self, 
+        interaction: Interaction, 
+        amount: int = SlashOption(
+            name="amount", 
+            name_localizations={
+                Locale.ru: "количество"
+            },
+            description="Bet amount",
+            description_localizations={
+                Locale.ru: "Сумма ставки"
+            },
+            required=True, 
+            min_value=1
+        )
+    ): 
+        lng = 1 if "ru" in interaction.locale else 0
         memb_id = interaction.user.id
-        with closing(sqlite3.connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
-                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 if amount > member[1]:
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][31].format(amount - member[1], self.currency), colour=Colour.red()), ephemeral=True)
@@ -1360,19 +1533,47 @@ class slash(commands.Cog):
                         pass
 
 
-    @nextcord.slash_command(name="transfer", description="Transfers money to another member | Совершает перевод валюты другому пользователю", guild_ids=[])
+    @nextcord.slash_command(
+        name="transfer", 
+        description="Transfers money to another member",
+        description_localizations={
+            Locale.ru: "Совершает перевод валюты другому пользователю"
+        }
+    )
     async def transfer(
         self,
         interaction: Interaction, 
-        value: int = SlashOption(name="value", description="Amount of money to transfer | Переводимая сумма денег", required=True, min_value=1),
-        target: nextcord.Member = SlashOption(name="target", description="The member you want to transfer money to | Пользователь, которому Вы хотите перевести деньги", required=True)
+        value: int = SlashOption(
+            name="value", 
+            name_localizations={
+                Locale.ru: "сумма"
+            },
+            description="Amount of money to transfer", 
+            description_localizations={
+                Locale.ru: "Переводимая сумма денег"
+            },
+            required=True, 
+            min_value=1
+        ),
+        target: nextcord.Member = SlashOption(
+            name="target", 
+            name_localizations={
+                Locale.ru: "кому"
+            },
+            description="The member you want to transfer money to", 
+            description_localizations={
+                Locale.ru : "Пользователь, которому Вы хотите перевести деньги"
+            },
+            required=True
+        )
     ):
         memb_id = interaction.user.id
-        with closing(sqlite3.connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+        lng = 1 if "ru" in interaction.locale else 0
+        with closing(connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 act = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 self.check_user(base=base, cur=cur, memb_id=target.id)
-                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 if value > act[1]:
                     emb=Embed(title=text_slash[lng][0], description=text_slash[lng][39].format(value - act[1], self.currency), colour=Colour.red())
                     await interaction.response.send_message(embed=emb)
@@ -1393,11 +1594,18 @@ class slash(commands.Cog):
                             pass
     
 
-    @nextcord.slash_command(name="top", description="Shows top members by balance | Показывет топ пользователей по балансу")
+    @nextcord.slash_command(
+        name="top", 
+        description="Shows top members by balance",
+        description_localizations={
+            Locale.ru: "Показывет топ пользователей по балансу"
+        }
+    )
     async def top(self, interaction: Interaction):
-        with closing(sqlite3.connect(f"{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db")) as base:
+        lng = 1 if "ru" in interaction.locale else 0
+        with closing(connect(f"{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db")) as base:
             with closing(base.cursor()) as cur:
-                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 self.check_user(base=base, cur=cur, memb_id=interaction.user.id)
                 membs = cur.execute("SELECT * FROM users ORDER BY money DESC").fetchall()
                 counter = 1
@@ -1428,7 +1636,6 @@ class slash(commands.Cog):
     @commands.Cog.listener()
     async def on_application_command_error(self, interaction, exception):
         with open("d.log", "a+", encoding="utf-8") as f:
-            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{interaction.guild.id}] [{str(exception)}]\n")
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{interaction.guild.id}] [{interaction.guild.name}] [{str(exception)}]\n")
 
 def setup(bot: commands.Bot, **kwargs):

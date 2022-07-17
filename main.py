@@ -12,31 +12,44 @@ cmd = Console(bot)
 
 @bot.event
 async def on_ready():
-    global bot_guilds
+    global bot_guilds_e
+    global bot_guilds_r
     for guild in bot.guilds:
         if not os.path.exists(f'{path}bases_{guild.id}'):
             os.mkdir(f'{path}bases_{guild.id}/')
             with closing(sqlite3.connect(f'{path}bases_{guild.id}/{guild.id}_store.db')) as base:
                 with closing(base.cursor()) as cur:
-                    cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
-                    base.commit()
-                    cur.execute('CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, special INTEGER)')
-                    base.commit()
-                    cur.execute('CREATE TABLE IF NOT EXISTS outer_store(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, special INTEGER)')
-                    base.commit()
-                    cur.execute('CREATE TABLE IF NOT EXISTS money_roles(role_id INTEGER NOT NULL PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, last_time INTEGER)')
-                    base.commit()
-                    cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
-                    base.commit()
-            
-                    r = [
-                        ('lang', 0), ('log_channel', 0), ('error_log', 0), 
-                        ('mod_role', 0), ('tz', 0), ('time_r', 14400), 
-                        ('sal_l', 1), ('sal_r', 250), ('uniq_timer', 14400)
-                    ]
-                    cur.executemany("INSERT INTO server_info(settings, value) VALUES(?, ?)", r)
-                    base.commit()
-        bot_guilds.append(guild.id)
+                    try:
+                        cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
+                        base.commit()
+                        cur.execute('CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, special INTEGER)')
+                        base.commit()
+                        cur.execute('CREATE TABLE IF NOT EXISTS outer_store(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, special INTEGER)')
+                        base.commit()
+                        cur.execute('CREATE TABLE IF NOT EXISTS money_roles(role_id INTEGER NOT NULL PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, last_time INTEGER)')
+                        base.commit()
+                        cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
+                        base.commit()
+                
+                        r = [
+                            ('lang', 0), ('log_channel', 0), ('error_log', 0), 
+                            ('mod_role', 0), ('tz', 0), ('time_r', 14400), 
+                            ('sal_l', 1), ('sal_r', 250), ('uniq_timer', 14400)
+                        ]
+                        cur.executemany("INSERT INTO server_info(settings, value) VALUES(?, ?)", r)
+                        base.commit()
+                    except Exception as E:
+                        base.rollback()
+                        raise E
+        else:
+            with closing(sqlite3.connect(f'{path}bases_{guild.id}/{guild.id}_store.db')) as base:
+                with closing(base.cursor()) as cur:
+                    lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                    if lng == 0:
+                        bot_guilds_e.append(guild.id)
+                    else:
+                        bot_guilds_r.append(guild.id)
+        #bot_guilds.append(guild.id)
                 
     print(f'{Fore.CYAN}[>>>]Logged into Discord as {bot.user}\n')
 
@@ -60,5 +73,5 @@ if __name__ == "__main__":
     cmd.load_extension(f'console')
     cmd.start()
     print(f'\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}')
-    bot.run(token)
-    #bot.run(debug_token)
+    #bot.run(token)
+    bot.run(debug_token)
