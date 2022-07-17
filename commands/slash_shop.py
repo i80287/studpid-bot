@@ -636,9 +636,9 @@ class rating_slash_r(View):
         t2 = text.find(" из")
         page = int(text[t1+9:t2])
         if click <= 1 and page == 1:
-            return [("-1", "-1")]
+            return []
         elif click >= 2 and page == self.pages:
-            return [("-1", "-1")]
+            return []
         if click == 0:
             page = 1
         elif click == 3:
@@ -659,7 +659,7 @@ class rating_slash_r(View):
     @nextcord.ui.button(emoji="⏮️")
     async def callback_l_top(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
-        if store_list[0] != ("-1", "-1"):
+        if store_list != []:
             emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
             emb.set_footer(text=store_list[-1][0])
             for r in store_list[:-1]:
@@ -669,7 +669,7 @@ class rating_slash_r(View):
     @nextcord.ui.button(emoji="◀️")
     async def callback_l(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
-        if store_list[0] != ("-1", "-1"):
+        if store_list != []:
             emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
             emb.set_footer(text=store_list[-1][0])
             for r in store_list[:-1]:
@@ -679,7 +679,7 @@ class rating_slash_r(View):
     @nextcord.ui.button(emoji="▶️")
     async def callback_r(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
-        if store_list[0] != ("-1", "-1"):
+        if store_list != []:
             emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
             emb.set_footer(text=store_list[-1][0])
             for r in store_list[:-1]:
@@ -689,7 +689,7 @@ class rating_slash_r(View):
     @nextcord.ui.button(emoji="⏭")
     async def callback_r_top(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
-        if store_list[0] != ("-1", "-1"):
+        if store_list != []:
             emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
             emb.set_footer(text=store_list[-1][0])
             for r in store_list[:-1]:
@@ -723,9 +723,9 @@ class rating_slash_e(View):
         t2 = text.find(" from")
         page = int(text[t1+5:t2])
         if click <= 1 and page == 1:
-            return [("-1", "-1")]
+            return []
         elif click >= 2 and page == self.pages:
-            return [("-1", "-1")]
+            return []
         if click == 0:
             page = 1
         elif click == 3:
@@ -736,7 +736,7 @@ class rating_slash_e(View):
             page += 1
         msg = []
         counter = (page-1) * in_row + 1
-        print((page-1) * in_row, min(page * in_row - 1, len(self.membs)-1))
+
         for r in self.membs[(page-1) * in_row:min(page * in_row, len(self.membs))]:
             msg.append((f"{counter} place", f"<@{r[0]}>\n{r[1]} {self.curr}"))
             counter += 1
@@ -748,7 +748,7 @@ class rating_slash_e(View):
     @nextcord.ui.button(emoji="⏮️")
     async def callback_l_top(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
-        if store_list[0] != ("-1", "-1"):
+        if store_list != []:
             emb = Embed(title="Top members by balance", colour=Colour.dark_gray())
             emb.set_footer(text=store_list[-1][0])
             for r in store_list[:-1]:
@@ -758,7 +758,7 @@ class rating_slash_e(View):
     @nextcord.ui.button(emoji="◀️")
     async def callback_l(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
-        if store_list[0] != ("-1", "-1"):
+        if store_list != []:
             emb = Embed(title="Top members by balance", colour=Colour.dark_gray())
             emb.set_footer(text=store_list[-1][0])
             for r in store_list[:-1]:
@@ -768,7 +768,7 @@ class rating_slash_e(View):
     @nextcord.ui.button(emoji="▶️")
     async def callback_r(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
-        if store_list[0] != ("-1", "-1"):
+        if store_list != []:
             emb = Embed(title="Top members by balance", colour=Colour.dark_gray())
             emb.set_footer(text=store_list[-1][0])
             for r in store_list[:-1]:
@@ -778,7 +778,7 @@ class rating_slash_e(View):
     @nextcord.ui.button(emoji="⏭")
     async def callback_r_top(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
-        if store_list[0] != ("-1", "-1"):
+        if store_list != []:
             emb = Embed(title="Top members by balance", colour=Colour.dark_gray())
             emb.set_footer(text=store_list[-1][0])
             for r in store_list[:-1]:
@@ -1102,9 +1102,9 @@ class slash(commands.Cog):
 
                 emb = Embed(title=text_slash[lng][15], colour=Colour.dark_gray(), description='\n'.join(store_list))
                 if lng == 0:
-                    myview_store = store_slash_e(timeout=600, outer_store=outer_list, ctx=interaction, in_row=in_row, coin=self.currency, tz=tz)
+                    myview_store = store_slash_e(timeout=60, outer_store=outer_list, ctx=interaction, in_row=in_row, coin=self.currency, tz=tz)
                 else:
-                    myview_store = store_slash_r(timeout=600, outer_store=outer_list, ctx=interaction, in_row=in_row, coin=self.currency, tz=tz)
+                    myview_store = store_slash_r(timeout=60, outer_store=outer_list, ctx=interaction, in_row=in_row, coin=self.currency, tz=tz)
                 await interaction.response.send_message(embed=emb, view=myview_store)
                 msg = await interaction.original_message()
                 chk = await myview_store.wait()

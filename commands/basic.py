@@ -196,7 +196,7 @@ class mod_commands(commands.Cog):
             15 : f'role - id - price - type (look {prefix}help_m add)',
             16 : 'This role is not unique',
             17 : 'added to the balance of',
-            18 : '**`This user not found on the server.`**',
+            18 : "**`This user not found on the server.`**",
             19 : '**`Please, use correct arguments for command. More info via \n{}help_m {}`**',
             20 : '**`This command not found`**',
             21 : '**`This user not found`**',
