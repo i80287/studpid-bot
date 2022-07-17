@@ -1120,143 +1120,7 @@ class slash(commands.Cog):
                     await msg.edit(view=myview_store)
 
 
-    
-    @nextcord.slash_command(
-        name="help", 
-        name_localizations={
-            Locale.ru: "помощь"
-        },
-        description="Calls menu with commands",
-        description_localizations={
-            Locale.ru : "Вызывает меню команд"
-        },
-        guild_ids=bot_guilds_e
-    )
-    async def help_e(self, interaction: Interaction) -> None:
-        await self.help(interaction=interaction)
-    
-
-    @nextcord.slash_command(
-        name="помощь", 
-        name_localizations={
-            Locale.en_GB: "help",
-            Locale.en_US: "help"
-        },
-        description="Вызывает меню команд",
-        description_localizations={
-            Locale.en_GB: "Calls menu with commands",
-            Locale.en_US: "Calls menu with commands"
-        },
-        guild_ids=bot_guilds_r
-    )
-    async def help_r(self, interaction: Interaction) -> None:
-        await self.help(interaction=interaction)
-
-    
-    @nextcord.slash_command(
-        name="buy", 
-        name_localizations={
-            Locale.ru: "купить"
-        },
-        description="Makes a role purchase from the store",
-        description_localizations={
-            Locale.ru : "Совершает покупку роли из магазина"
-        }
-    )
-    async def buy_e(
-        self, 
-        interaction: Interaction, 
-        role: nextcord.Role = SlashOption(
-            name="role",
-            name_localizations={
-                Locale.ru: "роль"
-            },
-            description="Role that you want to buy", 
-            description_localizations={
-                Locale.ru: "Роль, которую Вы хотите купить"
-            },
-            required=True
-        )
-    ):
-        await self.buy(interaction=interaction, role=role)
-                    
-
-    @nextcord.slash_command(
-        name="купить", 
-        name_localizations={
-            Locale.en_GB: "buy",
-            Locale.en_US: "buy"
-        },
-        description="Совершает покупку роли из магазина",
-        description_localizations={
-            Locale.en_GB : "Makes a role purchase from the store",
-            Locale.en_US : "Makes a role purchase from the store",
-        }
-    )
-    async def buy_r(
-        self, 
-        interaction: Interaction, 
-        role: nextcord.Role = SlashOption(
-            name="роль",
-            name_localizations={
-                Locale.en_GB: "role",
-                Locale.en_US: "role"
-            },
-            description="Роль, которую Вы хотите купить", 
-            description_localizations={
-                Locale.en_GB: "Role that you want to buy",
-                Locale.en_US: "Role that you want to buy"
-            },
-            required=True
-        )
-    ):
-        await self.buy(interaction=interaction, role=role)
-
-
-    @nextcord.slash_command(
-        name="store",
-        description="Shows store",
-        description_localizations={
-            Locale.ru : "Открывает меню магазина"
-        }
-    )
-    async def store_e(self, interaction: Interaction):
-        await self.store(interaction=interaction)
-    
-    
-    @nextcord.slash_command(
-        name="store",
-        description="Shows store",
-        description_localizations={
-            Locale.ru : "Открывает меню магазина"
-        }
-    )
-    async def store_r(self, interaction: Interaction):
-        await self.store(interaction=interaction)
-    
-
-    @nextcord.slash_command(
-        name="sell", 
-        description="Sells the role",
-        description_localizations={
-            Locale.ru: "Совершает продажу роли"
-        }
-    )
-    async def sell(
-        self,
-        interaction: Interaction,
-        role: nextcord.Role = SlashOption(
-            name="role",
-            name_localizations={
-                Locale.ru: "роль"
-            },
-            description="Your role that you want to sell",
-            description_localizations={
-                Locale.ru: "Ваша роль, которую Вы хотите продать"
-            },
-            required=True
-        )
-    ):
+    async def sell(self, interaction: Interaction, role: nextcord.Role) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         if not role in interaction.user.roles:
             await interaction.response.send_message(
@@ -1342,16 +1206,9 @@ class slash(commands.Cog):
                         await channel.send(embed=Embed(title=text_slash[lng][22], description=text_slash[lng][23].format(interaction.user.mention, role.mention, role_info[1])))
                     except:
                         pass
-
-
-    @nextcord.slash_command(
-        name="profile", 
-        description="Show your profile",
-        description_localizations={
-            Locale.ru: "Показывает меню Вашего профиля"
-        }
-    )
-    async def profile(self, interaction: Interaction):
+    
+    
+    async def profile(self, interaction: Interaction) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
@@ -1360,7 +1217,6 @@ class slash(commands.Cog):
                 server_roles = cur.execute('SELECT role_id FROM server_roles').fetchall()
                 #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 #emb = Embed(title=text_slash[lng][24])
-                emb = Embed()
                 roles = ""
                 uniq_roles = []
                 descr = []
@@ -1400,8 +1256,182 @@ class slash(commands.Cog):
                 if flag:
                     cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', (roles, interaction.user.id))
                     base.commit()
-                emb.description = "\n".join(descr)
-                await interaction.response.send_message(embed=emb)
+                await interaction.response.send_message(embed=Embed(description="\n".join(descr)))
+    
+    @nextcord.slash_command(
+        name="help", 
+        description="Calls menu with commands",
+        description_localizations={
+            Locale.ru : "Вызывает меню команд"
+        },
+        guild_ids=bot_guilds_e
+    )
+    async def help_e(self, interaction: Interaction) -> None:
+        await self.help(interaction=interaction)
+    
+
+    @nextcord.slash_command(
+        name="help", 
+        description="Вызывает меню команд",
+        description_localizations={
+            Locale.en_GB: "Calls menu with commands",
+            Locale.en_US: "Calls menu with commands"
+        },
+        guild_ids=bot_guilds_r
+    )
+    async def help_r(self, interaction: Interaction) -> None:
+        await self.help(interaction=interaction)
+
+    
+    @nextcord.slash_command(
+        name="buy", 
+        description="Makes a role purchase from the store",
+        description_localizations={
+            Locale.ru : "Совершает покупку роли из магазина"
+        }
+    )
+    async def buy_e(
+        self, 
+        interaction: Interaction, 
+        role: nextcord.Role = SlashOption(
+            name="role",
+            name_localizations={
+                Locale.ru: "роль"
+            },
+            description="Role that you want to buy", 
+            description_localizations={
+                Locale.ru: "Роль, которую Вы хотите купить"
+            },
+            required=True
+        )
+    ):
+        await self.buy(interaction=interaction, role=role)
+                    
+
+    @nextcord.slash_command(
+        name="buy", 
+        description="Совершает покупку роли из магазина",
+        description_localizations={
+            Locale.en_GB : "Makes a role purchase from the store",
+            Locale.en_US : "Makes a role purchase from the store",
+        }
+    )
+    async def buy_r(
+        self, 
+        interaction: Interaction, 
+        role: nextcord.Role = SlashOption(
+            name="роль",
+            name_localizations={
+                Locale.en_GB: "role",
+                Locale.en_US: "role"
+            },
+            description="Роль, которую Вы хотите купить", 
+            description_localizations={
+                Locale.en_GB: "Role that you want to buy",
+                Locale.en_US: "Role that you want to buy"
+            },
+            required=True
+        )
+    ):
+        await self.buy(interaction=interaction, role=role)
+
+
+    @nextcord.slash_command(
+        name="store",
+        description="Shows store",
+        description_localizations={
+            Locale.ru : "Открывает меню магазина"
+        }
+    )
+    async def store_e(self, interaction: Interaction):
+        await self.store(interaction=interaction)
+    
+    
+    @nextcord.slash_command(
+        name="store",
+        description="Открывает меню магазина",
+        description_localizations={
+            Locale.en_GB: "Shows store",
+            Locale.en_US: "Shows store"
+        }
+    )
+    async def store_r(self, interaction: Interaction):
+        await self.store(interaction=interaction)
+    
+
+    @nextcord.slash_command(
+        name="sell", 
+        description="Sells the role",
+        description_localizations={
+            Locale.ru: "Совершает продажу роли"
+        }
+    )
+    async def sell_e(
+        self,
+        interaction: Interaction,
+        role: nextcord.Role = SlashOption(
+            name="role",
+            name_localizations={
+                Locale.ru: "роль"
+            },
+            description="Your role that you want to sell",
+            description_localizations={
+                Locale.ru: "Ваша роль, которую Вы хотите продать"
+            },
+            required=True
+        )
+    ):
+        await self.sell(interaction=interaction, role=role)
+
+
+    @nextcord.slash_command(
+        name="sell", 
+        description="Совершает продажу роли",
+        description_localizations={
+            Locale.en_GB: "Sells the role",
+            Locale.en_US: "Sells the role"
+        }
+    )
+    async def sell_r(
+        self,
+        interaction: Interaction,
+        role: nextcord.Role = SlashOption(
+            name="роль",
+            name_localizations={
+                Locale.en_GB: "role",
+                Locale.en_US: "role"
+            },
+            description="Ваша роль, которую Вы хотите продать",
+            description_localizations={
+                Locale.en_GB: "Your role that you want to sell",
+                Locale.en_US: "Your role that you want to sell"
+            },
+            required=True
+        )
+    ):
+        await self.sell(interaction=interaction, role=role)
+
+
+    @nextcord.slash_command(
+        name="profile", 
+        description="Show your profile",
+        description_localizations={
+            Locale.ru: "Показывает меню Вашего профиля"
+        }
+    )
+    async def profile_e(self, interaction: Interaction):
+        await self.profile(interaction=interaction)
+
+
+    """ @nextcord.slash_command(
+        name="profile", 
+        description="Show your profile",
+        description_localizations={
+            Locale.ru: "Показывает меню Вашего профиля"
+        }
+    )
+    async def profile_r(self, interaction: Interaction):
+        await self.profile(interaction=interaction) """
 
 
     @nextcord.slash_command(
