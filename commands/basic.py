@@ -581,8 +581,10 @@ class mod_commands(commands.Cog):
                 cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
                 base.commit()
                 
+                lng = 1 if "ru" in guild.preferred_locale else 0
+
                 if cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone() == None:
-                    cur.execute("INSERT INTO server_info(settings, value) VALUES('lang', 0)")
+                    cur.execute("INSERT INTO server_info(settings, value) VALUES('lang', ?)", (lng,))
                     base.commit()
                 
                 if cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone() == None:
@@ -616,6 +618,7 @@ class mod_commands(commands.Cog):
                 if cur.execute("SELECT value FROM server_info WHERE settings = 'uniq_timer'").fetchone() == None:
                     cur.execute("INSERT INTO server_info(settings, value) VALUES('uniq_timer', 14400)")
                     base.commit()
+
         with open("guild.log", "a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.id}] [{guild.name}] \n")
 
@@ -1336,7 +1339,7 @@ class mod_commands(commands.Cog):
             else:
                 emb.description = text[lng][23]
         else:
-            raise error
+            #raise error
             with open("d.log", "a+", encoding="utf-8") as f:
                 f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{ctx.guild.name}] [{str(error)}]\n")
             return

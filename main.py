@@ -10,9 +10,7 @@ from contextlib import closing
 from colorama import Fore
 from dpyConsole import Console
 
-
 from config import *
-import commands.basic as psv
 
 intents = nextcord.Intents.all()
 bot = cmds.Bot(command_prefix=cmds.when_mentioned_or(prefix), case_insensitive=True, intents=intents, help_command=None)
@@ -38,14 +36,20 @@ async def on_ready():
                         base.commit()
                         cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
                         base.commit()
-                
+
+                        lng = 1 if "ru" in guild.preferred_locale else 0
                         r = [
-                            ('lang', 0), ('log_channel', 0), ('error_log', 0), 
+                            ('lang', lng), ('log_channel', 0), ('error_log', 0), 
                             ('mod_role', 0), ('tz', 0), ('time_r', 14400), 
                             ('sal_l', 1), ('sal_r', 250), ('uniq_timer', 14400)
                         ]
                         cur.executemany("INSERT INTO server_info(settings, value) VALUES(?, ?)", r)
                         base.commit()
+                        if lng == 1:
+                            bot_guilds_r.add(guild.id)
+                        else:
+                            bot_guilds_e.add(guild.id)
+
                     except Exception as E:
                         base.rollback()
                         with open("d.log", "a+", encoding="utf-8") as f:
@@ -66,6 +70,7 @@ async def on_ready():
     await bot.discover_application_commands()
     await asyncio.sleep(10)
     await bot.sync_all_application_commands()
+
     """ 
     await bot.update_application_commands()
     await bot.associate_application_commands()

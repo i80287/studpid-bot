@@ -72,7 +72,7 @@ class ConsoleCog(Cog):
                 base.commit()
                 cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
                 base.commit()
-           
+
                 r = [
                     ('lang', 0), ('log_channel', 0), ('error_log', 0), 
                     ('mod_role', 0), ('tz', 0), ('time_r', 14400), 
