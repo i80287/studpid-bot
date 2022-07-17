@@ -1,19 +1,20 @@
-import asyncio
+
+
 import os
-import sqlite3
+from sqlite3 import connect, Connection, Cursor
+from asyncio import sleep, TimeoutError
 from contextlib import closing
 from datetime import datetime, timedelta
 from time import time
 
-import nextcord
 from nextcord.ext import commands
 from nextcord.ext.commands import CheckFailure
-from nextcord import Embed, Colour
+from nextcord import Embed, Colour, Guild, Role, Member, TextChannel
 
-from config import path, bot_guilds, bot_guilds_e, bot_guilds_r
+from config import *
 
 class mod_commands(commands.Cog):
-    def __init__(self, bot: commands.Bot, prefix: str, in_row: int, currency: str):
+    def __init__(self, bot: commands.Bot, prefix: str, in_row, currency: str):
         self.bot = bot
         self.prefix = prefix
         self.cmds_list = [
@@ -42,6 +43,8 @@ class mod_commands(commands.Cog):
         global bot_guilds
         global bot_guilds_e
         global bot_guilds_r
+        global appcmds_e
+        global appcmds_r
         global help_menu
         help_menu = {
             0 : {
@@ -83,8 +86,8 @@ class mod_commands(commands.Cog):
                 "log" : f"`{prefix}log` `text_channel` selects log channel for economic operations\n\n**Example:**\n**`{prefix}log`** **`863462268934422540`** will select **text** \
                 channel with id 863462268934422540 (you can use mention with # instead of id) as log channel",
 
-                "language" : f"`{prefix}language` `lang` selects language for interface. Can be **`Eng`** (no matter Eng, eng, eNg etc.) for English and **`Rus`** (no matter Rus, \
-                rus, rUs etc.) for Russian.\n\n**Example:**\n**`{prefix}language`** **`eng`** will select English language for bot interface",
+                "language" : f"`{prefix}language` `lang` selects language for the mod commands and names and descriptions of the slash commands. Can be **`Eng`** (no matter Eng, eng, \
+                eNg etc.) for English and **`Rus`** (no matter Rus, rus, rUs etc.) for Russian.\n\n**Example:**\n**`{prefix}language`** **`eng`** will select English language",
 
                 "time_zone" : f"`{prefix}time_zone` `name_of_time_zone_from_{prefix}zones or \nhour_difference_with_'-'_if_needed` selects **`UTC`**±**`X`**, **`X`** Є {ryad}, \
                 format for the server. \n\n**Example:**\n**`{prefix}time_zone`** **`EDT`** will set time zone of Eastern Daylight Time UTC-4, **`{prefix}time_zone`** **`-7`** \
@@ -151,8 +154,8 @@ class mod_commands(commands.Cog):
                 "log" : f"`{prefix}log` `текстовый_канал` устанавливает выбранный для хранения логов об операциях\n\n**Пример:**\n**`{prefix}log`** **`863462268934422540`** установит \
                 канал с id 863462268934422540 (Вы можете упомянуть канал при помощи #, а не id) в качестве канала для логов бота",
 
-                "language" : f"`{prefix}language` `язык` устанавливает выбранный язык в качестве языка интерфейса. Доступны: **`Eng`** (регист не важен) - для английского и **`Rus`** \
-                (регистр не важен) - для русского.\n\n**Пример:**\n**`{prefix}language`** **`rus`** установит русский язык для интерфейса бота",
+                "language" : f"`{prefix}language` `язык` устанавливает выбранный язык для команд модераторов и названия и описания слэш команды. Доступны: **`Eng`** \
+                (регистр не важен) - для английского и **`Rus`** (регистр не важен) - для русского.\n\n**Пример:**\n**`{prefix}language`** **`rus`** установит русский язык",
 
                 "time_zone" : f"`{prefix}time_zone` `имя_часового_пояса_из_списка или часовой_сдвиг_от_UTC_со_знаком_'-'_при_необходимости` устанавливает формат времени **`UTC`**±**`X`**, \
                 **`X`** Є {ryad}, для сервера. \n\n**Пример:**\n**`{prefix}time_zone`** **`YAKT`** установит часовой пояс Якутска UTC+9, а **`{prefix}time_zone`** **`-7`** установит \
@@ -180,6 +183,11 @@ class mod_commands(commands.Cog):
             }
         }
         self.currency = currency
+        global languages
+        languages = {
+            "eng" : 0,
+            "rus" : 1
+        }
         global text
         text = {
             0 : {
@@ -206,8 +214,8 @@ class mod_commands(commands.Cog):
                 19 : '**`Please, use correct arguments for command. More info via \n{}help_m {}`**',
                 20 : '**`This command not found`**',
                 21 : '**`This user not found`**',
-                22 : '**`Please, wait before reusing this command.`**',
-                23 : "**Sorry, but you don't have enough permissions for using this comamnd.**",
+                22 : '**`Please, wait before reusing this command`**',
+                23 : "**`Sorry, but you don't have enough permissions for using this command`**",
                 24 : f"**Economic moderator role is not chosen! User with administrator or manage server permission should do it via `{prefix}mod_role` `role_id`**",
                 25 : f"**`was set as economic moderator role. Commands from {prefix}help_m are available for users with this role`**",
                 26 : "was set as log channel",
@@ -230,7 +238,9 @@ class mod_commands(commands.Cog):
                 43 : "**`Amount of roles {} was made equal to {}`**",
                 44 : "**`Now cash of the {} is equal to {}`** {}",
                 45 : "**Time for answer has expired**",
-                46 : "Balance of the member:"
+                46 : "Balance of the member:",
+                47 : "**`Language is changing, please, wait a bit...`**",
+                48 : "**`Selected language already set as main`**"
                 
             },
             1 : {
@@ -282,7 +292,9 @@ class mod_commands(commands.Cog):
                 43 : "**`Количество ролей {} в магазине установлено равным {}`**",
                 44 : "**`Теперь баланс пользователя {} равен {}`** {}",
                 45 : "**Время ответа истекло**",
-                46 : "Баланс пользователя:"
+                46 : "Баланс пользователя:",
+                47 : "**`Язык изменяется, пожалуйста, подождите немного...`**",
+                48 : "**`Выбранный язык уже установлен в качестве основного`**"
             }
         }
         global zones
@@ -464,7 +476,7 @@ class mod_commands(commands.Cog):
     }
 
     def mod_role_set(self, ctx: commands.Context):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 r = cur.execute("SELECT value FROM server_info WHERE settings = 'mod_role'").fetchone()
                 if r == None or r[0] == 0:
@@ -472,7 +484,7 @@ class mod_commands(commands.Cog):
                 return 1
 
     def lang(self, ctx: commands.Context):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 return cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
@@ -481,14 +493,14 @@ class mod_commands(commands.Cog):
         if any(role.permissions.administrator or role.permissions.manage_guild for role in ctx.author.roles) or ctx.guild.owner == ctx.author:
             return 1
 
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 mod_id = cur.execute("SELECT value FROM server_info WHERE settings = 'mod_role'").fetchone()
                 if mod_id != None and mod_id[0] != 0:
                     return any(role.id == mod_id[0] for role in ctx.author.roles)
                 return 0
           
-    def check(self, base: sqlite3.Connection, cur: sqlite3.Cursor, memb_id: int):
+    def check(self, base: Connection, cur: Cursor, memb_id: int):
             member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
             if member == None:
                 cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date) VALUES(?, ?, ?, ?)', (memb_id, 0, "", 0))
@@ -505,7 +517,7 @@ class mod_commands(commands.Cog):
                     base.commit()
             return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
 
-    async def insert_uniq(self, base: sqlite3.Connection, cur: sqlite3.Cursor, nums: int, role_id: int, outer: list, price: int, time_now: int, ctx, lng: int):
+    async def insert_uniq(self, base: Connection, cur: Cursor, nums: int, role_id: int, outer: list, price: int, time_now: int, ctx, lng: int):
         l = 0 if outer == None or outer == [] else len(outer)
         if nums > l:
             items = cur.execute('SELECT item_id FROM outer_store').fetchall()
@@ -545,7 +557,7 @@ class mod_commands(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_guild_join(self, guild: nextcord.Guild):
+    async def on_guild_join(self, guild: Guild):
         if not os.path.exists(f'{path}bases_{guild.id}'):
             try:
                 os.mkdir(f'{path}bases_{guild.id}/')
@@ -556,7 +568,7 @@ class mod_commands(commands.Cog):
         else:
             bot_guilds.append(guild.id)
 
-        with closing(sqlite3.connect(f'{path}bases_{guild.id}/{guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{guild.id}/{guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
                 base.commit()
@@ -609,7 +621,7 @@ class mod_commands(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_guild_remove(self, guild: nextcord.Guild):
+    async def on_guild_remove(self, guild: Guild):
         bot_guilds.remove(guild.id)
         with open("guild.log", "a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_remove] [{guild.id}] [{guild.name}]\n")
@@ -623,12 +635,11 @@ class mod_commands(commands.Cog):
     async def passive(self):
         while True:
             for g in bot_guilds: 
-                with closing(sqlite3.connect(f'{path}bases_{g}/{g}_store.db')) as base:
+                with closing(connect(f'{path}bases_{g}/{g}_store.db')) as base:
                     with closing(base.cursor()) as cur:
                         r = cur.execute("SELECT * FROM money_roles").fetchall()
                         if r != None:
                             for role, members, salary, last_time in r:
-                                #print(g, role, members, salary, last_time)
                                 flag = 0
                                 if last_time == 0 or last_time == None:
                                     flag = 1
@@ -644,15 +655,24 @@ class mod_commands(commands.Cog):
                                     cur.execute("UPDATE money_roles SET last_time = ? WHERE role_id = ?", (int(time()), role))
                                     base.commit()
                                     for member in members.split('#'):
-                                            if member != "":
-                                                member = int(member)
-                                                self.check(base=base, cur=cur, memb_id=member)
-                                                #print(user)
-                                                cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, member))
-                                                base.commit()
+                                        if member != "":
+                                            member = int(member)
+                                            self.check(base=base, cur=cur, memb_id=member)
+                                            #print(user)
+                                            cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, member))
+                                            base.commit()
+                                                
 
-                await asyncio.sleep(1)
-            await asyncio.sleep(20)
+                await sleep(1)
+            """ print("-"*30)
+            print("Eng: ", bot_guilds_e, "Rus: ", bot_guilds_r)
+            for cmd in self.bot.get_all_application_commands():
+                if any(x in bot_guilds_e for x in cmd.guild_ids):
+                    print("e", cmd.name, cmd.guild_ids)
+                else:
+                    print("r", cmd.name, cmd.guild_ids)
+            print("-"*30) """
+            await sleep(20)
   
   
     @commands.command(aliases = ["guide"])
@@ -713,8 +733,8 @@ class mod_commands(commands.Cog):
 
     @commands.command(hidden=True, aliases=['set'])
     @commands.check(needed_role)
-    async def _set(self, ctx: commands.Context, role: nextcord.Role, nums: int):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+    async def _set(self, ctx: commands.Context, role: Role, nums: int):
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur: 
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
@@ -765,8 +785,8 @@ class mod_commands(commands.Cog):
 
     @commands.command(hidden=True, aliases=['update_cash'])
     @commands.check(needed_role)
-    async def _update_cash(self, ctx: commands.Context, member: nextcord.Member, value: int):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+    async def _update_cash(self, ctx: commands.Context, member: Member, value: int):
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 memb_id = member.id
                 self.check(base=base, cur=cur, memb_id=memb_id)
@@ -784,13 +804,13 @@ class mod_commands(commands.Cog):
 
     @commands.command(hidden=True, aliases=['add'])
     @commands.check(needed_role)
-    async def _add(self, ctx: commands.Context, role: nextcord.Role, price: int, is_special: int, salary: int = None):
+    async def _add(self, ctx: commands.Context, role: Role, price: int, is_special: int, salary: int = None):
         
         lng = self.lang(ctx=ctx)
         if not is_special in [0, 1, 2]:
             await ctx.reply(embed=Embed(title=text[lng][404], description=text[lng][8], colour=Colour.red()), mention_author=False)
             return
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 rls = cur.execute('SELECT role_id FROM server_roles').fetchall()
                 role_ids = [] if rls == None else [x[0] for x in rls]
@@ -818,8 +838,8 @@ class mod_commands(commands.Cog):
               
     @commands.command(hidden=True, aliases=['remove'])
     @commands.check(needed_role)
-    async def _remove(self, ctx: commands.Context, role: nextcord.Role):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+    async def _remove(self, ctx: commands.Context, role: Role):
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 cur.execute('DELETE FROM server_roles WHERE role_id = ?', (role.id,))
@@ -833,8 +853,8 @@ class mod_commands(commands.Cog):
 
     @commands.command(hidden=True, aliases=['update_price'])
     @commands.check(needed_role)
-    async def _update_price(self, ctx: commands.Context, role: nextcord.Role, price: int):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+    async def _update_price(self, ctx: commands.Context, role: Role, price: int):
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 is_in = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
@@ -851,7 +871,7 @@ class mod_commands(commands.Cog):
     @commands.check(needed_role)
     async def _list(self, ctx: commands.Context):
         try:
-            with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+            with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
                 with closing(base.cursor()) as cur:
                     lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                     roles = cur.execute('SELECT * FROM server_roles').fetchall()
@@ -868,8 +888,8 @@ class mod_commands(commands.Cog):
 
     @commands.command(hidden=True, aliases=['give_unique'])
     @commands.check(needed_role)
-    async def _give_unique(self, ctx: commands.Context, member: nextcord.Member, role: nextcord.Role):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+    async def _give_unique(self, ctx: commands.Context, member: Member, role: Role):
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 memb = self.check(base=base, cur=cur, memb_id=member.id)
@@ -913,8 +933,8 @@ class mod_commands(commands.Cog):
     
     @commands.command(hidden=True, aliases=["mod_role"])
     @commands.check(needed_role)
-    async def _mod_role(self, ctx: commands.Context, role: nextcord.Role):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+    async def _mod_role(self, ctx: commands.Context, role: Role):
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mod_role'", (role.id,))
@@ -924,8 +944,8 @@ class mod_commands(commands.Cog):
 
     @commands.command(hidden=True, aliases=["log"])
     @commands.check(needed_role)
-    async def _log(self, ctx: commands.Context, channel: nextcord.TextChannel):
-        with closing(sqlite3.connect(f'{path}bases_{ctx. guild.id}/{ctx.guild.id}_store.db')) as base:
+    async def _log(self, ctx: commands.Context, channel: TextChannel):
+        with closing(connect(f'{path}bases_{ctx. guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_channel'", (channel.id,))
@@ -936,23 +956,10 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=["language"])
     @commands.check(needed_role)
     async def _language(self, ctx: commands.Context, language: str):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
-                g_id = ctx.guild.id
-                if language.lower() == "eng":
-                    bot_guilds_e.add(g_id)
-                    if g_id in bot_guilds_r:
-                        bot_guilds_r.remove(g_id)
-                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lang'", (0,))
-                    lng = 0
-                elif language.lower() == "rus":
-                    bot_guilds_r.add(g_id)
-                    if g_id in bot_guilds_e:
-                        bot_guilds_e.remove(g_id)
-                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lang'", (1,))
-                    lng = 1
-                else:
-                    lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                if language.lower() not in languages:
                     emb = Embed(
                         title=text[lng][28],
                         description="\n".join([text[lng][29], text[lng][30]]), 
@@ -960,8 +967,62 @@ class mod_commands(commands.Cog):
                     )
                     await ctx.reply(embed=emb, mention_author=False)
                     return
+                
+                if languages[language.lower()] == lng:
+                    emb = Embed(
+                        title=text[lng][404],
+                        description=text[lng][48],
+                        colour=Colour.red(),
+                    )
+                    await ctx.reply(embed=emb, mention_author=False)
+                    return
+
+                g_id = ctx.guild.id
+                emb = Embed(
+                    colour=Colour.dark_purple(),
+                )
+                if not languages[language.lower()]:   
+                    if not g_id in bot_guilds_e:
+                        bot_guilds_e.add(g_id)
+                    if g_id in bot_guilds_r:
+                        bot_guilds_r.remove(g_id)
+                    #print(f"Update: Eng: {bot_guilds_e}; Rus: {bot_guilds_r}")
+                    lng = 0
+                    emb.description=text[lng][47]
+                    msg = await ctx.reply(embed=emb, mention_author=False)
+
+                    self.bot.unload_extension(f"commands.slash_shop")
+                    self.bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row, "currency": currency})
+                    await sleep(1)
+                    await self.bot.discover_application_commands()
+                    await sleep(10)
+                    await self.bot.sync_all_application_commands()
+                    
+                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lang'", (0,))
+
+                elif language.lower() == "rus":
+                    if not g_id in bot_guilds_r:
+                        bot_guilds_r.add(g_id)
+                    if g_id in bot_guilds_e:
+                        bot_guilds_e.remove(g_id)
+                    lng = 1
+                    emb.description=text[lng][47]
+                    msg = await ctx.reply(embed=emb, mention_author=False)
+
+                    self.bot.unload_extension(f"commands.slash_shop")
+                    self.bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row, "currency": currency})
+                    await sleep(1)
+                    await self.bot.discover_application_commands()
+                    await sleep(10)
+                    await self.bot.sync_all_application_commands()
+
+                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lang'", (1,))
+                    
+                
                 base.commit()
-                await ctx.reply(text[lng][27], mention_author=False)
+                emb.description=text[lng][27]
+                await msg.edit(embed=emb)
+                
 
 
     @commands.command(hidden=True, aliases=["time_zone", "tz"])
@@ -973,7 +1034,7 @@ class mod_commands(commands.Cog):
             emb = Embed(colour=Colour.red(), title=text[lng][404], description=text[lng][31])
             await ctx.reply(embed=emb, mention_author=False)
             return
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (zones[tz],))
@@ -988,7 +1049,7 @@ class mod_commands(commands.Cog):
     @commands.check(needed_role)
     async def _zones_list(self, ctx: commands.Context):
         try:
-            with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+            with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
                 with closing(base.cursor()) as cur:
                     lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                     tz = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
@@ -1015,7 +1076,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['work_timer'])
     @commands.check(needed_role)
     async def _work_timer(self, ctx: commands.Context, timer: int):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 if timer <= 0:
@@ -1030,7 +1091,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['salary'])
     @commands.check(needed_role)
     async def _salary(self, ctx: commands.Context, a: int, b: int):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 if min(a, b) < 0 or a > b:
@@ -1047,7 +1108,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['uniq_timer'])
     @commands.check(needed_role)
     async def _uniq_timer(self, ctx: commands.Context, timer: int):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 if timer <= 0:
@@ -1063,7 +1124,7 @@ class mod_commands(commands.Cog):
     @commands.check(needed_role)
     async def _settings(self, ctx: commands.Context):
         try:
-            with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+            with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
                 with closing(base.cursor()) as cur:
                     sets = cur.execute("SELECT * FROM server_info").fetchall()
         except Exception as E:
@@ -1109,7 +1170,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['reset'])
     @commands.check(needed_role)
     async def _reset(self, ctx: commands.Context):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 cur.execute("DROP TABLE IF EXISTS server_info")
@@ -1132,7 +1193,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=["quick", "setup", "qs"])
     @commands.check(needed_role)
     async def _quick(self, ctx: commands.Context):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 flag = 1
@@ -1146,7 +1207,7 @@ class mod_commands(commands.Cog):
                             emb.description = questions[lng][flag]
                             await msg_ans.edit(embed=emb)
                         message = await self.bot.wait_for(event="message", check=lambda m: m.author.id == ctx.author.id and m.channel.id == ctx.channel.id, timeout=20.0)
-                    except asyncio.TimeoutError:
+                    except TimeoutError:
                         emb = Embed(title=text[lng][404], description=text[lng][45], colour=Colour.red())
                         await msg_ans.edit(embed=emb)
                         return
@@ -1239,8 +1300,8 @@ class mod_commands(commands.Cog):
 
     @commands.command(hidden=True, aliases=["balance_of"])
     @commands.check(needed_role)
-    async def _balance_of(self, ctx: commands.Context, member: nextcord.Member):
-        with closing(sqlite3.connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+    async def _balance_of(self, ctx: commands.Context, member: Member):
+        with closing(connect(f'{path}bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]            
                 memb = self.check(base=base, cur=cur,memb_id=member.id)
@@ -1275,10 +1336,10 @@ class mod_commands(commands.Cog):
             else:
                 emb.description = text[lng][23]
         else:
-                #raise error
-                with open("d.log", "a+", encoding="utf-8") as f:
-                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{ctx.guild.name}] [{str(error)}]\n")
-                return
+            raise error
+            with open("d.log", "a+", encoding="utf-8") as f:
+                f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{ctx.guild.name}] [{str(error)}]\n")
+            return
         await ctx.reply(embed=emb, mention_author=False)
   
 def setup(bot: commands.Bot, **kwargs):

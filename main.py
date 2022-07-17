@@ -1,13 +1,21 @@
-import nextcord, os, sqlite3
-from nextcord.ext import commands
+import asyncio
+import os
+import sqlite3
+from datetime import datetime, timedelta
+
+import nextcord
+from nextcord.ext import commands as cmds
 #from nextcord.abc import GuildChannel
 from contextlib import closing
-from config import *
 from colorama import Fore
 from dpyConsole import Console
 
+
+from config import *
+import commands.basic as psv
+
 intents = nextcord.Intents.all()
-bot = commands.Bot(command_prefix=commands.when_mentioned_or(prefix), case_insensitive=True, intents=intents, help_command=None)
+bot = cmds.Bot(command_prefix=cmds.when_mentioned_or(prefix), case_insensitive=True, intents=intents, help_command=None)
 cmd = Console(bot)
 
 @bot.event
@@ -40,17 +48,43 @@ async def on_ready():
                         base.commit()
                     except Exception as E:
                         base.rollback()
-                        raise E
+                        with open("d.log", "a+", encoding="utf-8") as f:
+                            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{guild.id}] [{guild.name}] [{str(E)}]\n")
+                        
         else:
             with closing(sqlite3.connect(f'{path}bases_{guild.id}/{guild.id}_store.db')) as base:
                 with closing(base.cursor()) as cur:
                     lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                    if lng == 0:
-                        bot_guilds_e.append(guild.id)
+                    if lng == 1:
+                        bot_guilds_r.add(guild.id)
                     else:
-                        bot_guilds_r.append(guild.id)
-        #bot_guilds.append(guild.id)
-                
+                        bot_guilds_e.add(guild.id)
+    
+    
+    bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row, "currency": currency})
+
+    await bot.discover_application_commands()
+    await asyncio.sleep(10)
+    await bot.sync_all_application_commands()
+    """ 
+    await bot.update_application_commands()
+    await bot.associate_application_commands()
+    await bot.register_new_application_commands()
+    bot.add_all_application_commands()
+    """
+    
+    """ global appcmds_e
+    global appcmds_r
+
+    for cmd in bot.get_all_application_commands():
+        if any(x in bot_guilds_e for x in cmd.guild_ids):
+            appcmds_e.append(cmd)
+            print("e", cmd.name, cmd.guild_ids)
+        else:
+            appcmds_r.append(cmd)
+            print("r", cmd.name, cmd.guild_ids) """
+
+
     print(f'{Fore.CYAN}[>>>]Logged into Discord as {bot.user}\n')
 
     opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
@@ -67,9 +101,11 @@ async def on_ready():
 
 
 if __name__ == "__main__":
+    """
     for filename in os.listdir(f"{path}commands"):
         if filename.endswith(".py"):
-            bot.load_extension(f"commands.{filename[:-3]}", extras={"prefix": prefix, "in_row": in_row, "currency": currency})
+            bot.load_extension(f"commands.{filename[:-3]}", extras={"prefix": prefix, "in_row": in_row, "currency": currency}) """
+    bot.load_extension(f"commands.basic", extras={"prefix": prefix, "in_row": in_row, "currency": currency})
     cmd.load_extension(f'console')
     cmd.start()
     print(f'\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}')

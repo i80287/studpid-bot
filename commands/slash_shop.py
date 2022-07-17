@@ -5,10 +5,9 @@ from datetime import datetime, timedelta, timezone
 from time import time
 from random import randint
 
-import nextcord
-from nextcord.ui import Button, View
 from nextcord.ext import commands
-from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Locale
+from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Locale, ui, SelectOption, slash_command, Role, Member
+from nextcord.ui import Button, View
 
 from config import path, bot_guilds_e, bot_guilds_r
 
@@ -24,7 +23,7 @@ class bet_slash_r(View):
         self.check_user = function
         self.dueler = None
 
-    @nextcord.ui.button(label="Сделать встречную ставку", style=ButtonStyle.green, emoji="💰", custom_id="Make")
+    @ui.button(label="Сделать встречную ставку", style=ButtonStyle.green, emoji="💰", custom_id="Make")
     async def callback_make(self, button: Button, interaction: Interaction):
         if interaction.user == self.ctx.user:
             await interaction.response.send_message("**`Извините, но Вы не можете делать встречную ставку самому себе`**", ephemeral=True)
@@ -39,7 +38,7 @@ class bet_slash_r(View):
         self.dueler = member
         self.stop()   
 
-    @nextcord.ui.button(label="Отменить ставку", style=ButtonStyle.red, emoji="❌", custom_id="Deny")
+    @ui.button(label="Отменить ставку", style=ButtonStyle.red, emoji="❌", custom_id="Deny")
     async def callback_deny(self, button: Button, interaction: Interaction):
         if interaction.user != self.ctx.user:
             await interaction.response.send_message("**`Извините, но Вы не можете управлять чужой ставкой`**", ephemeral=True)
@@ -63,7 +62,7 @@ class bet_slash_e(View):
         self.check_user = function
         self.dueler = None
 
-    @nextcord.ui.button(label="Make a counter bet", style=ButtonStyle.green, emoji="💰", custom_id="Make")
+    @ui.button(label="Make a counter bet", style=ButtonStyle.green, emoji="💰", custom_id="Make")
     async def callback_make(self, button: Button, interaction: Interaction):
         if interaction.user == self.ctx.user:
             await interaction.response.send_message("**`Sorry, but you can't make counter bet for yourself`**", ephemeral=True)
@@ -78,7 +77,7 @@ class bet_slash_e(View):
         self.dueler = member
         self.stop()   
 
-    @nextcord.ui.button(label="Cancel bet", style=ButtonStyle.red, emoji="❌", custom_id="Deny")
+    @ui.button(label="Cancel bet", style=ButtonStyle.red, emoji="❌", custom_id="Deny")
     async def callback_deny(self, button: Button, interaction: Interaction):
         if interaction.user != self.ctx.user:
             await interaction.response.send_message("**`Sorry, but you can't control bet made by another user`**", ephemeral=True)
@@ -112,12 +111,12 @@ class bet_slash_e(View):
                 4 : 'Вы не можете управлять чужой продажей'
             }
         }
-    @nextcord.ui.button(label='Да', style=ButtonStyle.green, emoji="✅", custom_id = "goodbye")
+    @ui.button(label='Да', style=ButtonStyle.green, emoji="✅", custom_id = "goodbye")
     async def goodbye_role(self, button: Button, interaction: Interaction):
         self.is_sold = 1
         self.stop()
 
-    @nextcord.ui.button(label='Нет, отменить продажу', style=ButtonStyle.red, emoji="❌")
+    @ui.button(label='Нет, отменить продажу', style=ButtonStyle.red, emoji="❌")
     async def decline_sell(self, button: Button, interaction: Interaction):
         button.disabled = True
         button1 = [x for x in self.children if x.custom_id == "goodbye"][0]
@@ -249,28 +248,28 @@ class store_slash_r(View):
         
         return store_list
 
-    @nextcord.ui.button(emoji="⏮️")
+    @ui.button(emoji="⏮️")
     async def callback_l_end(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
         if store_list[0] != "-1":
             emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb)
 
-    @nextcord.ui.button(emoji="◀️")
+    @ui.button(emoji="◀️")
     async def callback_l(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
         if store_list[0] != "-1":
             emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb)
 
-    @nextcord.ui.button(emoji="▶️")
+    @ui.button(emoji="▶️")
     async def callback_r(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
         if store_list[0] != "-1":
             emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb)
 
-    @nextcord.ui.button(emoji="⏭")
+    @ui.button(emoji="⏭")
     async def callback_r_end(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
         if store_list[0] != "-1":
@@ -278,15 +277,15 @@ class store_slash_r(View):
             await interaction.response.edit_message(embed=emb)
         
 
-    @nextcord.ui.select(
+    @ui.select(
         placeholder='Сортировать по...',
         options=[
-            nextcord.SelectOption(
+            SelectOption(
                 label="Сортировать по цене",
                 emoji="💰",
                 default=False
             ),
-            nextcord.SelectOption(
+            SelectOption(
                 label="Сортировать по дате",
                 emoji="📅",
                 default=False
@@ -296,7 +295,7 @@ class store_slash_r(View):
         min_values=1, 
         max_values=1
     )
-    async def callback_select_value(self, menu: nextcord.ui.Select, interaction: Interaction):
+    async def callback_select_value(self, menu: ui.Select, interaction: Interaction):
 
         if menu._selected_values[0] == "Сортировать по цене":
             self.sort_d = 0
@@ -313,15 +312,15 @@ class store_slash_r(View):
             emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb, view=self)
 
-    @nextcord.ui.select(
+    @ui.select(
         placeholder='Сортировать от...',
         options=[
-            nextcord.SelectOption(
+            SelectOption(
                 label="От меньшей цены / более свежого товара",
                 emoji="↗️",
                 default=False
             ),
-            nextcord.SelectOption(
+            SelectOption(
                 label="От большей цены / более старого товара",
                 emoji="↘️",
                 default=False
@@ -330,7 +329,7 @@ class store_slash_r(View):
         min_values=1, 
         max_values=1
     )
-    async def callback_select_how(self, menu: nextcord.ui.Select, interaction: Interaction):
+    async def callback_select_how(self, menu: ui.Select, interaction: Interaction):
         
         if menu._selected_values[0].startswith("От меньшей"):
             self.sort_grad = 0
@@ -466,28 +465,28 @@ class store_slash_e(View):
         
         return store_list
 
-    @nextcord.ui.button(emoji="⏮️")
+    @ui.button(emoji="⏮️")
     async def callback_l_end(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
         if store_list[0] != "-1":
             emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb)
 
-    @nextcord.ui.button(emoji="◀️")
+    @ui.button(emoji="◀️")
     async def callback_l(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
         if store_list[0] != "-1":
             emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb)
 
-    @nextcord.ui.button(emoji="▶️")
+    @ui.button(emoji="▶️")
     async def callback_r(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
         if store_list[0] != "-1":
             emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb)
 
-    @nextcord.ui.button(emoji="⏭")
+    @ui.button(emoji="⏭")
     async def callback_r_end(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
         if store_list[0] != "-1":
@@ -495,15 +494,15 @@ class store_slash_e(View):
             await interaction.response.edit_message(embed=emb)
         
 
-    @nextcord.ui.select(
+    @ui.select(
         placeholder="Sort by...",
         options=[
-            nextcord.SelectOption(
+            SelectOption(
                 label="Sort by price",
                 emoji="💰",
                 default=False
             ),
-            nextcord.SelectOption(
+            SelectOption(
                 label="Sort by date",
                 emoji="📅",
                 default=False
@@ -513,7 +512,7 @@ class store_slash_e(View):
         min_values=1, 
         max_values=1
     )
-    async def callback_select_value(self, menu: nextcord.ui.Select, interaction: Interaction):
+    async def callback_select_value(self, menu: ui.Select, interaction: Interaction):
 
         if menu._selected_values[0] == "Sort by price":
             self.sort_d = 0
@@ -530,15 +529,15 @@ class store_slash_e(View):
             emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb, view=self)
 
-    @nextcord.ui.select(
+    @ui.select(
         placeholder="Sort from...",
         options=[
-            nextcord.SelectOption(
+            SelectOption(
                 label="From the lower price / newer role",
                 emoji="↗️",
                 default=True
             ),
-            nextcord.SelectOption(
+            SelectOption(
                 label="From the higher price / older role",
                 emoji="↘️"
             )
@@ -546,7 +545,7 @@ class store_slash_e(View):
         min_values=1, 
         max_values=1
     )
-    async def callback_select_how(self, menu: nextcord.ui.Select, interaction: Interaction):
+    async def callback_select_how(self, menu: ui.Select, interaction: Interaction):
         
         if menu._selected_values[0].startswith("From the lower"):
             self.sort_grad = 0
@@ -576,12 +575,12 @@ class buy_slash_r(View):
             self.ctx = ctx
             self.value = 0
 
-        @nextcord.ui.button(label='Да', style=ButtonStyle.green, emoji="✅", custom_id = "second")
+        @ui.button(label='Да', style=ButtonStyle.green, emoji="✅", custom_id = "second")
         async def agr_callback(self, button: Button, interaction: Interaction):
             self.value = 1
             self.stop()
 
-        @nextcord.ui.button(label='Нет, отменить покупку', style=ButtonStyle.red, emoji="❌")
+        @ui.button(label='Нет, отменить покупку', style=ButtonStyle.red, emoji="❌")
         async def decl_callback(self, button: Button, interaction: Interaction):
             button.disabled = True
             button1 = [x for x in self.children if x.custom_id == "second"][0]
@@ -604,12 +603,12 @@ class buy_slash_e(View):
             self.ctx = ctx
             self.value = 0
 
-        @nextcord.ui.button(label='Yes', style=ButtonStyle.green, emoji="✅", custom_id = "second")
+        @ui.button(label='Yes', style=ButtonStyle.green, emoji="✅", custom_id = "second")
         async def agr_callback(self, button: Button, interaction: Interaction):
             self.value = 1
             self.stop()
 
-        @nextcord.ui.button(label="No, cancel purchase", style=ButtonStyle.red, emoji="❌")
+        @ui.button(label="No, cancel purchase", style=ButtonStyle.red, emoji="❌")
         async def decl_callback(self, button: Button, interaction: Interaction):
             button.disabled = True
             button1 = [x for x in self.children if x.custom_id == "second"][0]
@@ -660,7 +659,7 @@ class rating_slash_r(View):
         return msg
 
 
-    @nextcord.ui.button(emoji="⏮️")
+    @ui.button(emoji="⏮️")
     async def callback_l_top(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
         if store_list != []:
@@ -670,7 +669,7 @@ class rating_slash_r(View):
                 emb.add_field(name=r[0], value=r[1], inline=False)
             await interaction.response.edit_message(embed=emb)
 
-    @nextcord.ui.button(emoji="◀️")
+    @ui.button(emoji="◀️")
     async def callback_l(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
         if store_list != []:
@@ -680,7 +679,7 @@ class rating_slash_r(View):
                 emb.add_field(name=r[0], value=r[1], inline=False)
             await interaction.response.edit_message(embed=emb)
 
-    @nextcord.ui.button(emoji="▶️")
+    @ui.button(emoji="▶️")
     async def callback_r(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
         if store_list != []:
@@ -690,7 +689,7 @@ class rating_slash_r(View):
                 emb.add_field(name=r[0], value=r[1], inline=False)
             await interaction.response.edit_message(embed=emb)
 
-    @nextcord.ui.button(emoji="⏭")
+    @ui.button(emoji="⏭")
     async def callback_r_top(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
         if store_list != []:
@@ -749,7 +748,7 @@ class rating_slash_e(View):
         return msg
 
 
-    @nextcord.ui.button(emoji="⏮️")
+    @ui.button(emoji="⏮️")
     async def callback_l_top(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
         if store_list != []:
@@ -759,7 +758,7 @@ class rating_slash_e(View):
                 emb.add_field(name=r[0], value=r[1], inline=False)
             await interaction.response.edit_message(embed=emb)
 
-    @nextcord.ui.button(emoji="◀️")
+    @ui.button(emoji="◀️")
     async def callback_l(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
         if store_list != []:
@@ -769,7 +768,7 @@ class rating_slash_e(View):
                 emb.add_field(name=r[0], value=r[1], inline=False)
             await interaction.response.edit_message(embed=emb)
 
-    @nextcord.ui.button(emoji="▶️")
+    @ui.button(emoji="▶️")
     async def callback_r(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
         if store_list != []:
@@ -779,7 +778,7 @@ class rating_slash_e(View):
                 emb.add_field(name=r[0], value=r[1], inline=False)
             await interaction.response.edit_message(embed=emb)
 
-    @nextcord.ui.button(emoji="⏭")
+    @ui.button(emoji="⏭")
     async def callback_r_top(self, button: Button, interaction: Interaction):
         store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
         if store_list != []:
@@ -804,7 +803,7 @@ class slash(commands.Cog):
         self.currency = currency
         global bot_guilds_e
         global bot_guilds_r
-        global cmds     
+        global cmds
         #(f"`{prefix}quick`", "Starts quick setup of all bot's settings")
         #(f"`{prefix}quick`", "Начинает быструю настройку параметров бота")
         cmds = {
@@ -812,14 +811,14 @@ class slash(commands.Cog):
                     ("`/store`", "Shows store"), ("`/buy`", "Makes a role purchase"),
                     ("`/sell`", "Sells the role"), ("`/profile`", "Shows your profile"),
                     ("`/work`", "Starts working, so you get salary"), ("`/duel`", "Makes a bet"),
-                    ("`/transfer`", "Transfers money to another member"), ("`/top`", "Shows top members by balance"),
+                    ("`/transfer`", "Transfers money to another member"), ("`/leaders`", "Shows top members by balance"),
                     (f"`{prefix}help_m`", "Calls menu with bot's settings")
             ],
             1 : [
                     ("`/store`", "Открывает меню магазина"), ("`/buy`", "Совершает покупку роли"), 
                     ("`/sell`", "Совершает продажу роли"), ("`/profile`", "Показывает меню Вашего профиля"),
                     ("`/work`", "Начинает работу, за которую Вы полчите заработок"), ("`/duel`", "Делает ставку"),
-                    ("`/transfer`", "Совершает перевод валюты другому пользователю"), ("`/top`", "Показывет топ пользователей по балансу"),
+                    ("`/transfer`", "Совершает перевод валюты другому пользователю"), ("`/leaders`", "Показывет топ пользователей по балансу"),
                     (f"`{prefix}help_m`", "Вызывает меню команд настройки бота") 
             ],
         }
@@ -852,7 +851,7 @@ class slash(commands.Cog):
                 22 : "Role sale",
                 23 : "{} sold role {} for {} {}",
                 24 : "Your balance",
-                25 : "**Your personal roles:**\n**Role** --- **Price** --- **Salary** (if it has)",
+                25 : "**Your personal roles:**\n--- **Role** --- **Price** --- **Salary** (if it has)",
                 26 : "**`Please, wait {} before using this command`**",
                 27 : "Success",
                 28 : "**`You gained {}`** {}",
@@ -899,7 +898,7 @@ class slash(commands.Cog):
                 22 : "Продажа роли",
                 23 : "{} продал роль {} за {} {}",
                 24 : "Ваш баланс",
-                25 : "**Ваши личные роли:**\n**Роль** --- **Цена** --- **Доход** (если есть)",
+                25 : "**Ваши личные роли:**\n--- **Роль** --- **Цена** --- **Доход** (если есть)",
                 26 : "**`Пожалуйста, подождите {} перед тем, как снова использовать эту команду`**",
                 27 : "Успех",
                 28 : "**`Вы заработали {}`** {}",
@@ -918,13 +917,11 @@ class slash(commands.Cog):
                 41 : "**`Вы успешно перевели {}`** {} **`пользователю`** {}",
                 42 : "Транзакция",
                 43 : "{} передал {} {} пользователю {}"
-
-
             }
         }
+
     
-    
-    async def can_role(self, interaction: Interaction, role: nextcord.Role, lng: int) -> bool:
+    async def can_role(self, interaction: Interaction, role: Role, lng: int) -> bool:
         
         if not interaction.guild.me.guild_permissions.manage_roles:
             emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][1])
@@ -968,7 +965,7 @@ class slash(commands.Cog):
                 await interaction.response.send_message(embed=emb)
 
 
-    async def buy(self, interaction: Interaction, role: nextcord.Role) -> None:
+    async def buy(self, interaction: Interaction, role: Role) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
@@ -1120,7 +1117,7 @@ class slash(commands.Cog):
                     await msg.edit(view=myview_store)
 
 
-    async def sell(self, interaction: Interaction, role: nextcord.Role) -> None:
+    async def sell(self, interaction: Interaction, role: Role) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         if not role in interaction.user.roles:
             await interaction.response.send_message(
@@ -1258,190 +1255,8 @@ class slash(commands.Cog):
                     base.commit()
                 await interaction.response.send_message(embed=Embed(description="\n".join(descr)))
     
-    @nextcord.slash_command(
-        name="help", 
-        description="Calls menu with commands",
-        description_localizations={
-            Locale.ru : "Вызывает меню команд"
-        },
-        guild_ids=bot_guilds_e
-    )
-    async def help_e(self, interaction: Interaction) -> None:
-        await self.help(interaction=interaction)
     
-
-    @nextcord.slash_command(
-        name="help", 
-        description="Вызывает меню команд",
-        description_localizations={
-            Locale.en_GB: "Calls menu with commands",
-            Locale.en_US: "Calls menu with commands"
-        },
-        guild_ids=bot_guilds_r
-    )
-    async def help_r(self, interaction: Interaction) -> None:
-        await self.help(interaction=interaction)
-
-    
-    @nextcord.slash_command(
-        name="buy", 
-        description="Makes a role purchase from the store",
-        description_localizations={
-            Locale.ru : "Совершает покупку роли из магазина"
-        }
-    )
-    async def buy_e(
-        self, 
-        interaction: Interaction, 
-        role: nextcord.Role = SlashOption(
-            name="role",
-            name_localizations={
-                Locale.ru: "роль"
-            },
-            description="Role that you want to buy", 
-            description_localizations={
-                Locale.ru: "Роль, которую Вы хотите купить"
-            },
-            required=True
-        )
-    ):
-        await self.buy(interaction=interaction, role=role)
-                    
-
-    @nextcord.slash_command(
-        name="buy", 
-        description="Совершает покупку роли из магазина",
-        description_localizations={
-            Locale.en_GB : "Makes a role purchase from the store",
-            Locale.en_US : "Makes a role purchase from the store",
-        }
-    )
-    async def buy_r(
-        self, 
-        interaction: Interaction, 
-        role: nextcord.Role = SlashOption(
-            name="роль",
-            name_localizations={
-                Locale.en_GB: "role",
-                Locale.en_US: "role"
-            },
-            description="Роль, которую Вы хотите купить", 
-            description_localizations={
-                Locale.en_GB: "Role that you want to buy",
-                Locale.en_US: "Role that you want to buy"
-            },
-            required=True
-        )
-    ):
-        await self.buy(interaction=interaction, role=role)
-
-
-    @nextcord.slash_command(
-        name="store",
-        description="Shows store",
-        description_localizations={
-            Locale.ru : "Открывает меню магазина"
-        }
-    )
-    async def store_e(self, interaction: Interaction):
-        await self.store(interaction=interaction)
-    
-    
-    @nextcord.slash_command(
-        name="store",
-        description="Открывает меню магазина",
-        description_localizations={
-            Locale.en_GB: "Shows store",
-            Locale.en_US: "Shows store"
-        }
-    )
-    async def store_r(self, interaction: Interaction):
-        await self.store(interaction=interaction)
-    
-
-    @nextcord.slash_command(
-        name="sell", 
-        description="Sells the role",
-        description_localizations={
-            Locale.ru: "Совершает продажу роли"
-        }
-    )
-    async def sell_e(
-        self,
-        interaction: Interaction,
-        role: nextcord.Role = SlashOption(
-            name="role",
-            name_localizations={
-                Locale.ru: "роль"
-            },
-            description="Your role that you want to sell",
-            description_localizations={
-                Locale.ru: "Ваша роль, которую Вы хотите продать"
-            },
-            required=True
-        )
-    ):
-        await self.sell(interaction=interaction, role=role)
-
-
-    @nextcord.slash_command(
-        name="sell", 
-        description="Совершает продажу роли",
-        description_localizations={
-            Locale.en_GB: "Sells the role",
-            Locale.en_US: "Sells the role"
-        }
-    )
-    async def sell_r(
-        self,
-        interaction: Interaction,
-        role: nextcord.Role = SlashOption(
-            name="роль",
-            name_localizations={
-                Locale.en_GB: "role",
-                Locale.en_US: "role"
-            },
-            description="Ваша роль, которую Вы хотите продать",
-            description_localizations={
-                Locale.en_GB: "Your role that you want to sell",
-                Locale.en_US: "Your role that you want to sell"
-            },
-            required=True
-        )
-    ):
-        await self.sell(interaction=interaction, role=role)
-
-
-    @nextcord.slash_command(
-        name="profile", 
-        description="Show your profile",
-        description_localizations={
-            Locale.ru: "Показывает меню Вашего профиля"
-        }
-    )
-    async def profile_e(self, interaction: Interaction):
-        await self.profile(interaction=interaction)
-
-
-    """ @nextcord.slash_command(
-        name="profile", 
-        description="Show your profile",
-        description_localizations={
-            Locale.ru: "Показывает меню Вашего профиля"
-        }
-    )
-    async def profile_r(self, interaction: Interaction):
-        await self.profile(interaction=interaction) """
-
-
-    @nextcord.slash_command(
-        name="work", 
-        description="Allows to gain money",
-        description_localizations={
-            Locale.ru: "Позволяет заработать деньги"
-        }
-    )
-    async def work(self, interaction: Interaction):
+    async def work(self, interaction: Interaction) -> None:
         memb_id = interaction.user.id
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
@@ -1477,31 +1292,9 @@ class slash(commands.Cog):
                         await channel.send(embed=Embed(title=text_slash[lng][29], description=text_slash[lng][30].format(interaction.user.mention, salary)))
                     except:
                         pass
+    
 
-
-    @nextcord.slash_command(
-        name="duel", 
-        description="Make a bet",
-        description_localizations={
-            Locale.ru: "Сделать ставку"
-        }
-    )
-    async def duel(
-        self, 
-        interaction: Interaction, 
-        amount: int = SlashOption(
-            name="amount", 
-            name_localizations={
-                Locale.ru: "количество"
-            },
-            description="Bet amount",
-            description_localizations={
-                Locale.ru: "Сумма ставки"
-            },
-            required=True, 
-            min_value=1
-        )
-    ): 
+    async def bet(self, interaction: Interaction, amount: int) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         memb_id = interaction.user.id
         with closing(connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
@@ -1561,42 +1354,9 @@ class slash(commands.Cog):
                         await channel.send(embed=Embed(title=text_slash[lng][37], description=text_slash[lng][38].format(winner_id, amount, self.currency, loser_id)))
                     except:
                         pass
+    
 
-
-    @nextcord.slash_command(
-        name="transfer", 
-        description="Transfers money to another member",
-        description_localizations={
-            Locale.ru: "Совершает перевод валюты другому пользователю"
-        }
-    )
-    async def transfer(
-        self,
-        interaction: Interaction, 
-        value: int = SlashOption(
-            name="value", 
-            name_localizations={
-                Locale.ru: "сумма"
-            },
-            description="Amount of money to transfer", 
-            description_localizations={
-                Locale.ru: "Переводимая сумма денег"
-            },
-            required=True, 
-            min_value=1
-        ),
-        target: nextcord.Member = SlashOption(
-            name="target", 
-            name_localizations={
-                Locale.ru: "кому"
-            },
-            description="The member you want to transfer money to", 
-            description_localizations={
-                Locale.ru : "Пользователь, которому Вы хотите перевести деньги"
-            },
-            required=True
-        )
-    ):
+    async def transfer(self, interaction: Interaction, value: int, target: Member) -> None:
         memb_id = interaction.user.id
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f'{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
@@ -1622,16 +1382,9 @@ class slash(commands.Cog):
                             await channel.send(embed=Embed(title=text_slash[lng][42], description= text_slash[lng][43].format(interaction.user.mention, value, self.currency, target.mention)))
                         except:
                             pass
-    
 
-    @nextcord.slash_command(
-        name="top", 
-        description="Shows top members by balance",
-        description_localizations={
-            Locale.ru: "Показывет топ пользователей по балансу"
-        }
-    )
-    async def top(self, interaction: Interaction):
+    
+    async def leaders(self, interaction: Interaction) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f"{path}bases_{interaction.guild.id}/{interaction.guild.id}_store.db")) as base:
             with closing(base.cursor()) as cur:
@@ -1661,6 +1414,397 @@ class slash(commands.Cog):
                         child.disabled = True
                     msg = await interaction.original_message()
                     await msg.edit(view=view_r)
+
+
+    @slash_command(
+        name="help", 
+        description="Calls menu with commands",
+        description_localizations={
+            Locale.ru : "Вызывает меню команд"
+        },
+        guild_ids=bot_guilds_e,
+        force_global=False
+    )
+    async def help_e(self, interaction: Interaction) -> None:
+        await self.help(interaction=interaction)
+    
+
+    @slash_command(
+        name="help", 
+        description="Вызывает меню команд",
+        description_localizations={
+            Locale.en_GB: "Calls menu with commands",
+            Locale.en_US: "Calls menu with commands"
+        },
+        #guild_ids=bot_guilds_r,
+        guild_ids=bot_guilds_r,
+        force_global=False
+    )
+    async def help_r(self, interaction: Interaction) -> None:
+        await self.help(interaction=interaction)
+
+    
+    @slash_command(
+        name="buy", 
+        description="Makes a role purchase from the store",
+        description_localizations={
+            Locale.ru : "Совершает покупку роли из магазина"
+        },
+        guild_ids=bot_guilds_e,
+    )
+    async def buy_e(
+        self, 
+        interaction: Interaction, 
+        role: Role = SlashOption(
+            name="role",
+            name_localizations={
+                Locale.ru: "роль"
+            },
+            description="Role that you want to buy", 
+            description_localizations={
+                Locale.ru: "Роль, которую Вы хотите купить"
+            },
+            required=True
+        )
+    ):
+        await self.buy(interaction=interaction, role=role)
+                    
+
+    @slash_command(
+        name="buy", 
+        description="Совершает покупку роли из магазина",
+        description_localizations={
+            Locale.en_GB : "Makes a role purchase from the store",
+            Locale.en_US : "Makes a role purchase from the store",
+        },
+        guild_ids=bot_guilds_r,
+        force_global=False
+    )
+    async def buy_r(
+        self, 
+        interaction: Interaction, 
+        role: Role = SlashOption(
+            name="роль",
+            name_localizations={
+                Locale.en_GB: "role",
+                Locale.en_US: "role"
+            },
+            description="Роль, которую Вы хотите купить", 
+            description_localizations={
+                Locale.en_GB: "Role that you want to buy",
+                Locale.en_US: "Role that you want to buy"
+            },
+            required=True
+        )
+    ):
+        await self.buy(interaction=interaction, role=role)
+
+    
+    @slash_command(
+        name="store",
+        description="Shows store",
+        description_localizations={
+            Locale.ru : "Открывает меню магазина"
+        },
+        guild_ids=bot_guilds_e,
+        force_global=False
+    )
+    async def store_e(self, interaction: Interaction):
+        await self.store(interaction=interaction)
+    
+    
+    @slash_command(
+        name="store",
+        description="Открывает меню магазина",
+        description_localizations={
+            Locale.en_GB: "Shows store",
+            Locale.en_US: "Shows store"
+        },
+        guild_ids=bot_guilds_r,
+        force_global=False
+    )
+    async def store_r(self, interaction: Interaction):
+        await self.store(interaction=interaction)
+    
+
+    @slash_command(
+        name="sell", 
+        description="Sells the role",
+        description_localizations={
+            Locale.ru: "Совершает продажу роли"
+        },
+        guild_ids=bot_guilds_e,
+        force_global=False
+    )
+    async def sell_e(
+        self,
+        interaction: Interaction,
+        role: Role = SlashOption(
+            name="role",
+            name_localizations={
+                Locale.ru: "роль"
+            },
+            description="Your role that you want to sell",
+            description_localizations={
+                Locale.ru: "Ваша роль, которую Вы хотите продать"
+            },
+            required=True
+        )
+    ):
+        await self.sell(interaction=interaction, role=role)
+
+
+    @slash_command(
+        name="sell", 
+        description="Совершает продажу роли",
+        description_localizations={
+            Locale.en_GB: "Sells the role",
+            Locale.en_US: "Sells the role"
+        },
+        guild_ids=bot_guilds_r,
+        force_global=False
+    )
+    async def sell_r(
+        self,
+        interaction: Interaction,
+        role: Role = SlashOption(
+            name="роль",
+            name_localizations={
+                Locale.en_GB: "role",
+                Locale.en_US: "role"
+            },
+            description="Ваша роль, которую Вы хотите продать",
+            description_localizations={
+                Locale.en_GB: "Your role that you want to sell",
+                Locale.en_US: "Your role that you want to sell"
+            },
+            required=True
+        )
+    ):
+        await self.sell(interaction=interaction, role=role)
+
+
+    @slash_command(
+        name="profile", 
+        description="Shows your profile",
+        description_localizations={
+            Locale.ru: "Показывает меню Вашего профиля"
+        },
+        guild_ids=bot_guilds_e,
+        force_global=False
+    )
+    async def profile_e(self, interaction: Interaction):
+        await self.profile(interaction=interaction)
+
+
+    @slash_command(
+        name="profile", 
+        description="Показывает меню Вашего профиля",
+        description_localizations={
+            Locale.en_GB: "Shows your profile",
+            Locale.en_US: "Shows your profile"
+        },
+        guild_ids=bot_guilds_r,
+        force_global=False
+    )
+    async def profile_r(self, interaction: Interaction):
+        await self.profile(interaction=interaction)
+
+
+    @slash_command(
+        name="work", 
+        description="Allows to gain money",
+        description_localizations={
+            Locale.ru: "Позволяет заработать деньги"
+        },
+        guild_ids=bot_guilds_e,
+        force_global=False
+    )
+    async def work_e(self, interaction: Interaction):
+        await self.work(interaction=interaction)
+    
+
+    @slash_command(
+        name="work", 
+        description="Позволяет заработать деньги",
+        description_localizations={
+            Locale.en_GB: "Allows to gain money",
+            Locale.en_US: "Allows to gain money"
+        },
+        guild_ids=bot_guilds_r,
+        force_global=False
+    )
+    async def work_r(self, interaction: Interaction):
+        await self.work(interaction=interaction)
+    
+    
+    @slash_command(
+        name="duel", 
+        description="Make a bet",
+        description_localizations={
+            Locale.ru: "Сделать ставку"
+        },
+        guild_ids=bot_guilds_e,
+        force_global=False
+    )
+    async def duel_e(
+        self, 
+        interaction: Interaction, 
+        amount: int = SlashOption(
+            name="amount", 
+            name_localizations={
+                Locale.ru: "количество"
+            },
+            description="Bet amount",
+            description_localizations={
+                Locale.ru: "Сумма ставки"
+            },
+            required=True, 
+            min_value=1
+        )
+    ): 
+        await self.bet(interaction=interaction, amount=amount)
+
+    
+    @slash_command(
+        name="duel", 
+        description="Сделать ставку",
+        description_localizations={
+            Locale.en_GB: "Make a bet",
+            Locale.en_US: "Make a bet"
+        },
+        guild_ids=bot_guilds_r,
+        force_global=False
+    )
+    async def duel_r(
+        self, 
+        interaction: Interaction, 
+        amount: int = SlashOption(
+            name="количество", 
+            name_localizations={
+                Locale.en_GB: "amount",
+                Locale.en_US: "amount"
+            },
+            description="Сумма ставки",
+            description_localizations={
+                Locale.en_GB: "Bet amount",
+                Locale.en_US: "Bet amount"
+            },
+            required=True, 
+            min_value=1
+        )
+    ): 
+        await self.bet(interaction=interaction, amount=amount)
+
+    
+    @slash_command(
+        name="transfer", 
+        description="Transfers money to another member",
+        description_localizations={
+            Locale.ru: "Совершает перевод валюты другому пользователю"
+        },
+        guild_ids=bot_guilds_e,
+        force_global=False
+    )
+    async def transfer_e(
+        self,
+        interaction: Interaction, 
+        value: int = SlashOption(
+            name="value", 
+            name_localizations={
+                Locale.ru: "сумма"
+            },
+            description="Amount of money to transfer", 
+            description_localizations={
+                Locale.ru: "Переводимая сумма денег"
+            },
+            required=True, 
+            min_value=1
+        ),
+        target: Member = SlashOption(
+            name="target", 
+            name_localizations={
+                Locale.ru: "кому"
+            },
+            description="The member you want to transfer money to", 
+            description_localizations={
+                Locale.ru : "Пользователь, которому Вы хотите перевести деньги"
+            },
+            required=True
+        )
+    ):
+        await self.transfer(interaction=interaction, value=value, target=target)
+    
+
+    @slash_command(
+        name="transfer", 
+        description="Совершает перевод валюты другому пользователю",
+        description_localizations={
+            Locale.en_GB: "Transfers money to another member",
+            Locale.en_US: "Transfers money to another member"
+        },
+        guild_ids=bot_guilds_r,
+        force_global=False
+    )
+    async def transfer_r(
+        self,
+        interaction: Interaction, 
+        value: int = SlashOption(
+            name="сумма", 
+            name_localizations={
+                Locale.en_GB: "value",
+                Locale.en_US: "value"
+            },
+            description="Переводимая сумма денег", 
+            description_localizations={
+                Locale.en_GB: "Amount of money to transfer",
+                Locale.en_US: "Amount of money to transfer"
+            },
+            required=True, 
+            min_value=1
+        ),
+        target: Member = SlashOption(
+            name="кому", 
+            name_localizations={
+                Locale.en_US: "target",
+                Locale.en_GB: "target"
+            },
+            description= "Пользователь, которому Вы хотите перевести деньги",
+            description_localizations={
+                Locale.en_GB: "The member you want to transfer money to",
+                Locale.en_US: "The member you want to transfer money to"
+            },
+            required=True
+        )
+    ):
+        await self.transfer(interaction=interaction, value=value, target=target)
+
+    
+    @slash_command(
+        name="leaders", 
+        description="Shows top members by balance",
+        description_localizations={
+            Locale.ru: "Показывет топ пользователей по балансу"
+        },
+        guild_ids=bot_guilds_e,
+        force_global=False
+    )
+    async def leaders_e(self, interaction: Interaction):
+        await self.leaders(interaction=interaction)
+    
+
+    @slash_command(
+        name="leaders", 
+        description="Показывет топ пользователей по балансу",
+        description_localizations={
+            Locale.en_GB: "Shows top members by balance",
+            Locale.en_US: "Shows top members by balance"
+        },
+        guild_ids=bot_guilds_r,
+        force_global=False
+    )
+    async def leaders_r(self, interaction: Interaction):
+        await self.leaders(interaction=interaction)
     
     
     @commands.Cog.listener()
@@ -1669,4 +1813,4 @@ class slash(commands.Cog):
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{interaction.guild.id}] [{interaction.guild.name}] [{str(exception)}]\n")
 
 def setup(bot: commands.Bot, **kwargs):
-  bot.add_cog(slash(bot, **kwargs))
+    bot.add_cog(slash(bot, **kwargs))
