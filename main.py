@@ -21,9 +21,9 @@ async def on_ready():
     global bot_guilds_e
     global bot_guilds_r
     for guild in bot.guilds:
-        if not os.path.exists(f'{path}bases_{guild.id}'):
-            os.mkdir(f'{path}bases_{guild.id}/')
-            with closing(sqlite3.connect(f'{path}bases_{guild.id}/{guild.id}_store.db')) as base:
+        if not os.path.exists(f'{path_to}/bases/bases_{guild.id}'):
+            os.mkdir(f'{path_to}/bases/bases_{guild.id}/')
+            with closing(sqlite3.connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}_store.db')) as base:
                 with closing(base.cursor()) as cur:
                     try:
                         cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
@@ -56,7 +56,7 @@ async def on_ready():
                             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{guild.id}] [{guild.name}] [{str(E)}]\n")
                         
         else:
-            with closing(sqlite3.connect(f'{path}bases_{guild.id}/{guild.id}_store.db')) as base:
+            with closing(sqlite3.connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}_store.db')) as base:
                 with closing(base.cursor()) as cur:
                     lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                     if lng == 1:
@@ -64,7 +64,7 @@ async def on_ready():
                     else:
                         bot_guilds_e.add(guild.id)
     
-    
+    bot.load_extension(f"commands.basic", extras={"prefix": prefix, "in_row": in_row, "currency": currency})
     bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row, "currency": currency})
 
     await bot.discover_application_commands()
@@ -110,7 +110,6 @@ if __name__ == "__main__":
     for filename in os.listdir(f"{path}commands"):
         if filename.endswith(".py"):
             bot.load_extension(f"commands.{filename[:-3]}", extras={"prefix": prefix, "in_row": in_row, "currency": currency}) """
-    bot.load_extension(f"commands.basic", extras={"prefix": prefix, "in_row": in_row, "currency": currency})
     cmd.load_extension(f'console')
     cmd.start()
     print(f'\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}')
