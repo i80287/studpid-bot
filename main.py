@@ -1,117 +1,27 @@
-import asyncio
-import os
-import sqlite3
-from datetime import datetime, timedelta
-
 import nextcord
 from nextcord.ext import commands as cmds
-#from nextcord.abc import GuildChannel
-from contextlib import closing
 from colorama import Fore
 from dpyConsole import Console
 
 from config import *
 
 intents = nextcord.Intents.all()
-bot = cmds.Bot(command_prefix=cmds.when_mentioned_or(prefix), case_insensitive=True, intents=intents, help_command=None)
-cmd = Console(bot)
-
-@bot.event
-async def on_ready():
-    global bot_guilds_e
-    global bot_guilds_r
-    for guild in bot.guilds:
-        if not os.path.exists(f'{path_to}/bases/bases_{guild.id}'):
-            os.mkdir(f'{path_to}/bases/bases_{guild.id}/')
-            with closing(sqlite3.connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
-                with closing(base.cursor()) as cur:
-                    try:
-                        cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
-                        base.commit()
-                        cur.execute('CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, special INTEGER)')
-                        base.commit()
-                        cur.execute('CREATE TABLE IF NOT EXISTS outer_store(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, special INTEGER)')
-                        base.commit()
-                        cur.execute('CREATE TABLE IF NOT EXISTS money_roles(role_id INTEGER NOT NULL PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, last_time INTEGER)')
-                        base.commit()
-                        cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
-                        base.commit()
-
-                        lng = 1 if "ru" in guild.preferred_locale else 0
-                        r = [
-                            ('lang', lng), ('log_channel', 0), ('error_log', 0), 
-                            ('mod_role', 0), ('tz', 0), ('time_r', 14400), 
-                            ('sal_l', 1), ('sal_r', 250), ('uniq_timer', 14400)
-                        ]
-                        cur.executemany("INSERT INTO server_info(settings, value) VALUES(?, ?)", r)
-                        base.commit()
-                        if lng == 1:
-                            bot_guilds_r.add(guild.id)
-                        else:
-                            bot_guilds_e.add(guild.id)
-
-                    except Exception:
-                        base.rollback()
-                        with open("d.log", "a+", encoding="utf-8") as f:
-                            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{guild.id}] [{guild.name}] [{str(Exception)}]\n")
-                        
-        else:
-            with closing(sqlite3.connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
-                with closing(base.cursor()) as cur:
-                    lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                    if lng == 1:
-                        bot_guilds_r.add(guild.id)
-                    else:
-                        bot_guilds_e.add(guild.id)
-    
-    bot.load_extension(f"commands.basic", extras={"prefix": prefix, "in_row": in_row, "currency": currency})
-    bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row, "currency": currency})
-
-    await bot.discover_application_commands()
-    await asyncio.sleep(10)
-    await bot.sync_all_application_commands()
-
-    """ 
-    await bot.update_application_commands()
-    await bot.associate_application_commands()
-    await bot.register_new_application_commands()
-    bot.add_all_application_commands()
-    """
-    
-    """ global appcmds_e
-    global appcmds_r
-
-    for cmd in bot.get_all_application_commands():
-        if any(x in bot_guilds_e for x in cmd.guild_ids):
-            appcmds_e.append(cmd)
-            print("e", cmd.name, cmd.guild_ids)
-        else:
-            appcmds_r.append(cmd)
-            print("r", cmd.name, cmd.guild_ids) """
 
 
-    print(f'{Fore.CYAN}[>>>]Logged into Discord as {bot.user}\n')
-
-    opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
-        f'\n{Fore.GREEN} 1) recover <guild_id> - recovers database for selected server from restore file (guild_id_shop_res.db)\n' \
-        f'{Fore.RED}   Warning: if old database exists, it will be restored to default and all infromation will be lost.\n' \
-        f'\n{Fore.GREEN} 2) backup <guild_id> - creates a copy of database for selected server (guild_id_shop_res.db)\n' \
-        f'\n 3) setup <guild_id> - creates and setups new database for selected server.\n' \
-        f'{Fore.RED}   Warning: if old database exists, it will be restored to default and all infromation will be lost.\n'\
-        f'{Fore.RED}\n[>>>]Enter command:'
-
-    print(opt, end=' ')
-    #status=nextcord.Status.dnd,
-    await bot.change_presence(activity=nextcord.Game("/help"))
-
+class Bot(cmds.Bot):
+    def __init__(self) -> None:
+        super().__init__(command_prefix=cmds.when_mentioned_or(prefix), case_insensitive=True, intents=intents, help_command=None)
 
 if __name__ == "__main__":
     """
     for filename in os.listdir(f"{path}commands"):
         if filename.endswith(".py"):
             bot.load_extension(f"commands.{filename[:-3]}", extras={"prefix": prefix, "in_row": in_row, "currency": currency}) """
+    bot = Bot()
+    cmd = Console(bot)
     cmd.load_extension(f'console')
     cmd.start()
     print(f'\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}')
     #bot.run(token)
+    bot.load_extension(f"commands.event_handl", extras={"prefix": prefix, "in_row": in_row})
     bot.run(debug_token)

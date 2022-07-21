@@ -9,7 +9,7 @@ from nextcord.ext import commands
 from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Locale, ui, SelectOption, slash_command, Role, Member
 from nextcord.ui import Button, View
 
-from config import path_to, bot_guilds_e, bot_guilds_r
+from config import path_to, bot_guilds_e, bot_guilds_r, currency
 
 class bet_slash_r(View):
 
@@ -796,17 +796,13 @@ class rating_slash_e(View):
 
 class slash(commands.Cog):
 
-    def __init__(self, bot: commands.Bot, prefix: str, in_row: int, currency: str):
+    def __init__(self, bot: commands.Bot, prefix: str, in_row: int):
         self.bot = bot
         self.prefix = prefix
         self.in_row = in_row
         self.currency = currency
         global bot_guilds_e
-        global bot_guilds_r
-        global cmds
-        #(f"`{prefix}quick`", "Starts quick setup of all bot's settings")
-        #(f"`{prefix}quick`", "Начинает быструю настройку параметров бота")
-        
+        global bot_guilds_r        
 
         global text_slash
         text_slash = {

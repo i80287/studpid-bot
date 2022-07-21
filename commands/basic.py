@@ -15,116 +15,117 @@ from nextcord.ui import View, Button, button
 from config import *
 
 guide = {
-            0 : {
-                0 : "The guide",
-                1 : "Economic operations with the roles",
-                2 : "In order to make role able to be bought and sold on the server and it could bring money you should add it to the list of roles, available for the purchase/sale via commands \
-                    **`{}manage_role`** or **`{}list`** (see **`/help`** -> \"⚙️\" -> **`manage_role`**, **`/help`** -> \"⚙️\" -> **`list`**). First command allows you to manage role and second one \
-                    allows to see list of roles, available for the purchase/sale ans add/remove roles to/from this list",
-                3 : "Bot devides roles on three types:",
-                4 : "0, 1 and 2",
-                5 : "Type 0",
-                6 : "\"Nonstacking\" roles, that are not stacking in the store (are shown as different items in the store)",
-                7 : "Type 1",
-                8 : "\"Stacking\" roles that are stacking in the store (are shown as one item with quantity)",
-                9 : "Type 2",
-                10 : "\"Infinite\" roles that can't run out in the store (you can buy them endless times)",
-                11 : "Salary of the roles",
-                12 : "Each role can have passive salary: once per every cooldown time (see **`/help`** -> \"⚙️\" -> **`salary_timer`**) members that have this role on their balance will gain money \
-                    (salary) that is selected by **`{}manage_role`** (see **`/help`** -> \"⚙️\" -> **`manage_role`**)",
-                13 : "Work",
-                14 : "Members can gain money by using **`/work`** command. Amount of gained money is set by **`{}work_salary`** (see **`/help`** -> \"⚙️\" -> **`work_salary`**). Cooldown for the command \
-                    is set by **`{}work_cooldown`** (see **`/help`** -> \"⚙️\" -> **`work_cooldown`**)",
-                15 : "Rank system",
-                16 : "For each message members gains xp set by **`{}xp_per_msg`** (see **`/help`** -> \"⚙️\" -> **`xp_per_msg`**) After achieving border of the level set by **`{}border`** \
-                    (see **`/help`** -> \"⚙️\" -> **`border`**) their level growths. For each new level bot can add (and for old - remove) role set by **`{}role_per_lvl`** \
-                    (see **`/help`** -> \"⚙️\" -> **`role_per_lvl`**)",
-                17 : "Money for messages",
-                18 : "Besides the xp members can gain money for every message. \"Rate\", \"price for the message\" is set by **`{}rate`** (see **`/help`** -> \"⚙️\" -> **`rate`**). If you want to turn off \
-                    this function you can make this value equal to 0",
-                19 : "For the first setup of the bot we are strognly recommending to use {}setup"
-            },
-            1 : {
-                0 : "Гайд",
-                1 : "Экономические операции с ролями",
-                2 : "Чтобы роль можно было покупать и продавать на сервере, а также она могла приносить заработок, нужно добавить её в список ролей, \
-                    доступных для покупки/продажи на сервере при помощи команд **`{}manage_role`** или **`{}list`** (см. **`/help`** -> \"⚙️\" -> **`manage_role`**, **`/help`** -> \"⚙️\" -> **`list`**) \
-                    С помощью первой команды можно управлять ролью, а с помощью второй - просматривать список доступных для покупки/продажи ролей и добавлять/убирать их",
-                3 : "Бот делит роли на 3 типа:",
-                4 : "0, 1 и 2",
-                5 : "Тип 0",
-                6 : "\"Нестакающиеся\" роли, которые не стакаются в магазине (т.е. отображаются как отдельные товары)",
-                7 : "Тип 1",
-                8 : "\"Стакающиеся\" роли, которые стакаются в магазине (т.е. отображаются как один товар с указанным количеством)",
-                9 : "Тип 2",
-                10 : "\"Бесконечные\" роли, которые не заканчиваются в магазине (т.е. их можно купить бесконечное количество раз)",
-                11 : "Заработок роли",
-                12 : "Каждая роль может иметь пассивный заработок: раз в некоторое установленно время (см. **`/help`** -> \"⚙️\" -> **`salary_timer`**) участники, на балансе \
-                    которых находится эта роль, получают заработок, установленный для каждой роли командой **`{}manage_role`** (см. **`/help`** -> \"⚙️\" -> **`manage_role`**)",
-                13 : "Работа",
-                14 : "Пользователи могут получать деньги за использование команды **`/work`**. Заработок определяется командой **`{}work_salary`** (см. **`/help`** -> \"⚙️\" -> **`work_salary`**). \
-                    Кулдаун команды определяется командой **`{}work_cooldown`** (см. **`/help`** -> \"⚙️\" -> **`work_cooldown`**)",
-                15 : "Система рангов",
-                16 : "За каждое сообщение на сервере пользователь получает xp, установленное командов **`{}xp_per_msg`** (см. **`/help`** -> \"⚙️\" -> **`xp_per_msg`**) По достижении границы уровня, \
-                    установленной командой **`{}border`** (см. **`/help`** -> \"⚙️\" -> **`border`**), уровень пользователя повышается. За каждый новый уровень бот может выдавать (а за пройденный - снимать) \
-                    роль, установленную командой **`{}role_per_lvl`** (см. **`/help`** -> \"⚙️\" -> **`role_per_lvl`**) для каждого уровня.",
-                17 : "Деньги за сообщения",
-                18 : "За каждое сообщение пользователь получает не только опыт, но и деньги. \"Курс\", \"цена сообщения\", определяется командой **`{}rate`** (см. **`/help`** -> \"⚙️\" -> **`rate`**). \
-                    Если Вы хотите отключить эту функцию, Вы можете установить это значение равным нулю",
-                19 : "Для начальной настройки бота мы настоятельно рекомендуем вызвать команду {}setup"
-            }
-        }
+    0 : {
+        0 : "The guide",
+        1 : "Economic operations with the roles",
+        2 : "In order to make role able to be bought and sold on the server and it could bring money you should add it to the list of roles, available for the purchase/sale via \
+            commands **`{}manage_role`** or **`{}list`** (see **`/help`** -> \"⚙️\" -> **`manage_role`**, **`/help`** -> \"⚙️\" -> **`list`**). First command allows you to \
+            manage role and second one allows to see list of roles, available for the purchase/sale ans add/remove roles to/from this list",
+        3 : "Bot devides roles on three types:",
+        4 : "0, 1 and 2",
+        5 : "Type 0",
+        6 : "\"Nonstacking\" roles, that are not stacking in the store (are shown as different items in the store)",
+        7 : "Type 1",
+        8 : "\"Stacking\" roles that are stacking in the store (are shown as one item with quantity)",
+        9 : "Type 2",
+        10 : "\"Infinite\" roles that can't run out in the store (you can buy them endless times)",
+        11 : "Salary of the roles",
+        12 : "Each role can have passive salary: once per every cooldown time (see **`/help`** -> \"⚙️\" -> **`salary_timer`**) members that have this role on their balance will \
+            gain money (salary) that is selected by **`{}manage_role`** (see **`/help`** -> \"⚙️\" -> **`manage_role`**)",
+        13 : "Work",
+        14 : "Members can gain money by using **`/work`** command. Amount of gained money is set by **`{}work_salary`** (see **`/help`** -> \"⚙️\" -> **`work_salary`**). Cooldown \
+            for the command is set by **`{}work_cooldown`** (see **`/help`** -> \"⚙️\" -> **`work_cooldown`**)",
+        15 : "Rank system",
+        16 : "For each message members gains xp set by **`{}xp_per_msg`** (see **`/help`** -> \"⚙️\" -> **`xp_per_msg`**) After achieving border of the level set by **`{}border`** \
+            (see **`/help`** -> \"⚙️\" -> **`border`**) their level growths. For each new level bot can add (and for old - remove) role set by **`{}role_per_lvl`** \
+            (see **`/help`** -> \"⚙️\" -> **`role_per_lvl`**)",
+        17 : "Money for messages",
+        18 : "Besides the xp members can gain money for every message. Amount of money gained from message is set by **`{}money_per_msg`** (see **`/help`** -> \"⚙️\" -> \
+            **`money_per_msg`**). If you want to turn off this function you can make this value equal to 0",
+        19 : "For the first setup of the bot we are strognly recommending to use {}setup"
+    },
+    1 : {
+        0 : "Гайд",
+        1 : "Экономические операции с ролями",
+        2 : "Чтобы роль можно было покупать и продавать на сервере, а также она могла приносить заработок, нужно добавить её в список ролей, \
+            доступных для покупки/продажи на сервере при помощи команд **`{}manage_role`** или **`{}list`** (см. **`/help`** -> \"⚙️\" -> **`manage_role`**, **`/help`** -> \"⚙️\" -> **`list`**) \
+            С помощью первой команды можно управлять ролью, а с помощью второй - просматривать список доступных для покупки/продажи ролей и добавлять/убирать их",
+        3 : "Бот делит роли на 3 типа:",
+        4 : "0, 1 и 2",
+        5 : "Тип 0",
+        6 : "\"Нестакающиеся\" роли, которые не стакаются в магазине (т.е. отображаются как отдельные товары)",
+        7 : "Тип 1",
+        8 : "\"Стакающиеся\" роли, которые стакаются в магазине (т.е. отображаются как один товар с указанным количеством)",
+        9 : "Тип 2",
+        10 : "\"Бесконечные\" роли, которые не заканчиваются в магазине (т.е. их можно купить бесконечное количество раз)",
+        11 : "Заработок роли",
+        12 : "Каждая роль может иметь пассивный заработок: раз в некоторое установленно время (см. **`/help`** -> \"⚙️\" -> **`salary_timer`**) участники, на балансе \
+            которых находится эта роль, получают заработок, установленный для каждой роли командой **`{}manage_role`** (см. **`/help`** -> \"⚙️\" -> **`manage_role`**)",
+        13 : "Работа",
+        14 : "Пользователи могут получать деньги за использование команды **`/work`**. Заработок определяется командой **`{}work_salary`** (см. **`/help`** -> \"⚙️\" -> **`work_salary`**). \
+            Кулдаун команды определяется командой **`{}work_cooldown`** (см. **`/help`** -> \"⚙️\" -> **`work_cooldown`**)",
+        15 : "Система рангов",
+        16 : "За каждое сообщение на сервере пользователь получает xp, установленное командов **`{}xp_per_msg`** (см. **`/help`** -> \"⚙️\" -> **`xp_per_msg`**) По достижении границы уровня, \
+            установленной командой **`{}border`** (см. **`/help`** -> \"⚙️\" -> **`border`**), уровень пользователя повышается. За каждый новый уровень бот может выдавать (а за пройденный - снимать) \
+            роль, установленную командой **`{}role_per_lvl`** (см. **`/help`** -> \"⚙️\" -> **`role_per_lvl`**) для каждого уровня.",
+        17 : "Деньги за сообщения",
+        18 : "За каждое сообщение пользователь получает не только опыт, но и деньги. Количество денег, получаемое за сообщение, определяется командой **`{}money_per_msg`** \
+            (см. **`/help`** -> \"⚙️\" -> **`money_per_msg`**). Если Вы хотите отключить эту функцию, Вы можете установить это значение равным нулю",
+        19 : "Для начальной настройки бота мы настоятельно рекомендуем вызвать команду {}setup"
+    }
+}
+
 zones = {
-            "0" : 0,
-            "1" : 1,
-            "2" : 2,
-            "3" : 3,
-            "4" : 4,
-            "5" : 5,
-            "6" : 6,
-            "7" : 7,
-            "8" : 8,
-            "9" : 9,
-            "10" : 10,
-            "11" : 11,
-            "12" : 12,
-            "-1" : -1,
-            "-2" : -2,
-            "-3" : -3,
-            "-4" : -4,
-            "-5" : -5,
-            "-6" : -6,
-            "-7" : -7,
-            "-8" : -8,
-            "-9" : -9,
-            "-10" : -10,
-            "-11" : -11,
-            "-12" : -12,
-            "UTC" : 0,
-            "BST" : 1,
-            "CET" : 1,
-            "BST" : 1,
-            "EET" : 2,
-            "MSK" : 3,
-            "SAMT" : 4,
-            "YEKT" : 5,
-            "QYZT" : 6,
-            "KRAT" : 7,
-            "IRKT" : 8,
-            "YAKT" : 9,
-            "JST" : 9,
-            "VLAT" : 10,
-            "MAGT" : 11,
-            "PETT" : 12,
-            "EDT" : -4,
-            "CDT" : -5,
-            "MDT" : -6,
-            "MST" : -7,
-            "PDT" : -7,
-            "AKDT" : -8,
-            "HDT" : -9,
-            "HST" : -10
-        }
+    "0" : 0,
+    "1" : 1,
+    "2" : 2,
+    "3" : 3,
+    "4" : 4,
+    "5" : 5,
+    "6" : 6,
+    "7" : 7,
+    "8" : 8,
+    "9" : 9,
+    "10" : 10,
+    "11" : 11,
+    "12" : 12,
+    "-1" : -1,
+    "-2" : -2,
+    "-3" : -3,
+    "-4" : -4,
+    "-5" : -5,
+    "-6" : -6,
+    "-7" : -7,
+    "-8" : -8,
+    "-9" : -9,
+    "-10" : -10,
+    "-11" : -11,
+    "-12" : -12,
+    "UTC" : 0,
+    "BST" : 1,
+    "CET" : 1,
+    "BST" : 1,
+    "EET" : 2,
+    "MSK" : 3,
+    "SAMT" : 4,
+    "YEKT" : 5,
+    "QYZT" : 6,
+    "KRAT" : 7,
+    "IRKT" : 8,
+    "YAKT" : 9,
+    "JST" : 9,
+    "VLAT" : 10,
+    "MAGT" : 11,
+    "PETT" : 12,
+    "EDT" : -4,
+    "CDT" : -5,
+    "MDT" : -6,
+    "MST" : -7,
+    "PDT" : -7,
+    "AKDT" : -8,
+    "HDT" : -9,
+    "HST" : -10
+}
 zone_text = {
     "UTC" : "Coordinated Universal Time, UTC+0",
     "BST" : "British Summer Time, UTC+1",
@@ -206,143 +207,6 @@ questions = {
         9 : "Напишите cancel для остановки настроек"
     }
 }
-ryad = "{-12; -11; ...; 11; 12}"  
-help_menu = {
-    0 : {
-        "guide" : f"`{prefix}guide` show guide about bot's settings",
-        
-        "setup" : f"`{prefix}setup` starts setup of all bot's settings",
-
-        "set" : f"`{prefix}set` `role` `quantity` - sets the quantity of selected role for selling in store. If quantity <= 0, then role will be removed from store. If \
-        role not in the list of roles available for the purchase/sale, add it via the `{prefix}add` command\n\n**Example:**\n**`{prefix}set`** **`972494065088200745`** \
-        **`5`** sets 5 roles with id 972494065088200745 (you can use mention with @ instead of id) selling in the store",
-
-        "update_cash" : f"`{prefix}update_cash` `member` `value` sets cash of the member **equal** to selected value. \n\n**Example:**\n**`{prefix}update_cash`** \
-        **`931273285268832326`** **`100`** will set user's cash **equal** to 100 {currency} (you can mention user with @ instead of him id)",
-
-        "add" : f"`{prefix}add` `role` `price` `type_of_role` `salary (for unique roles)` adds role to the list of roles available for the purchase/sale.\
-        Types of role:\n**`0`** is for unique, which has salary;\n**`1`** is for common, has quantity in the store;\n**`2`** is for infinite (can't run out in the store).\
-        \nMore info via **`{prefix}guide`**\n\n**Example:**\n**`{prefix}add`** **`972494065088200745`** **`100`** **`0`** **`10`** adds role with id 972494065088200745 \
-        (you can use mention with @ instead of id) to the list, it costs 100 {currency}, unique and brigns it's owner 10 {currency} one per every unique's roles cooldown \
-        (see **`{prefix}help_m`** **`uniq_timer`**)",
-
-        "remove" : f"`{prefix}remove` `role` - removes role from list of available for the purchase/sale. Also removes this role from the store. **All information about \
-        the role will be lost!**\n\n**Example:**\n**`{prefix}remove`** **`972494065088200745`** will remove role with id 972494065088200745 (you can use mention with \
-        @ instead of id) from list of roles available for the purchase/sale on the server, also all information about the role will be deleted",
-
-        "update_price" : f"`{prefix}update_price` `role` `price` changes role's price and makes it **equal** to the selected price\n\n**Example:**\n**`{prefix}update_price`** \
-        **`972494065088200745`** **`100`** sets price of role with id 972494065088200745 (you can use mention with @ instead of id) **equal** to 100 {currency}",
-
-        "list" : f"`{prefix}list` - shows the list of roles available for the purchase/sale",
-
-        "give_unique" : f"`{prefix}give_unique` `member` `role` adds unique role to the balance of member so he could start getting money from this role (also role can \
-        be added if user calls command `/balance`)\n\n**Example:**\n**`{prefix}give_unique`** **`931273285268832326`** **`972494065088200745`** will add role with id \
-        972494065088200745 (you can use mention with @ instead of id) to the balance of user with id 931273285268832326 (you can use mention with @ instead of id) so \
-        he could start getting money from that role",
-
-        "mod_role" : f"`{prefix}mod_role` `role` gives permissions to use commands from `{prefix}help_m` for the selected role. Server can only have one role selected for \
-        this\n\n**Example:**\n**`{prefix}mod_role`** **`972494065088200745`** will select role with id 972494065088200745 (you can use mention with @ instead of id) as \
-        economic mod role, so users with this role will be able to use commands from `{prefix}help_m`",
-        
-        "log" : f"`{prefix}log` `text_channel` selects log channel for economic operations\n\n**Example:**\n**`{prefix}log`** **`863462268934422540`** will select **text** \
-        channel with id 863462268934422540 (you can use mention with # instead of id) as log channel",
-
-        "language" : f"`{prefix}language` `lang` selects language for the mod commands and names and descriptions of the slash commands. Can be **`Eng`** (no matter Eng, eng, \
-        eNg etc.) for English and **`Rus`** (no matter Rus, rus, rUs etc.) for Russian.\n\n**Example:**\n**`{prefix}language`** **`eng`** will select English language",
-
-        "time_zone" : f"`{prefix}time_zone` `name_of_time_zone_from_{prefix}zones or \nhour_difference_with_'-'_if_needed` selects **`UTC`**±**`X`**, **`X`** Є {ryad}, \
-        format for the server. \n\n**Example:**\n**`{prefix}time_zone`** **`EDT`** will set time zone of Eastern Daylight Time UTC-4, **`{prefix}time_zone`** **`-7`** \
-        will set time zone UTC-7",
-
-        "zones" : f"`{prefix}zones` shows available pre-named time zones",
-
-        "work_timer" : f"`{prefix}work_timer` `time_in_seconds` sets cooldown for command `/work`\n\n**Example:**\n**`{prefix}work_timer`** **`10800`** will set 3 hours \
-        cooldown (10800 seconds = 3 hours) for command `/work`",
-
-        "salary" : f"`{prefix}salary` `left_border` `right_border` sets borders for amount of money gained from command `/work`. This amount will be random integer number \
-        Є [left; right]. Both are integer non-negative numbers, right one must be at least as large as the left\n\n**Example:**\n**`{prefix}salary`** **`10`** \
-        **`100`** changes amount of cash gained from `/work`, and this amount will be random integer from 10 to 100 (amount Є [10; 100])",
-
-        "uniq_timer" : f"`{prefix}uniq_timer` `time_in_seconds` sets cooldown for accruing money from unique roles (type of roles - 0).\n\n**Example:**\n\
-        **`{prefix}uniq_timer`** **`10800`** will set 3 hours cooldown (10800 seconds = 3 hours)",
-
-        "settings" : f"`{prefix}settings` shows menu with current bot's settings",
-
-        "reset" : f"`{prefix}reset` resets current bot's settings",
-
-        "balance_of" : f"`{prefix}balance_of` `member` shows balance of the selected member\n\n**Пример:**\n**`{prefix}balance_of`** **`931273285268832326`** will show balance \
-        of user with id 931273285268832326 (you can use mention with @ instead of id)"
-
-    },
-    1 : {
-        "guide" : f"`{prefix}guide` показывает гайд об экономической системе бота",
-
-        "setup" : f"`{prefix}setup` начинает настройку параметров бота",
-
-        "set" : f"`{prefix}set` `роль` `количество` устанавливает количество продаваемых в магазине ролей. Если количество <= 0, то роль будет убрана из магазина. Если роли \
-        нет в списке ролей, доступных для покупки/продажи на сервере , добавьте её при помощи команды `{prefix}add`. Для количества бесконечных ролей можно указать любое \
-        целое число.\n\n**Пример:**\n**`{prefix}set`** **`972494065088200745`** **`5`** сделает так, что в магазине будут продаваться 5 ролей с id 972494065088200745 \
-        (Вы можете упомянуть роль при помощи @ вместо id)",
-
-        "update_cash" : f"`{prefix}update_cash` `участник` `сумма` изменяет баланс учатсника и делает его **равным** указанной сумме.\
-        \n\n**Пример:**\n**`{prefix}update_cash`** **`931273285268832326`** **`100`** сделает баланс пользователя с id 931273285268832326 (Вы можете упомянуть пользователя при \
-        помощи @ вместо id) **равным** 100 {currency}",
-
-        "add" : f"`{prefix}add` `роль` `цена` `тип_роли` `зарплата (для уникальных ролей)` добавляет роль в список ролей, доступных для покупки/продажи на сервере. \
-        Тип роли:\n**`0`**, если уникальная, т.е. имеющая пассивный заработок;\n**`1`**, если обычная, то есть конечная;\n**`2`**, если бесконечная (не может закончиться \
-        в магазине)\nПодробнее - **`{prefix}guide`**\n\n**Пример:**\n**`{prefix}add`** **`972494065088200745`** **`100`** **`0`** **`10`** добавит роль с id \
-        972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) в список, она будет уникальной, будет стоить 100 {currency} и приносить своему владельцу \
-        10 {currency} один раз за время кулдауна (см. **`{prefix}help_m`** **`uniq_timer`**)",
-
-        "remove" : f"`{prefix}remove` `роль` - убирает роль из списка ролей, доступных для покупки/продажи на сервере. Также удаляет эту роль из магазина. **Вся информация о роли \
-        будет потеряна!**\n\n**Пример:**\n**`{prefix}remove`** **`972494065088200745`** удалит роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) из \
-        списка ролей, доступных для покупки/продажи на сервере, и из магазина, а также удалит информацию о роли (её цена, тип и заработок)",
-
-        "update_price" : f"`{prefix}update_price` `роль` `цена` изменяет цену роли и делает её **равной** указанной цене\n\n**Пример:**\n**`{prefix}update_price`** \
-        **`972494065088200745`** **`100`** сделает цену роли с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) **равной** 100 {currency}",
-
-        "list" : f"`{prefix}list` показывет список ролей, доступных для покупки/продажи на сервере",
-
-        "give_unique" : f"`{prefix}give_unique` `участник` `роль`- добавляет уникальную роль на личный баланс пользователя, чтобы он начал получать пассивный заработок \
-        (также это можно сделать, если пользователь вызовет команду `/balance`)\n\n**Пример:**\n**`{prefix}give_unique`** **`931273285268832326`** **`972494065088200745`** запишет \
-        роль c id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) на баланс пользователя с id 931273285268832326 (Вы можете упомянуть пользователя при помощи @ вместо id), \
-        чтобы он смог получать пассивный заработок с этой роли",
-
-        "mod_role" : f"`{prefix}mod_role` `роль` выбирает роль в качестве роли модератора экономики для доступа к командам из `{prefix}help_m`. На сервере может быть только \
-        одна такая роль.\n\n**Пример:**\n**`{prefix}mod_role`** **`972494065088200745`** выберет роль с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) \
-        в качестве роли модератора экономики. Юзеры с этой ролью смогу использовать команды из списка команды `{prefix}help_m` и управлять настройками бота",
-
-        "log" : f"`{prefix}log` `текстовый_канал` устанавливает выбранный для хранения логов об операциях\n\n**Пример:**\n**`{prefix}log`** **`863462268934422540`** установит \
-        канал с id 863462268934422540 (Вы можете упомянуть канал при помощи #, а не id) в качестве канала для логов бота",
-
-        "language" : f"`{prefix}language` `язык` устанавливает выбранный язык для команд модераторов и названия и описания слэш команды. Доступны: **`Eng`** \
-        (регистр не важен) - для английского и **`Rus`** (регистр не важен) - для русского.\n\n**Пример:**\n**`{prefix}language`** **`rus`** установит русский язык",
-
-        "time_zone" : f"`{prefix}time_zone` `имя_часового_пояса_из_списка или часовой_сдвиг_от_UTC_со_знаком_'-'_при_необходимости` устанавливает формат времени **`UTC`**±**`X`**, \
-        **`X`** Є {ryad}, для сервера. \n\n**Пример:**\n**`{prefix}time_zone`** **`YAKT`** установит часовой пояс Якутска UTC+9, а **`{prefix}time_zone`** **`-7`** установит \
-        часовой пояс UTC-7",
-
-        "zones" : f"`{prefix}zones` показывет доступные именные часовые пояса",
-
-        "work_time" : f"`{prefix}work_time` `время_в_секундах` устанавливает кулдаун для использования команды `/work`\n\n**Пример:**\n**`{prefix}work_timer`** **`10800`** \
-        установит кулдаун, равный 3 часам (10800 секунд = 3 часа), для команды `/work`",
-
-        "salary" : f"`{prefix}salary` `левая_граница` `правая_граница` устанавливает количество денег, получаемое после использования команды /work. Это количество будет целым \
-        числом Є [левая_граница; правая_граница]. Оба числа должны быть целыми неотрицательными числами, правая граница должна быть не меньше левой.\n\n**Пример:**\n\
-        **`{prefix}salary`** **`10`** **`100`** изменяет заработок, получаемый после использования команды `/work`, этот заработок будет рандомным целым числом от 10 до 100 (заработок Є [10; 100])",
-        
-        "uniq_timer" : f"`{prefix}uniq_timer` `время_в_секундах` устанавливает перерыв между начислением денег участникам с уникальными ролями (тип ролей - 0).\n\n**Пример:**\n\
-        **`{prefix}uniq_timer`** **`10800`** установит перерыв, равный 3 часам (10800 секунд = 3 часа)",
-
-        "settings" : f"`{prefix}settings` вызывает меню, в котором отображены текущие настройки бота",
-        
-        "reset" : f"`{prefix}reset` сбрасывает текущие настройки бота",
-
-        "balance_of" : f"`{prefix}balance_of` `участник` показывает баланс выбранного участника\n\n**Пример:**\n**`{prefix}balance_of`** **`931273285268832326`** покаже баланс \
-        пользователя с id 931273285268832326 (Вы можете упомянуть пользователя при помощи @ вместо id)"
-
-    }
-}
 
 help_text = {
     0 : {
@@ -418,61 +282,178 @@ m_general_cmds = {
         ("`{}guide`", "Show guide about bot's settings"),
         ("`{}setup`", "Start setup of all bot's settings"),
         ("`{}settings`", "Show menu with current bot's settings"),
-        ("`{}language`", "Select language"),
+        ("`{}language` `language`", "Select language"),
         ("`{}zones`", "Show available pre-named time zones"),
-        ("`{}time_zone`", "Select timezone for the server"), 
+        ("`{}time_zone` `time_zone`", "Select timezone for the server"), 
         ("`{}mod_role`", "Show menu to manage mod roles"), 
-        ("`{}set_rate`", "Set rate for the \"price of the message\" (see guide)"),
+        ("`{}money_per_msg` `amount`", "Set amount of money gained by member from message"),
         ("`{}reset`", "Reset bot's settings")
     ],
     1 : [
         ("`{}guide`", "Показать гайд о настройках бота"),
         ("`{}setup`", "Начать настройки параметров бота"),
         ("`{}settings`", "Показать текущие настройки бота"),
-        ("`{}language`", "Выбрать язык"),
+        ("`{}language` `язык`", "Выбрать язык"),
         ("`{}zones`", "Показать именные часовые поясв"),
-        ("`{}time_zone`", "Установить часовой пояс сервера"), 
-        ("`{}mod_role`", "Показать меню управления ролями модераторов"), 
-        ("`{}set_rate`", "Установить \"цену за сообщение\" (см. гайд)"),
+        ("`{}time_zone` `часовой пояс`", "Установить часовой пояс сервера"), 
+        ("`{}mod_role`", "Вызывет меню управления ролями модераторов"), 
+        ("`{}money_per_msg` `количество`", "Установить количество денег, получаемое пользователем за сообщение"),
         ("`{}reset`", "Сбросить настройки бота")
     ]
 }
 m_ec_cmds = {
     0 : [
         ("`{}available_roles`", "Call menu to manage roles available for purchase/sale (see guide)"), 
-        ("`{}manage_role`", "Call menu to manage role in the economic system"), 
-        ("`{}salary_timer`", "Set cooldown for salary for roles with it"), 
-        ("`{}work_salary`", "Set amount of money gained from `/work`"), 
-        ("`{}work_cooldown`", "Set cooldown for `/work` command"), 
+        ("`{}manage_role` `role`", "Call menu to manage role in the economic system"), 
+        ("`{}salary_timer` `cooldown`", "Set cooldown for salary for roles with it"), 
+        ("`{}work_salary` `left_border` `right_border`", "Set amount of money gained from `/work`"), 
+        ("`{}work_cooldown` `cooldown`", "Set cooldown for `/work` command"), 
         ("`{}log_economy`", "Call menu to manage log channel for economy")
     ],
     1 : [
         ("`{}available_roles`", "Вызвать меню управления ролями, доступными для покупки/продажи на сервере (см. гайд)"), 
-        ("`{}manage_role`", "Вызвать меню для управления ролью в экономической системе бота"), 
-        ("`{}salary_timer`", "Установить кулдаун для зараплат ролей, которые приносят деньги"), 
-        ("`{}work_salary`", "Установить получаемый доход от команды `/work`"), 
-        ("`{}work_cooldown`", "Установить кулдаун для команды `/work`"), 
+        ("`{}manage_role` `роль`", "Вызвать меню для управления ролью в экономической системе бота"), 
+        ("`{}salary_timer` `кулдаун`", "Установить кулдаун для зараплат ролей, которые приносят деньги"), 
+        ("`{}work_salary` `левая_граница` `правая_граница`", "Установить доход, получаемый от команды `/work`"), 
+        ("`{}work_cooldown` `кулдаун`", "Установить кулдаун для команды `/work`"), 
         ("`{}log_economy`", "Вызвать меню управления каналом для логов экономики")
     ]
 }
 m_rnk_cmds = {
     0 : [
-        ("`{}border`", "Set xp border for new level"), ("`{}xp_per_msg`", "Set xp gained from 1 message"), 
+        ("`{}border` `amount_of_xp`", "Set xp border that members need to get for new level"), 
+        ("`{}xp_per_msg` `amount_of_xp`", "Set xp gained from 1 message"), 
         ("`{}ic`", "Call menu to manage ignored channels, where members can't gain xp from message"), 
         ("`{}alert_channel`", "Call menu to manage alert channel where members are notificated about new level"), 
         ("`{}roles_per_lvl`", "Call menu to manage levels and roles gained for them"), 
-        ("`{}update`", "Update member's roles if they aren't matches his level")
+        ("`{}manage_member` `member`", "Call menu to manage member")
     ],
     1 : [
-        ("`{}border`", "Установить опыт, который необходимо набрать для получения нового уровня"), 
-        ("`{}xp_per_msg`", "Установить опыт, получаемый за 1 сообщение"), 
-        ("`{}ic`", "Вызвать меню управления игнорируемыми каналами, где пользователи не получают опыт за сообщения"), 
+        ("`{}border` `опыт`", "Установить опыт, который необходимо набрать для получения нового уровня"), 
+        ("`{}xp_per_msg` `опыт`", "Установить опыт, получаемый за 1 сообщение"), 
+        ("`{}ic`", "Вызвать меню управления игнорируемыми каналами, в которых пользователи не получают опыт за сообщения"), 
         ("`{}alert_channel`", "Вызвать меню управления каналом оповещения пользователей о получении нового уровня"), 
         ("`{}roles_per_lvl`", "Вызвать меню управления уровнями и соответствующими им ролями"), 
-        ("`{}update`", "Обновляет роли пользователя, если они не соответствуют его уровню")
+        ("`{}manage_member` `пользователь`", "Вызывает меню управления пользователем")
     ]
 }
 
+help_menu = {
+    0 : {
+        "guide" : "`{}guide` show guide about bot's settings",
+        
+        "setup" : "`{}setup` start setup of all bot's settings",
+
+        "settings" : "`{}settings` show menu with current bot's settings",
+
+        "language" : "`{}language` `lang` select language for the mod commands and names and descriptions of the slash commands. Can be **`Eng`** (no matter Eng, eng, \
+                    eNg etc.) for English and **`Rus`** (no matter Rus, rus, rUs etc.) for Russian.\n\n**Example:**\n**`{}language`** **`eng`** will select English language",
+
+        "zones" : "`{}zones` show available pre-named time zones",
+
+        "time_zone" : "`{}time_zone` `name_of_time_zone_from_{}zones or \nhour_difference_with_'-'_if_needed` selects **`UTC`**±**`X`**, **`X`** Є {}-12; -11; ...; 11; 12{}, \
+                    format for the server. \n\n**Example:**\n**`{}time_zone`** **`EDT`** will set time zone of Eastern Daylight Time UTC-4, **`{}time_zone`** **`-7`** \
+                    will set time zone UTC-7",
+
+        "mod_roles" : "`{}mod_roles` show menu to manage mod roles. Members with this roles will be able to use change bot's settings",
+        
+        "money_per_msg" : "`{}money_per_msg` `amount` set amount of money gained by member from message\n\n**Example:**\n**`{}money_per_msg`** **`2`** set amount equal to 2 \
+                    so for every message member will gain 2 units of currency",
+        
+        "reset" : "`{}reset` reset current bot's settings",
+
+        "available_roles" : "`{}available_roles` сall menu to manage roles available for purchase/sale (see guide)",
+
+        "manage_role" : "`{}manage_role` `role` сall menu to manage role in the economic system\n\n**Example:**\n**`{}manage_role`** **`972494065088200745`** \
+                    will call menu to manage role with id 972494065088200745 (you can use mention with @ instead of id)",
+
+        "salary_timer" : "`{}salary_timer` `time_in_seconds` sets cooldown for accruing money from roles with salary\n\n**Example:**\n**`{}salary_timer`** **`10800`** \
+                    will set 3 hours cooldown (10800 seconds = 3 hours)",
+
+        "work_salary" : "`{}work_salary` `left_border` `right_border` sets borders for amount of money gained from command `/work`. This amount will be random integer number \
+                    Є [left; right]. Both are integer non-negative numbers, right one must be at least as large as the left\n\n**Example:**\n**`{}work_salary`** **`10`** \
+                    **`100`** changes amount of cash gained from `/work`, and this amount will be random integer from 10 to 100 (amount Є [10; 100])",
+
+        "work_cooldown" : "`{}work_cooldown` `time_in_seconds` sets cooldown for command `/work`\n\n**Example:**\n**`{}work_cooldown`** **`10800`** will set 3 hours \
+                    cooldown (10800 seconds = 3 hours) for command `/work`",
+        
+        "log_economy" : "`{}log_economy` `text_channel` selects log channel for economic operations\n\n**Example:**\n**`{}log_economy`** **`863462268934422540`** \
+                    will select **text** channel with id 863462268934422540 (you can use mention with # instead of id) as log channel",
+
+
+        "border" : "`{}border` `amount_of_xp` set amount of xp that members need to get for the new level\n\n**Example:**\n**`{}border`** **`1000`** set border equal to 1000 xp, so \
+                    after achieving level 2 member need 1000 more xp to achieve level 3",
+
+        "xp_per_msg" : "`{}xp_per_msg` `amount_of_xp` set amount of xp gained from one message\n\n**Example:**\n**`{}xp_per_msg`** **`2`** set this amount equal to 2 so\
+                    for each message member will gain 2 xp",
+
+        "ic" : "`{}ic` call menu to manage ignored channels, where members can't gain xp from message",
+
+        "alert_channel" : "`{}alert_channel` call menu to manage alert channel where members are notificated about new level",
+
+        "roles_per_lvl" : "`{}roles_per_lvl` call menu to manage levels and roles gained for them",
+
+        "manage_member" : "`{}manage_member` `member` сall menu to manage member (his balance and xp)\n\n**Example:**\n**`{}manage_member`** **`931273285268832326`** \
+                    will call menu to manage member with id 931273285268832326 ((you can use mention with @ instead of id)",
+    },
+    1 : {
+        "guide" : "`{}guide` показывает гайд о системе бота",
+
+        "setup" : "`{}setup` начинает настройку параметров бота",
+
+        "settings" : "`{}settings` вызывает меню, в котором отображены текущие настройки бота",
+
+        "language" : "`{}language` `язык` устанавливает выбранный язык для команд модераторов и названия и описания слэш команды. Доступны: **`Eng`** \
+                    (регистр не важен) - для английского и **`Rus`** (регистр не важен) - для русского.\n\n**Пример:**\n**`{}language`** **`rus`** установит русский язык",
+
+        "zones" : "`{}zones` показывет доступные именные часовые пояса",
+
+        "time_zone" : "`{}time_zone` `имя_часового_пояса_из_списка или часовой_сдвиг_от_UTC_со_знаком_'-'_при_необходимости` устанавливает формат времени **`UTC`**±**`X`**, \
+                    **`X`** Є {}-12; -11; ...; 11; 12{}, для сервера. \n\n**Пример:**\n**`{}time_zone`** **`YAKT`** установит часовой пояс Якутска UTC+9, а **`{}time_zone`** \
+                    **`-7`** установит часовой пояс UTC-7",
+
+        "mod_roles" : "`{}mod_roles` вызывает меню управления ролями модераторов. Пользователи с этими ролями смогу управлять настройками бота",
+
+        "money_per_msg" : "`{}money_per_msg` `количество` устанавливает количество денег, получаемое пользователем за одно сообщение\n\n**Пример:**\n**`{}money_per_msg`** \
+                    **`2`** сделает так, что за каждое сообщение пользователь будет получать 2 единицы валюты",
+
+        "reset" : "`{}reset` сбрасывает текущие настройки бота",
+
+        "available_roles" : "`{}available_roles` вызывает меню управления ролями, доступными для покупки/продажи на сервере (см. гайд)",
+
+        "manage_role" : "`{}manage_role` `роль` вызывает меню для управления ролью в экономической системе бота\n\n**Пример:**\n**`{}manage_role`** \
+                    **`972494065088200745`** вызовет меню управления ролью с id 972494065088200745 (Вы можете упомянуть роль при помощи @ вместо id) ",
+        
+        "salary_timer" : "`{}salary_timer` `время_в_секундах` устанавливает перерыв между начислением денег участникам с ролями, которые приносят деньги.\n\n**Пример:**\n\
+                    **`{}salary_timer`** **`10800`** установит перерыв, равный 3 часам (10800 секунд = 3 часа)",
+        
+        "work_salary" : "`{}work_salary` `левая_граница` `правая_граница` устанавливает количество денег, получаемое после использования команды /work. Это количество будет целым \
+                    числом Є [левая_граница; правая_граница]. Оба числа должны быть целыми неотрицательными числами, правая граница должна быть не меньше левой.\n\n**Пример:**\n\
+                    **`{}work_salary`** **`10`** **`100`** изменяет заработок, получаемый после использования команды `/work`, этот заработок будет рандомным целым числом от 10 до \
+                    100 (заработок Є [10; 100])",
+
+        "work_cooldown" : "`{}work_cooldown` `время_в_секундах` устанавливает кулдаун для использования команды `/work`\n\n**Пример:**\n**`{}work_cooldown`** **`10800`** \
+                    установит кулдаун, равный 3 часам (10800 секунд = 3 часа), для команды `/work`",
+
+        "log_economy" : "`{}log_economy` `текстовый_канал` устанавливает выбранный для хранения логов об экономических операциях\n\n**Пример:**\n**`{}log_economy`** \
+                    **`863462268934422540`** установит канал с id 863462268934422540 (Вы можете упомянуть канал при помощи #, а не id) в качестве канала для логов бота",
+
+        "border" : "`{}border` `граница` устанавливает количество опыта, которое нужно пользователям для достижения нового уровня\n\n**Пример:**\n**`{}border`** **`1000`** установит \
+                    границу в 1000 xp, и теперь, чтобы достичь второго уровня после получения первого, пользователю понадобидся ещё 1000 xp",
+
+        "xp_per_msg" : "`{}xp_per_msg` `опыт` устанавливает количество опыта, получаемое за каждое сообщение\n\n**Пример:**\n**`{}xp_per_msg`** **`2`** сделает так, что за \
+                    каждое сообщение пользователь будет получать 2 опыта",
+
+        "ic" : "`{}ic` вызывает меню управления игнорируемыми каналами, в которых пользователи не получают опыт за сообщения",
+
+        "alert_channel" : "`{}alert_channel` вызывает меню управления каналом оповещения пользователей о достижении нового уровня",
+
+        "roles_per_lvl" : "`{}roles_per_lvl` вызывает меню уровнями и соответствующими им ролями",
+
+        "manage_member" : "`{}manage_member` `member` вызывает меню управления пользователем (его балансом и опытом)\n\n**Пример:**\n**`{}manage_member`** **`931273285268832326`** \
+                    вызовет меню управления пользователем с id 931273285268832326 (Вы можете упомянуть пользователя при помощи @ вместо id)"
+    }
+}
 
 class custom_b(Button):
     def __init__(self, label: str, style: ButtonStyle, emoji, c_id: str):
@@ -513,43 +494,21 @@ class help_view(View):
                 emb1.add_field(name=n.format(self.pref), value=v, inline=False)
             for n, v in m_ec_cmds[self.lng]:
                 emb2.add_field(name=n.format(self.pref), value=v, inline=False)
+            for n, v in m_rnk_cmds[self.lng]:
+                emb3.add_field(name=n.format(self.pref), value=v, inline=False)
             await interaction.response.edit_message(embeds=[emb1, emb2, emb3])
         else:
             await interaction.response.send_message(embed=Embed(description=text_help_view[self.lng][3]), ephemeral=True)
 
 
 class mod_commands(commands.Cog):
-    def __init__(self, bot: commands.Bot, prefix: str, in_row, currency: str):
+    def __init__(self, bot: commands.Bot, prefix: str, in_row):
         self.bot = bot
         self.prefix = prefix
-
-
-        ec_cmds = [
-
-            "`{}`", 
-            "`{}remove`", 
-            "`{}list`", 
-            "`{}change_store`",
-            "`{}update_price`", 
-            "`{}balance_of`",
-            "`{}update_cash`", 
-            "`{}give_unique`",
-            
-            "`{}log`", 
-            
-            
-            f"`{prefix}work_timer`",
-            f"`{prefix}salary`",
-            f"`{prefix}uniq_timer`",
-            
-                
-        ]
         
         global bot_guilds
         global bot_guilds_e
         global bot_guilds_r
-        global appcmds_e
-        global appcmds_r
         global help_menu
         
         self.currency = currency
@@ -760,7 +719,7 @@ class mod_commands(commands.Cog):
                     f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [can't create folder] [{guild.id}] [{guild.name}] [{str(Exception)}]\n")
                 return
         
-        bot_guilds.append(guild.id)
+        bot_guilds.add(guild.id)
         with closing(connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
@@ -773,7 +732,7 @@ class mod_commands(commands.Cog):
                 base.commit()
                 cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
                 base.commit()
-                cur.execute("CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER")
+                cur.execute("CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER)")
                 base.commit()
                 cur.execute("CREATE TABLE IF NOT EXISTS rank(memb_id INTEGER PRIMARY KEY, xp INTEGER, c_xp INTEGER)")
                 base.commit()
@@ -803,7 +762,7 @@ class mod_commands(commands.Cog):
         with open("guild.log", "a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_remove] [{guild.id}] [{guild.name}]\n")
 
-
+    
     @tasks.loop(seconds=30)
     async def salary_roles(self):
         for g in bot_guilds: 
@@ -836,8 +795,12 @@ class mod_commands(commands.Cog):
     async def before_timer(self):
         await self.bot.wait_until_ready()
 
-
-    async def guide(self, ctx: commands.Context, lng: int, pr: str):
+    @commands.command(name="guide")
+    @commands.check(needed_role)
+    async def _guide(self, ctx: commands.Context, pr: str):
+        with closing(connect(f'{path_to}/bases/bases_{ctx. guild.id}/{ctx.guild.id}.db')) as base:
+            with closing(base.cursor()) as cur:
+                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
         emb = Embed(title=guide[lng][0])
         emb.add_field(name=guide[lng][1], value=guide[lng][2].format(pr, pr), inline=False)
         for i in range(3, 10, 2):
@@ -846,10 +809,21 @@ class mod_commands(commands.Cog):
         emb.add_field(name=guide[lng][13], value=guide[lng][14].format(pr, pr), inline=False)
         emb.add_field(name=guide[lng][15], value=guide[lng][16].format(pr, pr, pr), inline=False)
         emb.add_field(name=guide[lng][17], value=guide[lng][18].format(pr), inline=False)
-        emb.set_footer(guide[lng][19].format(pr))
+        print(guide[lng][19].format(pr))
+        #emb.set_footer()
         await ctx.reply(embed=emb, mention_author=False)
   
-    
+    @commands.command(name="log_economy")
+    @commands.check(needed_role)
+    async def _log_economy(self, ctx: commands.Context, channel: TextChannel):
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
+            with closing(base.cursor()) as cur:
+                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_channel'", (channel.id,))
+                base.commit()
+                await ctx.reply(f"{channel.mention} {text[lng][26]}", mention_author=False)
+
+
     async def help(self, interaction: Interaction, command: str):
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db")) as base:
@@ -876,7 +850,7 @@ class mod_commands(commands.Cog):
                         await msg.edit(view=view_h)
                 else:
                     pass
-
+                    
 
     @slash_command(
         name="help", 
@@ -931,7 +905,7 @@ class mod_commands(commands.Cog):
 
     
 
-    @commands.command(aliases = ["help_m"])
+    """ @commands.command(aliases = ["help_m"])
     @commands.check(needed_role)
     async def _help_m(self, ctx: commands.Context, *args):
         msg = []
@@ -969,7 +943,7 @@ class mod_commands(commands.Cog):
         else:
             emb = Embed(colour=Colour.red(), title=text[lng][404], description=text[lng][5])
 
-        await ctx.reply(embed=emb, mention_author=False)
+        await ctx.reply(embed=emb, mention_author=False) """
 
     """ @_help_m.error
     async def _help_m_error(self, ctx: commands.Context, error):
@@ -1177,26 +1151,9 @@ class mod_commands(commands.Cog):
                 await ctx.reply(content=f"{text[lng][0]} {role} {text[lng][17]} {member}", mention_author=False)
 
     
-    @commands.command(hidden=True, aliases=["mod_role"])
-    @commands.check(needed_role)
-    async def _mod_role(self, ctx: commands.Context, role: Role):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
-            with closing(base.cursor()) as cur:
-                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mod_role'", (role.id,))
-                base.commit()
-                await ctx.reply(f"**`{text[lng][0]}`** {role.name} {text[lng][25]}", mention_author=False)
+    
 
-
-    @commands.command(hidden=True, aliases=["log"])
-    @commands.check(needed_role)
-    async def _log(self, ctx: commands.Context, channel: TextChannel):
-        with closing(connect(f'{path_to}/bases/bases_{ctx. guild.id}/{ctx.guild.id}.db')) as base:
-            with closing(base.cursor()) as cur:
-                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_channel'", (channel.id,))
-                base.commit()
-                await ctx.reply(f"{channel.mention} {text[lng][26]}", mention_author=False)
+    
   
 
     @commands.command(hidden=True, aliases=["language"])

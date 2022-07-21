@@ -1,0 +1,159 @@
+from os import path, mkdir
+from asyncio import sleep
+from contextlib import closing
+from sqlite3 import connect
+from datetime import datetime, timedelta
+
+from colorama import Fore
+from nextcord import Game, Message, ChannelType, MessageType
+from nextcord.ext import commands
+from config import path_to, bot_guilds_e, bot_guilds_r, bot_guilds, prefix, in_row
+
+
+
+
+class msg_h(commands.Cog):
+    def __init__(self, bot: commands.Bot, prefix: str, in_row):
+        self.bot = bot
+        global bot_guilds_e
+        global bot_guilds_r
+
+    
+    """src = connect(f'{path_to}/bases/bases_{guild_id}/{guild_id}.db')
+            bck = connect(f'{path_to}/bases/bases_{guild_id}/{guild_id}_shop_rec_1.db')
+            src.backup(bck)
+            src.close()
+            bck.close()
+            copy2(f'{path_to}/bases/bases_{guild_id}/{guild_id}.db', f'{path_to}/bases/bases_{guild_id}/{guild_id}_shop_rec_2.db')
+            print(f'{Fore.CYAN}Created a backup for {guild_id}{Fore.RED}\n')"""
+
+    @commands.Cog.listener()
+    async def on_ready(self):
+        for guild in self.bot.guilds:
+            if not path.exists(f'{path_to}/bases/bases_{guild.id}'):
+                mkdir(f'{path_to}/bases/bases_{guild.id}/')
+            try:
+                with closing(connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
+                    with closing(base.cursor()) as cur:
+                        cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
+                        base.commit()
+                        cur.execute('CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, salary INTEGER, type INTEGER)')
+                        base.commit()
+                        cur.execute('CREATE TABLE IF NOT EXISTS store(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, salary INTEGER, type INTEGER)')
+                        base.commit()
+                        cur.execute('CREATE TABLE IF NOT EXISTS salary_roles(role_id INTEGER PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, last_time INTEGER)')
+                        base.commit()
+                        cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
+                        base.commit()
+                        cur.execute("CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER)")
+                        base.commit()
+                        cur.execute("CREATE TABLE IF NOT EXISTS rank(memb_id INTEGER PRIMARY KEY, xp INTEGER, c_xp INTEGER)")
+                        base.commit()
+                        cur.execute("CREATE TABLE IF NOT EXISTS ic(chn_id INTEGER PRIMARY KEY)")
+                        base.commit()
+                        cur.execute("CREATE TABLE IF NOT EXISTS mod_roles(role_id INTEGER PRIMARY KEY)")
+                        base.commit()
+
+                        lng = 1 if "ru" in guild.preferred_locale else 0
+
+                        r = [
+                            ('lang', lng), ('xp_step', 1), ('tz', 0), 
+                            ('w_cd', 14400), ('sal_t', 0), ('sal_l', 1), ('sal_r', 250),
+                            ('lvl_c', 0), ('log_c', 0), ('poll_v_c', 0), ('poll_c', 0)
+                        ]
+                            
+                        cur.executemany("INSERT OR IGNORE INTO server_info(settings, value) VALUES(?, ?)", r)
+                        base.commit()
+                        if cur.execute("SELECT * FROM server_info WHERE value = -1").fetchone() == None:
+                            cur.execute("INSERT INTO server_info VALUES(?, ?)", ("0>>", -1))
+                            base.commit()
+
+                        if lng == 1:
+                            bot_guilds_r.add(guild.id)
+                        else:
+                            bot_guilds_e.add(guild.id)
+                        bot_guilds.add(guild.id)
+
+            except Exception:
+                base.rollback()
+                with open("d.log", "a+", encoding="utf-8") as f:
+                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [on_ready] [{guild.id}] [{guild.name}] [{str(Exception)}]\n")
+    
+        self.bot.load_extension(f"commands.m_commands", extras={"prefix": prefix, "in_row": in_row})
+        self.bot.load_extension(f"commands.basic", extras={"prefix": prefix, "in_row": in_row})
+        self.bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row})
+        
+        self.cmds0 = {
+            "zones" : self.bot.get_command(name="zones"),
+            "mod_roles" : self.bot.get_command(name="mod_roles")
+        }
+        self.cmds1 = {
+            "guide" : self.bot.get_command(name="guide"),
+            "log_economy" : self.bot.get_command(name="log_economy")
+        }
+        self.cmds2 = {
+            
+        }
+
+        await self.bot.discover_application_commands()
+        await sleep(10)
+        await self.bot.sync_all_application_commands()
+
+        print(f'{Fore.CYAN}[>>>]Logged into Discord as {self.bot.user}\n')
+
+        opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
+            f'\n{Fore.GREEN}1) setup guild_id lng - creates and setups new database for selected server.\n' \
+            f'{Fore.RED}   Warning: if old database exists, it will be restored to default and all infromation will be lost.\n'\
+            f'{Fore.RED}\n[>>>]Enter command:'
+
+        print(opt, end=' ')
+        await self.bot.change_presence(activity=Game("/help"))
+
+    @commands.Cog.listener()
+    async def on_message(self, message: Message):
+        user = message.author
+        if user.bot or message.channel.type is ChannelType.private \
+            or message.type is MessageType.chat_input_command:
+            return
+        s = message.content
+        g_id = message.guild.id
+        with closing(connect(f'{path_to}/bases/bases_{g_id}/{g_id}.db')) as base:
+            with closing(base.cursor()) as cur:
+                pref = cur.execute("SELECT settings FROM server_info WHERE value = -1").fetchone()[0][1:]
+                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+        print(pref)
+        if s.startswith(pref):
+            s = s[len(pref):].split()
+            nm = s[0]
+            print(s[0])
+            if nm in self.cmds0:
+                cmd = self.cmds0.get(nm)
+                ctx = await self.bot.get_context(message=message)
+                await cmd(context=ctx)
+
+            elif nm in self.cmds1:
+                cmd = self.cmds1.get(nm)
+                if nm == "guide":
+                    arg1 = pref
+                elif nm == "log_economy":
+                    if len(message.channel_mentions):
+                        if message.channel_mentions[0].type is ChannelType.text:
+                            arg1 = message.channel_mentions[0]
+                        else:
+                            return
+                    else:
+                        if not s[1].isdigit:
+                            return
+                        arg1 = message.guild.get_channel(int(s[1]))
+                        if arg1 is None:
+                            return
+                    
+                ctx = await self.bot.get_context(message=message)
+                await cmd(ctx, arg1)
+
+            elif nm in self.cmds2:
+                arg2 = s[2]
+                pass
+
+def setup(bot: commands.Bot, **kwargs):
+    bot.add_cog(msg_h(bot, **kwargs))
