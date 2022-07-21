@@ -23,7 +23,7 @@ async def on_ready():
     for guild in bot.guilds:
         if not os.path.exists(f'{path_to}/bases/bases_{guild.id}'):
             os.mkdir(f'{path_to}/bases/bases_{guild.id}/')
-            with closing(sqlite3.connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}_store.db')) as base:
+            with closing(sqlite3.connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     try:
                         cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
@@ -50,13 +50,13 @@ async def on_ready():
                         else:
                             bot_guilds_e.add(guild.id)
 
-                    except Exception as E:
+                    except Exception:
                         base.rollback()
                         with open("d.log", "a+", encoding="utf-8") as f:
-                            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{guild.id}] [{guild.name}] [{str(E)}]\n")
+                            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{guild.id}] [{guild.name}] [{str(Exception)}]\n")
                         
         else:
-            with closing(sqlite3.connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}_store.db')) as base:
+            with closing(sqlite3.connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                     if lng == 1:

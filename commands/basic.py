@@ -437,40 +437,59 @@ m_general_cmds = {
         ("`{}reset`", "Сбросить настройки бота")
     ]
 }
-    
-
 m_ec_cmds = {
     0 : [
         ("`{}available_roles`", "Call menu to manage roles available for purchase/sale (see guide)"), 
         ("`{}manage_role`", "Call menu to manage role in the economic system"), 
-        ("`{}`salary_timer", "Set cooldown for salary for roles with it"), 
-        ("`{}`work_salary", "Set amount of money gained from `/work`"), 
-        ("`{}`work_cooldown", "Set cooldown for `/work` command"), 
+        ("`{}salary_timer`", "Set cooldown for salary for roles with it"), 
+        ("`{}work_salary`", "Set amount of money gained from `/work`"), 
+        ("`{}work_cooldown`", "Set cooldown for `/work` command"), 
+        ("`{}log_economy`", "Call menu to manage log channel for economy")
     ],
     1 : [
         ("`{}available_roles`", "Вызвать меню управления ролями, доступными для покупки/продажи на сервере (см. гайд)"), 
-        ("`{}manage_role`", "Вызвать менб для управления ролью в экономической системе бота"), 
-        ("`{}`salary_timer", "Установить кулдаун для зараплат ролей, которые приносят деньги"), 
-        ("`{}`work_salary", "Установить получаемый доход от команды `/work`"), 
-        ("`{}`work_cooldown", "Установить кулдаун для команды `/work`"), 
+        ("`{}manage_role`", "Вызвать меню для управления ролью в экономической системе бота"), 
+        ("`{}salary_timer`", "Установить кулдаун для зараплат ролей, которые приносят деньги"), 
+        ("`{}work_salary`", "Установить получаемый доход от команды `/work`"), 
+        ("`{}work_cooldown`", "Установить кулдаун для команды `/work`"), 
+        ("`{}log_economy`", "Вызвать меню управления каналом для логов экономики")
     ]
 }
+m_rnk_cmds = {
+    0 : [
+        ("`{}border`", "Set xp border for new level"), ("`{}xp_per_msg`", "Set xp gained from 1 message"), 
+        ("`{}ic`", "Call menu to manage ignored channels, where members can't gain xp from message"), 
+        ("`{}alert_channel`", "Call menu to manage alert channel where members are notificated about new level"), 
+        ("`{}roles_per_lvl`", "Call menu to manage levels and roles gained for them"), 
+        ("`{}update`", "Update member's roles if they aren't matches his level")
+    ],
+    1 : [
+        ("`{}border`", "Установить опыт, который необходимо набрать для получения нового уровня"), 
+        ("`{}xp_per_msg`", "Установить опыт, получаемый за 1 сообщение"), 
+        ("`{}ic`", "Вызвать меню управления игнорируемыми каналами, где пользователи не получают опыт за сообщения"), 
+        ("`{}alert_channel`", "Вызвать меню управления каналом оповещения пользователей о получении нового уровня"), 
+        ("`{}roles_per_lvl`", "Вызвать меню управления уровнями и соответствующими им ролями"), 
+        ("`{}update`", "Обновляет роли пользователя, если они не соответствуют его уровню")
+    ]
+}
+
 
 class custom_b(Button):
     def __init__(self, label: str, style: ButtonStyle, emoji, c_id: str):
         super().__init__(style=style, label=label, emoji=emoji, custom_id=c_id)
     async def callback(self, interaction: Interaction):
-        return await super().click(interaction=interaction, c_id=self.custom_id)
+        return await self.view.click(interaction=interaction, c_id=self.custom_id)
 
 class help_view(View):
     def __init__(self, t_out: int, auth_id: int, m_rls: set, lng: int, pref: str):
+        super().__init__(timeout=t_out)
         self.m_rls = m_rls
         self.auth_id = auth_id
         self.lng = lng
         self.pref = pref
         self.add_item(custom_b(label=text_help_view[lng][0], style=ButtonStyle.green, emoji="👤", c_id="0"))
         self.add_item(custom_b(label=text_help_view[lng][1], style=ButtonStyle.red, emoji="⚙️", c_id="1"))
-        super().__init__(timeout=t_out)
+        
     
     async def click(self, interaction: Interaction, c_id: str):
         if interaction.user.id != self.auth_id:
@@ -651,7 +670,7 @@ class mod_commands(commands.Cog):
         
 
     def mod_role_set(self, ctx: commands.Context):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 r = cur.execute("SELECT value FROM server_info WHERE settings = 'mod_role'").fetchone()
                 if r == None or r[0] == 0:
@@ -659,7 +678,7 @@ class mod_commands(commands.Cog):
                 return 1
 
     def lang(self, ctx: commands.Context):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 return cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
@@ -668,7 +687,7 @@ class mod_commands(commands.Cog):
         if any(role.permissions.administrator or role.permissions.manage_guild for role in ctx.author.roles) or ctx.guild.owner == ctx.author:
             return 1
 
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 mod_id = cur.execute("SELECT value FROM server_info WHERE settings = 'mod_role'").fetchone()
                 if mod_id != None and mod_id[0] != 0:
@@ -733,16 +752,16 @@ class mod_commands(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: Guild):
-        if not os.path.exists(f"{path_to}/bases//bases_{guild.id}/"):
+        if not os.path.exists(f"{path_to}/bases/bases_{guild.id}/"):
             try:
-                os.mkdir(f"{path_to}/bases//bases_{guild.id}/")
+                os.mkdir(f"{path_to}/bases/bases_{guild.id}/")
             except Exception:
                 with open("error.log", "a+", encoding="utf-8") as f:
                     f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [can't create folder] [{guild.id}] [{guild.name}] [{str(Exception)}]\n")
                 return
         
         bot_guilds.append(guild.id)
-        with closing(connect(f'{path_to}/bases//bases_{guild.id}/{guild.id}.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
                 base.commit()
@@ -788,7 +807,7 @@ class mod_commands(commands.Cog):
     @tasks.loop(seconds=30)
     async def salary_roles(self):
         for g in bot_guilds: 
-            with closing(connect(f'{path_to}/bases//bases_{g}/{g}.db')) as base:
+            with closing(connect(f'{path_to}/bases/bases_{g}/{g}.db')) as base:
                 with closing(base.cursor()) as cur:
                     r = cur.execute("SELECT * FROM salary_roles").fetchall()
                     if r:
@@ -961,7 +980,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['set'])
     @commands.check(needed_role)
     async def _set(self, ctx: commands.Context, role: Role, nums: int):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur: 
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
@@ -1013,7 +1032,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['update_cash'])
     @commands.check(needed_role)
     async def _update_cash(self, ctx: commands.Context, member: Member, value: int):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 memb_id = member.id
                 self.check(base=base, cur=cur, memb_id=memb_id)
@@ -1037,7 +1056,7 @@ class mod_commands(commands.Cog):
         if not is_special in [0, 1, 2]:
             await ctx.reply(embed=Embed(title=text[lng][404], description=text[lng][8], colour=Colour.red()), mention_author=False)
             return
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 rls = cur.execute('SELECT role_id FROM server_roles').fetchall()
                 role_ids = [] if rls == None else [x[0] for x in rls]
@@ -1066,7 +1085,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['remove'])
     @commands.check(needed_role)
     async def _remove(self, ctx: commands.Context, role: Role):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 cur.execute('DELETE FROM server_roles WHERE role_id = ?', (role.id,))
@@ -1081,7 +1100,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['update_price'])
     @commands.check(needed_role)
     async def _update_price(self, ctx: commands.Context, role: Role, price: int):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 is_in = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
@@ -1098,7 +1117,7 @@ class mod_commands(commands.Cog):
     @commands.check(needed_role)
     async def _list(self, ctx: commands.Context):
         try:
-            with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+            with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                     roles = cur.execute('SELECT * FROM server_roles').fetchall()
@@ -1116,7 +1135,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['give_unique'])
     @commands.check(needed_role)
     async def _give_unique(self, ctx: commands.Context, member: Member, role: Role):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 memb = self.check(base=base, cur=cur, memb_id=member.id)
@@ -1161,7 +1180,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=["mod_role"])
     @commands.check(needed_role)
     async def _mod_role(self, ctx: commands.Context, role: Role):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mod_role'", (role.id,))
@@ -1172,7 +1191,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=["log"])
     @commands.check(needed_role)
     async def _log(self, ctx: commands.Context, channel: TextChannel):
-        with closing(connect(f'{path_to}/bases/bases_{ctx. guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx. guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_channel'", (channel.id,))
@@ -1183,7 +1202,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=["language"])
     @commands.check(needed_role)
     async def _language(self, ctx: commands.Context, language: str):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 if language.lower() not in languages:
@@ -1261,7 +1280,7 @@ class mod_commands(commands.Cog):
             emb = Embed(colour=Colour.red(), title=text[lng][404], description=text[lng][31])
             await ctx.reply(embed=emb, mention_author=False)
             return
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (zones[tz],))
@@ -1276,7 +1295,7 @@ class mod_commands(commands.Cog):
     @commands.check(needed_role)
     async def _zones_list(self, ctx: commands.Context):
         try:
-            with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+            with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                     tz = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
@@ -1303,7 +1322,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['work_timer'])
     @commands.check(needed_role)
     async def _work_timer(self, ctx: commands.Context, timer: int):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 if timer <= 0:
@@ -1318,7 +1337,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['salary'])
     @commands.check(needed_role)
     async def _salary(self, ctx: commands.Context, a: int, b: int):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 if min(a, b) < 0 or a > b:
@@ -1335,7 +1354,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['uniq_timer'])
     @commands.check(needed_role)
     async def _uniq_timer(self, ctx: commands.Context, timer: int):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 if timer <= 0:
@@ -1351,7 +1370,7 @@ class mod_commands(commands.Cog):
     @commands.check(needed_role)
     async def _settings(self, ctx: commands.Context):
         try:
-            with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+            with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     sets = cur.execute("SELECT * FROM server_info").fetchall()
         except Exception as E:
@@ -1397,7 +1416,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=['reset'])
     @commands.check(needed_role)
     async def _reset(self, ctx: commands.Context):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 cur.execute("DROP TABLE IF EXISTS server_info")
@@ -1420,7 +1439,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=["quick", "setup", "qs"])
     @commands.check(needed_role)
     async def _quick(self, ctx: commands.Context):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 flag = 1
@@ -1528,7 +1547,7 @@ class mod_commands(commands.Cog):
     @commands.command(hidden=True, aliases=["balance_of"])
     @commands.check(needed_role)
     async def _balance_of(self, ctx: commands.Context, member: Member):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]            
                 memb = self.check(base=base, cur=cur,memb_id=member.id)

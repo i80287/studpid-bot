@@ -2,6 +2,6 @@ config.py
 tm.py
 *__pycache__
 e3fea57.png
-/bases
+*bases
 /mod_b.service
 *.log

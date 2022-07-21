@@ -941,7 +941,7 @@ class slash(commands.Cog):
 
     """ async def help(self, interaction: Interaction) -> None:
         lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 emb = Embed(title=text_slash[lng][3], colour=Colour.dark_purple())
@@ -959,7 +959,7 @@ class slash(commands.Cog):
             emb = Embed(title=text_slash[lng][0], description=text_slash[lng][4], colour=Colour.red())
             await interaction.response.send_message(embed=emb)
             return
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 outer = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchone()
@@ -1044,7 +1044,7 @@ class slash(commands.Cog):
 
     async def store(self, interaction: Interaction) -> None:
         lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f"{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}_store.db")) as base:
+        with closing(connect(f"{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
                 in_row = self.in_row
                 counter = 0
@@ -1115,7 +1115,7 @@ class slash(commands.Cog):
             return
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()      
@@ -1192,7 +1192,7 @@ class slash(commands.Cog):
     
     async def profile(self, interaction: Interaction) -> None:
         lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 memb_id = interaction.user.id
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
@@ -1244,7 +1244,7 @@ class slash(commands.Cog):
     async def work(self, interaction: Interaction) -> None:
         memb_id = interaction.user.id
         lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 time_reload = cur.execute("SELECT value FROM server_info WHERE settings = 'time_r'").fetchone()[0]
                 #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
@@ -1282,7 +1282,7 @@ class slash(commands.Cog):
     async def bet(self, interaction: Interaction, amount: int) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         memb_id = interaction.user.id
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
@@ -1344,7 +1344,7 @@ class slash(commands.Cog):
     async def transfer(self, interaction: Interaction, value: int, target: Member) -> None:
         memb_id = interaction.user.id
         lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}_store.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 act = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 self.check_user(base=base, cur=cur, memb_id=target.id)
@@ -1371,7 +1371,7 @@ class slash(commands.Cog):
     
     async def leaders(self, interaction: Interaction) -> None:
         lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f"{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}_store.db")) as base:
+        with closing(connect(f"{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
                 #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 self.check_user(base=base, cur=cur, memb_id=interaction.user.id)

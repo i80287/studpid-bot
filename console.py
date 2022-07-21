@@ -1,18 +1,23 @@
-from colorama import Fore
-from dpyConsole import console, Cog
-import shutil, sqlite3, os, dpyConsole
+
+import os
+from shutil import copy2
+from sqlite3 import connect
 from contextlib import closing
+
+from colorama import Fore
+from dpyConsole import console, Cog, Console
 from config import path_to
 
+
 class ConsoleCog(Cog):
-    def __init__(self, console: dpyConsole.Console):
+    def __init__(self, console: Console):
         super(ConsoleCog, self).__init__()
         self.console = console
 
     @console.command()
     async def recover(self, guild_id):
         try:
-            shutil.copy2(f'{path_to}/bases/bases_{guild_id}/{guild_id}_shop_rec_2.db', f'{path_to}/bases/bases_{guild_id}/{guild_id}_store.db')
+            copy2(f'{path_to}/bases/bases_{guild_id}/{guild_id}_shop_rec_2.db', f'{path_to}/bases/bases_{guild_id}/{guild_id}.db')
             print(f'{Fore.CYAN}Recovered database for {guild_id}{Fore.RED}')
         except:
             print(f"{Fore.YELLOW}Can't recover database!{Fore.RED}\n")
@@ -29,12 +34,12 @@ class ConsoleCog(Cog):
     @console.command()
     async def backup(self, guild_id):
         try:
-            src = sqlite3.connect(f'{path_to}/bases/bases_{guild_id}/{guild_id}_store.db')
-            bck = sqlite3.connect(f'{path_to}/bases/bases_{guild_id}/{guild_id}_shop_rec_1.db')
+            src = connect(f'{path_to}/bases/bases_{guild_id}/{guild_id}.db')
+            bck = connect(f'{path_to}/bases/bases_{guild_id}/{guild_id}_shop_rec_1.db')
             src.backup(bck)
             src.close()
             bck.close()
-            shutil.copy2(f'{path_to}/bases/bases_{guild_id}/{guild_id}_store.db', f'{path_to}/bases/bases_{guild_id}/{guild_id}_shop_rec_2.db')
+            copy2(f'{path_to}/bases/bases_{guild_id}/{guild_id}.db', f'{path_to}/bases/bases_{guild_id}/{guild_id}_shop_rec_2.db')
             print(f'{Fore.CYAN}Created a backup for {guild_id}{Fore.RED}\n')
         except:
             print(f"{Fore.YELLOW}Can't create a backup for the {guild_id}{Fore.RED}")
@@ -69,25 +74,37 @@ class ConsoleCog(Cog):
             except:
                 print(f"{Fore.YELLOW}Can't delete old database!{Fore.RED}\n") """
 
-        with closing(sqlite3.connect(f"{path_to}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        with closing(connect(f'{path_to}/bases//bases_{guild_id}/{guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-
                 cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
                 base.commit()
-                cur.execute('CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, special INTEGER)')
+                cur.execute('CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, salary INTEGER, type INTEGER)')
                 base.commit()
-                cur.execute('CREATE TABLE IF NOT EXISTS outer_store(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, special INTEGER)')
+                cur.execute('CREATE TABLE IF NOT EXISTS store(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, salary INTEGER, type INTEGER)')
                 base.commit()
-                cur.execute('CREATE TABLE IF NOT EXISTS money_roles(role_id INTEGER NOT NULL PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, last_time INTEGER)')
+                cur.execute('CREATE TABLE IF NOT EXISTS salary_roles(role_id INTEGER PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, last_time INTEGER)')
                 base.commit()
                 cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
                 base.commit()
-
+                cur.execute("CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER)")
+                base.commit()
+                cur.execute("CREATE TABLE IF NOT EXISTS rank(memb_id INTEGER PRIMARY KEY, xp INTEGER, c_xp INTEGER)")
+                base.commit()
+                cur.execute("CREATE TABLE IF NOT EXISTS ic(chn_id INTEGER PRIMARY KEY)")
+                base.commit()
+                cur.execute("CREATE TABLE IF NOT EXISTS mod_roles(role_id INTEGER PRIMARY KEY)")
+                base.commit()
+                try:
+                    lng = int(lng)
+                except:
+                    lng = 0
+                    
                 r = [
-                    ('lang', 0), ('log_channel', 0), ('error_log', 0), 
-                    ('mod_role', 0), ('tz', 0), ('time_r', 14400), 
-                    ('sal_l', 1), ('sal_r', 250), ('uniq_timer', 14400)
+                    ('lang', lng), ("0>>", -1), ('xp_step', 1), ('tz', 0), 
+                    ('w_cd', 14400), ('sal_t', 0), ('sal_l', 1), ('sal_r', 250),
+                    ('lvl_c', 0), ('log_c', 0), ('poll_v_c', 0), ('poll_c', 0)
                 ]
+                    
                 cur.executemany("INSERT INTO server_info(settings, value) VALUES(?, ?)", r)
                 base.commit()
 
