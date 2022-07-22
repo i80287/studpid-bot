@@ -5,8 +5,9 @@ from sqlite3 import connect
 from datetime import datetime, timedelta
 
 from colorama import Fore
-from nextcord import Game, Message, ChannelType, MessageType
+from nextcord import Game, Message, ChannelType, MessageType, Embed
 from nextcord.ext import commands
+from nextcord.errors import ApplicationCheckFailure
 from nextcord.ext.commands import CheckFailure, CommandError
 
 from config import path_to, bot_guilds_e, bot_guilds_r, bot_guilds, prefix, in_row
@@ -22,7 +23,7 @@ event_handl_text = {
 
 
 class msg_h(commands.Cog):
-    def __init__(self, bot: commands.Bot, prefix: str, in_row):
+    def __init__(self, bot: commands.Bot):
         self.bot = bot
         global bot_guilds_e
         global bot_guilds_r
@@ -88,7 +89,7 @@ class msg_h(commands.Cog):
                 with open("d.log", "a+", encoding="utf-8") as f:
                     f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [on_ready] [{guild.id}] [{guild.name}] [{str(Exception)}]\n")
     
-        self.bot.load_extension(f"commands.m_commands", extras={"prefix": prefix, "in_row": in_row})
+        self.bot.load_extension(f"commands.m_commands")
         self.bot.load_extension(f"commands.basic", extras={"prefix": prefix, "in_row": in_row})
         self.bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row})
         
@@ -106,6 +107,7 @@ class msg_h(commands.Cog):
         print(opt, end=' ')
         await self.bot.change_presence(activity=Game("/help"))
 
+    
     @commands.Cog.listener()
     async def on_message(self, message: Message):
         user = message.author
@@ -113,6 +115,14 @@ class msg_h(commands.Cog):
             or message.type is MessageType.chat_input_command:
             return
         
+
+    @commands.Cog.listener()
+    async def on_application_command_error(self, interaction, exception):
+        if isinstance(exception, ApplicationCheckFailure):
+            await interaction.response.send_message(embed=Embed(description="Sorry, but you don't have enough permissions"), ephemeral=True)
+            return 0
+        with open("d.log", "a+", encoding="utf-8") as f:
+            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{interaction.guild.id}] [{interaction.guild.name}] [{str(exception)}]\n")
 
 def setup(bot: commands.Bot, **kwargs):
     bot.add_cog(msg_h(bot, **kwargs))

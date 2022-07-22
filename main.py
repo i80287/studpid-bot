@@ -18,11 +18,13 @@ if __name__ == "__main__":
         if filename.endswith(".py"):
             bot.load_extension(f"commands.{filename[:-3]}", extras={"prefix": prefix, "in_row": in_row, "currency": currency}) """
     bot = Bot()
+    
     cmd = Console(bot)
     cmd.load_extension(f'console')
     cmd.start()
+
     print(f'\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}')
-    bot.load_extension(f"commands.event_handl", extras={"prefix": prefix, "in_row": in_row})
+    bot.load_extension(f"commands.event_handl")
 
     #bot.run(token)
     bot.run(debug_token)

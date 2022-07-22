@@ -1760,10 +1760,7 @@ class slash(commands.Cog):
         await self.leaders(interaction=interaction)
     
     
-    @commands.Cog.listener()
-    async def on_application_command_error(self, interaction, exception):
-        with open("d.log", "a+", encoding="utf-8") as f:
-            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{interaction.guild.id}] [{interaction.guild.name}] [{str(exception)}]\n")
+   
 
 def setup(bot: commands.Bot, **kwargs):
     bot.add_cog(slash(bot, **kwargs))
