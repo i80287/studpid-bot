@@ -22,6 +22,7 @@ if __name__ == "__main__":
     cmd.load_extension(f'console')
     cmd.start()
     print(f'\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}')
-    #bot.run(token)
     bot.load_extension(f"commands.event_handl", extras={"prefix": prefix, "in_row": in_row})
+
+    #bot.run(token)
     bot.run(debug_token)

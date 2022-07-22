@@ -285,7 +285,7 @@ m_general_cmds = {
         ("`{}language` `language`", "Select language"),
         ("`{}zones`", "Show available pre-named time zones"),
         ("`{}time_zone` `time_zone`", "Select timezone for the server"), 
-        ("`{}mod_role`", "Show menu to manage mod roles"), 
+        ("`{}mod_roles`", "Show menu to manage mod roles"), 
         ("`{}money_per_msg` `amount`", "Set amount of money gained by member from message"),
         ("`{}reset`", "Reset bot's settings")
     ],

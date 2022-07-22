@@ -36,26 +36,27 @@ class c_button(Button):
         super().__init__(style=style, label=label, disabled=disabled, custom_id=custom_id, emoji=emoji, row=row)
 
     async def callback(self, interaction: Interaction):
-       await super().click(interaction, self.custom_id)
+       await super().view.click(interaction, self.custom_id)
+
 
 class mod_roles_view(View):
     def __init__(self, t_out: int, m_rls: list, lng: int):
         super().__init__(timeout=t_out)
         self.m_rls = m_rls
         self.add_item(c_button(style=ButtonStyle.green, label=mod_roles_text[lng][3], emoji="<:add01:999663315804500078>", custom_id="0"))
-        self.add_item(c_button(style=ButtonStyle.grey, label=mod_roles_text[lng][4], emoji="<:remove01:999663428689997844>", custom_id="1"))
+        self.add_item(c_button(style=ButtonStyle.red, label=mod_roles_text[lng][4], emoji="<:remove01:999663428689997844>", custom_id="1"))
     async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
         if c_id == "0":
             m = interaction.message
             m_ans = await interaction.response.send_message(embed=Embed(title=mod_roles_text[lng][5], description=mod_roles_text[lng][6]))
-        flag = 1
-        while flag:
-            try:
-                print(interaction.client.user.name)
-            except TimeoutError:
-                await m_ans.delete()
-                flag = 0
+            flag = 1
+            while flag:
+                try:
+                    print(interaction.client.user.name)
+                except TimeoutError:
+                    await m_ans.delete()
+                    flag = 0
 
 
 
@@ -63,6 +64,8 @@ class mod_roles_view(View):
 class m_cmds(commands.Cog):
     def __init__(self, bot: commands.Bot, prefix, in_row):
         self.bot = bot
+        global bot_guilds_e
+        global bot_guilds_r
 
 
     def mod_check(ctx: commands.Context):
@@ -78,10 +81,8 @@ class m_cmds(commands.Cog):
                     return any(role.id in m_rls for role in ctx.author.roles)
                 return False
 
-    @commands.command(hidden=True, aliases=["mod_roles"])
-    @commands.check(mod_check)
-    async def _mod_roles(self, ctx: commands.Context):
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
+    async def mod_roles(self, interaction: Interaction):
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 m_rls = cur.execute("SELECT * FROM mod_roles").fetchall()
@@ -97,12 +98,37 @@ class m_cmds(commands.Cog):
             emb.description = "\n".join(dsc)
 
         m_rls_v = mod_roles_view(t_out=60, m_rls=m_rls, lng=lng)
-        m = await ctx.reply(embed=emb, view=m_rls_v, mention_author=False)
+        m = await interaction.response.send_message(embed=emb, view=m_rls_v)
         if await m_rls_v.wait():
             for c in m_rls_v.children:
                 c.disabled = True
             await m.edit(view=m_rls_v)
         
+    @slash_command(
+        name="mod_roles",
+        description="Show menu to manage mod roles",
+        description_localizations={
+            Locale.ru : "Вызывает меню управления ролями модераторов"
+        },
+        guild_ids=bot_guilds_e,
+        force_global=False
+    )
+    async def mod_roles_e(self, interaction: Interaction):
+        await self.mod_roles(interaction=interaction)
+    
+    
+    @slash_command(
+        name="mod_roles",
+        description="Вызывает меню управления ролями модераторов",
+        description_localizations={
+            Locale.en_GB: "Show menu to manage mod roles",
+            Locale.en_US: "Show menu to manage mod roles"
+        },
+        guild_ids=bot_guilds_r,
+        force_global=False
+    )
+    async def mod_roles_r(self, interaction: Interaction):
+        await self.mod_roles(interaction=interaction)
 
 def setup(bot: commands.Bot, **kwargs):
     bot.add_cog(m_cmds(bot, **kwargs))

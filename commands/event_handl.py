@@ -7,9 +7,18 @@ from datetime import datetime, timedelta
 from colorama import Fore
 from nextcord import Game, Message, ChannelType, MessageType
 from nextcord.ext import commands
+from nextcord.ext.commands import CheckFailure, CommandError
+
 from config import path_to, bot_guilds_e, bot_guilds_r, bot_guilds, prefix, in_row
 
-
+event_handl_text = {
+    0 : {
+        0 : "**Sorry, but you don't have enough permissions to use this command**",
+    },
+    1 : {
+        0 : "**Извините, но у Вас недостаточно прав для использования этой командыы**",
+    }
+}
 
 
 class msg_h(commands.Cog):
@@ -83,18 +92,6 @@ class msg_h(commands.Cog):
         self.bot.load_extension(f"commands.basic", extras={"prefix": prefix, "in_row": in_row})
         self.bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row})
         
-        self.cmds0 = {
-            "zones" : self.bot.get_command(name="zones"),
-            "mod_roles" : self.bot.get_command(name="mod_roles")
-        }
-        self.cmds1 = {
-            "guide" : self.bot.get_command(name="guide"),
-            "log_economy" : self.bot.get_command(name="log_economy")
-        }
-        self.cmds2 = {
-            
-        }
-
         await self.bot.discover_application_commands()
         await sleep(10)
         await self.bot.sync_all_application_commands()
@@ -115,45 +112,7 @@ class msg_h(commands.Cog):
         if user.bot or message.channel.type is ChannelType.private \
             or message.type is MessageType.chat_input_command:
             return
-        s = message.content
-        g_id = message.guild.id
-        with closing(connect(f'{path_to}/bases/bases_{g_id}/{g_id}.db')) as base:
-            with closing(base.cursor()) as cur:
-                pref = cur.execute("SELECT settings FROM server_info WHERE value = -1").fetchone()[0][1:]
-                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-        print(pref)
-        if s.startswith(pref):
-            s = s[len(pref):].split()
-            nm = s[0]
-            print(s[0])
-            if nm in self.cmds0:
-                cmd = self.cmds0.get(nm)
-                ctx = await self.bot.get_context(message=message)
-                await cmd(context=ctx)
-
-            elif nm in self.cmds1:
-                cmd = self.cmds1.get(nm)
-                if nm == "guide":
-                    arg1 = pref
-                elif nm == "log_economy":
-                    if len(message.channel_mentions):
-                        if message.channel_mentions[0].type is ChannelType.text:
-                            arg1 = message.channel_mentions[0]
-                        else:
-                            return
-                    else:
-                        if not s[1].isdigit:
-                            return
-                        arg1 = message.guild.get_channel(int(s[1]))
-                        if arg1 is None:
-                            return
-                    
-                ctx = await self.bot.get_context(message=message)
-                await cmd(ctx, arg1)
-
-            elif nm in self.cmds2:
-                arg2 = s[2]
-                pass
+        
 
 def setup(bot: commands.Bot, **kwargs):
     bot.add_cog(msg_h(bot, **kwargs))

@@ -1395,7 +1395,7 @@ class slash(commands.Cog):
                         child.disabled = True
                     msg = await interaction.original_message()
                     await msg.edit(view=view_r)
-
+    
     
     @slash_command(
         name="buy", 
