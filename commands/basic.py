@@ -722,35 +722,31 @@ class mod_commands(commands.Cog):
         bot_guilds.add(guild.id)
         with closing(connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
-                cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
+                cur.executescript("""
+                    CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER);
+                    CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, salary INTEGER, salary_cooldown INTEGER, type INTEGER);
+                    CREATE TABLE IF NOT EXISTS store(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, salary INTEGER, salary_cooldown INTEGER, type INTEGER);
+                    CREATE TABLE IF NOT EXISTS salary_roles(role_id INTEGER PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, salary_cooldown INTEGER, last_time INTEGER);
+                    CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER);
+                    CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER);
+                    CREATE TABLE IF NOT EXISTS rank(memb_id INTEGER PRIMARY KEY, xp INTEGER);
+                    CREATE TABLE IF NOT EXISTS ic(chn_id INTEGER PRIMARY KEY);
+                    CREATE TABLE IF NOT EXISTS mod_roles(role_id INTEGER PRIMARY KEY);
+                """)
                 base.commit()
-                cur.execute('CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, salary INTEGER, type INTEGER)')
-                base.commit()
-                cur.execute('CREATE TABLE IF NOT EXISTS store(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, salary INTEGER, type INTEGER)')
-                base.commit()
-                cur.execute('CREATE TABLE IF NOT EXISTS salary_roles(role_id INTEGER PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, last_time INTEGER)')
-                base.commit()
-                cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
-                base.commit()
-                cur.execute("CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER)")
-                base.commit()
-                cur.execute("CREATE TABLE IF NOT EXISTS rank(memb_id INTEGER PRIMARY KEY, xp INTEGER, c_xp INTEGER)")
-                base.commit()
-                cur.execute("CREATE TABLE IF NOT EXISTS ic(chn_id INTEGER PRIMARY KEY)")
-                base.commit()
-                cur.execute("CREATE TABLE IF NOT EXISTS mod_roles(role_id INTEGER PRIMARY KEY)")
-                base.commit()
-
+                
                 lng = 1 if "ru" in guild.preferred_locale else 0
-
+                    
                 r = [
-                    ('lang', lng), ("0>>", -1), ('xp_step', 1), ('tz', 0), 
-                    ('w_cd', 14400), ('sal_t', 0), ('sal_l', 1), ('sal_r', 250),
+                    ('lang', lng), ('tz', 0), 
+                    ('xp_border', 100), ('xp_per_msg', 1), ('mn_per_msg', 1), 
+                    ('w_cd', 14400), ('sal_l', 1), ('sal_r', 250),
                     ('lvl_c', 0), ('log_c', 0), ('poll_v_c', 0), ('poll_c', 0)
                 ]
                     
                 cur.executemany("INSERT OR IGNORE INTO server_info(settings, value) VALUES(?, ?)", r)
                 base.commit()
+                
 
         with open("guild.log", "a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.id}] [{guild.name}] \n")
@@ -763,7 +759,7 @@ class mod_commands(commands.Cog):
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_remove] [{guild.id}] [{guild.name}]\n")
 
     
-    @tasks.loop(seconds=30)
+    @tasks.loop(seconds=60)
     async def salary_roles(self):
         for g in bot_guilds: 
             with closing(connect(f'{path_to}/bases/bases_{g}/{g}.db')) as base:
@@ -965,7 +961,7 @@ class mod_commands(commands.Cog):
                 outer = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchall()
                 if nums > 0:
                     #time_now = (datetime.utcnow()+timedelta(hours=3)).strftime('%S/%M/%H/%d/%m/%Y')
-                    time_now = int(time()) #inside of the bot without time zone
+                    time_now = int(time()) # inside of the bot without time zone
                     if is_special == 0:
                         await self.insert_uniq(base=base, cur=cur, nums=nums, role_id=role.id, outer=outer, price=role_info[1], time_now=time_now, ctx=ctx, lng=lng)
                         return

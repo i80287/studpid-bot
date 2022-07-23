@@ -15,7 +15,7 @@ class ConsoleCog(Cog):
         self.console = console
     
     @console.command()
-    async def setup(self, guild_id, lng):
+    async def setup(self, guild_id, lng = "0"):
         if not os.path.exists(f"{path_to}/bases/"):
             try:
                 os.mkdir(f"{path_to}/bases/")
@@ -31,38 +31,33 @@ class ConsoleCog(Cog):
 
         with closing(connect(f'{path_to}/bases/bases_{guild_id}/{guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                cur.execute('CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER)')
+                cur.executescript("""
+                    CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER);
+                    CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, salary INTEGER, salary_cooldown INTEGER, type INTEGER);
+                    CREATE TABLE IF NOT EXISTS store(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, salary INTEGER, salary_cooldown INTEGER, type INTEGER);
+                    CREATE TABLE IF NOT EXISTS salary_roles(role_id INTEGER PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, salary_cooldown INTEGER, last_time INTEGER);
+                    CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER);
+                    CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER);
+                    CREATE TABLE IF NOT EXISTS rank(memb_id INTEGER PRIMARY KEY, xp INTEGER);
+                    CREATE TABLE IF NOT EXISTS ic(chn_id INTEGER PRIMARY KEY);
+                    CREATE TABLE IF NOT EXISTS mod_roles(role_id INTEGER PRIMARY KEY);
+                """)
                 base.commit()
-                cur.execute('CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, salary INTEGER, type INTEGER)')
-                base.commit()
-                cur.execute('CREATE TABLE IF NOT EXISTS store(item_id INTEGER PRIMARY KEY, role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, salary INTEGER, type INTEGER)')
-                base.commit()
-                cur.execute('CREATE TABLE IF NOT EXISTS salary_roles(role_id INTEGER PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, last_time INTEGER)')
-                base.commit()
-                cur.execute("CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER)")
-                base.commit()
-                cur.execute("CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER)")
-                base.commit()
-                cur.execute("CREATE TABLE IF NOT EXISTS rank(memb_id INTEGER PRIMARY KEY, xp INTEGER, c_xp INTEGER)")
-                base.commit()
-                cur.execute("CREATE TABLE IF NOT EXISTS ic(chn_id INTEGER PRIMARY KEY)")
-                base.commit()
-                cur.execute("CREATE TABLE IF NOT EXISTS mod_roles(role_id INTEGER PRIMARY KEY)")
-                base.commit()
+                
                 try:
                     lng = int(lng)
                 except:
                     lng = 0
                     
                 r = [
-                    ('lang', lng), ("0>>", -1), ('xp_step', 1), ('tz', 0), 
-                    ('w_cd', 14400), ('sal_t', 0), ('sal_l', 1), ('sal_r', 250),
+                    ('lang', lng), ('tz', 0), 
+                    ('xp_border', 100), ('xp_per_msg', 1), ('mn_per_msg', 1), 
+                    ('w_cd', 14400), ('sal_l', 1), ('sal_r', 250),
                     ('lvl_c', 0), ('log_c', 0), ('poll_v_c', 0), ('poll_c', 0)
                 ]
                     
-                cur.executemany("INSERT INTO server_info(settings, value) VALUES(?, ?)", r)
+                cur.executemany("INSERT OR IGNORE INTO server_info(settings, value) VALUES(?, ?)", r)
                 base.commit()
-
 
 
         print(f'{Fore.CYAN}[>>>]created and setuped database for {guild_id}{Fore.RED}')

@@ -77,7 +77,8 @@ gen_settings_text = {
         12 : "`Rus` - for Russian language",
         13 : "New server language for description of slash commands: {}",
         14 : "Please, wait a bit...",
-        15 : "This language is already selected as language for description of slash commands"
+        15 : "This language is already selected as language for description of slash commands",
+
         
     },
     1 : {
@@ -98,7 +99,6 @@ gen_settings_text = {
         14 : "Пожалуйста, немного подождите...",
         15 : "Этот язык уже выбран в качестве языка для описания слэш команд"
     }
-    
 }
 
 languages = {
@@ -522,6 +522,10 @@ class settings_view(View):
             if await m_rls_v.wait():
                 m_rls_v.stop()
                 await m.delete()
+        elif custom_id == "2":
+            with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                with closing(base.cursor()) as cur:
+                    money_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg'").fetchone()[0]
     
 
     async def interaction_check(self, interaction: Interaction) -> bool:
@@ -554,33 +558,6 @@ class m_cmds(commands.Cog):
                 return False
 
 
-    async def mod_roles(self, interaction: Interaction):
-        lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
-            with closing(base.cursor()) as cur:
-                m_rls = cur.execute("SELECT * FROM mod_roles").fetchall()
-        emb = Embed(title=mod_roles_text[lng][0])
-        if len(m_rls) == 0:
-            emb.description=mod_roles_text[lng][1]
-            m_rls = set()
-            rem_dis = True
-        else:
-            m_rls = {x[0] for x in m_rls}
-            dsc = [mod_roles_text[lng][2]]
-            for i in m_rls:
-                dsc.append(f"<@&{i}> - {i}")
-            emb.description = "\n".join(dsc)
-            rem_dis = False
-
-        m_rls_v = mod_roles_view(t_out=60, m_rls=m_rls, lng=lng, auth_id=interaction.user.id, rem_dis=rem_dis)
-        m = await interaction.response.send_message(embed=emb, view=m_rls_v)
-        if await m_rls_v.wait():
-            for c in m_rls_v.children:
-                c.disabled = True
-            await m.edit(view=m_rls_v)
-        m_rls_v.stop()
-    
-
     async def settings(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
         dsc = []
@@ -595,34 +572,6 @@ class m_cmds(commands.Cog):
             await m.edit(view=st_view)
         st_view.stop()
         
-
-    @slash_command(
-        name="mod_roles",
-        description="Show menu to manage mod roles",
-        description_localizations={
-            Locale.ru : "Вызывает меню управления ролями модераторов"
-        },
-        guild_ids=bot_guilds_e,
-        force_global=False
-    )
-    @application_checks.check(mod_check)
-    async def mod_roles_e(self, interaction: Interaction):
-        await self.mod_roles(interaction=interaction)
-    
-    
-    @slash_command(
-        name="mod_roles",
-        description="Вызывает меню управления ролями модераторов",
-        description_localizations={
-            Locale.en_GB: "Show menu to manage mod roles",
-            Locale.en_US: "Show menu to manage mod roles"
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False
-    )
-    @application_checks.check(mod_check)
-    async def mod_roles_r(self, interaction: Interaction):
-        await self.mod_roles(interaction=interaction)
 
     @slash_command(
         name="settings",
