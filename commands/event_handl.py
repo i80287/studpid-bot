@@ -63,20 +63,18 @@ class msg_h(commands.Cog):
                         base.commit()
                         cur.execute("CREATE TABLE IF NOT EXISTS mod_roles(role_id INTEGER PRIMARY KEY)")
                         base.commit()
-
-                        lng = 1 if "ru" in guild.preferred_locale else 0
-
-                        r = [
-                            ('lang', lng), ('xp_step', 1), ('tz', 0), 
-                            ('w_cd', 14400), ('sal_t', 0), ('sal_l', 1), ('sal_r', 250),
+                        lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()
+                        if lng == None:
+                            lng = 1 if "ru" in guild.preferred_locale else 0
+                        else:
+                            lng = lng[0]
+                        r=[
+                            ('lang', lng), ('xp_step', 5), ('xp_border', 1000), ('tz', 0), 
+                            ('w_cd', 14400), ('sal_t', 14400), ('sal_l', 1), ('sal_r', 250),
                             ('lvl_c', 0), ('log_c', 0), ('poll_v_c', 0), ('poll_c', 0)
-                        ]
-                            
+                        ] 
                         cur.executemany("INSERT OR IGNORE INTO server_info(settings, value) VALUES(?, ?)", r)
                         base.commit()
-                        if cur.execute("SELECT * FROM server_info WHERE value = -1").fetchone() == None:
-                            cur.execute("INSERT INTO server_info VALUES(?, ?)", ("0>>", -1))
-                            base.commit()
 
                         if lng == 1:
                             bot_guilds_r.add(guild.id)

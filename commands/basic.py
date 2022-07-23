@@ -346,7 +346,7 @@ help_menu = {
 
         "settings" : "`{}settings` show menu with current bot's settings",
 
-        "language" : "`{}language` `lang` select language for the mod commands and names and descriptions of the slash commands. Can be **`Eng`** (no matter Eng, eng, \
+        "language" : "`{}language` `lang` select language for the descriptions of the slash commands. Can be **`Eng`** (no matter Eng, eng, \
                     eNg etc.) for English and **`Rus`** (no matter Rus, rus, rUs etc.) for Russian.\n\n**Example:**\n**`{}language`** **`eng`** will select English language",
 
         "zones" : "`{}zones` show available pre-named time zones",
@@ -403,7 +403,7 @@ help_menu = {
 
         "settings" : "`{}settings` вызывает меню, в котором отображены текущие настройки бота",
 
-        "language" : "`{}language` `язык` устанавливает выбранный язык для команд модераторов и названия и описания слэш команды. Доступны: **`Eng`** \
+        "language" : "`{}language` `язык` устанавливает выбранный язык для описания слэш команды. Доступны: **`Eng`** \
                     (регистр не важен) - для английского и **`Rus`** (регистр не важен) - для русского.\n\n**Пример:**\n**`{}language`** **`rus`** установит русский язык",
 
         "zones" : "`{}zones` показывет доступные именные часовые пояса",
