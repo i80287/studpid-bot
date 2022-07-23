@@ -4,42 +4,11 @@ from contextlib import closing
 from sqlite3 import connect
 from datetime import datetime, timedelta
 
-from nextcord import Embed, Colour, Guild, Role, Member, TextChannel, Locale, Interaction, slash_command, SlashOption, ButtonStyle, Message
-from nextcord.ui import View, Button, button
+from nextcord import Embed, Colour, Guild, Role, Member, TextChannel, Locale, Interaction, slash_command, SlashOption, ButtonStyle, Message, SelectOption
+from nextcord.ui import View, Button, button, Select
 from nextcord.ext import commands, application_checks
 
 from config import path_to, bot_guilds_e, bot_guilds_r, bot_guilds, prefix, in_row
-
-mod_roles_text = {
-    0 : {
-        0 : "Current mod roles",
-        1 : "No roles selected",
-        2 : "role - id",
-        3 : "Add role",
-        4 : "Remove role",
-        5 : "Add role",
-        6 : "Write an id of the role or ping it",
-        7 : "This role already in the list",
-        8 : "Role {} added to the list",
-        9 : "This role not in the list",
-        10 : "Role {} removed from the list",
-        11 : "**`Sorry, but you can't manage menu called by another user`**"
-    },
-    1 : {
-        0 : "Текущие мод роли",
-        1 : "Не выбрано ни одной роли",
-        2 : "роль - id",
-        3 : "Добавить роль",
-        4 : "Убрать роль",
-        5 : "Добавление роли",
-        6 : "Напишите id роли или пинганите её",
-        7 : "Эта роль уже в списке",
-        8 : "Роль {} добавлена в список",
-        9 : "Этой роли нет в списке",
-        10 : "Роль {} убрана из списока",
-        11 : "**`Извините, но Вы не можете управлять меню, которое вызвано другим пользователем`**"
-    }
-}
 
 settings_text = {
     0 : [
@@ -98,23 +67,6 @@ gen_settings_text = {
         13 : "Новый язык сервера для описания слэш команд: {}",
         14 : "Пожалуйста, немного подождите...",
         15 : "Этот язык уже выбран в качестве языка для описания слэш команд"
-    }
-}
-
-languages = {
-    0 : {
-        0 : "English",
-        1 : "Russian",
-        "ENG" : ("English", 0),
-        "RUS": ("Russian", 1),
-        "URUS" : ("Russian", 1)
-    },
-    1 : {
-        0 : "английский",
-        1 : "русский",
-        "ENG" : ("английский", 0),
-        "RUS": ("русский", 1),
-        "URUS" : ("русский", 1)
     }
 }
 
@@ -197,10 +149,92 @@ zone_nm = {
     "PETT" : "Kamchatka Time, UTC+12",
 }
 
+mod_roles_text = {
+    0 : {
+        0 : "Current mod roles",
+        1 : "No roles selected",
+        2 : "role - id",
+        3 : "Add role",
+        4 : "Remove role",
+        5 : "Add role",
+        6 : "Write an id of the role or ping it",
+        7 : "This role already in the list",
+        8 : "Role {} added to the list",
+        9 : "This role not in the list",
+        10 : "Role {} removed from the list",
+        11 : "**`Sorry, but you can't manage menu called by another user`**"
+    },
+    1 : {
+        0 : "Текущие мод роли",
+        1 : "Не выбрано ни одной роли",
+        2 : "роль - id",
+        3 : "Добавить роль",
+        4 : "Убрать роль",
+        5 : "Добавление роли",
+        6 : "Напишите id роли или пинганите её",
+        7 : "Эта роль уже в списке",
+        8 : "Роль {} добавлена в список",
+        9 : "Этой роли нет в списке",
+        10 : "Роль {} убрана из списока",
+        11 : "**`Извините, но Вы не можете управлять меню, которое вызвано другим пользователем`**"
+    }
+}
+
+ec_text = {
+    0 : {
+        0 : "Economy settings",
+        1 : "💸 Money gained for message:\n**`{}`**",
+        2 : "⏰ Cooldown for `/work`:\n**`{} seconds`**",
+        3 : "💹 Salary from `/work`:\n**`{}`**",
+        4 : "random integer from **`{}`** to **`{}`**",
+        5 : "📙 Log channel for economic operations:\n{}",
+        6 : "```fix\nnot selected```",
+        7 : "To manage setting press button with\ncorresponding emoji",
+        8 : "To see and manage roles available for\npurchase/sale in the bot press 🛠️"
+    },
+    1 : {
+        0 : "Настройки экономики",
+        1 : "💸 Количество денег, получаемое за сообщение:\n**`{}`**",
+        2 : "⏰ Кулдаун для команды `/work`:\n**`{} секунд`**",
+        3 : "💹 Доход от команды `/work`:\n**{}**",
+        4 : "рандомное целое число от `{}` до `{}`",
+        5 : "📙 Канал для логов экономических операций:\n{}",
+        6 : "```fix\nне выбран```",
+        7 : "> Для управления настройкой нажмите на кнопку с\nсоответствующим эмодзи",
+        8 : "> Для просмотра и управления ролями, доступными\nдля покупки/продажи у бота, нажмите 🛠️"
+    }
+}
+
+languages = {
+    0 : {
+        0 : "English",
+        1 : "Russian",
+        "ENG" : ("English", 0),
+        "RUS": ("Russian", 1),
+        "URUS" : ("Russian", 1)
+    },
+    1 : {
+        0 : "английский",
+        1 : "русский",
+        "ENG" : ("английский", 0),
+        "RUS": ("русский", 1),
+        "URUS" : ("русский", 1)
+    }
+}
+
 
 #with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
 #            with closing(base.cursor()) as cur:
 #                 sets = cur.execute("SELECT * FROM server_info")
+class c_select(Select):
+    def __init__(self, custom_id, placeholder: str, roles: list) -> None:
+        options = [SelectOption(label=role.name, value=role.id) for role in roles]
+        super().__init__(custom_id=custom_id, placeholder=placeholder, options=options)
+    
+    async def callback(self, interaction: Interaction):
+        print(self.values)
+
+
 class c_button(Button):
     def __init__(self, style: ButtonStyle, label: str, custom_id: str, disabled: bool = False, emoji = None, row: int = None):
         super().__init__(style=style, label=label, disabled=disabled, custom_id=custom_id, emoji=emoji, row=row)
@@ -339,7 +373,7 @@ class gen_settings_view(View):
             return
         while flag:
             try:
-                m_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == self.auth_id and m.channel.id == interaction.channel_id, timeout=30)
+                m_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == self.auth_id and m.channel.id == interaction.channel_id, timeout=40)
             except TimeoutError:
                 await m_b_ans.delete()
                 return
@@ -425,7 +459,7 @@ class mod_roles_view(View):
         flag = True
         while flag:
             try:
-                m_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == interaction.user.id and m.channel.id == interaction.channel_id, timeout=50)
+                m_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == interaction.user.id and m.channel.id == interaction.channel_id, timeout=40)
             except TimeoutError:
                 await m_a.delete()
                 flag = False
@@ -465,6 +499,21 @@ class mod_roles_view(View):
             return False
         return True
 
+
+class economy_view(View):
+    def __init__(self, t_out: int, auth_id: int, rls):
+        super().__init__(timeout=t_out)
+        self.auth_id = auth_id
+        self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id="10", emoji="💸"))
+        self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id="11", emoji="⏰"))
+        self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id="12", emoji="💹"))
+        self.add_item(c_button(style=ButtonStyle.green, label="", custom_id="13", emoji="📙"))
+        self.add_item(c_button(style=ButtonStyle.red, label="", custom_id="14", emoji="🛠️"))
+        """ for i in range((len(rls)+24)//25):
+            self.add_item(c_select(custom_id=f"{15+i}", placeholder="Select role", roles=rls[i*25:min(len(rls), (i+1)*25)])) """
+
+    async def click(self, interaction: Interaction, c_id):
+        pass
 
 class settings_view(View):
     
@@ -517,7 +566,7 @@ class settings_view(View):
                 emb.description = "\n".join(dsc)
                 rem_dis = False
 
-            m_rls_v = mod_roles_view(t_out=60, m_rls=m_rls, lng=lng, auth_id=self.auth_id, rem_dis=rem_dis)
+            m_rls_v = mod_roles_view(t_out=50, m_rls=m_rls, lng=lng, auth_id=self.auth_id, rem_dis=rem_dis)
             m = await interaction.response.send_message(embed=emb, view=m_rls_v)
             if await m_rls_v.wait():
                 m_rls_v.stop()
@@ -526,7 +575,31 @@ class settings_view(View):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     money_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg'").fetchone()[0]
-    
+                    w_cd = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd'").fetchone()[0]
+                    sal_l = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l'").fetchone()[0]
+                    sal_r = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r'").fetchone()[0]
+                    e_l_c = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+            emb = Embed(title=ec_text[lng][0])
+            dsc = []
+            dsc.append(ec_text[lng][1].format(money_p_m))
+            dsc.append(ec_text[lng][2].format(w_cd))
+            if sal_l == sal_r:
+                dsc.append(ec_text[lng][3].format(sal_l))
+            else:
+                dsc.append(ec_text[lng][3].format(ec_text[lng][4].format(sal_l, sal_r)))
+            if e_l_c == 0:
+                dsc.append(ec_text[lng][5].format(ec_text[lng][6]))
+            else:
+                dsc.append(ec_text[lng][5].format(f"<#{e_l_c}>"))
+            dsc.append(ec_text[lng][7])
+            dsc.append(ec_text[lng][8])
+            emb.description = "\n\n".join(dsc)
+            rls = [r for r in interaction.guild.roles if (not r.is_integration() and r.is_assignable())]
+            ec_v = economy_view(t_out=50, auth_id=self.auth_id, rls=rls)
+            m = await interaction.response.send_message(embed=emb, view=ec_v)
+            if await ec_v.wait():
+                ec_v.stop()
+                await m.delete()
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
