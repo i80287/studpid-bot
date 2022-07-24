@@ -1,15 +1,14 @@
-from os import path, mkdir
+
 from asyncio import sleep, TimeoutError
 from contextlib import closing
 from sqlite3 import connect
 from datetime import datetime, timedelta
 
-from nextcord import Embed, Colour, Guild, Role, Member, TextChannel, Locale, Interaction, slash_command, SlashOption, ButtonStyle, Message, SelectOption
+from nextcord import Embed, Colour, Guild, Role, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextChannel
 from nextcord.ui import View, Button, button, Select
 from nextcord.ext import commands, application_checks
-from pydantic import NoneStr
 
-from config import path_to, bot_guilds_e, bot_guilds_r, bot_guilds, prefix, in_row
+from config import path_to, bot_guilds_e, bot_guilds_r, prefix, in_row
 
 settings_text = {
     0 : [
@@ -42,30 +41,24 @@ gen_settings_text = {
         7 : "You hasn't selected time zone yet",
         8 : "**`Current server time zone: UTC{}`**",
         9 : "New time zone: **`UTC{}`**",
-        10 : "Please, select language from the list:",
-        11 : "`Eng` - for English language",
-        12 : "`Rus` - for Russian language",
-        13 : "New server language for description of slash commands: {}",
-        14 : "Please, wait a bit...",
-        15 : "This language is already selected as language for description of slash commands"        
+        10 : "New server language for description of slash commands: {}",
+        11 : "Language is changing, please wait a bit...",
+        12 : "This language is already selected as language for description of slash commands"        
     },
     1 : {
         0 : "🗣️ язык сервера для описания слэш команд: {}",
         1 : "⏱ часовой пояс: UTC{}",
         2 : "нажмите 🗣️, чтобы изменить язык",
-        3 : "нажмите 📃, чтобы посмотреть именные часовые пояса",
-        4 : "нажмите ⏱, чтобы изменить часовой пояс",
-        5 : "**`Текущий часовой пояс сервера: UTC{}`**",
-        6 : "Пожалуйста, укажите часовую разницу от UTC (например, напишите **`9`** для UTC+9 или **`-4`** для UTC-4) или имя часового пояса",
-        7 : "Указанного Вами названия часового пояса нет в списке поясов, доступного по кнопке 📃",
-        8 : "Часовой сдвиг должнен быть целым числом от -12 до 12 ( т.е сдвиг Є {-12; -11; ...; -11; -12} )",
+        3 : "нажмите ⏱, чтобы изменить часовой пояс",
+        4 : "Выбрать новый язык",
+        5 : "Выбрать новый часовой пояс",
+        6 : "Вы не выбрали язык",
+        7 : "Вы не выбрали часовой пояс",
+        8 : "**`Текущий часовой пояс сервера: UTC{}`**",
         9 : "Новый часовой пояс сервера: **`UTC{}`**",
-        10 : "Пожалуйста, выберите язык из списка:",
-        11 : "`Eng` - для английского языка",
-        12 : "`Rus` - для русского языка",
-        13 : "Новый язык сервера для описания слэш команд: {}",
-        14 : "Пожалуйста, подождите немного...",
-        15 : "Этот язык уже выбран в качестве языка для описания слэш команд"
+        10 : "Новый язык сервера для описания слэш команд: {}",
+        11 : "Язык изменяется, пожалуйста, подождите немного...",
+        12 : "Этот язык уже выбран в качестве языка для описания слэш команд"
     }
 }
 
@@ -188,19 +181,42 @@ ec_text = {
         4 : "random integer from **`{}`** to **`{}`**",
         5 : "📙 Log channel for economic operations:\n{}",
         6 : "```fix\nnot selected```",
-        7 : "To manage setting press button with\ncorresponding emoji",
-        8 : "To see and manage roles available for\npurchase/sale in the bot press 🛠️"
+        7 : "> To manage setting press button with\ncorresponding emoji",
+        8 : "> To see and manage roles available for\npurchase/sale in the bot press 🛠️",
+        9 : "Write amount of money gained for message (non negative integer number)",
+        10 : "Amount of money gained from messages set to: `{}`",
+        11 : "Write cooldown for `/work` command **in seconds** (integer at least 60)",
+        12 : "Cooldown for `/work` set to: `{}`",
+        13 : "Write salary from `/work`:\nTwo non-negative numbers, second at least as much as first\nSalary will be random integer \
+            between them\nIf you want salary to constant write one number\nFor example, if you write `1` `100` then salary \
+            will be random integer from `1` to `100`\nIf you write `10`, then salary will always be `10`",
+        14 : "Now salary is {}",
+        15 : "Select channel",
+        16 : "You chose channel {}",
+        17 : "Timeout expired"
     },
     1 : {
         0 : "Настройки экономики",
-        1 : "💸 Количество денег, получаемое за сообщение:\n**`{}`**",
+        1 : "💸 Количество денег, получаемых за сообщение:\n**`{}`**",
         2 : "⏰ Кулдаун для команды `/work`:\n**`{} секунд`**",
         3 : "💹 Доход от команды `/work`:\n**{}**",
         4 : "рандомное целое число от `{}` до `{}`",
         5 : "📙 Канал для логов экономических операций:\n{}",
         6 : "```fix\nне выбран```",
         7 : "> Для управления настройкой нажмите на кнопку с\nсоответствующим эмодзи",
-        8 : "> Для просмотра и управления ролями, доступными\nдля покупки/продажи у бота, нажмите 🛠️"
+        8 : "> Для просмотра и управления ролями, доступными\nдля покупки/продажи у бота, нажмите 🛠️",
+        9 : "Укажите количество денег, получаемых за сообщение\n(неотрицательное целое число)",
+        10 : "Количество денег, получаемых за одно сообщение, теперь равно: `{}`",
+        11 : "Укажите кулдаун для команды `/work` **в секундах** (целое число не менее 60)",
+        12 : "Кулдаун для команды `/work` теперь равен: `{}`",
+        13 : "Укажите заработок от команды `/work`:\nДва неотрицательных числа, второе не менее первого\nЗаработок будет \
+            рандомным целым числом между ними\nЕсли Вы хотите сделать заработок постоянным, укажите одно число\nНапример, \
+            если Вы укажите `1` `100`, то заработок будет рандомным целым числом от `1` до `100`\nЕсли Вы укажите `10`, то \
+            заработок всегда будет равен `10`",
+        14 : "Теперь заработок: {}",
+        15 : "Выберите канал",
+        16 : "Вы выбрали канал {}",
+        17 : "Время ожидания вышло"
     }
 }
 
@@ -226,7 +242,6 @@ languages = {
     "Russian" : 1,
     "русский" : 1
 }
-
 
 #with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
 #            with closing(base.cursor()) as cur:
@@ -272,8 +287,8 @@ class gen_settings_view(View):
         self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id="6", emoji="⏱"))
 
 
-    async def digit_tz(self, tz: int, interaction: Interaction, lng: int):
-
+    async def digit_tz(self, interaction: Interaction, lng: int):
+            tz = self.tz
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (tz,))
@@ -290,14 +305,15 @@ class gen_settings_view(View):
             await m.edit(embed=emb)
 
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][9].format(tz)), ephemeral=True)
+            self.tz = None
 
-    async def select_lng(self, s_lng: int, interaction: Interaction, lng: int):
-
+    async def select_lng(self, interaction: Interaction, lng: int):
+        s_lng = self.lang
         g_id = interaction.guild_id
         with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0] == s_lng:
-                    await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][15]), ephemeral=True)
+                    await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][12]), ephemeral=True)
                     return
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lang'", (s_lng,))
                 base.commit()
@@ -313,7 +329,7 @@ class gen_settings_view(View):
             if g_id in bot_guilds_e:
                 bot_guilds_e.remove(g_id)
         
-        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][14]), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][11]), ephemeral=True)
         
         self.bot.unload_extension(f"commands.m_commands")
         self.bot.unload_extension(f"commands.basic")
@@ -335,8 +351,8 @@ class gen_settings_view(View):
         emb.description = "\n".join(dsc)
         await m.edit(embed=emb)
 
-        m_ans = await interaction.channel.send(embed=Embed(description=gen_settings_text[lng][13].format(s_lng_nm)))
-        await m_ans.delete(delay=5)
+        await interaction.edit_original_message(embed=Embed(description=gen_settings_text[lng][10].format(s_lng_nm)))
+        self.lang = None
 
     async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
@@ -349,9 +365,9 @@ class gen_settings_view(View):
             return
                 
         if c_id == "5":
-            await self.select_lng(s_lng=self.lang, interaction=interaction, lng=lng)
+            await self.select_lng(interaction=interaction, lng=lng)
         else:
-            await self.digit_tz(tz=self.tz, interaction=interaction, lng=lng)
+            await self.digit_tz(interaction=interaction, lng=lng)
 
     async def click_menu(self, __, c_id, values):
         if c_id == "100":
@@ -438,6 +454,7 @@ class mod_roles_view(View):
                         if c.custom_id == "9":
                             c.disabled = False
                     await m.edit(view=self)
+                self.role = None
             else:
                 await self.rem_role(rl=rl, interaction=interaction, lng=lng, m=m)
                 if len(self.m_rls) == 0:
@@ -445,6 +462,7 @@ class mod_roles_view(View):
                         if c.custom_id == "9":
                             c.disabled = True
                     await m.edit(view=self)
+                self.role = None
 
 
     async def click_menu(self, __, ___, values):
@@ -459,20 +477,164 @@ class mod_roles_view(View):
 
 
 class economy_view(View):
-    def __init__(self, t_out: int, auth_id: int, rls):
+
+    def __init__(self, t_out: int, auth_id: int):
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
+        self.channel = None
         self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id="10", emoji="💸"))
         self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id="11", emoji="⏰"))
         self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id="12", emoji="💹"))
         self.add_item(c_button(style=ButtonStyle.green, label="", custom_id="13", emoji="📙"))
         self.add_item(c_button(style=ButtonStyle.red, label="", custom_id="14", emoji="🛠️"))
-        """ for i in range((len(rls)+24)//25):
-            self.add_item(c_select(custom_id=f"{15+i}", placeholder="Select role", roles=rls[i*25:min(len(rls), (i+1)*25)])) """
 
+    async def msg_salary(self, interaction: Interaction, lng: int, ans) -> bool:
+        if ans.isdigit() and int(ans) >= 0:
+            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(base.cursor()) as cur:
+                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (int(ans),))
+                    base.commit()
+            
+            await interaction.edit_original_message(embed=Embed(description=ec_text[lng][10].format(ans)))
+            
+            emb = interaction.message.embeds[0]
+            dsc = emb.description.split("\n\n")
+            dsc[0] = ec_text[lng][1].format(ans)
+            emb.description = "\n\n".join(dsc)
+            await interaction.message.edit(embed=emb)
+
+            return False
+        else:
+            return True
+
+    async def work_cldwn(self, interaction: Interaction, lng: int, ans) -> bool:
+        if ans.isdigit() and int(ans) >= 60:
+            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(base.cursor()) as cur:
+                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'w_cd'", (int(ans),))
+                    base.commit()
+            await interaction.edit_original_message(embed=Embed(description=ec_text[lng][12].format(ans)))
+            
+            emb = interaction.message.embeds[0]
+            dsc = emb.description.split("\n\n")
+            dsc[1] = ec_text[lng][2].format(ans)
+            emb.description = "\n\n".join(dsc)
+            await interaction.message.edit(embed=emb)
+
+            return False
+        else:
+            return True
+
+    async def work_salary(self, interaction: Interaction, lng: int, ans) -> bool:
+        ans = ans.split()
+        fl = 0
+        if len(ans) >= 2:
+            n1 = ans[0]
+            n2 = ans[1]
+            if n1.isdigit() and n2.isdigit():
+                n1 = int(n1); n2 = int(n2)
+                if 0 <= n1 <= n2: fl = 1
+            
+        elif len(ans):
+            n1 = ans[0]
+            if n1.isdigit() and 0 <= int(n1):
+                n2 = n1 = int(n1)
+                fl = 1       
+        
+        if fl:
+            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(base.cursor()) as cur:
+                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_l'", (n1,))
+                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_r'", (n2,))
+                    base.commit()
+            
+            emb = interaction.message.embeds[0]
+            dsc = emb.description.split("\n\n")
+            if n1 == n2:
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][14].format(n1)))
+                dsc[2] = ec_text[lng][3].format(n1)
+            else:
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][14].format(ec_text[lng][4].format(n1, n2))))
+                dsc[2] = ec_text[lng][3].format(ec_text[lng][4].format(n1, n2))
+            
+            emb.description = "\n\n".join(dsc)
+            await interaction.message.edit(embed=emb)
+
+            return False
+        else:
+            return True
+
+    async def log_chnl(self, interaction: Interaction, lng: int):
+        
+        channels = [(c.name, c.id) for c in interaction.guild.text_channels]
+        ids = set()
+        for i in range(min((len(channels) + 24) // 25, 6)):
+            self.add_item(c_select_gen(custom_id=f"{500+i}", placeholder=ec_text[lng][15], opts=channels[i*25:min((i+1)*25, len(channels))]))
+            ids.add(f"{500+i}")
+            
+        await interaction.message.edit(view=self)
+        await interaction.response.send_message(embed=Embed(description=ec_text[lng][15]), ephemeral=True)
+        cnt = 0
+        while cnt <= 40 and self.channel == None:
+            cnt += 1
+            await sleep(1)
+        cld = self.children
+        while i < len(cld):
+            if cld[i].custom_id in ids:
+                self.remove_item(item=cld[i])
+            else:
+                i += 1
+        
+        if not self.channel is None:
+            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(base.cursor()) as cur:
+                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_c'", (self.channel,))
+                    base.commit()
+            emb = interaction.message.embeds[0]
+            dsc = emb.description.split("\n\n")
+            dsc[3] = ec_text[lng][5].format(f"<#{self.channel}>")
+            emb.description = "\n\n".join(dsc)
+            await interaction.message.edit(embed=emb, view=self)
+            await interaction.edit_original_message(embed=Embed(description=ec_text[lng][16].format(f"<#{self.channel}>")))
+            self.channel = None
+        else:
+            await interaction.message.edit(view=self)
+            await interaction.edit_original_message(embed=Embed(description=ec_text[lng][17]))
+                      
     async def click(self, interaction: Interaction, c_id):
-        pass
+        lng = 1 if "ru" in interaction.locale else 0
+        if c_id == "13":
+            await self.log_chnl(interaction=interaction, lng=lng)
+        elif c_id == "14":
+            pass
+        else:
+            await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (int(c_id) - 10) * 2]), ephemeral=True)
+            flag = True
+            while flag:
+                try:
+                    user_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == self.auth_id and m.channel.id == interaction.channel_id, timeout=40)
+                except TimeoutError:
+                    flag = 0
+                else:
+                    ans = user_ans.content
+                    if c_id == "10": flag = await self.msg_salary(interaction=interaction, lng=lng, ans=ans)
+                    elif c_id == "11": flag = await self.work_cldwn(interaction=interaction, lng=lng, ans=ans)
+                    elif c_id == "12": flag = await self.work_salary(interaction=interaction, lng=lng, ans=ans)
+                try:
+                    await user_ans.delete()
+                except:
+                    pass
 
+    async def click_menu(self, interaction, c_id, values):
+        self.channel = int(values[0])
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
+            return False
+        return True
+    
 
 class settings_view(View):
     
@@ -489,7 +651,7 @@ class settings_view(View):
 
     async def click(self, interaction: Interaction, custom_id: str):
         lng = 1 if "ru" in interaction.locale else 0
-        
+
         if custom_id == "0":
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
@@ -501,14 +663,14 @@ class settings_view(View):
                 dsc.append(gen_settings_text[lng][1].format(f"+{tz}"))
             else:
                 dsc.append(gen_settings_text[lng][1].format(f"{tz}"))
-            for i in 2, 3, 4:
+            for i in 2, 3:
                 dsc.append(gen_settings_text[lng][i])
             emb.description="\n".join(dsc)
             gen_view = gen_settings_view(t_out=50, auth_id=self.auth_id, bot=self.bot, lng=lng)
-            m = await interaction.response.send_message(embed=emb, view=gen_view)
+            await interaction.response.send_message(embed=emb, view=gen_view)
             if await gen_view.wait():
                 gen_view.stop()
-                await m.delete()
+                await interaction.delete_original_message()
 
         elif custom_id == "1":
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
@@ -529,10 +691,10 @@ class settings_view(View):
             rls = [r for r in interaction.guild.roles if not r.is_bot_managed()]
             
             m_rls_v = mod_roles_view(t_out=50, m_rls=m_rls, lng=lng, auth_id=self.auth_id, rem_dis=rem_dis, rls=rls)
-            m = await interaction.response.send_message(embed=emb, view=m_rls_v)
+            await interaction.response.send_message(embed=emb, view=m_rls_v)
             if await m_rls_v.wait():
                 m_rls_v.stop()
-                await m.delete()
+                await interaction.delete_original_message()
 
         elif custom_id == "2":
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
@@ -558,11 +720,11 @@ class settings_view(View):
             dsc.append(ec_text[lng][8])
             emb.description = "\n\n".join(dsc)
             rls = [r for r in interaction.guild.roles if (not r.is_bot_managed() and r.is_assignable())]
-            ec_v = economy_view(t_out=50, auth_id=self.auth_id, rls=rls)
-            m = await interaction.response.send_message(embed=emb, view=ec_v)
+            ec_v = economy_view(t_out=50, auth_id=self.auth_id)
+            await interaction.response.send_message(embed=emb, view=ec_v)
             if await ec_v.wait():
                 ec_v.stop()
-                await m.delete()
+                await interaction.delete_original_message()
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
@@ -601,11 +763,11 @@ class m_cmds(commands.Cog):
             dsc.append(i)
         st_view = settings_view(t_out=80, lng=lng, auth_id=interaction.user.id, bot=self.bot)
         emb = Embed(title=settings_text[lng][0], description="\n".join(dsc))
-        m = await interaction.response.send_message(embed=emb, view=st_view)
+        await interaction.response.send_message(embed=emb, view=st_view)
         if await st_view.wait():
             for c in st_view.children:
                 c.disabled = True
-            await m.edit(view=st_view)
+            await interaction.edit_original_message(view=st_view)
         st_view.stop()
         
 
