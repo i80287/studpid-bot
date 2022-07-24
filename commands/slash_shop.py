@@ -1047,7 +1047,7 @@ class slash(commands.Cog):
                 store_list = []
                 #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 tz = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
-                outer_list = cur.execute('SELECT * FROM outer_store').fetchall()
+                outer_list = cur.execute('SELECT * FROM store').fetchall()
                 for i in range(len(outer_list)-1):
                     for j in range(i+1, len(outer_list)):
                         if outer_list[i][3] > outer_list[j][3]:

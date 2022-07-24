@@ -26,5 +26,9 @@ if __name__ == "__main__":
     print(f'\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}')
     bot.load_extension(f"commands.event_handl")
 
+    """ bot.load_extension(f"commands.m_commands")
+    bot.load_extension(f"commands.basic", extras={"prefix": prefix, "in_row": in_row})
+    bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row}) """
+
     #bot.run(token)
     bot.run(debug_token)

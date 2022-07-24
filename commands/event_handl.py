@@ -88,11 +88,11 @@ class msg_h(commands.Cog):
         self.bot.load_extension(f"commands.m_commands")
         self.bot.load_extension(f"commands.basic", extras={"prefix": prefix, "in_row": in_row})
         self.bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row})
-        
-        await self.bot.discover_application_commands()
-        await sleep(10)
-        await self.bot.sync_all_application_commands()
 
+        await sleep(2)
+        await self.bot.sync_all_application_commands()
+        await sleep(1)
+        
         print(f'{Fore.CYAN}[>>>]Logged into Discord as {self.bot.user}\n')
 
         opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
