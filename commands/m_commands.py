@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from nextcord import Embed, Colour, Guild, Role, Member, TextChannel, Locale, Interaction, slash_command, SlashOption, ButtonStyle, Message, SelectOption
 from nextcord.ui import View, Button, button, Select
 from nextcord.ext import commands, application_checks
+from pydantic import NoneStr
 
 from config import path_to, bot_guilds_e, bot_guilds_r, bot_guilds, prefix, in_row
 
@@ -271,7 +272,7 @@ class gen_settings_view(View):
         self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id="6", emoji="⏱"))
 
 
-    async def digit_tz(self, tz: int, interaction: Interaction, lng: int, m):
+    async def digit_tz(self, tz: int, interaction: Interaction, lng: int):
 
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
@@ -279,16 +280,18 @@ class gen_settings_view(View):
                     base.commit()
             if tz >= 0: tz = f"+{tz}"
             else: tz = f"{tz}"
+
+            m = interaction.message
             emb = m.embeds[0]
             dsc = emb.description.split("\n")
             t = dsc[1].find("UTC")
             dsc[1] = dsc[1][:t+3] + tz
             emb.description = "\n".join(dsc)
             await m.edit(embed=emb)
+
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][9].format(tz)), ephemeral=True)
 
-
-    async def select_lng(self, s_lng: int, interaction: Interaction, lng: int, m):
+    async def select_lng(self, s_lng: int, interaction: Interaction, lng: int):
 
         g_id = interaction.guild_id
         with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
@@ -323,21 +326,20 @@ class gen_settings_view(View):
         await self.bot.sync_all_application_commands()
         await sleep(1)
         s_lng_nm = languages[lng][s_lng]
-
+        
+        m = interaction.message
         emb = m.embeds[0]
         dsc = emb.description.split("\n")
         t = dsc[0].find(":")
         dsc[0] = dsc[0][:t+2]+ s_lng_nm
         emb.description = "\n".join(dsc)
         await m.edit(embed=emb)
-        
+
         m_ans = await interaction.channel.send(embed=Embed(description=gen_settings_text[lng][13].format(s_lng_nm)))
         await m_ans.delete(delay=5)
 
-
     async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
-        m = interaction.message
         
         if c_id == "5" and self.lang == None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][6]), ephemeral=True)
@@ -347,9 +349,9 @@ class gen_settings_view(View):
             return
                 
         if c_id == "5":
-            await self.select_lng(s_lng=self.lang, interaction=interaction, lng=lng, m=m)
+            await self.select_lng(s_lng=self.lang, interaction=interaction, lng=lng)
         else:
-            await self.digit_tz(tz=self.tz, interaction=interaction, lng=lng, m=m)
+            await self.digit_tz(tz=self.tz, interaction=interaction, lng=lng)
 
     async def click_menu(self, __, c_id, values):
         if c_id == "100":
@@ -487,6 +489,7 @@ class settings_view(View):
 
     async def click(self, interaction: Interaction, custom_id: str):
         lng = 1 if "ru" in interaction.locale else 0
+        
         if custom_id == "0":
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
@@ -506,6 +509,7 @@ class settings_view(View):
             if await gen_view.wait():
                 gen_view.stop()
                 await m.delete()
+
         elif custom_id == "1":
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:

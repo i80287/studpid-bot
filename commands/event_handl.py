@@ -92,7 +92,8 @@ class msg_h(commands.Cog):
         await sleep(2)
         await self.bot.sync_all_application_commands()
         await sleep(1)
-        
+        print(bot_guilds_e, bot_guilds_r)
+
         print(f'{Fore.CYAN}[>>>]Logged into Discord as {self.bot.user}\n')
 
         opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
