@@ -193,7 +193,10 @@ ec_text = {
         14 : "Now salary is {}",
         15 : "Select channel",
         16 : "You chose channel {}",
-        17 : "Timeout expired"
+        17 : "Timeout expired",
+        18 : "role - role id - salary - cooldown for salary - type",
+        19 : "No roles were added",
+        20 : "**If role isn't shown in the menus it\nmeans that bot can't manage this role**"
     },
     1 : {
         0 : "Настройки экономики",
@@ -216,7 +219,23 @@ ec_text = {
         14 : "Теперь заработок: {}",
         15 : "Выберите канал",
         16 : "Вы выбрали канал {}",
-        17 : "Время ожидания вышло"
+        17 : "Время ожидания вышло",
+        18 : "роль - id роли - заработок - кулдаун заработка - тип",
+        19 : "Не добавлено ни одной роли",
+        20 : "**Если роль не отображается ни в одном\nменю, значит, бот не может управлять ею**"
+    }
+}
+
+r_type = {
+    0 : {
+        0 : "Nonstacking",
+        1 : "Stacking",
+        2 : "Infinite"
+    },
+    1 : {
+        0 : "Нестакающаяся",
+        1 : "Cтакающаяся",
+        2 : "Бесконечная"
     }
 }
 
@@ -486,7 +505,7 @@ class economy_view(View):
         self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id="11", emoji="⏰"))
         self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id="12", emoji="💹"))
         self.add_item(c_button(style=ButtonStyle.green, label="", custom_id="13", emoji="📙"))
-        self.add_item(c_button(style=ButtonStyle.red, label="", custom_id="14", emoji="🛠️"))
+        self.add_item(c_button(style=ButtonStyle.red, label="", custom_id="14", emoji="🛠️"))        
 
     async def msg_salary(self, interaction: Interaction, lng: int, ans) -> bool:
         if ans.isdigit() and int(ans) >= 0:
@@ -600,13 +619,31 @@ class economy_view(View):
         else:
             await interaction.message.edit(view=self)
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][17]))
-                      
+   
+
     async def click(self, interaction: Interaction, c_id):
         lng = 1 if "ru" in interaction.locale else 0
         if c_id == "13":
             await self.log_chnl(interaction=interaction, lng=lng)
         elif c_id == "14":
-            pass
+            with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                with closing(base.cursor()) as cur:
+                    roles = cur.execute('SELECT * FROM server_roles').fetchall()
+            emb = Embed()
+            descr = []
+            if len(roles):
+                emb.title = ec_text[lng][18]
+                for role in roles:
+                    r_time = f"{role[3]//3600}:{role[3] // 60 % 60}:{role[3] % 60}"
+                    descr.append(f"<@&{role[0]}> - **`{role[0]}`** - **`{role[1]}`** - **`{role[2]}`** - **`{r_time}`** - **`{r_type[lng][role[4]]}`**")
+            else:
+                emb.title = ec_text[lng][19]
+            descr.append("\n" + ec_text[lng][20])
+            emb.description="\n".join(descr)
+            await interaction.response.send_message(embed=emb)
+            #ec_rls_view = economy_roles_manage_view(t_out=49, m_rls=)
+
+
         else:
             await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (int(c_id) - 10) * 2]), ephemeral=True)
             flag = True
@@ -635,6 +672,67 @@ class economy_view(View):
             return False
         return True
     
+
+class economy_roles_manage_view(View):
+
+    def __init__(self, t_out: int, m_rls: set, lng: int, auth_id: int, rem_dis: bool, rls: list):
+        super().__init__(timeout=t_out)
+        self.auth_id = auth_id
+        self.m_rls = m_rls
+        self.role = None
+        for i in range((len(rls)+24)//25):
+            self.add_item(c_select(custom_id=f"{800+i}", placeholder="Select role", roles=rls[i*25:min(len(rls), (i+1)*25)]))
+        self.add_item(c_button(style=ButtonStyle.green, label=mod_roles_text[lng][3], emoji="<:add01:999663315804500078>", custom_id="15"))
+        self.add_item(c_button(style=ButtonStyle.red, label=mod_roles_text[lng][4], emoji="<:remove01:999663428689997844>", custom_id="16", disabled=rem_dis))
+    
+
+    async def add_role(self, rl: Role, interaction: Interaction, lng: int, m: Message):
+        if rl.id in self.m_rls:
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][7]), ephemeral=True)
+            return
+        
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(base.cursor()) as cur:
+                cur.execute("INSERT OR IGNORE INTO mod_roles(role_id) VALUES(?)", (rl.id,))
+                base.commit()
+        self.m_rls.add(rl.id)
+        emb = m.embeds[0]
+        dsc = emb.description.split("\n")
+
+        if len(self.m_rls) == 1:
+            for j in 0, 1:
+                if mod_roles_text[j][1] in dsc:
+                    dsc.remove(mod_roles_text[j][1])
+            dsc.append(mod_roles_text[lng][2])
+
+        dsc.append(f"<@&{rl.id}> - {rl.id}")
+        emb.description = "\n".join(dsc)
+        await m.edit(embed=emb)
+        await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][8].format(rl.mention)), ephemeral=True)
+    
+
+    async def rem_role(self, rl: Role, interaction: Interaction, lng: int, m: Message):
+        if not rl.id in self.m_rls:
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][9]), ephemeral=True)
+            return
+
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(base.cursor()) as cur:
+                cur.execute("DELETE FROM mod_roles WHERE role_id = ?", (rl.id,))
+                base.commit()
+        self.m_rls.remove(rl.id)
+        emb = m.embeds[0]
+
+        if len(self.m_rls) == 0:
+            dsc = [mod_roles_text[lng][1]]
+        else:
+            dsc = emb.description.split("\n")
+            dsc.remove(f"<@&{rl.id}> - {rl.id}")
+
+        emb.description = "\n".join(dsc)
+        await m.edit(embed=emb)
+        await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][10].format(rl.mention)), ephemeral=True)
+
 
 class settings_view(View):
     
