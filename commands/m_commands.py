@@ -234,19 +234,46 @@ ec_mr_text = {
         0 : "Edit role",
         1 : "Yes",
         2 : "No",
-        3 : "You declined removing the role <@{}>",
+        3 : "You declined removing the role <@&{}>",
         4 : "Please, wait a bit...",
-        5 : "You removed role <@{}>",
-        6 : "Are you sure you want to delete role <@{}> from the bot's settings?\nAll information about it will be deleted and it will be withdrawn from the store"
+        5 : "You removed role <@&{}>",
+        6 : "Are you sure you want to delete role <@&{}> from the bot's settings?\nAll information about it will be deleted and it will be withdrawn from the store",
+        7 : "You can't remove role that is not in the list",
+        8 : "You can't edit role that is not in the list",
+        9 : "This role is already in the list",
+        10 : "Role's price",
+        11 : "Write positive integer number as price of the role",
+        12 : "Role's salary (not necessary)",
+        13 : "If you want role to bring money to it's owners then write a salary: positive integer number",
+        14 : "Cooldown for salary salary_cooldown",
+        15 : "If you selected salary then you need select cooldown: once at a set time owners of the role will gain salary. Write this time in hours (integer positive number)",
+        16 : "How the role will be displayed in the store",
+        17 : "Print 1 if the same roles will be separated (nonstacking)\n\
+            Print 2 if the same roles will be countable (can run out in the store) and stacking as one item\n\
+            Print 3 if the same roles will be uncountable (can't run out in the store) and stacking as one item"
     },
     1 : {
         0 : "Редактировать роль",
         1 : "Да",
         2 : "Нет",
-        3 : "Вы отменили удаление роли <@{}>",
+        3 : "Вы отменили удаление роли <@&{}>",
         4 : "Пожалуйста, подождите...",
-        5 : "Вы удалили роль <@{}>",
-        6 : "Вы уверены, что хотите удалить роль <@{}> из настроек бота?\nВся информация о ней будет удалена и она будет изъята из магазина"
+        5 : "Вы удалили роль <@&{}>",
+        6 : "Вы уверены, что хотите удалить роль <@&{}> из настроек бота?\nВся информация о ней будет удалена и она будет изъята из магазина",
+        7 : "Вы не можете убрать роль, которая не неходится в списке",
+        8 : "Вы не можете редактировать роль, которая не неходится в списке",
+        9 : "Эта роль уже находится в списке",
+        10 : "Цена роли",
+        11 : "Укажите целое положительное число",
+        12 : "Доход роли (необязательно)",
+        13 : "Если Вы хотите, чтобы роль приносила деньги своим владельцам, укажите доход: целое положительное число",
+        14 : "Кулдаун заработка",
+        15 : "Если Вы указали заработок роли, то Вам нужно указать кулдаун заработка: раз в какое время (в часах) владельцы роли будут получать заработок (целое положительное число)",
+        16 : "Как роль будет отображаться в магазине",
+        17 : "Напишите 1, если одинаковые роли будут отображаться отдельно\n\
+            Напишите 2, если одинаковые роли будут стакаться и будут иметь количество (могут закончиться в магазине)\n\
+            Напишите 3, если одинаковые роли будут стакаться и будут бесконечными (не могут закончиться в магазине)"
+
     }
 }
 
@@ -289,13 +316,41 @@ languages = {
 #with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
 #            with closing(base.cursor()) as cur:
 #                 sets = cur.execute("SELECT * FROM server_info")
-class c_text(TextInput):
-    def __init__(self, label: str, style: TextInputStyle , custom_id: str, row: int = None, min_length: int = 0, max_length: int = 4000, required: bool = None, default_value: str = None, placeholder: str = None):
-        super().__init__(label=label, style=style, custom_id=custom_id, row=row, min_length=min_length, max_length=max_length, required=required, default_value=default_value, placeholder=placeholder)
+
+class c_modal_add(Modal):
+    def __init__(self, title: str, timeout: int, custom_id: str, lng: int):
+        super().__init__(title, timeout=timeout, custom_id=custom_id)
+        self.price = TextInput(
+            label=ec_mr_text[lng][10],
+            min_length=1,
+            max_length=9,
+            placeholder=ec_mr_text[lng][11],
+            required=True
+        )
+        self.salary = TextInput(
+            label=ec_mr_text[lng][12],
+            min_length=1,
+            max_length=9,
+            placeholder=ec_mr_text[lng][13],
+            required=False
+        )
+        self.salary = TextInput(
+            label=ec_mr_text[lng][14],
+            min_length=1,
+            max_length=9,
+            placeholder=ec_mr_text[lng][15],
+            required=False
+        )
+        self.price = TextInput(
+            label=ec_mr_text[lng][16],
+            min_length=1,
+            max_length=1,
+            placeholder=ec_mr_text[lng][17],
+            required=False
+        )
 
     async def callback(self, interaction: Interaction):
-        return await super().callback(interaction)
-
+        pass
 
 class c_select_gen(Select):
     def __init__(self, custom_id: str, placeholder: str, opts: list) -> None:
@@ -681,8 +736,7 @@ class economy_view(View):
             await interaction.response.send_message(embed=emb, view=ec_rls_view)
             if await ec_rls_view.wait():
                 ec_rls_view.stop()
-                await interaction.delete_original_message()
-            
+                await interaction.delete_original_message()  
 
         else:
             await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (int(c_id) - 10) * 2]), ephemeral=True)
@@ -778,14 +832,18 @@ class economy_roles_manage_view(View):
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][6]), ephemeral=True)
             return
         if c_id == "17":
+            if not self.role in self.st_rls:
+                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]))
+                return
             v_d = verify_delete(lng=lng, role=self.role)
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(self.role)), view=v_d)
             if await v_d.wait():
                 for c in v_d.children:
                     c.disabled = True
                 await interaction.edit_original_message(view=v_d)
-        else:
-            pass
+        elif c_id == "15":
+            add_mod = c_modal_add()
+
 
     async def click_menu(self, interacion, c_id, values):
         if int(c_id) >= 800:
@@ -803,25 +861,24 @@ class verify_delete(View):
         if c_id == "10001":
             await interaction.message.delete()
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][3].format(self.role)), ephemeral=True)
+            self.stop()
         else:
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][4]), ephemeral=True)
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.executescript(f"""
-                        DECLARE @r_id INT;
-                        SET @r_id = {self.role};
-                        DELETE FROM server_roles WHERE role_id = @r_id;
-                        DELETE FROM salary_roles WHERE role_id = @r_id;
-                        DELETE FROM store WHERE role_id = @r_id;
+                        DELETE FROM server_roles WHERE role_id = {self.role};
+                        DELETE FROM salary_roles WHERE role_id = {self.role};
+                        DELETE FROM store WHERE role_id = {self.role};
                     """)
                     base.commit()
                     for r in cur.execute("SELECT * FROM users").fetchall():
                         if f"{self.role}" in r[2]:
-                            r[2] = r[2].replace(f"{self.role}#", "")
-                            cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (r[2], r[0]))
+                            cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (r[2].replace(f"{self.role}#", ""), r[0]))
                             base.commit()
             await interaction.edit_original_message(embed=Embed(description=ec_mr_text[lng][5].format(self.role)))
             await interaction.message.delete()
+            self.stop()
 
 
 class settings_view(View):
