@@ -247,19 +247,18 @@ ec_mr_text = {
         9 : "This role is already in the list",
         10 : "Role's price",
         11 : "Write positive integer number as price of the role",
-        12 : "Role's salary (not necessary)",
-        13 : "If you want role to bring money to it's owners then write a salary: positive integer number",
-        14 : "Cooldown for salary salary_cooldown",
-        15 : "If salary is selected, select cooldown: once at a set time (in hours) role's owners will gain salary",
-        16 : "How the role will be displayed in the store",
-        17 : "Print 1 if the same roles will be separated (nonstacking) (each answer can be written in any window)",
-        18 : "Print 2 if the same roles will be countable (can run out in the store) and stacking as one item",
-        19 : "Print 3 if the same roles will be uncountable (can't run out in the store) and stacking as one item",
-        20 : "Price must be positive integer number",
-        21 : "If selected, salary should be positive integer number",
-        22 : "If salary selected, cooldown should be positive integer number",
-        23 : "Type of the role should be one of three numbers: 1, 2 or 3",
-        24 : "You chosen different types of displaying for the role"
+        12 : "Role's salary and cooldown for it (optional)",
+        13 : "If role should bring money to its owners write salary and cooldown in hours (split numbers by space)",
+        14 : "How the role will be displayed in the store",
+        15 : "Print 1 if the same roles will be separated (nonstacking) (each answer can be written in any window)",
+        16 : "Print 2 if the same roles will be countable (can run out in the store) and stacking as one item",
+        17 : "Print 3 if the same roles will be uncountable (can't run out in the store) and stacking as one item",
+        18 : "Price must be positive integer number",
+        19 : "Salary and cooldown must be two positive integer numbers separated by space, for example: `100` `24`",
+        19 : "Salary should be positive integer number",
+        20 : "Cooldown should be positive integer number, cooldown is time in hours. For example: `24` sets cooldown to 24 hours",
+        21 : "Type of displaying of the role should be one of three numbers: 1, 2 or 3",
+        22 : "You chosen different types of displaying for the role"
         
     },
     1 : {
@@ -275,19 +274,18 @@ ec_mr_text = {
         9 : "Эта роль уже находится в списке",
         10 : "Цена роли",
         11 : "Укажите целое положительное число",
-        12 : "Доход роли (необязательно)",
-        13 : "Если Вы хотите, чтобы роль приносила деньги её владельцам, укажите доход: целое положительное число",
-        14 : "Кулдаун дохода",
-        15 : "Если Вы указали доход, укажите кулдаун: раз в какое время (в часах) овнеры роли будут получать доход",
-        16 : "Как роль будет отображаться в магазине",
-        17 : "Напишите 1, если одинаковые роли будут отображаться отдельно (ответ можно написать в любом поле)",
-        18 : "Напишите 2, если одинаковые роли будут стакающимеся и исчисляемыми (могут закончиться в магазине)",
-        19 : "Напишите 3, если одинаковые роли будут стакающимеся и бесконечными (не могут закончиться в магазине)",
-        20 : "В качестве цены роли надо указать целое положительное число",
-        21 : "Если выбрано, то в качестве дохода роли надо указать целое положительное число",
-        22 : "Если выбран доход, то в качестве кулдауна дохода роли надо указать целое положительное число (количество часов)",
-        23 : "В качестве типа роли надо указать одно из трёх чисел: 1, 2 или 3",
-        24 : "Вы выбрали несколько разных типов отображения для роли"
+        12 : "Доход роли и кулдаун для него (необязательно)",
+        13 : "Если надо, чтобы роль приносила деньги,укажите доход и его кулдаун в часах(разделите числа пробелом)",
+        14 : "Как роль будет отображаться в магазине",
+        15 : "Напишите 1, если одинаковые роли будут отображаться отдельно (ответ можно написать в любом поле)",
+        16 : "Напишите 2, если одинаковые роли будут стакающимеся и исчисляемыми (могут закончиться в магазине)",
+        17 : "Напишите 3, если одинаковые роли будут стакающимеся и бесконечными (не могут закончиться в магазине)",
+        18 : "В качестве цены роли надо указать целое положительное число",
+        19 : "Заработок и кулдаун должны быть двумя положительными целыми числами, разделёнными пробелом, например, `100` `24`",
+        20 : "Заработок должен быть целым положительным числом",
+        21 : "Кулдаун должен быть целым положительным числом, кулдаун - время в часах. Например, `24` сделать кулдаун равным 24 часам",
+        22 : "В качестве типа отображения роли надо указать одно из трёх чисел: 1, 2 или 3",
+        23 : "Вы выбрали несколько разных типов отображения для роли"
     }
 }
 
@@ -332,8 +330,10 @@ languages = {
 #                 sets = cur.execute("SELECT * FROM server_info")
 
 class c_modal_add(Modal):
-    def __init__(self, timeout: int, lng: int):
+
+    def __init__(self, timeout: int, lng: int, role: int):
         super().__init__(title=settings_text[lng][7], timeout=timeout, custom_id=f"modal_add_{randint(1, 100)}")
+        self.role=role
         self.price = TextInput(
             label=ec_mr_text[lng][10],
             min_length=1,
@@ -345,54 +345,44 @@ class c_modal_add(Modal):
         self.salary = TextInput(
             label=ec_mr_text[lng][12],
             min_length=1,
-            max_length=8,
+            max_length=9,
             style=nextcord.TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][13],
             required=False,
             custom_id=f"modal_s_{randint(1, 100)}"
         )
-        self.salary_c = TextInput(
+        self.r_type1 = TextInput(
             label=ec_mr_text[lng][14],
             min_length=1,
-            max_length=2,
+            max_length=1,
             style=nextcord.TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][15],
             required=False,
-            custom_id=f"modal_sc_{randint(1, 100)}"
+            custom_id=f"modal_t1_{randint(1, 100)}"
         )
-        self.r_type1 = TextInput(
-            label=ec_mr_text[lng][16],
+        self.r_type2 = TextInput(
+            label=ec_mr_text[lng][14],
+            min_length=1,
+            max_length=1,
+            style=nextcord.TextInputStyle.paragraph,
+            placeholder=ec_mr_text[lng][16],
+            required=False,
+            custom_id=f"modal_t2_{randint(1, 100)}"
+        )
+        self.r_type3 = TextInput(
+            label=ec_mr_text[lng][14],
             min_length=1,
             max_length=1,
             style=nextcord.TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][17],
             required=False,
-            custom_id=f"modal_t1_{randint(1, 100)}"
-        )
-        self.r_type2 = TextInput(
-            label=ec_mr_text[lng][16],
-            min_length=1,
-            max_length=1,
-            style=nextcord.TextInputStyle.paragraph,
-            placeholder=ec_mr_text[lng][18],
-            required=False,
-            custom_id=f"modal_t2_{randint(1, 100)}"
-        )
-        self.r_type3 = TextInput(
-            label=ec_mr_text[lng][16],
-            min_length=1,
-            max_length=1,
-            style=nextcord.TextInputStyle.paragraph,
-            placeholder=ec_mr_text[lng][19],
-            required=False,
             custom_id=f"modal_t3_{randint(1, 100)}"
         )
         self.add_item(self.price)
         self.add_item(self.salary)
-        self.add_item(self.salary_c)
         self.add_item(self.r_type1)
         self.add_item(self.r_type2)
-        #self.add_item(self.r_type3)
+        self.add_item(self.r_type3)
         self.r_t = set()
 
 
@@ -405,15 +395,20 @@ class c_modal_add(Modal):
             ans += 1
         
         if self.salary:
-            if not self.salary.value.isdigit():
+            s_ans = self.salary.value.split()
+            if len(s_ans) != 2:
                 ans += 10
-            elif int(self.salary.value) <= 0:
-                ans += 10
+            else:
+                s, s_c = s_ans[0], s_ans[1]
+                if not s.isdigit():
+                    ans += 100
+                elif int(s) <= 0:
+                    ans += 100
 
-            if not self.salary_c.value.isdigit():
-                ans += 100
-            elif int(self.price.value) <= 0:
-                ans += 100
+                if not s_c.isdigit():
+                    ans += 1000
+                elif int(s_c) <= 0:
+                    ans += 1000
         
         if self.r_type1.value:
             if self.r_type1.value.isdigit() and int(self.r_type1.value) in {1, 2, 3}:
@@ -428,9 +423,9 @@ class c_modal_add(Modal):
                 self.r_t.add(int(self.r_type3.value))
         
         if len(self.r_t) == 0:
-            ans += 1000
-        elif len(self.r_t) > 1:
             ans += 10000
+        elif len(self.r_t) > 1:
+            ans += 100000
 
         return ans
 
@@ -448,6 +443,8 @@ class c_modal_add(Modal):
             rep.append(ec_mr_text[lng][21])
         if (ans_c // 10000) % 2 == 1:
             rep.append(ec_mr_text[lng][22])
+        if (ans_c // 100000) % 2 == 1:
+            rep.append(ec_mr_text[lng][23])
 
         if len(rep):
             await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
@@ -455,13 +452,17 @@ class c_modal_add(Modal):
             return
         price = int(self.price.value)
         if self.salary.value:
-            salary = int(self.salary.value)
-            salary_c = int(self.salary_c.value)
+            s_ans = self.salary.value.split()
+            salary = int(s_ans[0])
+            salary_c = int(s_ans[1])
         else:
             salary = salary_c = 0
         r_type = int(self.r_t[0])
         await interaction.response.send_message(embed=Embed(description=f"{price}, {salary}, {salary_c}, {r_type}"), ephemeral=True)
         self.stop()
+        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                cur.execute("INSERT OR IGNORE INTO server_roles(role_id, price, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?)", (self.role, price, salary, salary_c, r_type))
         return
 
 class c_select_gen(Select):
@@ -909,7 +910,7 @@ class economy_roles_manage_view(View):
                     c.disabled = True
                 await interaction.edit_original_message(view=v_d)
         elif c_id == "15":
-            add_mod = c_modal_add(timeout=90, lng=lng)
+            add_mod = c_modal_add(timeout=90, lng=lng, role=self.role)
             await interaction.response.send_modal(modal=add_mod)
             if await add_mod.wait():
                 for c in add_mod.children:
