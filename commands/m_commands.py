@@ -260,7 +260,7 @@ ec_mr_text = {
         21 : "Cooldown should be positive integer number, cooldown is time in hours. For example: `24` sets cooldown to 24 hours",
         22 : "Type of displaying of the role should be one of three numbers: 1, 2 or 3",
         23 : "You chosen different types of displaying for the role",
-        24 : "You added role <@{}> with price **`{}`**, salary **`{}`**, cooldown for it **`{}`**, type **`{}`**"
+        24 : "You added role <@&{}> with price **`{}`**, salary **`{}`**, cooldown for it **`{}`**, type **`{}`**"
         
     },
     1 : {
@@ -288,7 +288,7 @@ ec_mr_text = {
         21 : "Кулдаун должен быть целым положительным числом, кулдаун - время в часах. Например, `24` сделать кулдаун равным 24 часам",
         22 : "В качестве типа отображения роли надо указать одно из трёх чисел: 1, 2 или 3",
         23 : "Вы выбрали несколько разных типов отображения для роли",
-        24 : "Вы добавили роль <@{}> с ценой **`{}`**, доходом **`{}`**, его кулдауном **`{}`**, типом **`{}`**"
+        24 : "Вы добавили роль <@&{}> с ценой **`{}`**, доходом **`{}`**, его кулдауном **`{}`**, типом **`{}`**"
     }
 }
 
@@ -710,7 +710,7 @@ class economy_view(View):
             rls = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
             if len(rls): rd = False
             else: rd = True
-            ec_rls_view = economy_roles_manage_view(t_out=240, lng=lng, auth_id=interaction.user.id, rem_dis=rd, rls=rls, st_rls=st_rls)
+            ec_rls_view = economy_roles_manage_view(t_out=105, lng=lng, auth_id=interaction.user.id, rem_dis=rd, rls=rls, st_rls=st_rls)
             await interaction.response.send_message(embed=emb, view=ec_rls_view)
             if await ec_rls_view.wait():
                 for c in ec_rls_view.children:
@@ -882,12 +882,15 @@ class c_modal_add(Modal):
         else:
             salary = salary_c = 0
         r_type = int(list(self.r_t)[0])
+
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("INSERT OR IGNORE INTO server_roles(role_id, price, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?)", (self.role, price, salary, salary_c, r_type))
                 base.commit()
                 if salary:
                     cur.execute("INSERT OR IGNORE INTO salary_roles(role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, ?)", (self.role, "", salary, salary_c, 0))
+                    base.commit()
+
         emb = self.m.embeds[0]
         dsc = emb.description.split("\n")
         rls = dsc[1:-2]
@@ -1143,7 +1146,7 @@ class m_cmds(commands.Cog):
         dsc = []
         for i in settings_text[lng][1:6]:
             dsc.append(i)
-        st_view = settings_view(t_out=80, lng=lng, auth_id=interaction.user.id, bot=self.bot)
+        st_view = settings_view(t_out=120, lng=lng, auth_id=interaction.user.id, bot=self.bot)
         emb = Embed(title=settings_text[lng][0], description="\n".join(dsc))
         await interaction.response.send_message(embed=emb, view=st_view)
         if await st_view.wait():
