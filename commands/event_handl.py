@@ -85,13 +85,13 @@ class msg_h(commands.Cog):
                 with open("d.log", "a+", encoding="utf-8") as f:
                     f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [on_ready] [{guild.id}] [{guild.name}] [{str(Exception)}]\n")
     
-        self.bot.load_extension(f"commands.m_commands")
+        """ self.bot.load_extension(f"commands.m_commands")
         self.bot.load_extension(f"commands.basic", extras={"prefix": prefix, "in_row": in_row})
         self.bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row})
 
         await sleep(2)
         await self.bot.sync_all_application_commands()
-        await sleep(1)
+        await sleep(1) """
 
         print(f'{Fore.CYAN}[>>>]Logged into Discord as {self.bot.user}\n')
 

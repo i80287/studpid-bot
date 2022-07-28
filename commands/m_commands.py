@@ -8,7 +8,6 @@ from datetime import datetime, timedelta, timezone
 from time import time
 
 from nextcord import Embed, Colour, Guild, Role, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextChannel, TextInputStyle
-import nextcord
 from nextcord.ui import View, Button, button, Select, TextInput, Modal
 from nextcord.ext import commands, application_checks
 
@@ -50,10 +49,10 @@ gen_settings_text = {
         6 : "**`You hasn't selected the language yet`**",
         7 : "**`You hasn't selected time zone yet`**",
         8 : "**`Current server time zone: UTC{}`**",
-        9 : "New time zone: **`UTC{}`**",
-        10 : "New server language for description of slash commands: {}",
-        11 : "Language is changing, please wait a bit...",
-        12 : "This language is already selected as language for description of slash commands"        
+        9 : "**`New time zone: UTC{}`**",
+        10 : "**`New server language for description of slash commands: {}`**",
+        11 : "**`Language is changing, please wait a bit...`**",
+        12 : "**`This language is already selected as language for description of slash commands`**"        
     },
     1 : {
         0 : "🗣️ язык сервера для описания слэш команд: {}",
@@ -65,10 +64,10 @@ gen_settings_text = {
         6 : "**`Вы не выбрали язык`**",
         7 : "**`Вы не выбрали часовой пояс`**",
         8 : "**`Текущий часовой пояс сервера: UTC{}`**",
-        9 : "Новый часовой пояс сервера: **`UTC{}`**",
-        10 : "Новый язык сервера для описания слэш команд: {}",
-        11 : "Язык изменяется, пожалуйста, подождите немного...",
-        12 : "Этот язык уже выбран в качестве языка для описания слэш команд"
+        9 : "**`Новый часовой пояс сервера: UTC{}`**",
+        10 : "**`Новый язык сервера для описания слэш команд: {}`**",
+        11 : "**`Язык изменяется, пожалуйста, подождите немного...`**",
+        12 : "**`Этот язык уже выбран в качестве языка для описания слэш команд`**"
     }
 }
 
@@ -155,7 +154,7 @@ mod_roles_text = {
     0 : {
         0 : "Current mod roles",
         1 : "No roles selected",
-        2 : "role - id",
+        2 : "__**role - id**__",
         3 : "Add role",
         4 : "Remove role",
         5 : "Add role",
@@ -169,7 +168,7 @@ mod_roles_text = {
     1 : {
         0 : "Текущие мод роли",
         1 : "Не выбрано ни одной роли",
-        2 : "роль - id",
+        2 : "__**роль - id**__",
         3 : "Добавить роль",
         4 : "Убрать роль",
         5 : "Добавление роли",
@@ -245,9 +244,9 @@ ec_mr_text = {
         0 : "Edit role",
         1 : "Yes",
         2 : "No",
-        3 : "You declined removing the role <@&{}>",
-        4 : "Please, wait a bit...",
-        5 : "You removed role <@&{}>",
+        3 : "**`You declined removing the role `**<@&{}>",
+        4 : "**`Please, wait a bit...`**",
+        5 : "**`You removed role `**<@&{}>",
         6 : "Are you sure you want to delete role <@&{}> from the bot's settings?\nAll information about it will be deleted and it will be withdrawn from the store",
         7 : "**`You can't remove role that is not in the list`**",
         8 : "**`You can't edit role that is not in the list`**",
@@ -256,7 +255,7 @@ ec_mr_text = {
         11 : "Write positive integer number as price of the role",
         12 : "Role's salary and cooldown for it (optional)",
         13 : "If role should bring money to its owners write salary and cooldown in hours (split numbers by space)",
-        14 : "How the role will be displayed in the store",
+        14 : "The same roles will be displayed in the store",
         15 : "Print 1 if the same roles will be separated (nonstacking) (each answer can be written in any window)",
         16 : "Print 2 if the same roles will be countable (can run out in the store) and stacking as one item",
         17 : "Print 3 if the same roles will be uncountable (can't run out in the store) and stacking as one item",
@@ -265,17 +264,21 @@ ec_mr_text = {
         20 : "Salary should be positive integer number",
         21 : "Cooldown should be positive integer number, cooldown is time in hours. For example: `24` sets cooldown to 24 hours",
         22 : "Type of displaying of the role should be one of three numbers: 1, 2 or 3",
-        23 : "You chosen different types of displaying for the role",
+        23 : "You chose different types of displaying for the role",
         24 : "You added role <@&{}> with price **`{}`**, salary **`{}`**, cooldown for it **`{}`**, type **`{}`**",
-        25 : "Editing the role"
+        25 : "Editing the role",
+        26 : "Print 1 if separated,nonstacking\n2 if countable,stacking\n3 if uncountable (can't run out),stacking",
+        27 : "How much roles must be in the store",
+        28 : "Print integer non-negative number. For uncountable roles print any non-negative number",
+        29 : "Amount of the roles in the store must be non-negative integer number"
     },
     1 : {
         0 : "Редактировать роль",
         1 : "Да",
         2 : "Нет",
-        3 : "Вы отменили удаление роли <@&{}>",
-        4 : "Пожалуйста, подождите...",
-        5 : "Вы удалили роль <@&{}>",
+        3 : "**`Вы отменили удаление роли `**<@&{}>",
+        4 : "**`Пожалуйста, подождите...`**",
+        5 : "**`Вы удалили роль `**<@&{}>",
         6 : "Вы уверены, что хотите удалить роль <@&{}> из настроек бота?\nВся информация о ней будет удалена и она будет изъята из магазина",
         7 : "**`Вы не можете убрать роль, которая не неходится в списке`**",
         8 : "**`Вы не можете редактировать роль, которая не неходится в списке`**",
@@ -284,7 +287,7 @@ ec_mr_text = {
         11 : "Укажите целое положительное число",
         12 : "Доход роли и кулдаун для него (необязательно)",
         13 : "Если надо, чтобы роль приносила деньги,укажите доход и его кулдаун в часах(разделите числа пробелом)",
-        14 : "Как роль будет отображаться в магазине",
+        14 : "Одинаковые роли будут отображаться в магазине",
         15 : "Напишите 1, если одинаковые роли будут отображаться отдельно (ответ можно написать в любом поле)",
         16 : "Напишите 2, если одинаковые роли будут стакающимеся и исчисляемыми (могут закончиться в магазине)",
         17 : "Напишите 3, если одинаковые роли будут стакающимеся и бесконечными (не могут закончиться в магазине)",
@@ -295,14 +298,18 @@ ec_mr_text = {
         22 : "В качестве типа отображения роли надо указать одно из трёх чисел: 1, 2 или 3",
         23 : "Вы выбрали несколько разных типов отображения для роли",
         24 : "Вы добавили роль <@&{}> с ценой **`{}`**, доходом **`{}`**, его кулдауном **`{}`**, типом **`{}`**",
-        25 : "Редактирование роли"
+        25 : "Редактирование роли",
+        26 : "Напишите 1,если раздельно,нестакаются\n2,если стакающися,исчисляемые\n3,если стакающиеся,бесконечные",
+        27 : "Сколько ролей должно быть в магазине",
+        28 : "Напишите целое неотрицательное число.Для бесконечных ролей можно указать любое неотрицательное число",
+        29 : "Количество ролей в магазине должно быть целым неотрицательным числом"
     }
 }
 
 r_types = {
     0 : {
         1 : "Nonstacking, displayed separated",
-        2 : "Stacking, uncountable",
+        2 : "Stacking, countable",
         3 : "Stacking, infinite"
     },
     1 : {
@@ -477,7 +484,7 @@ class mod_roles_view(View):
         self.m_rls = m_rls
         self.role = None
         for i in range((len(rls)+24)//25):
-            self.add_item(c_select(custom_id=f"{200+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][6], roles=rls[i*25:min(len(rls), (i+1)*25)]))
+            self.add_item(c_select(custom_id=f"{200+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][7], roles=rls[i*25:min(len(rls), (i+1)*25)]))
         self.add_item(c_button(style=ButtonStyle.green, label=mod_roles_text[lng][3], emoji="<:add01:999663315804500078>", custom_id=f"8_{auth_id}_{randint(1, 100)}"))
         self.add_item(c_button(style=ButtonStyle.red, label=mod_roles_text[lng][4], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
     
@@ -779,6 +786,89 @@ class economy_view(View):
         return True
 
 
+class economy_roles_manage_view(View):
+
+    def __init__(self, t_out: int, lng: int, auth_id: int, rem_dis: bool, rls: list, s_rls: set):
+        super().__init__(timeout=t_out)
+        self.auth_id = auth_id
+        self.s_rls = s_rls
+        self.role = None
+        for i in range((len(rls)+24)//25):
+            self.add_item(c_select_gen(custom_id=f"{800+i}", placeholder=settings_text[lng][7], opts=rls[i*25:min(len(rls), (i+1)*25)]))
+        self.add_item(c_button(style=ButtonStyle.green, label=mod_roles_text[lng][3], emoji="<:add01:999663315804500078>", custom_id=f"15_{auth_id}_{randint(1, 100)}"))
+        self.add_item(c_button(style=ButtonStyle.blurple, label=ec_mr_text[lng][0], emoji="🔧", custom_id=f"16_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
+        self.add_item(c_button(style=ButtonStyle.red, label=mod_roles_text[lng][4], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
+
+
+    async def click(self, interaction: Interaction, c_id):
+        lng = 1 if "ru" in interaction.locale else 0
+
+        if self.role is None:
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][6]), ephemeral=True)
+            return
+
+        if c_id.startswith("17"):
+            if not self.role in self.s_rls:
+                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
+                return
+            v_d = verify_delete(lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
+            await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(self.role)), view=v_d)
+            if await v_d.wait():
+                for c in v_d.children:
+                    c.disabled = True
+                await interaction.edit_original_message(view=v_d)
+
+            if v_d.deleted:
+                self.s_rls.remove(self.role)
+                self.role = None
+
+        elif c_id.startswith("15"):
+            if self.role in self.s_rls:
+                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][9]), ephemeral=True)
+                return
+            add_mod = c_modal_add(timeout=90, lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
+            await interaction.response.send_modal(modal=add_mod)
+            
+            await add_mod.wait()
+            if add_mod.added:
+                self.s_rls.add(self.role)
+                self.role = None
+
+        elif c_id.startswith("16"):
+            if not self.role in self.s_rls:
+                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
+                return
+            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(base.cursor()) as cur:
+                    r = cur.execute("SELECT * FROM server_roles WHERE role_id = ?", (self.role,)).fetchone()
+                    if r[4] == 1:
+                        cnt = len(cur.execute("SELECT * FROM store WHERE role_id = ?", (self.role,)).fetchall())
+                    elif r[4] == 2:
+                        cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (self.role,)).fetchone()
+                        if cnt is None:
+                            cnt = 0
+                        else:
+                            cnt = cnt[0]
+                    else:
+                        cnt = "∞"
+            
+            edit_mod = c_modal_edit(timeout=90, role=self.role, m=interaction.message, auth_id=interaction.user.id, lng=lng, p=r[1], s=r[2], s_c=r[3]//3600, r_t=r[4], in_store=cnt)
+            await interaction.response.send_modal(modal=edit_mod)
+            return
+
+
+    async def click_menu(self, interacion, c_id, values):
+        if c_id.isdigit() and c_id.startswith("80"):
+            self.role = int(values[0])
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
+            return False
+        return True
+
+
 class c_modal_add(Modal):
 
     def __init__(self, timeout: int, lng: int, role: int, m, auth_id: int):
@@ -792,43 +882,43 @@ class c_modal_add(Modal):
             max_length=8,
             placeholder=ec_mr_text[lng][11],
             required=True,
-            custom_id=f"modal_p_{auth_id}_{randint(1, 100)}"
+            custom_id=f"modal_add_p_{auth_id}_{randint(1, 100)}"
         )
         self.salary = TextInput(
             label=ec_mr_text[lng][12],
             min_length=1,
             max_length=9,
-            style=nextcord.TextInputStyle.paragraph,
+            style=TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][13],
             required=False,
-            custom_id=f"modal_s_{auth_id}_{randint(1, 100)}"
+            custom_id=f"modal_add_s_{auth_id}_{randint(1, 100)}"
         )
         self.r_type1 = TextInput(
             label=ec_mr_text[lng][14],
             min_length=1,
             max_length=1,
-            style=nextcord.TextInputStyle.paragraph,
+            style=TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][15],
             required=False,
-            custom_id=f"modal_t1_{auth_id}_{randint(1, 100)}"
+            custom_id=f"modal_add_t1_{auth_id}_{randint(1, 100)}"
         )
         self.r_type2 = TextInput(
             label=ec_mr_text[lng][14],
             min_length=1,
             max_length=1,
-            style=nextcord.TextInputStyle.paragraph,
+            style=TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][16],
             required=False,
-            custom_id=f"modal_t2_{auth_id}_{randint(1, 100)}"
+            custom_id=f"modal_add_t2_{auth_id}_{randint(1, 100)}"
         )
         self.r_type3 = TextInput(
             label=ec_mr_text[lng][14],
             min_length=1,
             max_length=1,
-            style=nextcord.TextInputStyle.paragraph,
+            style=TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][17],
             required=False,
-            custom_id=f"modal_t3_{auth_id}_{randint(1, 100)}"
+            custom_id=f"modal_add_t3_{auth_id}_{randint(1, 100)}"
         )
         self.add_item(self.price)
         self.add_item(self.salary)
@@ -937,10 +1027,15 @@ class c_modal_add(Modal):
 
 
 class c_modal_edit(Modal):
-    def __init__(self, timeout: int, role: int, m, lng: int, auth_id: int, p, s, s_c, r_t):
+    def __init__(self, timeout: int, role: int, m, lng: int, auth_id: int, p, s, s_c, r_t, in_store):
         super().__init__(title=ec_mr_text[lng][25], timeout=timeout, custom_id=f"modal_edit_{auth_id}_{randint(1, 100)}")
         self.role=role
         self.m = m
+        self.p = p
+        self.s = s
+        self.s_c = s_c
+        self.r_t = r_t
+        self.in_store = in_store
         self.added = False
         self.price = TextInput(
             label=ec_mr_text[lng][10],
@@ -949,54 +1044,42 @@ class c_modal_edit(Modal):
             placeholder=ec_mr_text[lng][11],
             default_value=p,
             required=True,
-            custom_id=f"modal_p_{auth_id}_{randint(1, 100)}"
+            custom_id=f"modal_edit_p_{auth_id}_{randint(1, 100)}"
         )
         self.salary = TextInput(
             label=ec_mr_text[lng][12],
             min_length=1,
             max_length=9,
-            style=nextcord.TextInputStyle.paragraph,
+            style=TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][13],
             default_value=f"{s} {s_c}",
             required=False,
-            custom_id=f"modal_s_{auth_id}_{randint(1, 100)}"
+            custom_id=f"modal_edit_s_{auth_id}_{randint(1, 100)}"
         )
-        self.r_type1 = TextInput(
+        self.r_type_inp = TextInput(
             label=ec_mr_text[lng][14],
             min_length=1,
             max_length=1,
-            style=nextcord.TextInputStyle.paragraph,
-            placeholder=ec_mr_text[lng][15],
+            style=TextInputStyle.paragraph,
+            placeholder=ec_mr_text[lng][26],
             default_value=r_t,
             required=False,
-            custom_id=f"modal_t1_{auth_id}_{randint(1, 100)}"
+            custom_id=f"modal_edit_t_{auth_id}_{randint(1, 100)}"
         )
-        self.r_type2 = TextInput(
-            label=ec_mr_text[lng][14],
+        self.in_st = TextInput(
+            label=ec_mr_text[lng][27],
             min_length=1,
-            max_length=1,
-            style=nextcord.TextInputStyle.paragraph,
-            placeholder=ec_mr_text[lng][16],
-            default_value=r_t,
-            required=False,
-            custom_id=f"modal_t2_{auth_id}_{randint(1, 100)}"
-        )
-        self.r_type3 = TextInput(
-            label=ec_mr_text[lng][14],
-            min_length=1,
-            max_length=1,
-            style=nextcord.TextInputStyle.paragraph,
-            placeholder=ec_mr_text[lng][17],
-            default_value=r_t,
-            required=False,
-            custom_id=f"modal_t3_{auth_id}_{randint(1, 100)}"
+            max_length=2,
+            style=TextInputStyle.paragraph,
+            placeholder=ec_mr_text[lng][28],
+            default_value=f"{in_store}",
+            required=True,
+            custom_id=f"modal_edit_instore_{auth_id}_{randint(1, 100)}"
         )
         self.add_item(self.price)
         self.add_item(self.salary)
-        self.add_item(self.r_type1)
-        self.add_item(self.r_type2)
-        self.add_item(self.r_type3)
-        self.r_t = set()
+        self.add_item(self.r_type_inp)
+        self.add_item(self.in_st)
 
 
     def check_answers(self) -> int:
@@ -1023,21 +1106,14 @@ class c_modal_edit(Modal):
                 elif int(s_c) <= 0:
                     ans += 1000
         
-        if self.r_type1.value:
-            if self.r_type1.value.isdigit() and int(self.r_type1.value) in {1, 2, 3}:
-                self.r_t.add(int(self.r_type1.value))
-        
-        if self.r_type2.value:
-            if self.r_type2.value.isdigit() and int(self.r_type2.value) in {1, 2, 3}:
-                self.r_t.add(int(self.r_type2.value))
-        
-        if self.r_type3.value:
-            if self.r_type3.value.isdigit() and int(self.r_type3.value) in {1, 2, 3}:
-                self.r_t.add(int(self.r_type3.value))
-        
-        if len(self.r_t) == 0:
+        if not self.r_type_inp.value.isdigit():
             ans += 10000
-        elif len(self.r_t) > 1:
+        elif not 1 <= int(self.r_type_inp.value) <= 3:
+            ans += 10000
+
+        if not self.in_st.value.isdigit():
+            ans += 100000
+        elif int(self.in_st.value) < 0:
             ans += 100000
 
         return ans
@@ -1057,13 +1133,13 @@ class c_modal_edit(Modal):
         if (ans_c // 10000) % 2 == 1:
             rep.append(ec_mr_text[lng][22])
         if (ans_c // 100000) % 2 == 1:
-            rep.append(ec_mr_text[lng][23])
+            rep.append(ec_mr_text[lng][29])
 
         if len(rep):
             await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
             self.stop()
             return
-
+        
         price = int(self.price.value)
         if self.salary.value:
             s_ans = self.salary.value.split()
@@ -1074,79 +1150,6 @@ class c_modal_edit(Modal):
         r_type = int(list(self.r_t)[0])
         await interaction.response.send_message(f"{price} {salary} {salary_c} {r_type}", ephemeral=True)
         self.stop()
-
-
-class economy_roles_manage_view(View):
-
-    def __init__(self, t_out: int, lng: int, auth_id: int, rem_dis: bool, rls: list, s_rls: set):
-        super().__init__(timeout=t_out)
-        self.auth_id = auth_id
-        self.s_rls = s_rls
-        self.role = None
-        for i in range((len(rls)+24)//25):
-            self.add_item(c_select_gen(custom_id=f"{800+i}", placeholder=settings_text[lng][7], opts=rls[i*25:min(len(rls), (i+1)*25)]))
-        self.add_item(c_button(style=ButtonStyle.green, label=mod_roles_text[lng][3], emoji="<:add01:999663315804500078>", custom_id=f"15_{auth_id}_{randint(1, 100)}"))
-        self.add_item(c_button(style=ButtonStyle.blurple, label=ec_mr_text[lng][0], emoji="🔧", custom_id=f"16_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
-        self.add_item(c_button(style=ButtonStyle.red, label=mod_roles_text[lng][4], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
-
-
-    async def click(self, interaction: Interaction, c_id):
-        lng = 1 if "ru" in interaction.locale else 0
-
-        if self.role is None:
-            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][6]), ephemeral=True)
-            return
-
-        if c_id.startswith("17"):
-            if not self.role in self.s_rls:
-                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
-                return
-            v_d = verify_delete(lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
-            await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(self.role)), view=v_d)
-            if await v_d.wait():
-                for c in v_d.children:
-                    c.disabled = True
-                await interaction.edit_original_message(view=v_d)
-
-            if v_d.deleted:
-                self.s_rls.remove(self.role)
-            self.role = None
-
-        elif c_id.startswith("15"):
-            if self.role in self.s_rls:
-                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][9]), ephemeral=True)
-                return
-            add_mod = c_modal_add(timeout=90, lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
-            await interaction.response.send_modal(modal=add_mod)
-            if await add_mod.wait():
-                for c in add_mod.children:
-                    c.disabled = True
-                await interaction.edit_original_message(view=add_mod)
-            
-            if add_mod.added:
-                self.s_rls.add(self.role)
-            self.role = None
-
-        elif c_id.startswith("16"):
-            if not self.role in self.s_rls:
-                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
-                return
-            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
-                with closing(base.cursor()) as cur:
-                    r = cur.execute("SELECT * FROM server_roles WHERE role_id = ?", (self.role,)).fetchone()
-                 
-            edit_mod = c_modal_edit(timeout=90, role=self.role, m=interaction.message, auth_id=interaction.user.id, lng=lng, p=r[1], s=r[2], s_c=r[3], r_t=r[4])
-
-    async def click_menu(self, interacion, c_id, values):
-        if c_id.isdigit() and c_id.startswith("80"):
-            self.role = int(values[0])
-
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        if interaction.user.id != self.auth_id:
-            lng = 1 if "ru" in interaction.locale else 0
-            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
-            return False
-        return True
 
 
 class verify_delete(View):
@@ -1160,11 +1163,11 @@ class verify_delete(View):
     
     async def click(self, interaction: Interaction, c_id):
         lng = 1 if "ru" in interaction.locale else 0
-        if c_id.startswith("1000"):
+        if c_id.startswith("1001"):
             await interaction.message.delete()
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][3].format(self.role)), ephemeral=True)
             self.stop()
-        elif c_id.startswith("1001"):
+        elif c_id.startswith("1000"):
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][4]), ephemeral=True)
             
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
