@@ -1,8 +1,7 @@
 
 from asyncio import sleep, TimeoutError
-import asyncio
 from contextlib import closing
-from sqlite3 import connect
+from sqlite3 import connect, Connection, Cursor
 from random import randint
 from datetime import datetime, timedelta, timezone
 from time import time
@@ -1027,22 +1026,19 @@ class c_modal_add(Modal):
 
 
 class c_modal_edit(Modal):
-    def __init__(self, timeout: int, role: int, m, lng: int, auth_id: int, p, s, s_c, r_t, in_store):
+
+    def __init__(self, timeout: int, role: int, m, lng: int, auth_id: int, p: int, s: int, s_c: int, r_t: int, in_store):
         super().__init__(title=ec_mr_text[lng][25], timeout=timeout, custom_id=f"modal_edit_{auth_id}_{randint(1, 100)}")
         self.role=role
         self.m = m
-        self.p = p
-        self.s = s
-        self.s_c = s_c
-        self.r_t = r_t
-        self.in_store = in_store
         self.added = False
+        self.prev_r_t = r_t
         self.price = TextInput(
             label=ec_mr_text[lng][10],
             min_length=1,
             max_length=8,
             placeholder=ec_mr_text[lng][11],
-            default_value=p,
+            default_value=f"{p}",
             required=True,
             custom_id=f"modal_edit_p_{auth_id}_{randint(1, 100)}"
         )
@@ -1062,7 +1058,7 @@ class c_modal_edit(Modal):
             max_length=1,
             style=TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][26],
-            default_value=r_t,
+            default_value=f"{r_t}",
             required=False,
             custom_id=f"modal_edit_t_{auth_id}_{randint(1, 100)}"
         )
@@ -1139,7 +1135,7 @@ class c_modal_edit(Modal):
             await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
             self.stop()
             return
-        
+
         price = int(self.price.value)
         if self.salary.value:
             s_ans = self.salary.value.split()
@@ -1147,10 +1143,37 @@ class c_modal_edit(Modal):
             salary_c = int(s_ans[1]) * 3600
         else:
             salary = salary_c = 0
-        r_type = int(list(self.r_t)[0])
-        await interaction.response.send_message(f"{price} {salary} {salary_c} {r_type}", ephemeral=True)
+        r_type = int(self.r_type_inp.value)
+        
+        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                cur.execute("UPDATE server_roles SET price = ?, salary = ?, salary_cooldown = ?, type = ? WHERE role_id = ?", (price, salary, salary_c, r_type, self.role))
+                if r_type != self.prev_r_t:
+                    self.update_type_and_store(base=base, cur=cur, price=price, salary=salary, salary_c=salary_c, r_type=r_type, l=int(self.in_st.value))
+                elif self.in_st.value != self.in_st.default_value and r_type != 3:
+                    self.update_store(base=base, cur=cur)
+                if self.salary.value != self.salary.default_value:
+                    self.update_salary()
         self.stop()
+    
+    def update_type_and_store(self, base: Connection, cur: Cursor, price: int, salary: int, salary_c: int, r_type: int, l: int):
 
+        t = int(time())
+        cur.execute("DELETE FROM store WHERE role_id = ?", (self.role,))
+        base.commit()
+        if l == 0:
+            return
+
+        if r_type == 3:
+            cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (self.role, -404, price, t, salary, salary_c, 3))
+        elif r_type == 2:
+            cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (self.role, l, price, t, salary, salary_c, 2))
+        elif r_type == 1:
+            for _ in range(l):
+                cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (self.role, 1, price, t, salary, salary_c, 1))
+        
+    def update_store(self, base: Connection, cur: Cursor):
+        pass
 
 class verify_delete(View):
     def __init__(self, lng: int, role: int, m, auth_id: int):
