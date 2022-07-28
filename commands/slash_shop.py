@@ -420,7 +420,6 @@ class store_slash_e(View):
         self.outer_store = outer
         return
 
-        
     def click(self, interaction: Interaction, click: int, in_row: int):
         text = interaction.message.embeds[0].description
         t1 = text.find('Page **`')
@@ -493,7 +492,6 @@ class store_slash_e(View):
             emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb)
         
-
     @ui.select(
         placeholder="Sort by...",
         options=[
@@ -563,10 +561,10 @@ class store_slash_e(View):
             await interaction.response.edit_message(embed=emb, view=self)
 
     async def interaction_check(self, interaction):
-            if interaction.user != self.ctx.user:
-                await interaction.response.send_message("**`Sorry, but you can't manage menu called by another user`**", ephemeral=True)
-                return False
-            return True
+        if interaction.user.id != self.ctx.user.id:
+            await interaction.response.send_message("**`Sorry, but you can't manage menu called by another user`**", ephemeral=True)
+            return False
+        return True
 
 class buy_slash_r(View):
 

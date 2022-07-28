@@ -1,9 +1,10 @@
 
 from asyncio import sleep, TimeoutError
+import asyncio
 from contextlib import closing
 from sqlite3 import connect
 from random import randint
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from time import time
 
 from nextcord import Embed, Colour, Guild, Role, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextChannel, TextInputStyle
@@ -17,18 +18,19 @@ settings_text = {
     0 : [
         "Choose section",
         "⚙️ general settings",
-        "💰 economy",
         "<:moder:1000090629897998336> manage moders' roles",
+        "<:user:1002245779089535006> manage members",
+        "💰 economy",
         "📈 ranking",
         "📊 polls",
         "Select role",
         "Adding role"
-        
     ],
     1 : [
         "Выберите раздел",
         "⚙️ основные настройки",
         "<:moder:1000090629897998336> настройка ролей модераторов",
+        "<:user:1002245779089535006> управление пользователями",
         "💰 экономика",
         "📈 ранговая система",
         "📊 поллы",
@@ -45,8 +47,8 @@ gen_settings_text = {
         3 : "tap ⏱ to change time zone",
         4 : "Select new language",
         5 : "Select new time zone",
-        6 : "You hasn't selected the language yet",
-        7 : "You hasn't selected time zone yet",
+        6 : "**`You hasn't selected the language yet`**",
+        7 : "**`You hasn't selected time zone yet`**",
         8 : "**`Current server time zone: UTC{}`**",
         9 : "New time zone: **`UTC{}`**",
         10 : "New server language for description of slash commands: {}",
@@ -60,8 +62,8 @@ gen_settings_text = {
         3 : "нажмите ⏱, чтобы изменить часовой пояс",
         4 : "Выбрать новый язык",
         5 : "Выбрать новый часовой пояс",
-        6 : "Вы не выбрали язык",
-        7 : "Вы не выбрали часовой пояс",
+        6 : "**`Вы не выбрали язык`**",
+        7 : "**`Вы не выбрали часовой пояс`**",
         8 : "**`Текущий часовой пояс сервера: UTC{}`**",
         9 : "Новый часовой пояс сервера: **`UTC{}`**",
         10 : "Новый язык сервера для описания слэш команд: {}",
@@ -198,13 +200,15 @@ ec_text = {
         13 : "Write salary from `/work`:\nTwo non-negative numbers, second at least as much as first\nSalary will be random integer \
             between them\nIf you want salary to constant write one number\nFor example, if you write `1` `100` then salary \
             will be random integer from `1` to `100`\nIf you write `10`, then salary will always be `10`",
-        14 : "Now salary is {}",
+        14 : "**`Now salary is `**{}",
         15 : "Select channel",
-        16 : "You chose channel {}",
-        17 : "Timeout expired",
-        18 : "role - role id - price - salary - cooldown for salary - type",
+        16 : "**`You chose channel `**{}",
+        17 : "**`Timeout expired`**",
+        18 : "__**role - role id - price - salary - cooldown for salary - type - how much in the store**__",
         19 : "No roles were added",
-        20 : "`**`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
+        20 : "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
+        21 : "Not selected",
+        22 : "**`You reseted log channel`**"
     },
     1 : {
         0 : "Настройки экономики",
@@ -224,13 +228,15 @@ ec_text = {
             рандомным целым числом между ними\nЕсли Вы хотите сделать заработок постоянным, укажите одно число\nНапример, \
             если Вы укажите `1` `100`, то заработок будет рандомным целым числом от `1` до `100`\nЕсли Вы укажите `10`, то \
             заработок всегда будет равен `10`",
-        14 : "Теперь заработок: {}",
+        14 : "**`Теперь заработок: `**{}",
         15 : "Выберите канал",
-        16 : "Вы выбрали канал {}",
-        17 : "Время ожидания вышло",
-        18 : "роль - id роли - цена - заработок - кулдаун заработка - тип",
+        16 : "**`Вы выбрали канал `**{}",
+        17 : "**`Время ожидания вышло`**",
+        18 : "__**роль - id роли - цена - заработок - кулдаун заработка - тип - сколько в магазине**__",
         19 : "Не добавлено ни одной роли",
         20 : "`Если роль не отображается ни в одном меню снизу, значит, бот не может управлять ею`",
+        21 : "Не выбрано",
+        22 : "**`Вы сбросили канал логов`**"
     }
 }
 
@@ -260,8 +266,8 @@ ec_mr_text = {
         21 : "Cooldown should be positive integer number, cooldown is time in hours. For example: `24` sets cooldown to 24 hours",
         22 : "Type of displaying of the role should be one of three numbers: 1, 2 or 3",
         23 : "You chosen different types of displaying for the role",
-        24 : "You added role <@&{}> with price **`{}`**, salary **`{}`**, cooldown for it **`{}`**, type **`{}`**"
-        
+        24 : "You added role <@&{}> with price **`{}`**, salary **`{}`**, cooldown for it **`{}`**, type **`{}`**",
+        25 : "Editing the role"
     },
     1 : {
         0 : "Редактировать роль",
@@ -288,7 +294,8 @@ ec_mr_text = {
         21 : "Кулдаун должен быть целым положительным числом, кулдаун - время в часах. Например, `24` сделать кулдаун равным 24 часам",
         22 : "В качестве типа отображения роли надо указать одно из трёх чисел: 1, 2 или 3",
         23 : "Вы выбрали несколько разных типов отображения для роли",
-        24 : "Вы добавили роль <@&{}> с ценой **`{}`**, доходом **`{}`**, его кулдауном **`{}`**, типом **`{}`**"
+        24 : "Вы добавили роль <@&{}> с ценой **`{}`**, доходом **`{}`**, его кулдауном **`{}`**, типом **`{}`**",
+        25 : "Редактирование роли"
     }
 }
 
@@ -367,10 +374,10 @@ class gen_settings_view(View):
         self.lang = None
         self.tz = None
         tzs = [(f"UTC{i}", i) for i in range(-12, 0)] + [(f"UTC+{i}", i) for i in range(0, 13)]
-        self.add_item(c_select_gen(custom_id="100", placeholder=gen_settings_text[lng][4], opts=languages[2][lng]))
-        self.add_item(c_select_gen(custom_id="101", placeholder=gen_settings_text[lng][5], opts=tzs))
-        self.add_item(c_button(style=ButtonStyle.green, label=None, custom_id="5", emoji="🗣️"))
-        self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id="6", emoji="⏱"))
+        self.add_item(c_select_gen(custom_id=f"100_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][4], opts=languages[2][lng]))
+        self.add_item(c_select_gen(custom_id=f"101_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][5], opts=tzs))
+        self.add_item(c_button(style=ButtonStyle.green, label=None, custom_id=f"6_{auth_id}_{randint(1, 100)}", emoji="🗣️"))
+        self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id=f"7_{auth_id}_{randint(1, 100)}", emoji="⏱"))
 
 
     async def digit_tz(self, interaction: Interaction, lng: int):
@@ -443,22 +450,22 @@ class gen_settings_view(View):
     async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
         
-        if c_id == "5" and self.lang == None:
+        if c_id.startswith("6") and self.lang == None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][6]), ephemeral=True)
             return
-        elif c_id == "6" and self.tz == None:
+        elif c_id.startswith("7") and self.tz == None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][7]), ephemeral=True)
             return
                 
-        if c_id == "5":
+        if c_id.startswith("6"):
             await self.select_lng(interaction=interaction, lng=lng)
-        else:
+        elif c_id.startswith("7"):
             await self.digit_tz(interaction=interaction, lng=lng)
 
     async def click_menu(self, __, c_id, values):
-        if c_id == "100":
+        if c_id.startswith("100"):
             self.lang = int(values[0])
-        elif c_id == "101":
+        elif c_id.startswith("101"):
             self.tz = int(values[0])
     
 
@@ -470,9 +477,9 @@ class mod_roles_view(View):
         self.m_rls = m_rls
         self.role = None
         for i in range((len(rls)+24)//25):
-            self.add_item(c_select(custom_id=f"{200+i}", placeholder=settings_text[lng][6], roles=rls[i*25:min(len(rls), (i+1)*25)]))
-        self.add_item(c_button(style=ButtonStyle.green, label=mod_roles_text[lng][3], emoji="<:add01:999663315804500078>", custom_id="8"))
-        self.add_item(c_button(style=ButtonStyle.red, label=mod_roles_text[lng][4], emoji="<:remove01:999663428689997844>", custom_id="9", disabled=rem_dis))
+            self.add_item(c_select(custom_id=f"{200+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][6], roles=rls[i*25:min(len(rls), (i+1)*25)]))
+        self.add_item(c_button(style=ButtonStyle.green, label=mod_roles_text[lng][3], emoji="<:add01:999663315804500078>", custom_id=f"8_{auth_id}_{randint(1, 100)}"))
+        self.add_item(c_button(style=ButtonStyle.red, label=mod_roles_text[lng][4], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
     
 
     async def add_role(self, rl: Role, interaction: Interaction, lng: int, m: Message):
@@ -533,19 +540,19 @@ class mod_roles_view(View):
         rl_id = self.role
         rl = interaction.guild.get_role(rl_id)
         if rl:
-            if c_id == "8":
+            if c_id.startswith("8"):
                 await self.add_role(rl=rl, interaction=interaction, lng=lng, m=m)
                 if len(self.m_rls) == 1:
                     for c in self.children:
-                        if c.custom_id == "9":
+                        if c.custom_id.startswith("9"):
                             c.disabled = False
                     await m.edit(view=self)
                 self.role = None
-            else:
+            elif c_id.startswith("9"):
                 await self.rem_role(rl=rl, interaction=interaction, lng=lng, m=m)
                 if len(self.m_rls) == 0:
                     for c in self.children:
-                        if c.custom_id == "9":
+                        if c.custom_id.startswith("9"):
                             c.disabled = True
                     await m.edit(view=self)
                 self.role = None
@@ -568,11 +575,11 @@ class economy_view(View):
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
         self.channel = None
-        self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id="10", emoji="💸"))
-        self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id="11", emoji="⏰"))
-        self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id="12", emoji="💹"))
-        self.add_item(c_button(style=ButtonStyle.green, label="", custom_id="13", emoji="📙"))
-        self.add_item(c_button(style=ButtonStyle.red, label="", custom_id="14", emoji="🛠️"))        
+        self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id=f"10_{auth_id}_{randint(1, 100)}", emoji="💸"))
+        self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id=f"11_{auth_id}_{randint(1, 100)}", emoji="⏰"))
+        self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id=f"12_{auth_id}_{randint(1, 100)}", emoji="💹"))
+        self.add_item(c_button(style=ButtonStyle.green, label="", custom_id=f"13_{auth_id}_{randint(1, 100)}", emoji="📙"))
+        self.add_item(c_button(style=ButtonStyle.red, label="", custom_id=f"14_{auth_id}_{randint(1, 100)}", emoji="🛠️"))        
 
     async def msg_salary(self, interaction: Interaction, lng: int, ans) -> bool:
         if ans.isdigit() and int(ans) >= 0:
@@ -654,8 +661,9 @@ class economy_view(View):
         
         channels = [(c.name, c.id) for c in interaction.guild.text_channels]
         ids = set()
-        for i in range(min((len(channels) + 24) // 25, 6)):
-            self.add_item(c_select_gen(custom_id=f"{500+i}", placeholder=ec_text[lng][15], opts=channels[i*25:min((i+1)*25, len(channels))]))
+        for i in range(min((len(channels) + 23) // 24, 7)):
+            opts = [(ec_text[lng][21], 0)] + channels[i*24:min((i+1)*24, len(channels))]
+            self.add_item(c_select_gen(custom_id=f"{500+i}_{self.auth_id}_{randint(1, 100)}", placeholder=ec_text[lng][15], opts=opts))
             ids.add(f"{500+i}")
             
         await interaction.message.edit(view=self)
@@ -672,45 +680,67 @@ class economy_view(View):
                 i += 1
         
         if not self.channel is None:
+
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_c'", (self.channel,))
                     base.commit()
+            
             emb = interaction.message.embeds[0]
             dsc = emb.description.split("\n\n")
-            dsc[3] = ec_text[lng][5].format(f"<#{self.channel}>")
+            if self.channel != 0:
+                dsc[3] = ec_text[lng][5].format(f"<#{self.channel}>")
+            else:
+                dsc[3] = ec_text[lng][6]
             emb.description = "\n\n".join(dsc)
             await interaction.message.edit(embed=emb, view=self)
-            await interaction.edit_original_message(embed=Embed(description=ec_text[lng][16].format(f"<#{self.channel}>")))
+
+            if self.channel != 0:
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][16].format(f"<#{self.channel}>")))
+            else:
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][22]))
             self.channel = None
         else:
             await interaction.message.edit(view=self)
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][17]))
-   
+    
     async def click(self, interaction: Interaction, c_id):
         lng = 1 if "ru" in interaction.locale else 0
-        if c_id == "13":
+        if c_id.startswith("13"):
             await self.log_chnl(interaction=interaction, lng=lng)
-        elif c_id == "14":
+        elif c_id.startswith("14"):
+            emb = Embed()
+            s_rls = set()
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     roles = cur.execute('SELECT * FROM server_roles').fetchall()
-            emb = Embed()
-            st_rls = set()
-            if len(roles):
-                descr = [ec_text[lng][18]]
-                for role in roles:
-                    st_rls.add(role[0])
-                    descr.append(f"<@&{role[0]}> - **`{role[0]}`** - **`{role[1]}`** - **`{role[2]}`** - **`{role[3]//3600}`** - **`{r_types[lng][role[4]]}`**")
-            else:
-                descr = [ec_text[lng][19]]
+
+                    if len(roles):
+                        descr = [ec_text[lng][18]]
+                        for role in roles:
+                            s_rls.add(role[0])
+                            if role[4] == 1:
+                                cnt = len(cur.execute("SELECT * FROM store WHERE role_id = ?", (role[0],)).fetchall())
+                            elif role[4] == 2:
+                                cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role[0],)).fetchone()
+                                if cnt is None:
+                                    cnt = 0
+                                else:
+                                    cnt = cnt[0]
+                            else:
+                                cnt = "∞"
+                            descr.append(f"<@&{role[0]}> - **`{role[0]}`** - **`{role[1]}`** - **`{role[2]}`** - **`{role[3]//3600}`** - **`{r_types[lng][role[4]]}`** - **`{cnt}`**")
+                    else:
+                        descr = [ec_text[lng][19]]
+
+
             descr.append("\n" + ec_text[lng][20])
             emb.description="\n".join(descr)
             
             rls = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
             if len(rls): rd = False
             else: rd = True
-            ec_rls_view = economy_roles_manage_view(t_out=105, lng=lng, auth_id=interaction.user.id, rem_dis=rd, rls=rls, st_rls=st_rls)
+            ec_rls_view = economy_roles_manage_view(t_out=105, lng=lng, auth_id=self.auth_id, rem_dis=rd, rls=rls, s_rls=s_rls)
             await interaction.response.send_message(embed=emb, view=ec_rls_view)
             if await ec_rls_view.wait():
                 for c in ec_rls_view.children:
@@ -720,8 +750,8 @@ class economy_view(View):
                 ec_rls_view.stop()
                 await interaction.delete_original_message()
 
-        else:
-            await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (int(c_id) - 10) * 2]), ephemeral=True)
+        elif c_id[:2] in {"10", "11", "12"}:
+            await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (int(c_id[:2]) - 10) * 2]), ephemeral=True)
             flag = True
             while flag:
                 try:
@@ -730,9 +760,9 @@ class economy_view(View):
                     flag = 0
                 else:
                     ans = user_ans.content
-                    if c_id == "10": flag = await self.msg_salary(interaction=interaction, lng=lng, ans=ans)
-                    elif c_id == "11": flag = await self.work_cldwn(interaction=interaction, lng=lng, ans=ans)
-                    elif c_id == "12": flag = await self.work_salary(interaction=interaction, lng=lng, ans=ans)
+                    if c_id.startswith("10"): flag = await self.msg_salary(interaction=interaction, lng=lng, ans=ans)
+                    elif c_id.startswith("11"): flag = await self.work_cldwn(interaction=interaction, lng=lng, ans=ans)
+                    elif c_id.startswith("12"): flag = await self.work_salary(interaction=interaction, lng=lng, ans=ans)
                 try:
                     await user_ans.delete()
                 except:
@@ -751,8 +781,8 @@ class economy_view(View):
 
 class c_modal_add(Modal):
 
-    def __init__(self, timeout: int, lng: int, role: int, m):
-        super().__init__(title=settings_text[lng][7], timeout=timeout, custom_id=f"modal_add_{randint(1, 100)}")
+    def __init__(self, timeout: int, lng: int, role: int, m, auth_id: int):
+        super().__init__(title=settings_text[lng][8], timeout=timeout, custom_id=f"modal_add_{auth_id}_{randint(1, 100)}")
         self.role=role
         self.m = m
         self.added = False
@@ -762,7 +792,7 @@ class c_modal_add(Modal):
             max_length=8,
             placeholder=ec_mr_text[lng][11],
             required=True,
-            custom_id=f"modal_p_{randint(1, 100)}"
+            custom_id=f"modal_p_{auth_id}_{randint(1, 100)}"
         )
         self.salary = TextInput(
             label=ec_mr_text[lng][12],
@@ -771,7 +801,7 @@ class c_modal_add(Modal):
             style=nextcord.TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][13],
             required=False,
-            custom_id=f"modal_s_{randint(1, 100)}"
+            custom_id=f"modal_s_{auth_id}_{randint(1, 100)}"
         )
         self.r_type1 = TextInput(
             label=ec_mr_text[lng][14],
@@ -780,7 +810,7 @@ class c_modal_add(Modal):
             style=nextcord.TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][15],
             required=False,
-            custom_id=f"modal_t1_{randint(1, 100)}"
+            custom_id=f"modal_t1_{auth_id}_{randint(1, 100)}"
         )
         self.r_type2 = TextInput(
             label=ec_mr_text[lng][14],
@@ -789,7 +819,7 @@ class c_modal_add(Modal):
             style=nextcord.TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][16],
             required=False,
-            custom_id=f"modal_t2_{randint(1, 100)}"
+            custom_id=f"modal_t2_{auth_id}_{randint(1, 100)}"
         )
         self.r_type3 = TextInput(
             label=ec_mr_text[lng][14],
@@ -798,7 +828,7 @@ class c_modal_add(Modal):
             style=nextcord.TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][17],
             required=False,
-            custom_id=f"modal_t3_{randint(1, 100)}"
+            custom_id=f"modal_t3_{auth_id}_{randint(1, 100)}"
         )
         self.add_item(self.price)
         self.add_item(self.salary)
@@ -906,18 +936,158 @@ class c_modal_add(Modal):
         self.stop()
 
 
+class c_modal_edit(Modal):
+    def __init__(self, timeout: int, role: int, m, lng: int, auth_id: int, p, s, s_c, r_t):
+        super().__init__(title=ec_mr_text[lng][25], timeout=timeout, custom_id=f"modal_edit_{auth_id}_{randint(1, 100)}")
+        self.role=role
+        self.m = m
+        self.added = False
+        self.price = TextInput(
+            label=ec_mr_text[lng][10],
+            min_length=1,
+            max_length=8,
+            placeholder=ec_mr_text[lng][11],
+            default_value=p,
+            required=True,
+            custom_id=f"modal_p_{auth_id}_{randint(1, 100)}"
+        )
+        self.salary = TextInput(
+            label=ec_mr_text[lng][12],
+            min_length=1,
+            max_length=9,
+            style=nextcord.TextInputStyle.paragraph,
+            placeholder=ec_mr_text[lng][13],
+            default_value=f"{s} {s_c}",
+            required=False,
+            custom_id=f"modal_s_{auth_id}_{randint(1, 100)}"
+        )
+        self.r_type1 = TextInput(
+            label=ec_mr_text[lng][14],
+            min_length=1,
+            max_length=1,
+            style=nextcord.TextInputStyle.paragraph,
+            placeholder=ec_mr_text[lng][15],
+            default_value=r_t,
+            required=False,
+            custom_id=f"modal_t1_{auth_id}_{randint(1, 100)}"
+        )
+        self.r_type2 = TextInput(
+            label=ec_mr_text[lng][14],
+            min_length=1,
+            max_length=1,
+            style=nextcord.TextInputStyle.paragraph,
+            placeholder=ec_mr_text[lng][16],
+            default_value=r_t,
+            required=False,
+            custom_id=f"modal_t2_{auth_id}_{randint(1, 100)}"
+        )
+        self.r_type3 = TextInput(
+            label=ec_mr_text[lng][14],
+            min_length=1,
+            max_length=1,
+            style=nextcord.TextInputStyle.paragraph,
+            placeholder=ec_mr_text[lng][17],
+            default_value=r_t,
+            required=False,
+            custom_id=f"modal_t3_{auth_id}_{randint(1, 100)}"
+        )
+        self.add_item(self.price)
+        self.add_item(self.salary)
+        self.add_item(self.r_type1)
+        self.add_item(self.r_type2)
+        self.add_item(self.r_type3)
+        self.r_t = set()
+
+
+    def check_answers(self) -> int:
+        ans = 0
+
+        if not self.price.value.isdigit():
+            ans += 1
+        elif int(self.price.value) <= 0:
+            ans += 1
+        
+        if self.salary.value:
+            s_ans = self.salary.value.split()
+            if len(s_ans) != 2:
+                ans += 10
+            else:
+                s, s_c = s_ans[0], s_ans[1]
+                if not s.isdigit():
+                    ans += 100
+                elif int(s) <= 0:
+                    ans += 100
+
+                if not s_c.isdigit():
+                    ans += 1000
+                elif int(s_c) <= 0:
+                    ans += 1000
+        
+        if self.r_type1.value:
+            if self.r_type1.value.isdigit() and int(self.r_type1.value) in {1, 2, 3}:
+                self.r_t.add(int(self.r_type1.value))
+        
+        if self.r_type2.value:
+            if self.r_type2.value.isdigit() and int(self.r_type2.value) in {1, 2, 3}:
+                self.r_t.add(int(self.r_type2.value))
+        
+        if self.r_type3.value:
+            if self.r_type3.value.isdigit() and int(self.r_type3.value) in {1, 2, 3}:
+                self.r_t.add(int(self.r_type3.value))
+        
+        if len(self.r_t) == 0:
+            ans += 10000
+        elif len(self.r_t) > 1:
+            ans += 100000
+
+        return ans
+
+    async def callback(self, interaction: Interaction):
+        lng = 1 if "ru" in interaction.locale else 0
+        ans_c = self.check_answers()
+        rep = []
+        if ans_c % 2 == 1:
+            rep.append(ec_mr_text[lng][18])
+        if (ans_c // 10) % 2 == 1:
+            rep.append(ec_mr_text[lng][19])
+        if (ans_c // 100) % 2 == 1:
+            rep.append(ec_mr_text[lng][20])
+        if (ans_c // 1000) % 2 == 1:
+            rep.append(ec_mr_text[lng][21])
+        if (ans_c // 10000) % 2 == 1:
+            rep.append(ec_mr_text[lng][22])
+        if (ans_c // 100000) % 2 == 1:
+            rep.append(ec_mr_text[lng][23])
+
+        if len(rep):
+            await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
+            self.stop()
+            return
+
+        price = int(self.price.value)
+        if self.salary.value:
+            s_ans = self.salary.value.split()
+            salary = int(s_ans[0])
+            salary_c = int(s_ans[1]) * 3600
+        else:
+            salary = salary_c = 0
+        r_type = int(list(self.r_t)[0])
+        await interaction.response.send_message(f"{price} {salary} {salary_c} {r_type}", ephemeral=True)
+        self.stop()
+
+
 class economy_roles_manage_view(View):
 
-    def __init__(self, t_out: int, lng: int, auth_id: int, rem_dis: bool, rls: list, st_rls: set):
+    def __init__(self, t_out: int, lng: int, auth_id: int, rem_dis: bool, rls: list, s_rls: set):
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
-        self.st_rls = st_rls
+        self.s_rls = s_rls
         self.role = None
         for i in range((len(rls)+24)//25):
-            self.add_item(c_select_gen(custom_id=f"{800+i}", placeholder=settings_text[lng][6], opts=rls[i*25:min(len(rls), (i+1)*25)]))
-        self.add_item(c_button(style=ButtonStyle.green, label=mod_roles_text[lng][3], emoji="<:add01:999663315804500078>", custom_id="15"))
-        self.add_item(c_button(style=ButtonStyle.blurple, label=ec_mr_text[lng][0], emoji="🔧", custom_id="16", disabled=rem_dis))
-        self.add_item(c_button(style=ButtonStyle.red, label=mod_roles_text[lng][4], emoji="<:remove01:999663428689997844>", custom_id="17", disabled=rem_dis))
+            self.add_item(c_select_gen(custom_id=f"{800+i}", placeholder=settings_text[lng][7], opts=rls[i*25:min(len(rls), (i+1)*25)]))
+        self.add_item(c_button(style=ButtonStyle.green, label=mod_roles_text[lng][3], emoji="<:add01:999663315804500078>", custom_id=f"15_{auth_id}_{randint(1, 100)}"))
+        self.add_item(c_button(style=ButtonStyle.blurple, label=ec_mr_text[lng][0], emoji="🔧", custom_id=f"16_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
+        self.add_item(c_button(style=ButtonStyle.red, label=mod_roles_text[lng][4], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
 
 
     async def click(self, interaction: Interaction, c_id):
@@ -927,11 +1097,11 @@ class economy_roles_manage_view(View):
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][6]), ephemeral=True)
             return
 
-        if c_id == "17":
-            if not self.role in self.st_rls:
+        if c_id.startswith("17"):
+            if not self.role in self.s_rls:
                 await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
                 return
-            v_d = verify_delete(lng=lng, role=self.role, m=interaction.message)
+            v_d = verify_delete(lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(self.role)), view=v_d)
             if await v_d.wait():
                 for c in v_d.children:
@@ -939,14 +1109,14 @@ class economy_roles_manage_view(View):
                 await interaction.edit_original_message(view=v_d)
 
             if v_d.deleted:
-                self.st_rls.remove(self.role)
+                self.s_rls.remove(self.role)
             self.role = None
 
-        elif c_id == "15":
-            if self.role in self.st_rls:
+        elif c_id.startswith("15"):
+            if self.role in self.s_rls:
                 await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][9]), ephemeral=True)
                 return
-            add_mod = c_modal_add(timeout=90, lng=lng, role=self.role, m=interaction.message)
+            add_mod = c_modal_add(timeout=90, lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
             await interaction.response.send_modal(modal=add_mod)
             if await add_mod.wait():
                 for c in add_mod.children:
@@ -954,32 +1124,49 @@ class economy_roles_manage_view(View):
                 await interaction.edit_original_message(view=add_mod)
             
             if add_mod.added:
-                self.st_rls.add(self.role)
+                self.s_rls.add(self.role)
             self.role = None
 
+        elif c_id.startswith("16"):
+            if not self.role in self.s_rls:
+                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
+                return
+            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(base.cursor()) as cur:
+                    r = cur.execute("SELECT * FROM server_roles WHERE role_id = ?", (self.role,)).fetchone()
+                 
+            edit_mod = c_modal_edit(timeout=90, role=self.role, m=interaction.message, auth_id=interaction.user.id, lng=lng, p=r[1], s=r[2], s_c=r[3], r_t=r[4])
 
     async def click_menu(self, interacion, c_id, values):
-        if c_id.isdigit() and int(c_id) >= 800:
+        if c_id.isdigit() and c_id.startswith("80"):
             self.role = int(values[0])
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
+            return False
+        return True
 
 
 class verify_delete(View):
-    def __init__(self, lng: int, role: int, m):
+    def __init__(self, lng: int, role: int, m, auth_id: int):
         super().__init__(timeout=30)
         self.role = role
         self.m = m
         self.deleted = False
-        self.add_item(c_button(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id="10000"))
-        self.add_item(c_button(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id="10001"))
+        self.add_item(c_button(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_{randint(1, 100)}"))
+        self.add_item(c_button(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_{randint(1, 100)}"))
     
     async def click(self, interaction: Interaction, c_id):
         lng = 1 if "ru" in interaction.locale else 0
-        if c_id == "10001":
+        if c_id.startswith("1000"):
             await interaction.message.delete()
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][3].format(self.role)), ephemeral=True)
             self.stop()
-        else:
+        elif c_id.startswith("1001"):
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][4]), ephemeral=True)
+            
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.executescript(f"""
@@ -992,6 +1179,7 @@ class verify_delete(View):
                         if f"{self.role}" in r[2]:
                             cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (r[2].replace(f"{self.role}#", ""), r[0]))
                             base.commit()
+                            
             await interaction.edit_original_message(embed=Embed(description=ec_mr_text[lng][5].format(self.role)))
             await interaction.message.delete()
             emb = self.m.embeds[0]
@@ -1018,17 +1206,16 @@ class settings_view(View):
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
         self.bot = bot
-        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id="0", emoji="⚙️"))
-        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id="1", emoji="<:moder:1000090629897998336>"))
-        self.add_item(c_button(style=ButtonStyle.green, label=None, custom_id="2", emoji="💰"))
-        self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id="3", emoji="📈"))
-        self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id="4", emoji="📊"))
-
-
+        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"0_{auth_id}_{randint(1, 100)}", emoji="⚙️"))
+        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"1_{auth_id}_{randint(1, 100)}", emoji="<:moder:1000090629897998336>"))
+        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"2_{auth_id}_{randint(1, 100)}", emoji="<:user:1002245779089535006>"))
+        self.add_item(c_button(style=ButtonStyle.green, label=None, custom_id=f"3_{auth_id}_{randint(1, 100)}", emoji="💰", row=2))
+        self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id=f"4_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
+        self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id=f"5_{auth_id}_{randint(1, 100)}", emoji="📊", row=2))
+    
     async def click(self, interaction: Interaction, custom_id: str):
         lng = 1 if "ru" in interaction.locale else 0
-
-        if custom_id == "0":
+        if custom_id.startswith("0"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     s_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
@@ -1051,7 +1238,7 @@ class settings_view(View):
             else:
                 await interaction.delete_original_message()
 
-        elif custom_id == "1":
+        elif custom_id.startswith("1"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     m_rls = cur.execute("SELECT * FROM mod_roles").fetchall()
@@ -1078,7 +1265,7 @@ class settings_view(View):
             else:
                 await interaction.delete_original_message()
 
-        elif custom_id == "2":
+        elif custom_id.startswith("3"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     money_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg'").fetchone()[0]
@@ -1102,7 +1289,7 @@ class settings_view(View):
             dsc.append(ec_text[lng][8])
             emb.description = "\n\n".join(dsc)
             rls = [r for r in interaction.guild.roles if (not r.is_bot_managed() and r.is_assignable())]
-            ec_v = economy_view(t_out=50, auth_id=self.auth_id)
+            ec_v = economy_view(t_out=110, auth_id=self.auth_id)
             await interaction.response.send_message(embed=emb, view=ec_v)
             if await ec_v.wait():
                 for c in ec_v.children:
@@ -1144,11 +1331,12 @@ class m_cmds(commands.Cog):
     async def settings(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
         dsc = []
-        for i in settings_text[lng][1:6]:
+        for i in settings_text[lng][1:7]:
             dsc.append(i)
         st_view = settings_view(t_out=120, lng=lng, auth_id=interaction.user.id, bot=self.bot)
         emb = Embed(title=settings_text[lng][0], description="\n".join(dsc))
         await interaction.response.send_message(embed=emb, view=st_view)
+
         if await st_view.wait():
             for c in st_view.children:
                 c.disabled = True
