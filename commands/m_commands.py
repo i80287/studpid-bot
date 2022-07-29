@@ -729,14 +729,14 @@ class economy_view(View):
                             s_rls.add(role[0])
                             if role[4] == 1:
                                 cnt = len(cur.execute("SELECT * FROM store WHERE role_id = ?", (role[0],)).fetchall())
-                            elif role[4] == 2:
-                                cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role[0],)).fetchone()
-                                if cnt is None:
-                                    cnt = 0
-                                else:
-                                    cnt = cnt[0]
+                            cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role[0],)).fetchone()
+                            if cnt is None:
+                                cnt = 0
                             else:
-                                cnt = "∞"
+                                if role[4] == 2:
+                                    cnt = cnt[0]
+                                else:
+                                    cnt = "∞"
                             descr.append(f"<@&{role[0]}> - **`{role[0]}`** - **`{role[1]}`** - **`{role[2]}`** - **`{role[3]//3600}`** - **`{r_types[lng][role[4]]}`** - **`{cnt}`**")
                     else:
                         descr = [ec_text[lng][19]]
@@ -851,7 +851,7 @@ class economy_roles_manage_view(View):
                         else:
                             cnt = cnt[0]
                     else:
-                        cnt = "∞"
+                        cnt = 99
             
             edit_mod = c_modal_edit(timeout=90, role=self.role, m=interaction.message, auth_id=interaction.user.id, lng=lng, p=r[1], s=r[2], s_c=r[3]//3600, r_t=r[4], in_store=cnt)
             await interaction.response.send_modal(modal=edit_mod)
@@ -1018,10 +1018,11 @@ class c_modal_add(Modal):
         dsc = [ec_text[lng][18]]
         for r in rls:
             dsc.append(r)
-        dsc.append(f"<@&{self.role}> - **`{self.role}`** - **`{price}`** - **`{salary}`** - **`{salary_c//3600}`** - **`{r_types[lng][r_type]}`**")
+        dsc.append(f"<@&{self.role}> - **`{self.role}`** - **`{price}`** - **`{salary}`** - **`{salary_c//3600}`** - **`{r_types[lng][r_type]}`** - **`0`**")
         dsc.append("\n" + ec_text[lng][20])
         emb.description = "\n".join(dsc)
         await self.m.edit(embed=emb)
+
         self.added = True
         await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][24].format(self.role, price, salary, salary_c//3600, r_types[lng][r_type])), ephemeral=True)
         self.stop()
@@ -1159,17 +1160,22 @@ class c_modal_edit(Modal):
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_roles SET price = ?, salary = ?, salary_cooldown = ?, type = ? WHERE role_id = ?", (price, salary, salary_c, r_type, r))
                 if r_type != self.prev_r_t:
-                    print(1)
                     self.update_type_and_store(base=base, cur=cur, price=price, salary=salary, salary_c=salary_c, r_type=r_type, r=r, l=l)
                 else:
-                    print(2)
                     self.update_store(base=base, cur=cur, r=r, price=price, salary=salary, salary_c=salary_c, r_type=r_type, l=l, l_prev = int(self.in_st.default_value))
-                if salary != self.s or salary_c != self.s_c:
-                    print(3)
+                if salary != self.s or salary_c != self.s_c * 3600:
                     self.update_salary(base=base, cur=cur, r=r, salary=salary, salary_c=salary_c)
         
         if r_type == 3:
             l = "∞"
+
+        emb = self.m.embeds[0]
+        dsc = emb.description.split("\n")
+        for i in range(1, len(dsc)-1):
+            if f"{r}" in dsc[i]:
+                dsc[i] = f"<@&{r}> - **`{r}`** - **`{price}`** - **`{salary}`** - **`{salary_c//3600}`** - **`{r_types[lng][r_type]}`** - **`{l}`**"
+        emb.description = "\n".join(dsc)
+        await self.m.edit(embed=emb)
 
         await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][30].format(r, price, salary, salary_c // 3600, r_types[lng][r_type], l)), ephemeral=True)
         self.stop()
@@ -1189,6 +1195,7 @@ class c_modal_edit(Modal):
         elif r_type == 1:
             for _ in range(l):
                 cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, 1, price, t, salary, salary_c, 1))
+        base.commit()
         
     def update_store(self, base: Connection, cur: Cursor, r: int, price: int, salary: int, salary_c: int, r_type: int, l: int, l_prev: int):
         if l == 0:
@@ -1205,18 +1212,15 @@ class c_modal_edit(Modal):
             return
         
         elif r_type == 1:
-            print(l_prev, l)
             if l_prev < l:
                 cur_request = [(r, 1, price, t, salary, salary_c, 1) for _ in range(l-l_prev)]
                 cur.executemany("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", cur_request)
+
             elif l_prev > l:
-                #r_times = cur.execute("SELECT last_date FROM store WHERE type = 1 ORDER BY last_date").fetchall()
-                #times_to_delete = []
-                cur.executescript(f"""
-                    DELETE FROM (
-                        SELECT TOP {l_prev - l} FROM store ORDER BY last_date
-                    );
-                """)
+                sort_rls = cur.execute("SELECT * FROM store WHERE role_id = ? ORDER BY last_date", (r,)).fetchall()
+                cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
+                cur.executemany("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", sort_rls[l_prev-l:])
+            
             base.commit()
             return
 
