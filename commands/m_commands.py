@@ -269,7 +269,8 @@ ec_mr_text = {
         26 : "Print 1 if separated,nonstacking\n2 if countable,stacking\n3 if uncountable (can't run out),stacking",
         27 : "How much roles must be in the store",
         28 : "Print integer non-negative number. For uncountable roles print any non-negative number",
-        29 : "Amount of the roles in the store must be non-negative integer number"
+        29 : "Amount of the roles in the store must be non-negative integer number",
+        30 : "You edited role <@&{}>. Now it's price is **`{}`**, salary is **`{}`**, cooldown for it is **`{}`**, role's type is **`{}`**, amount of roles in the store - **`{}`**",
     },
     1 : {
         0 : "Редактировать роль",
@@ -301,7 +302,8 @@ ec_mr_text = {
         26 : "Напишите 1,если раздельно,нестакаются\n2,если стакающися,исчисляемые\n3,если стакающиеся,бесконечные",
         27 : "Сколько ролей должно быть в магазине",
         28 : "Напишите целое неотрицательное число.Для бесконечных ролей можно указать любое неотрицательное число",
-        29 : "Количество ролей в магазине должно быть целым неотрицательным числом"
+        29 : "Количество ролей в магазине должно быть целым неотрицательным числом",
+        30 : "Вы отредактировали роль <@&{}>. Теперь её цена - **`{}`**, доход - **`{}`**, его кулдаун - **`{}`**, тип роли - **`{}`**, количество в магазине - **`{}`**",
     }
 }
 
@@ -835,7 +837,7 @@ class economy_roles_manage_view(View):
 
         elif c_id.startswith("16"):
             if not self.role in self.s_rls:
-                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
+                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][8]), ephemeral=True)
                 return
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
@@ -1033,6 +1035,8 @@ class c_modal_edit(Modal):
         self.m = m
         self.added = False
         self.prev_r_t = r_t
+        self.s = s
+        self.s_c = s_c
         self.price = TextInput(
             label=ec_mr_text[lng][10],
             min_length=1,
@@ -1042,13 +1046,17 @@ class c_modal_edit(Modal):
             required=True,
             custom_id=f"modal_edit_p_{auth_id}_{randint(1, 100)}"
         )
+        if s == 0:
+            def_s = None
+        else:
+            def_s = f"{s} {s_c}"
         self.salary = TextInput(
             label=ec_mr_text[lng][12],
             min_length=1,
             max_length=9,
             style=TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][13],
-            default_value=f"{s} {s_c}",
+            default_value=def_s,
             required=False,
             custom_id=f"modal_edit_s_{auth_id}_{randint(1, 100)}"
         )
@@ -1144,36 +1152,95 @@ class c_modal_edit(Modal):
         else:
             salary = salary_c = 0
         r_type = int(self.r_type_inp.value)
-        
+        l = int(self.in_st.value)
+        r = self.role
+
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                cur.execute("UPDATE server_roles SET price = ?, salary = ?, salary_cooldown = ?, type = ? WHERE role_id = ?", (price, salary, salary_c, r_type, self.role))
+                cur.execute("UPDATE server_roles SET price = ?, salary = ?, salary_cooldown = ?, type = ? WHERE role_id = ?", (price, salary, salary_c, r_type, r))
                 if r_type != self.prev_r_t:
-                    self.update_type_and_store(base=base, cur=cur, price=price, salary=salary, salary_c=salary_c, r_type=r_type, l=int(self.in_st.value))
-                elif self.in_st.value != self.in_st.default_value and r_type != 3:
-                    self.update_store(base=base, cur=cur)
-                if self.salary.value != self.salary.default_value:
-                    self.update_salary()
+                    print(1)
+                    self.update_type_and_store(base=base, cur=cur, price=price, salary=salary, salary_c=salary_c, r_type=r_type, r=r, l=l)
+                else:
+                    print(2)
+                    self.update_store(base=base, cur=cur, r=r, price=price, salary=salary, salary_c=salary_c, r_type=r_type, l=l, l_prev = int(self.in_st.default_value))
+                if salary != self.s or salary_c != self.s_c:
+                    print(3)
+                    self.update_salary(base=base, cur=cur, r=r, salary=salary, salary_c=salary_c)
+        
+        if r_type == 3:
+            l = "∞"
+
+        await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][30].format(r, price, salary, salary_c // 3600, r_types[lng][r_type], l)), ephemeral=True)
         self.stop()
     
-    def update_type_and_store(self, base: Connection, cur: Cursor, price: int, salary: int, salary_c: int, r_type: int, l: int):
+    def update_type_and_store(self, base: Connection, cur: Cursor, price: int, salary: int, salary_c: int, r_type: int, r:int, l: int):
 
         t = int(time())
-        cur.execute("DELETE FROM store WHERE role_id = ?", (self.role,))
+        cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
         base.commit()
         if l == 0:
             return
 
         if r_type == 3:
-            cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (self.role, -404, price, t, salary, salary_c, 3))
+            cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, -404, price, t, salary, salary_c, 3))
         elif r_type == 2:
-            cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (self.role, l, price, t, salary, salary_c, 2))
+            cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, l, price, t, salary, salary_c, 2))
         elif r_type == 1:
             for _ in range(l):
-                cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (self.role, 1, price, t, salary, salary_c, 1))
+                cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, 1, price, t, salary, salary_c, 1))
         
-    def update_store(self, base: Connection, cur: Cursor):
-        pass
+    def update_store(self, base: Connection, cur: Cursor, r: int, price: int, salary: int, salary_c: int, r_type: int, l: int, l_prev: int):
+        if l == 0:
+            cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
+            base.commit()
+            return
+        t = int(time())
+        if r_type == 2:
+            if l_prev == 0:
+                cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, l, price, t, salary, salary_c, 2))
+            else:
+                cur.execute("UPDATE store SET quantity = ?, price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (l, price, t, salary, salary_c, r))
+            base.commit()   
+            return
+        
+        elif r_type == 1:
+            print(l_prev, l)
+            if l_prev < l:
+                cur_request = [(r, 1, price, t, salary, salary_c, 1) for _ in range(l-l_prev)]
+                cur.executemany("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", cur_request)
+            elif l_prev > l:
+                #r_times = cur.execute("SELECT last_date FROM store WHERE type = 1 ORDER BY last_date").fetchall()
+                #times_to_delete = []
+                cur.executescript(f"""
+                    DELETE FROM (
+                        SELECT TOP {l_prev - l} FROM store ORDER BY last_date
+                    );
+                """)
+            base.commit()
+            return
+
+    def update_salary(self, base: Connection, cur: Cursor, r: int, salary: int, salary_c: int):
+        if salary == 0:
+            cur.execute("DELETE FROM salary_roles WHERE role_id = ?", (r,))
+            base.commit()
+            return
+        if cur.execute("SELECT role_id FROM salary_roles WHERE role_id = ?", (r,)).fetchone() == None:
+            ids = set()
+            s_r = f"{r}"
+            for req in cur.execute("SELECT * FROM users").fetchall():
+                if s_r in req[2]:
+                    ids.add(f"{r[0]}")
+            if len(ids):
+                membs = "#".join(ids) + "#"
+            else:
+                membs = ""
+            cur.execute("INSERT INTO salary_roles(role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, ?)", (r, membs, salary, salary_c, 0))
+            base.commit()
+            return
+        cur.execute("UPDATE salary_roles SET salary = ?, salary_cooldown = ? WHERE role_id = ?", (salary, salary_c, r))
+        base.commit()
+
 
 class verify_delete(View):
     def __init__(self, lng: int, role: int, m, auth_id: int):
