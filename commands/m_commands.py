@@ -1,6 +1,7 @@
 
 from asyncio import sleep, TimeoutError
 from contextlib import closing
+from functools import lru_cache
 from sqlite3 import connect, Connection, Cursor
 from random import randint
 from datetime import datetime, timedelta, timezone
@@ -26,7 +27,10 @@ settings_text = {
         2 : "Select role",
         3 : "Adding role",
         4 : "Add role",
-        5 : "Remove role"
+        5 : "Remove role",
+        6 : "**`You hasn't selected the role yet`**",
+        7 : "Ping of the member or write member's id\n\nWrite `cancel` to cancel the menu",
+        8 : ""
     },
     1 : {
         0 : "Выберите раздел",
@@ -41,7 +45,10 @@ settings_text = {
         2 : "Выберите роль",
         3 : "Добавление роли",
         4 : "Добавить роль",
-        5 : "Убрать роль"
+        5 : "Убрать роль",
+        6 : "**`Вы не выбрали роль`**",
+        7 : "Напишите id участника сервера или пинганите его\n\nНапишите `cancel` для отмены",
+        8 : "",
     }
 }
 
@@ -162,7 +169,6 @@ mod_roles_text = {
         0 : "Current mod roles",
         1 : "No roles selected",
         2 : "__**role - id**__",
-        6 : "**`You hasn't selected the role yet`**",
         7 : "**`This role already in the list`**",
         8 : "**`Role `**{}**` added to the list`**",
         9 : "**`This role not in the list`**",
@@ -173,7 +179,6 @@ mod_roles_text = {
         0 : "Текущие мод роли",
         1 : "Не выбрано ни одной роли",
         2 : "__**роль - id**__",
-        6 : "**`Вы не выбрали роль`**",
         7 : "**`Эта роль уже в списке`**",
         8 : "**`Роль `**{}**` добавлена в список`**",
         9 : "**`Этой роли нет в списке`**",
@@ -316,12 +321,24 @@ mng_membs_text = {
         2 : "Xp",
         3 : "Level",
         4 : "Place in the rating",
-        
-        
+        5 : "**`Information about member `**<@{}>**` with id {}`**",
+        6 : "**`Member doesn't have any roles from the bot's store`**"
     },
     1 : {
-
+        0 : "Изменить кэш/опыт",
+        1 : "Кэш",
+        2 : "Опыт",
+        3 : "Уровень",
+        4 : "Место в рейтинге",
+        5 : "**`Информация о пользователе `**<@{}>**` с id {}`**",
+        6 : "**`У пользователя нет ролей из магазина ботп`**"
     }
+}
+
+code_blocks = {
+    0 : "```\nOwned roles\n```",
+    1 : "```fix\n{}\n```",
+    2 : "```c\n{}\n```",
 }
 
 r_types = {
@@ -466,10 +483,10 @@ class gen_settings_view(View):
     async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
         
-        if c_id.startswith("6") and self.lang == None:
+        if c_id.startswith("6") and self.lang is None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][6]), ephemeral=True)
             return
-        elif c_id.startswith("7") and self.tz == None:
+        elif c_id.startswith("7") and self.tz is None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][7]), ephemeral=True)
             return
                 
@@ -478,7 +495,7 @@ class gen_settings_view(View):
         elif c_id.startswith("7"):
             await self.digit_tz(interaction=interaction, lng=lng)
 
-    async def click_menu(self, __, c_id, values):
+    async def click_menu(self, __, c_id: str, values):
         if c_id.startswith("100_"):
             self.lang = int(values[0])
         elif c_id.startswith("101_"):
@@ -549,8 +566,8 @@ class mod_roles_view(View):
     async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
         m = interaction.message
-        if self.role == None:
-            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][6]), ephemeral=True)
+        if self.role is None:
+            await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
             return
 
         rl_id = self.role
@@ -574,7 +591,7 @@ class mod_roles_view(View):
                 self.role = None
 
 
-    async def click_menu(self, __, c_id, values):
+    async def click_menu(self, __, c_id: str, values):
         if c_id.startswith("20") and c_id[3] == "_":
             self.role =  int(values[0])
 
@@ -721,7 +738,7 @@ class economy_view(View):
             await interaction.message.edit(view=self)
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][17]))
     
-    async def click(self, interaction: Interaction, c_id):
+    async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
         if c_id.startswith("13"):
             await self.log_chnl(interaction=interaction, lng=lng)
@@ -785,7 +802,7 @@ class economy_view(View):
                 except:
                     pass
 
-    async def click_menu(self, __, c_id, values):
+    async def click_menu(self, __, c_id: str, values):
         if c_id.startswith("50"):
             self.channel = int(values[0])
 
@@ -811,11 +828,11 @@ class economy_roles_manage_view(View):
         self.add_item(c_button(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
 
 
-    async def click(self, interaction: Interaction, c_id):
+    async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
 
         if self.role is None:
-            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][6]), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
             return
 
         if c_id.startswith("17_"):
@@ -1265,7 +1282,7 @@ class verify_delete(View):
         self.add_item(c_button(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_{randint(1, 100)}"))
         self.add_item(c_button(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_{randint(1, 100)}"))
     
-    async def click(self, interaction: Interaction, c_id):
+    async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
         if c_id.startswith("1001_"):
             await interaction.message.delete()
@@ -1308,18 +1325,27 @@ class verify_delete(View):
 
 
 class mng_membs_view(View):
+
     def __init__(self, timeout: int, lng: int, auth_id: int, memb: int, rls: set, cur_money: int, cur_xp: int, rem_dis: bool):
         super().__init__(timeout=timeout)
-        self.add_item(c_button(style=ButtonStyle.blurple, label=mng_membs_text[lng][0], emoji="🔧", custom_id=f"18_{auth_id}_{randint(1, 100)}", row=1))
+        self.add_item(c_button(style=ButtonStyle.blurple, label=mng_membs_text[lng][0], emoji="🔧", custom_id=f"18_{auth_id}_{randint(1, 100)}"))
         for i in range((len(rls)+24)//25):
             self.add_item(c_select(custom_id=f"{300+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][2], opts=rls[i*25:min(len(rls), (i+1)*25)]))
-        self.add_item(c_button(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"19_{auth_id}_{randint(1, 100)}", row=3))
-        self.add_item(c_button(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"20_{auth_id}_{randint(1, 100)}", disabled=rem_dis, row=3))
+        self.add_item(c_button(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"19_{auth_id}_{randint(1, 100)}"))
+        self.add_item(c_button(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"20_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
+        self.role = None
 
-    async def click(self, interaction: Interaction, c_id):
+    async def click(self, interaction: Interaction, c_id: str):
+        lng = 1 if "ru" in interaction.locale else 0
+        if c_id.startswith("18_"):
+            pass
+            return
+        if self.role is None:
+            await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
+            return
         pass
     
-    async def click_menu(self, __, c_id, values):
+    async def click_menu(self, __, c_id: str, values):
         if c_id.startswith("30") and c_id[3] == "_":
             self.role = int(values[0])
     
@@ -1337,6 +1363,43 @@ class settings_view(View):
         self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id=f"4_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
         self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id=f"5_{auth_id}_{randint(1, 100)}", emoji="📊", row=2))
     
+    
+    def check_ans(self, interaction: Interaction, ans: str):
+        if ans == "cancel":
+            return None, 1
+        if ans.startswith("<@") and len(ans) >= 4:
+            ans = ans[2:-1]
+        if ans.isdigit():
+            ans = int(ans)
+            memb = interaction.guild.get_member(ans)
+            if memb is None:
+                return None, 0
+            return memb, 2
+        else:
+            return None, 0
+
+
+    def check_memb(self, base: Connection, cur: Cursor, memb_id: int):
+            member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
+            if member == None:
+                cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
+                base.commit()
+            else:
+                if member[1] == None or member[1] < 0:
+                    cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
+                    base.commit()
+                if member[2] == None:
+                    cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
+                    base.commit()
+                if member[3] == None:
+                    cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
+                    base.commit()
+                if member[4] == None:
+                    cur.execute('UPDATE users SET xp = ? WHERE memb_id = ?', (0, memb_id))
+                    base.commit()
+            return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
+
+
     async def click(self, interaction: Interaction, custom_id: str):
         lng = 1 if "ru" in interaction.locale else 0
         
@@ -1389,6 +1452,77 @@ class settings_view(View):
                 await interaction.edit_original_message(view=m_rls_v)
             else:
                 await interaction.delete_original_message()
+
+        elif custom_id.startswith("2_"):
+            await interaction.response.send_message(embed=Embed(description=settings_text[lng][7]))
+            flag = 0
+            while not flag:
+                try:
+                    m_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == interaction.user.id and m.channel.id == interaction.channel_id, timeout=30)
+                except TimeoutError:
+                    await interaction.delete_original_message()
+                    flag = 1
+                else:
+                    ans: str = m_ans.content
+                    try: await m_ans.delete()
+                    except: pass
+                    memb, flag = self.check_ans(interaction=interaction, ans=ans)
+                    if flag == 1:
+                        await interaction.delete_original_message()
+            if flag != 2:
+                return
+            
+            memb_id = memb.id
+            with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                with closing(base.cursor()) as cur:
+                    memb_info = self.check_memb(base=base, cur=cur, memb_id=memb_id)
+                    xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                    membs_cash = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+                    membs_xp = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+            l = len(membs_cash)     
+
+            # cnt_cash is a place in the rating sorded by cash
+            cash = memb_info[1]
+            if membs_cash[l//2][1] < cash:
+                cnt_cash = 1
+                while cnt_cash < l and memb_id != membs_cash[cnt_cash-1][0]:
+                    cnt_cash += 1
+            else:
+                cnt_cash = l
+                while cnt_cash > 1 and memb_id != membs_cash[cnt_cash-1][0]:
+                    cnt_cash -= 1
+
+            emb1 = Embed()
+            emb1.description = mng_membs_text[lng][5].format(memb_id, memb_id)
+            emb1.add_field(name=mng_membs_text[lng][1], value=code_blocks[1].format(cash), inline=True)
+            emb1.add_field(name=mng_membs_text[lng][4], value=code_blocks[1].format(cnt_cash), inline=True)
+
+            # cnt_cash is a place in the rating sorded by xp
+            xp = memb_info[4]
+            if membs_xp[l//2][1] < xp:
+                cnt_xp = 1
+                while cnt_xp < l and memb_id != membs_xp[cnt_xp-1][0]:
+                    cnt_xp += 1
+            else:
+                cnt_xp = l
+                while cnt_xp > 1 and memb_id != membs_xp[cnt_xp-1][0]:
+                    cnt_xp -= 1
+
+            level = (xp + xp_b - 1) // xp_b
+            
+            emb2 = Embed()
+            emb2.add_field(name=mng_membs_text[lng][2], value=code_blocks[2].format(f"{xp}/{level * xp_b + 1}"), inline=True)
+            emb2.add_field(name=mng_membs_text[lng][3], value=code_blocks[2].format(level), inline=True)
+            emb2.add_field(name=mng_membs_text[lng][4], value=code_blocks[2].format(cnt_xp), inline=True)
+
+            emb3 = Embed()
+            if memb_info[2] != "":
+                dsc = [(f"<@&{r}>**` - {r}`**") for r in memb_info[2].split("#") if r != ""] + [code_blocks[0]]
+            else:
+                dsc = [mng_membs_text[lng][6]]
+            emb3.description = "\n".join(dsc)
+
+            await interaction.edit_original_message(embeds=[emb1, emb2, emb3])
 
         elif custom_id.startswith("3_"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:

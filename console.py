@@ -32,13 +32,12 @@ class ConsoleCog(Cog):
         with closing(connect(f'{path_to}/bases/bases_{guild_id}/{guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 cur.executescript("""
-                    CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER);
+                    CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER, xp INTEGER);
                     CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, salary INTEGER, salary_cooldown INTEGER, type INTEGER);
                     CREATE TABLE IF NOT EXISTS store(role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, salary INTEGER, salary_cooldown INTEGER, type INTEGER);
                     CREATE TABLE IF NOT EXISTS salary_roles(role_id INTEGER PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, salary_cooldown INTEGER, last_time INTEGER);
                     CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER);
                     CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER);
-                    CREATE TABLE IF NOT EXISTS rank(memb_id INTEGER PRIMARY KEY, xp INTEGER);
                     CREATE TABLE IF NOT EXISTS ic(chn_id INTEGER PRIMARY KEY);
                     CREATE TABLE IF NOT EXISTS mod_roles(role_id INTEGER PRIMARY KEY);
                 """)
