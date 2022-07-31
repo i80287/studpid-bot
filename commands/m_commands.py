@@ -322,7 +322,11 @@ mng_membs_text = {
         3 : "Level",
         4 : "Place in the rating",
         5 : "**`Information about member `**<@{}>**` with id {}`**",
-        6 : "**`Member doesn't have any roles from the bot's store`**"
+        6 : "**`Member doesn't have any roles from the bot's store`**",
+        7 : "**`Member already has this role`**",
+        8 : "**`You added role`**<@&{}>**` to the `**<@{}>",
+        9 : "**`Member doesn't have this role`**",
+        10 : "**`You removed role`**<@&{}>**` from the `**<@{}>",
     },
     1 : {
         0 : "Изменить кэш/опыт",
@@ -331,12 +335,17 @@ mng_membs_text = {
         3 : "Уровень",
         4 : "Место в рейтинге",
         5 : "**`Информация о пользователе `**<@{}>**` с id {}`**",
-        6 : "**`У пользователя нет ролей из магазина ботп`**"
+        6 : "**`У пользователя нет ролей из магазина бота`**",
+        7 : "**`Эта роль уже есть у пользователя`**",
+        8 : "**`Вы добавили роль `**<@&{}>**` пользователю `**<@{}>",
+        9 : "**`Этой роли нет у пользователя`**",
+        10 : "**`Вы убрали роль `**<@&{}>**` у пользователя `**<@{}>",
     }
 }
 
 code_blocks = {
     0 : "```\nOwned roles\n```",
+    5 : "```\nЛичные роли\n```",
     1 : "```fix\n{}\n```",
     2 : "```c\n{}\n```",
 }
@@ -754,12 +763,12 @@ class economy_view(View):
                         for role in roles:
                             s_rls.add(role[0])
                             if role[4] == 1:
-                                cnt = len(cur.execute("SELECT * FROM store WHERE role_id = ?", (role[0],)).fetchall())
-                            cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role[0],)).fetchone()
-                            if cnt is None:
-                                cnt = 0
+                                cnt = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role[0],)).fetchone()[0]
                             else:
-                                if role[4] == 2:
+                                cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role[0],)).fetchone()
+                                if not cnt:
+                                    cnt = 0
+                                elif role[4] == 2:
                                     cnt = cnt[0]
                                 else:
                                     cnt = "∞"
@@ -870,15 +879,15 @@ class economy_roles_manage_view(View):
                 with closing(base.cursor()) as cur:
                     r = cur.execute("SELECT * FROM server_roles WHERE role_id = ?", (self.role,)).fetchone()
                     if r[4] == 1:
-                        cnt = len(cur.execute("SELECT * FROM store WHERE role_id = ?", (self.role,)).fetchall())
-                    elif r[4] == 2:
-                        cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (self.role,)).fetchone()
-                        if cnt is None:
-                            cnt = 0
-                        else:
-                            cnt = cnt[0]
+                        cnt = cur.execute("SELECT count() FROM store WHERE role_id = ?", (r[0],)).fetchone()[0]
                     else:
-                        cnt = 99
+                        cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (r[0],)).fetchone()
+                        if not cnt:
+                            cnt = 0
+                        elif r[4] == 2:
+                            cnt = cnt[0]
+                        else:
+                            cnt = "∞"
             
             edit_mod = c_modal_edit(timeout=90, role=self.role, m=interaction.message, auth_id=interaction.user.id, lng=lng, p=r[1], s=r[2], s_c=r[3]//3600, r_t=r[4], in_store=cnt)
             await interaction.response.send_modal(modal=edit_mod)
@@ -1207,7 +1216,7 @@ class c_modal_edit(Modal):
         await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][30].format(r, price, salary, salary_c // 3600, r_types[lng][r_type], l)), ephemeral=True)
         self.stop()
     
-    def update_type_and_store(self, base: Connection, cur: Cursor, price: int, salary: int, salary_c: int, r_type: int, r:int, l: int):
+    def update_type_and_store(self, base: Connection, cur: Cursor, price: int, salary: int, salary_c: int, r_type: int, r:int, l: int) -> None:
 
         t = int(time())
         cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
@@ -1224,34 +1233,36 @@ class c_modal_edit(Modal):
                 cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, 1, price, t, salary, salary_c, 1))
         base.commit()
         
-    def update_store(self, base: Connection, cur: Cursor, r: int, price: int, salary: int, salary_c: int, r_type: int, l: int, l_prev: int):
+    def update_store(self, base: Connection, cur: Cursor, r: int, price: int, salary: int, salary_c: int, r_type: int, l: int, l_prev: int) -> None:
         if l == 0:
             cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
             base.commit()
             return
         t = int(time())
+        
         if r_type == 2:
             if l_prev == 0:
                 cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, l, price, t, salary, salary_c, 2))
             else:
                 cur.execute("UPDATE store SET quantity = ?, price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (l, price, t, salary, salary_c, r))
-            base.commit()   
-            return
         
         elif r_type == 1:
             if l_prev < l:
                 cur_request = [(r, 1, price, t, salary, salary_c, 1) for _ in range(l-l_prev)]
                 cur.executemany("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", cur_request)
-
             elif l_prev > l:
                 sort_rls = cur.execute("SELECT * FROM store WHERE role_id = ? ORDER BY last_date", (r,)).fetchall()
                 cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
                 cur.executemany("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", sort_rls[l_prev-l:])
-            
-            base.commit()
-            return
+            else:
+                cur.execute("UPDATE store SET price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (price, t, salary, salary_c, r))
 
-    def update_salary(self, base: Connection, cur: Cursor, r: int, salary: int, salary_c: int):
+        elif r_type == 3 and l_prev == 0:
+            cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, -404, price, t, salary, salary_c, 3))
+
+        base.commit()   
+
+    def update_salary(self, base: Connection, cur: Cursor, r: int, salary: int, salary_c: int) -> None:
         if salary == 0:
             cur.execute("DELETE FROM salary_roles WHERE role_id = ?", (r,))
             base.commit()
@@ -1326,13 +1337,83 @@ class verify_delete(View):
 
 class mng_membs_view(View):
 
-    def __init__(self, timeout: int, lng: int, auth_id: int, memb: int, rls: set, cur_money: int, cur_xp: int, rem_dis: bool):
+    def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set, rls: list, cur_money: int, cur_xp: int, rem_dis: bool, g_id: int):
         super().__init__(timeout=timeout)
         self.add_item(c_button(style=ButtonStyle.blurple, label=mng_membs_text[lng][0], emoji="🔧", custom_id=f"18_{auth_id}_{randint(1, 100)}"))
         for i in range((len(rls)+24)//25):
             self.add_item(c_select(custom_id=f"{300+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][2], opts=rls[i*25:min(len(rls), (i+1)*25)]))
         self.add_item(c_button(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"19_{auth_id}_{randint(1, 100)}"))
         self.add_item(c_button(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"20_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
+        self.role = None
+        self.memb_id = memb_id
+        self.memb_rls = memb_rls
+        self.cash = cur_money
+        self.xp = cur_xp
+        self.g_id = g_id
+
+    async def add_r(self, lng: int, interaction: Interaction) -> None:
+        if self.role in self.memb_rls:
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][7]), ephemeral=True)
+            return
+        self.memb_rls.add(self.role)
+
+        with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                m_rls = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
+                cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls + f"{self.role}#", self.memb_id))
+                base.commit()
+
+        embs = interaction.message.embeds
+        emb3 = embs[2]
+        dsc = emb3.description.split("\n")
+        if len(dsc) == 1:
+            dsc = [code_blocks[lng*5], f"<@&{self.role}>**` - {self.role}`**"]
+            self.children[-1].disabled = False
+            emb3.description = "\n".join(dsc)
+            embs[2] = emb3
+            await interaction.message.edit(embeds=embs, view=self)
+        else:
+            dsc.append(f"<@&{self.role}>**` - {self.role}`**")
+            emb3.description = "\n".join(dsc)
+            embs[2] = emb3
+            await interaction.message.edit(embeds=embs)
+        
+        await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(self.role, self.memb_id)), ephemeral=True)
+        self.role = None
+
+    async def rem_r(self, lng: int, interaction: Interaction) -> None:
+        if not self.role in self.memb_rls:
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][9]), ephemeral=True)
+            return
+        self.memb_rls.remove(self.role)
+
+        with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                m_rls = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
+                cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls.replace(f"{self.role}#", ""), self.memb_id))
+                base.commit()
+        
+        embs = interaction.message.embeds
+        emb3 = embs[2]
+        dsc = emb3.description.split("\n")
+        if len(dsc) <= 2:
+            emb3.description = mng_membs_text[lng][6]
+            self.children[-1].disabled = True
+            embs[2] = emb3
+            await interaction.message.edit(embeds=embs, view=self)
+        else:
+            i = 0
+            s_role = f"{self.role}"
+            while i < len(dsc):
+                if s_role in dsc[i]:
+                    dsc.pop(i)
+                    i = len(dsc) + 2
+                i += 1
+            emb3.description = "\n".join(dsc)
+            embs[2] = emb3
+            await interaction.message.edit(embeds=embs)
+        
+        await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)
         self.role = None
 
     async def click(self, interaction: Interaction, c_id: str):
@@ -1343,8 +1424,11 @@ class mng_membs_view(View):
         if self.role is None:
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
             return
-        pass
-    
+        if c_id.startswith("19_"):
+            await self.add_r(lng=lng, interaction=interaction)
+        elif c_id.startswith("20_"):
+            await self.rem_r(lng=lng, interaction=interaction)
+
     async def click_menu(self, __, c_id: str, values):
         if c_id.startswith("30") and c_id[3] == "_":
             self.role = int(values[0])
@@ -1517,12 +1601,30 @@ class settings_view(View):
 
             emb3 = Embed()
             if memb_info[2] != "":
-                dsc = [(f"<@&{r}>**` - {r}`**") for r in memb_info[2].split("#") if r != ""] + [code_blocks[0]]
+                dsc = [code_blocks[lng*5]] + [f"<@&{r}>**` - {r}`**" for r in memb_info[2].split("#") if r != ""]
             else:
                 dsc = [mng_membs_text[lng][6]]
             emb3.description = "\n".join(dsc)
+            rem_dis = True if len(dsc) == 1 else False
+            roles = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable()]
+            mng_v = mng_membs_view(
+                timeout=110, 
+                lng=lng, 
+                auth_id=interaction.user.id, 
+                memb_id=memb_id, 
+                memb_rls={int(r) for r in memb_info[2].split("#") if r != ""}, 
+                rls=roles,
+                cur_money=cash,
+                cur_xp=xp,
+                rem_dis=rem_dis,
+                g_id=interaction.guild_id                 
+            )
 
-            await interaction.edit_original_message(embeds=[emb1, emb2, emb3])
+            await interaction.edit_original_message(embeds=[emb1, emb2, emb3], view=mng_v)
+            if await mng_v.wait():
+                for c in mng_v.children:
+                    c.disabled = True
+                await interaction.edit_original_message(view=mng_v)
 
         elif custom_id.startswith("3_"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
