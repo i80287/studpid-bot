@@ -327,6 +327,16 @@ mng_membs_text = {
         8 : "**`You added role`**<@&{}>**` to the `**<@{}>",
         9 : "**`Member doesn't have this role`**",
         10 : "**`You removed role`**<@&{}>**` from the `**<@{}>",
+        11 : "Cash of the member",
+        12 : "Write a non-negative integer number",
+        13 : "Xp of the member",
+        14 : "**`Member's cash should be a non-negative integer number`**",
+        15 : "**`Member's xp should be a non-negative integer number`**",
+        16 : "**`You changed information about member `**<@{}>**` Now member's cash is {} and xp is {}`**",
+        17 : "**`You changed information about member `**<@{}>**` Now member's cash is {}`**",
+        18 : "**`You changed information about member `**<@{}>**` Now member's xp is {}`**",
+        19 : "Member management menu"
+        
     },
     1 : {
         0 : "Изменить кэш/опыт",
@@ -340,6 +350,15 @@ mng_membs_text = {
         8 : "**`Вы добавили роль `**<@&{}>**` пользователю `**<@{}>",
         9 : "**`Этой роли нет у пользователя`**",
         10 : "**`Вы убрали роль `**<@&{}>**` у пользователя `**<@{}>",
+        11 : "Кэш пользователя",
+        12 : "Напишите целое неотрицательное число",
+        13 : "Опыт пользователя",
+        14 : "**`Кэш пользователя должен быть целым неотрицательным числом`**",
+        15 : "**`Опыт пользователя должен быть целым неотрицательным числом`**",
+        16 : "**`Вы изменили данные пользователя `**<@{}>**` Теперь кэш пользователя - {}, а опыт - {}`**",
+        17 : "**`Вы изменили данные пользователя `**<@{}>**` Теперь кэш пользователя - {}`**",
+        18 : "**`Вы изменили данные пользователя `**<@{}>**` Теперь опыт пользователя - {}`**",
+        19 : "Меню управления пользователем"
     }
 }
 
@@ -1335,6 +1354,87 @@ class verify_delete(View):
             self.stop()
 
 
+class c_modal_mng_memb(Modal):
+
+    def __init__(self, timeout: int, title: str, lng: int, memb_id: int, cur_money: int, cur_xp: int, auth_id: int):
+        super().__init__(title=title, timeout=timeout, custom_id=f"8100_{auth_id}_{randint(1, 100)}")
+        self.is_changed = False
+        self.memb_id = memb_id
+        self.st_cash = cur_money,
+        self.st_xp = cur_xp
+        self.cash = TextInput(
+            label=mng_membs_text[lng][11],
+            placeholder=mng_membs_text[lng][12],
+            default_value=f"{cur_money}",
+            min_length=1,
+            max_length=9,
+            required=True,
+            custom_id=f"8101_{auth_id}_{randint(1, 100)}"
+        )
+        self.xp = TextInput(
+            label=mng_membs_text[lng][13],
+            placeholder=mng_membs_text[lng][12],
+            default_value=f"{cur_xp}",
+            min_length=1,
+            max_length=9,
+            required=True,
+            custom_id=f"8102_{auth_id}_{randint(1, 100)}"
+        )
+        self.add_item(self.cash)
+        self.add_item(self.xp)
+    
+    def check_ans(self):
+        if not(self.cash.value and self.cash.value.isdigit() and int(self.cash.value) >= 0):
+            ans = 1
+        else:
+            ans = 0        
+        if not(self.xp.value and self.xp.value.isdigit() and int(self.xp.value) >= 0):
+            ans += 10
+        return ans
+
+    async def callback(self, interaction: Interaction):
+        lng = 1 if "ru" in interaction.locale else 0
+        ans = self.check_ans()
+        msg = []
+        if ans % 2 == 1:
+            msg.append(mng_membs_text[lng][14])
+        if ans // 10 == 1:
+            msg.append(mng_membs_text[lng][15])
+        if len(msg):
+            await interaction.response.send_message(embed=Embed(description="\n".join(msg)), ephemeral=True)
+            self.stop()
+            return
+
+        cash = int(self.cash.value)
+        xp = int(self.xp.value)
+        
+        self.new_cash = cash
+        self.new_xp = xp
+        self.is_changed = True
+
+        if cash != self.st_cash and xp != self.st_xp:
+            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(base.cursor()) as cur:  
+                    cur.execute("UPDATE users SET money = ?, xp = ? WHERE memb_id = ?", (cash, xp, self.memb_id))
+                    base.commit()
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][16].format(self.memb_id, cash, xp)), ephemeral=True)
+
+        elif cash != self.st_cash:
+            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(base.cursor()) as cur:  
+                    cur.execute("UPDATE users SET money = ? WHERE memb_id = ?", (cash, self.memb_id))
+                    base.commit()
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][17].format(self.memb_id, cash)), ephemeral=True)
+
+        elif xp != self.st_xp:
+            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(base.cursor()) as cur:  
+                    cur.execute("UPDATE users SET xp = ? WHERE memb_id = ?", (xp, self.memb_id))
+                    base.commit()
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][18].format(self.memb_id, xp)), ephemeral=True)
+        self.stop()
+
+
 class mng_membs_view(View):
 
     def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set, rls: list, cur_money: int, cur_xp: int, rem_dis: bool, g_id: int):
@@ -1350,6 +1450,7 @@ class mng_membs_view(View):
         self.cash = cur_money
         self.xp = cur_xp
         self.g_id = g_id
+        self.auth_id = auth_id
 
     async def add_r(self, lng: int, interaction: Interaction) -> None:
         if self.role in self.memb_rls:
@@ -1396,7 +1497,7 @@ class mng_membs_view(View):
         embs = interaction.message.embeds
         emb3 = embs[2]
         dsc = emb3.description.split("\n")
-        if len(dsc) <= 2:
+        if len(dsc) <= 4:
             emb3.description = mng_membs_text[lng][6]
             self.children[-1].disabled = True
             embs[2] = emb3
@@ -1418,9 +1519,65 @@ class mng_membs_view(View):
 
     async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
+
         if c_id.startswith("18_"):
-            pass
+            edit_modl = c_modal_mng_memb(timeout=90, title=mng_membs_text[lng][19], lng=lng, memb_id=self.memb_id, cur_money=self.cash, cur_xp=self.xp, auth_id=self.auth_id)
+
+            await interaction.response.send_modal(modal=edit_modl)
+            await edit_modl.wait()
+            
+            if edit_modl.is_changed:
+                
+                embs = interaction.message.embeds
+
+                with closing(connect(f'{path_to}/bases/bases_{self.g_id}/{self.g_id}.db')) as base:
+                    with closing(base.cursor()) as cur:
+                        xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                        if self.cash != edit_modl.new_cash:
+                            membs_cash = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+                            l = len(membs_cash)
+                        if self.xp != edit_modl.new_xp:
+                            membs_xp = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+                            l = len(membs_xp)
+                
+                
+                if self.cash != edit_modl.new_cash:
+                    self.cash = edit_modl.new_cash
+                    
+                    if membs_cash[l//2][1] < self.cash:
+                        cnt_cash = 1
+                        while cnt_cash < l and self.memb_id != membs_cash[cnt_cash-1][0]:
+                            cnt_cash += 1
+                    else:
+                        cnt_cash = l
+                        while cnt_cash > 1 and self.memb_id != membs_cash[cnt_cash-1][0]:
+                            cnt_cash -= 1
+
+                    embs[0].set_field_at(index=0, name=mng_membs_text[lng][1], value=code_blocks[1].format(self.cash))
+                    embs[0].set_field_at(index=1, name=mng_membs_text[lng][4], value=code_blocks[1].format(cnt_cash))
+
+                if self.xp != edit_modl.new_xp:
+                    self.xp = edit_modl.new_xp
+
+                    if membs_xp[l//2][1] < self.xp:
+                        cnt_xp = 1
+                        while cnt_xp < l and self.memb_id != membs_xp[cnt_xp-1][0]:
+                            cnt_xp += 1
+                    else:
+                        cnt_xp = l
+                        while cnt_xp > 1 and self.memb_id != membs_xp[cnt_xp-1][0]:
+                            cnt_xp -= 1
+
+                    level = (self.xp + xp_b - 1) // xp_b
+
+                    embs[1].set_field_at(index=0, name=mng_membs_text[lng][2], value=code_blocks[2].format(f"{self.xp}/{level * xp_b + 1}"))
+                    embs[1].set_field_at(index=1, name=mng_membs_text[lng][3], value=code_blocks[2].format(level))
+                    embs[1].set_field_at(index=2, name=mng_membs_text[lng][4], value=code_blocks[2].format(cnt_xp))
+                    
+                await interaction.message.edit(embeds=embs)
+
             return
+
         if self.role is None:
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
             return

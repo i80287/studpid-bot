@@ -5,12 +5,9 @@ from dpyConsole import Console
 
 from config import *
 
-intents = nextcord.Intents.all()
-
-
 class Bot(cmds.Bot):
     def __init__(self) -> None:
-        super().__init__(command_prefix=cmds.when_mentioned_or(prefix), case_insensitive=True, intents=intents, help_command=None)
+        super().__init__(command_prefix=cmds.when_mentioned_or(prefix), case_insensitive=True, intents=nextcord.Intents.all(), help_command=None)
 
 if __name__ == "__main__":
     """
