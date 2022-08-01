@@ -1,13 +1,12 @@
 
 from asyncio import sleep, TimeoutError
 from contextlib import closing
-from functools import lru_cache
 from sqlite3 import connect, Connection, Cursor
 from random import randint
 from datetime import datetime, timedelta, timezone
 from time import time
 
-from nextcord import Embed, Colour, Guild, Role, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextChannel, TextInputStyle, ApplicationCheckFailure
+from nextcord import Embed, Colour, Guild, Role, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextChannel, TextInputStyle
 from nextcord.ui import View, Button, button, Select, TextInput, Modal
 from nextcord.ext import commands, application_checks
 
@@ -365,8 +364,42 @@ mng_membs_text = {
 ranking_text = {
     0 : {
         0 : "✨ Xp gained per message:\n**`{}`**",
-        1 : ":left_right_arrow: Amount of xp between adjacent levels:\n**`{}`**",
-        2 : ""
+        1 : "✨ Amount of xp between adjacent levels:\n**`{}`**",
+        2 : "📗 Channel for the notification about new levels:\n{}",
+        3 : "```fix\nnot selected\n```",
+        4 : "> To manage setting press button with corresponding emoji\n",
+        5 : "> Press :mute: to manage channels where members can't get xp\n",
+        6 : "> Press 🥇 to manage roles given for levels",
+        7 : "Managing xp settings",
+        8 : "Xp per message",
+        9 : "Amount of xp gained by every member from one message, non-negative integer number",
+        10 : "Amount of xp between adjected levels",
+        11 : "Amount of xp members need to gain to get next level, positive integer number",
+        12 : "**`Xp gained per message should be non-negative integer number`**",
+        13 : "**`Amount of xp between adjected levels should be positive integer number`**",
+        14 : "**`You changed amount of xp gained from one message, now it's {}`**",
+        15 : "**`You changed amount of xp needed to get next level, now it's {}`**",
+        16 : "**`You hasn't changed anything`**"
+        
+    },
+    1 : {
+        0 : "✨ Опыт, получаемый за одно сообщение:\n**`{}`**",
+        1 : "✨ Количество опыта между соседними уровнями:\n**`{}`**",
+        2 : "📗 Канал для оповещений о получении нового уровня:\n{}",
+        3 : "```fix\nне выбран\n```",
+        4 : "> Для управления настройкой нажмите на кнопку с соответствующим эмодзи\n",
+        5 : "> Нажмите :mute: для управления каналами, в которых пользователи не могут получать опыт\n",
+        6 : "> Нажмите 🥇 для управления ролями, выдаваемыми за уровни",
+        7 : "Управление настройками опыта",
+        8 : "Опыт за сообщение",
+        9 : "Количество опыта, получаемого пользователем за одно сообщение, целое неотрицательное число",
+        10 : "Количество опыта между уровнями",
+        11 : "Количество опыта,необходимого участникам для получения следующего уровня, целове положительное число",
+        12 : "**`Опыт, получаемый участником за одно сообщение, должен быть целым неотрицательным числом`**",
+        13 : "**`Количество опыта, который необходимо набрать участникам для получения следующего уровня, должно быть целым положительным числом`**",
+        14 : "**`Вы изменили количество опыта, получаемого участником за одно сообщение, теперь оно равно {}`**",
+        15 : "**`Вы изменили количество опыта, необходимого участнику для получения следующего уровня, теперь оно равно {}`**",
+        16 : "**`Вы ничего не изменили`**",
     }
 }
 
@@ -992,7 +1025,7 @@ class c_modal_add(Modal):
         self.r_t = set()
 
 
-    def check_answers(self) -> int:
+    def check_ans(self) -> int:
         ans = 0
 
         if not self.price.value.isdigit():
@@ -1038,7 +1071,7 @@ class c_modal_add(Modal):
 
     async def callback(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
-        ans_c = self.check_answers()
+        ans_c = self.check_ans()
         rep = []
         if ans_c % 2 == 1:
             rep.append(ec_mr_text[lng][18])
@@ -1150,7 +1183,7 @@ class c_modal_edit(Modal):
         self.add_item(self.in_st)
 
 
-    def check_answers(self) -> int:
+    def check_ans(self) -> int:
         ans = 0
 
         if not self.price.value.isdigit():
@@ -1188,7 +1221,7 @@ class c_modal_edit(Modal):
 
     async def callback(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
-        ans_c = self.check_answers()
+        ans_c = self.check_ans()
         rep = []
         if ans_c % 2 == 1:
             rep.append(ec_mr_text[lng][18])
@@ -1391,7 +1424,7 @@ class c_modal_mng_memb(Modal):
         self.add_item(self.cash)
         self.add_item(self.xp)
     
-    def check_ans(self):
+    def check_ans(self) -> int:
         if not(self.cash.value and self.cash.value.isdigit() and int(self.cash.value) >= 0):
             ans = 1
         else:
@@ -1598,6 +1631,124 @@ class mng_membs_view(View):
         if c_id.startswith("30") and c_id[3] == "_":
             self.role = int(values[0])
     
+
+class c_modal_xp(Modal):
+    def __init__(self, timeout: int, lng: int, auth_id: int, g_id: int, cur_xp: int, cur_xpb: int):
+        super().__init__(title=ranking_text[lng][7], timeout=timeout, custom_id=f"9100_{auth_id}_{randint(1, 100)}")
+
+        self.xp = TextInput(
+            label=ranking_text[lng][8],
+            placeholder=ranking_text[lng][9],
+            default_value=f"{cur_xp}",
+            min_length=1,
+            max_length=2,
+            required=True,
+            custom_id=f"9101_{auth_id}_{randint(1, 100)}"
+        )
+        self.xp_b = TextInput(
+            label=ranking_text[lng][10],
+            placeholder=ranking_text[lng][11],
+            default_value=f"{cur_xpb}",
+            min_length=1,
+            max_length=5,
+            required=True,
+            custom_id=f"9102_{auth_id}_{randint(1, 100)}"
+        )
+        self.add_item(self.xp)
+        self.add_item(self.xp_b)
+
+        self.g_id = g_id
+        self.old_xp = cur_xp
+        self.old_xpb = cur_xpb
+        self.changed: bool = False
+
+    def check_ans(self):
+        ans = 1 if not(self.xp.value and self.xp.value.isdigit() and int(self.xp.value) >= 0) else 0
+            
+        if not(self.xp_b.value and self.xp_b.value.isdigit() and int(self.xp_b.value) >= 1):
+            ans += 10
+        return ans
+
+    async def callback(self, interaction: Interaction):
+        lng = 1 if "ru" in interaction.locale else 0
+        ans = self.check_ans()
+        rep = []
+        if ans % 2 == 1:
+            rep.append(ranking_text[lng][12])
+        if ans // 10 == 1:
+            rep.append(ranking_text[lng][13])
+        if len(rep):
+            await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
+            self.stop()
+            return
+
+        xp = int(self.xp.value)
+        xpb = int(self.xp_b.value)
+
+        if self.old_xp != xp or self.old_xpb != xpb:
+            rep = []
+            with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+                with closing(base.cursor()) as cur:
+                    if self.old_xp != xp:
+                        cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_per_msg'", (xp,))
+                        rep.append(ranking_text[lng][14].format(xp))
+                        self.old_xp = xp
+                    if self.old_xpb != xpb:
+                        cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_border'", (xpb,))
+                        rep.append(ranking_text[lng][15].format(xpb))
+                        self.old_xpb = xpb
+                    base.commit()
+            await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
+            self.changed = True
+        else:
+            await interaction.response.send_message(embed=Embed(description=ranking_text[lng][16]), ephemeral=True)
+        self.stop()
+
+
+class ranking_view(View):
+    def __init__(self, timeout: int, auth_id: int, g_id: int, cur_xp_pm: int, cur_xpb: int):
+        super().__init__(timeout=timeout)
+        self.add_item(c_button(style=ButtonStyle.green, label="", emoji="✨", custom_id=f"21_{auth_id}_{randint(1, 100)}"))
+        self.add_item(c_button(style=ButtonStyle.grey, label="", emoji="📗", custom_id=f"22_{auth_id}_{randint(1, 100)}"))
+        self.add_item(c_button(style=ButtonStyle.grey, label="", emoji="<:ignored_channels:1003673081996378133>", custom_id=f"23_{auth_id}_{randint(1, 100)}"))
+        self.add_item(c_button(style=ButtonStyle.red, label="", emoji="🥇", custom_id=f"24_{auth_id}_{randint(1, 100)}"))
+        self.auth_id = auth_id
+        self.cur_xp_pm = cur_xp_pm
+        self.cur_xpb = cur_xpb
+        self.g_id = g_id 
+    
+    async def click(self, interaction: Interaction, c_id):
+        lng = 1 if "ru" in interaction.locale else 0
+        if c_id.startswith("21_"):
+
+            xp_m = c_modal_xp(timeout=80, lng=lng, auth_id=self.auth_id, g_id=self.g_id, cur_xp=self.cur_xp_pm, cur_xpb=self.cur_xpb)
+            await interaction.response.send_modal(modal=xp_m)
+            await xp_m.wait()
+
+            if xp_m.changed:
+                self.cur_xp_pm = xp_m.old_xp
+                self.cur_xpb = xp_m.old_xpb
+
+                emb = interaction.message.embeds[0]
+                dsc = emb.description.split("\n")
+                dsc[1] = f"**`{self.cur_xp_pm}`**"
+                dsc[3] = f"**`{self.cur_xpb}`**"
+                emb.description = "\n".join(dsc)
+                await interaction.message.edit(embed=emb)
+
+        elif c_id.startswith("22_"):
+            pass
+        elif c_id.startswith("23_"):
+            pass
+        elif c_id.startswith("24_"):
+            pass
+    
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
+            return False
+        return True
 
 class settings_view(View):
     
@@ -1825,16 +1976,35 @@ class settings_view(View):
                 await interaction.delete_original_message()
 
         elif custom_id.startswith("4_"):
+            
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     xp_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg'").fetchone()[0]
                     xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
                     lvl_c_a = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c'").fetchone()[0]
-            for c in interaction.guild.channels:
-                print(c.name, c.permissions_for(self.bot))
-            #chnl = [c for c in interaction.guild.text_channels if c.permissions_for(self.bot)]
+            
+            #me = interaction.guild.me
+            #chnl = [c for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
+
             emb = Embed()
-            dsc = []
+            dsc = [ranking_text[lng][0].format(xp_p_m)]
+            dsc.append(ranking_text[lng][1].format(xp_b))
+            if lvl_c_a == 0:
+                dsc.append(ranking_text[lng][2].format(ranking_text[lng][3]))
+            else:
+                dsc.append(ranking_text[lng][2].format(f"<#{lvl_c_a}>"))
+
+            dsc += [ranking_text[lng][i] for i in (4, 5, 6)]
+
+            emb.description = "\n".join(dsc)
+            rnk_v = ranking_view(timeout=90, auth_id=interaction.user.id, g_id=interaction.guild_id, cur_xp_pm=xp_p_m, cur_xpb=xp_b)
+            
+            await interaction.response.send_message(embed=emb, view=rnk_v)
+
+            if await rnk_v.wait():
+                for c in rnk_v.children:
+                    c.disabled = True
+                await interaction.edit_original_message(view=rnk_v)
 
 
     async def interaction_check(self, interaction: Interaction) -> bool:
