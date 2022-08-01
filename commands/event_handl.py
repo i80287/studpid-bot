@@ -114,8 +114,12 @@ class msg_h(commands.Cog):
     @commands.Cog.listener()
     async def on_application_command_error(self, interaction, exception):
         if isinstance(exception, ApplicationCheckFailure):
-            await interaction.response.send_message(embed=Embed(description="Sorry, but you don't have enough permissions"), ephemeral=True)
-            return 0
+            if "ru" in interaction.locale:
+                await interaction.response.send_message(embed=Embed(description="**`Извините, но у Вас недостаточно прав для использования этой команды`**"), ephemeral=True)
+            else:
+                await interaction.response.send_message(embed=Embed(description="**`Sorry, but you don't have enough permissions to use this command`**"), ephemeral=True)
+            return
+        
         with open("d.log", "a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{interaction.guild.id}] [{interaction.guild.name}] [{str(exception)}]\n")
 

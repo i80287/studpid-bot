@@ -7,7 +7,7 @@ from random import randint
 from datetime import datetime, timedelta, timezone
 from time import time
 
-from nextcord import Embed, Colour, Guild, Role, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextChannel, TextInputStyle
+from nextcord import Embed, Colour, Guild, Role, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextChannel, TextInputStyle, ApplicationCheckFailure
 from nextcord.ui import View, Button, button, Select, TextInput, Modal
 from nextcord.ext import commands, application_checks
 
@@ -359,6 +359,14 @@ mng_membs_text = {
         17 : "**`Вы изменили данные пользователя `**<@{}>**` Теперь кэш пользователя - {}`**",
         18 : "**`Вы изменили данные пользователя `**<@{}>**` Теперь опыт пользователя - {}`**",
         19 : "Меню управления пользователем"
+    }
+}
+
+ranking_text = {
+    0 : {
+        0 : "✨ Xp gained per message:\n**`{}`**",
+        1 : ":left_right_arrow: Amount of xp between adjacent levels:\n**`{}`**",
+        2 : ""
     }
 }
 
@@ -1816,6 +1824,19 @@ class settings_view(View):
             else:
                 await interaction.delete_original_message()
 
+        elif custom_id.startswith("4_"):
+            with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                with closing(base.cursor()) as cur:
+                    xp_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg'").fetchone()[0]
+                    xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                    lvl_c_a = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c'").fetchone()[0]
+            for c in interaction.guild.channels:
+                print(c.name, c.permissions_for(self.bot))
+            #chnl = [c for c in interaction.guild.text_channels if c.permissions_for(self.bot)]
+            emb = Embed()
+            dsc = []
+
+
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
             lng = 1 if "ru" in interaction.locale else 0
@@ -1890,7 +1911,7 @@ class m_cmds(commands.Cog):
     @application_checks.check(mod_check)
     async def settings_r(self, interaction: Interaction):
         await self.settings(interaction=interaction)
-
+    
 
 def setup(bot: commands.Bot, **kwargs):
     bot.add_cog(m_cmds(bot, **kwargs))
