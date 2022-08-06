@@ -31,7 +31,9 @@ settings_text = {
         7 : "Ping of the member or write member's id\n\nWrite `cancel` to cancel the menu",
         8 : "Add channel",
         9 : "Remove channel",
-        10 : "Select channel"
+        10 : "Select channel",
+        11 : "**`Select channel`**",
+        12 : "Not selected"
     },
     1 : {
         0 : "Выберите раздел",
@@ -51,7 +53,9 @@ settings_text = {
         7 : "Напишите id участника сервера или пинганите его\n\nНапишите `cancel` для отмены",
         8 : "Добавить канал",
         9 : "Убрать канал",
-        10 : "Выберите канал"
+        10 : "Выберите канал",
+        11 : "**`Выберите канал`**",
+        12 : "Не выбрано"
     }
 }
 
@@ -391,6 +395,17 @@ ranking_text = {
         21 : "**`You hasn't selected the channel yet`**",
         22 : "**`This channel is already added`**",
         23 : "**`This channel hasn't been added yet`**",
+        24 : "level",
+        25 : "**`No roles matched for levels`**",
+        26 : "Roles for level",
+        27 : "**`Press `**<:add01:999663315804500078>🔧**`to add / change role for the level`**\n**`Press `**<:remove01:999663428689997844>**` to remove role for the level`**",
+        28 : "**`Write the level: positive integer from 1 to 100`**",
+        29 : "**`Select role for level {}`**",
+        30 : "**`Bot can't give any role on the server`**",
+        31 : "**`From now role given for the level {} is `**<@&{}>",
+        32 : "**`Timeout has expired`**",
+        33 : "**`You removed role for level {}`**",
+        34 : "**`No roles matches level {}`**"
     },
     1 : {
         0 : "✨ Опыт, получаемый за одно сообщение:\n**`{}`**",
@@ -416,7 +431,18 @@ ranking_text = {
         20 : "**`Вы убрали канал `**<#{}>",
         21 : "**`Вы не выбрали канал`**",
         22 : "**`Этот канал уже добавлен`**",
-        23 : "**`Этот канал ещё не был добавлен`**",   
+        23 : "**`Этот канал ещё не был добавлен`**",
+        24 : "уровень",
+        25 : "**`Роли за уровни не назначены`**",
+        26 : "Роли за уровни",
+        27 : "**`Нажмите `**<:add01:999663315804500078>🔧**`, чтобы добавить / изменить роль за уровень`**\n**`Нажмите `**<:remove01:999663428689997844>**`, чтобы убрать роль за уровень`**",
+        28 : "**`Напишите номер уровня: положительное целое число от 1 до 100`**",
+        29 : "**`Выберите роль для уровня {}`**",
+        30 : "**`Бот не может выдать ни одной роли на сервере`**",
+        31 : "**`Теперь за уровень {} выдаётся роль `**<@&{}>",
+        32 : "**`Время истекло`**",
+        33 : "**`Вы убрали роль за уровень {}`**",
+        34 : "**`Уровню {} не соответствует ни одна роль`**"
     }
 }
 
@@ -781,14 +807,14 @@ class economy_view(View):
         
         channels = [(c.name, c.id) for c in interaction.guild.text_channels]
         for i in range(min((len(channels) + 23) // 24, 7)):
-            opts = [(ec_text[lng][21], 0)] + channels[i*24:min((i+1)*24, len(channels))]
+            opts = [(settings_text[lng][12], 0)] + channels[i*24:min((i+1)*24, len(channels))]
             self.add_item(c_select(custom_id=f"{500+i}_{self.auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=opts))
             
         await interaction.message.edit(view=self)
-        await interaction.response.send_message(embed=Embed(description=settings_text[lng][10]), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), ephemeral=True)
 
         cnt = 0
-        while not self.channel and cnt < 40:
+        while self.channel is None and cnt < 40:
             cnt += 1
             await sleep(1)
 
@@ -798,12 +824,11 @@ class economy_view(View):
                 self.remove_item(item=self.children[i])
             else:
                 i += 1
-        
-        self.channel = None
 
         if cnt >= 40:
             await interaction.message.edit(view=self)
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][17]))
+            self.channel = None
             return
 
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
@@ -824,6 +849,8 @@ class economy_view(View):
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][16].format(f"<#{self.channel}>")))
         else:
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][22]))
+        
+        self.channel = None
                     
     
     async def click(self, interaction: Interaction, c_id: str):
@@ -1729,7 +1756,7 @@ class ic_view(View):
         super().__init__(timeout=timeout)
         l = len(chnls)
         for i in range(min((l + 23) // 24, 20)):
-            self.add_item(c_select(custom_id=f"{1100+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=[(ec_text[lng][21], 0)] + chnls[i*24:min((i+1)*24, l)]))
+            self.add_item(c_select(custom_id=f"{1100+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=[(settings_text[lng][12], 0)] + chnls[i*24:min((i+1)*24, l)]))
         self.add_item(c_button(style=ButtonStyle.green, label=settings_text[lng][8], emoji="<:add01:999663315804500078>", custom_id=f"25_{auth_id}_{randint(1, 100)}"))
         self.add_item(c_button(style=ButtonStyle.red, label=settings_text[lng][9], emoji="<:remove01:999663428689997844>", custom_id=f"26_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
         self.chnl = None
@@ -1807,12 +1834,147 @@ class ic_view(View):
             await self.rem_chnl(interaction=interaction, lng=lng)           
 
     async def click_menu(self, _, c_id: str, values):
-        if c_id.startswith("110"):
+        if c_id.startswith("11"):
             self.chnl = int(values[0])
 
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
+            return False
+        return True
+
+
+class lvl_roles_view(View):
+    def __init__(self, timeout: int, auth_id: int, g_id: int, disabled: bool):
+        super().__init__(timeout=timeout)
+        self.add_item(c_button(style=ButtonStyle.green, label="🔧", custom_id=f"27_{auth_id}_{randint(1, 100)}", emoji="<:add01:999663315804500078>"))
+        self.add_item(c_button(style=ButtonStyle.red, label="", custom_id=f"28_{auth_id}_{randint(1, 100)}", emoji="<:remove01:999663428689997844>", disabled=disabled))
+        self.auth_id: int = auth_id
+        self.g_id: int = g_id
+        self.role = None
+    
+    def check_role(self, ans: str) -> int:
+        if not (ans.isdigit() and 1 <= int(ans) <= 100):
+            return 0
+        return int(ans)
+
+    async def click(self, interaction: Interaction, c_id: str) -> None:
+        if not (c_id.startswith("27_") or c_id.startswith("28_")):
+            return
+        lng = 1 if "ru" in interaction.locale else 0
+        await interaction.response.send_message(embed=Embed(description=ranking_text[lng][28]))
+        flag: int = 0
+        while not flag:
+            try:
+                memb_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == self.auth_id and m.channel.id == interaction.channel_id, timeout=25)
+            except TimeoutError:
+                flag = 1
+            else:
+                ans: int = self.check_role(ans=memb_ans.content)
+                if ans:
+                    flag = 2
+                try: await memb_ans.delete()
+                except: pass
+                    
+        if flag != 2:
+            await interaction.delete_original_message()
+            return
+
+        if c_id.startswith("27_"):
+            
+            rls = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
+            if not len(rls):
+                await interaction.edit_original_message(embed=Embed(description = ranking_text[lng][30]))
+                await interaction.delete_original_message(delay=6)
+                return
+            else:
+                for i in range((len(rls) + 23) // 24):
+                    self.add_item(c_select(
+                        custom_id=f"{1300+i}_{self.auth_id}_{randint(1, 100)}", 
+                        placeholder=settings_text[lng][2], 
+                        opts=[(settings_text[lng][12], 0)] + rls[i*24:min(len(rls), (i+1) * 24)]
+                    ))
+                await interaction.message.edit(view=self)
+                await interaction.edit_original_message(embed=Embed(description = ranking_text[lng][29].format(ans)))
+
+            cnt = 0
+            while self.role is None and cnt < 25:
+                cnt += 1
+                await sleep(1)
+            if self.role is None:
+                await interaction.edit_original_message(embed=Embed(description=ranking_text[lng][32]))
+                await interaction.delete_original_message(delay=6)
+                return
+
+            with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+                with closing(base.cursor()) as cur:
+                    if cur.execute("SELECT role_id FROM rank_roles WHERE level = ?", (ans,)).fetchone() is None:
+                        cur.execute("INSERT INTO rank_roles(level, role_id) VALUES(?, ?)", (ans, self.role))
+                    else:
+                        cur.execute("UPDATE rank_roles SET role_id = ? WHERE level = ?", (self.role, ans))
+                    base.commit()
+                    lvl_rls = sorted(cur.execute("SELECT * FROM rank_roles").fetchall(), key=lambda tup: tup[0])
+
+            i = 0
+            while i < len(self.children):
+                if self.children[i].custom_id.startswith("13"):
+                    self.remove_item(self.children[i])
+                else:
+                    i += 1
+            
+            dsc = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]
+            dsc.append(ranking_text[lng][27])
+            emb = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
+            
+            
+            if self.children[1].disabled:
+                self.children[1].disabled = False
+
+            await interaction.message.edit(embed=emb, view=self)
+            await interaction.edit_original_message(embed=Embed(description=ranking_text[lng][31].format(ans, self.role)))
+            await interaction.delete_original_message(delay=6)
+            self.role = None
+
+        else:
+            with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+                with closing(base.cursor()) as cur:
+                    if cur.execute("SELECT count() FROM rank_roles WHERE level = ?", (ans,)).fetchone()[0]:
+                        cur.execute("DELETE FROM rank_roles WHERE level = ?", (ans,))
+                        base.commit()
+                        lvl_rls = sorted(cur.execute("SELECT * FROM rank_roles").fetchall(), key=lambda tup: tup[0])
+                    else:
+                        await interaction.edit_original_message(embed=Embed(description=ranking_text[lng][34].format(ans)))
+                        await interaction.delete_original_message(delay=6)
+                        return
+
+            if len(lvl_rls):
+                dsc = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]
+                fl = False
+            else:
+                self.children[1].disabled = True
+                fl = True
+                dsc = [ranking_text[lng][25]]
+
+            dsc.append(ranking_text[lng][27])
+            emb = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
+            
+            if fl:
+                await interaction.message.edit(embed=emb, view=self)
+            else:
+                await interaction.message.edit(embed=emb)
+
+            await interaction.edit_original_message(embed=Embed(description=ranking_text[lng][33].format(ans)))
+            await interaction.delete_original_message(delay=6)
+
+
+    async def click_menu(self, _, c_id: str, values):
+        if c_id.startswith("13"):
+            self.role = int(values[0])
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if self.auth_id != interaction.user.id:
             lng = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
@@ -1869,9 +2031,7 @@ class ranking_view(View):
 
         await interaction.response.send_message(embed=emb, view=ic_v)
         await ic_v.wait()
-        for c in ic_v.children:
-            c.disabled = True
-        await interaction.edit_original_message(view=ic_v)
+        await interaction.delete_original_message()
 
     async def level_channel(self, lng: int, interaction: Interaction) -> None:
         
@@ -1880,12 +2040,14 @@ class ranking_view(View):
         l = len(chnls)
         
         for i in range(min((l + 23) // 24, 20)):
-            self.add_item(c_select(custom_id=f"{1200+i}_{self.auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=[(ec_text[lng][21], 0)] + chnls[i*24:min((i+1)*24, l)]))
+            self.add_item(c_select(custom_id=f"{1200+i}_{self.auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=[(settings_text[lng][12], 0)] + chnls[i*24:min((i+1)*24, l)]))
             
         await interaction.message.edit(view=self)
 
+        await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), ephemeral=True)
+
         cnt = 0
-        while not self.lvl_chnl and cnt < 30:
+        while self.lvl_chnl is None and cnt < 30:
             cnt += 1
             await sleep(1)
 
@@ -1898,6 +2060,7 @@ class ranking_view(View):
 
         if cnt >= 30:
             await interaction.message.edit(view=self)
+            self.lvl_chnl = None
             return
         
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
@@ -1908,14 +2071,32 @@ class ranking_view(View):
         emb = interaction.message.embeds[0]
         dsc = emb.description.split("\n\n")
         if self.lvl_chnl:
-            dsc[2] = ranking_text[lng][2].format(self.lvl_chnl)
+            dsc[2] = ranking_text[lng][2].format(f"<#{self.lvl_chnl}>")
         else:
             dsc[2] = ranking_text[lng][2].format(ranking_text[lng][3])
         emb.description = "\n\n".join(dsc)
 
+        self.lvl_chnl = None
+
         await interaction.message.edit(embed=emb, view=self)
             
-        
+    async def lvl_roles(self, lng: int, interaction: Interaction):
+        with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                lvl_rls = sorted(cur.execute("SELECT * FROM rank_roles").fetchall(), key=lambda tup: tup[0])
+        if len(lvl_rls):
+            dsc = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]
+            rem_b = False
+        else:
+            rem_b = True
+            dsc = [ranking_text[lng][25]]
+        dsc.append(ranking_text[lng][27])
+        emb = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
+        lr_v = lvl_roles_view(timeout=80, auth_id=interaction.user.id, g_id=self.g_id, disabled=rem_b)
+        await interaction.response.send_message(embed=emb, view=lr_v)
+        await lr_v.wait()
+        await interaction.delete_original_message()
+
     async def click(self, interaction: Interaction, c_id) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         if c_id.startswith("21_"):
@@ -1925,9 +2106,9 @@ class ranking_view(View):
         elif c_id.startswith("23_"):
             await self.ic(lng=lng, interaction=interaction)
         elif c_id.startswith("24_"):
-            pass
+            await self.lvl_roles(lng=lng, interaction=interaction)
     
-    async def click_menu(self, __, c_id: str, values) -> None:
+    async def click_menu(self, _, c_id: str, values) -> None:
         if c_id.startswith("12"):
             self.lvl_chnl = int(values[0])
 
@@ -2154,7 +2335,7 @@ class settings_view(View):
             dsc.append(ec_text[lng][7])
             dsc.append(ec_text[lng][8])
             emb.description = "\n\n".join(dsc)
-            rls = [r for r in interaction.guild.roles if (not r.is_bot_managed() and r.is_assignable())]
+            
             ec_v = economy_view(t_out=110, auth_id=self.auth_id)
             await interaction.response.send_message(embed=emb, view=ec_v)
             if await ec_v.wait():
