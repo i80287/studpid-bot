@@ -3,11 +3,10 @@ from asyncio import sleep, TimeoutError
 from contextlib import closing
 from sqlite3 import connect, Connection, Cursor
 from random import randint
-from datetime import datetime, timedelta, timezone
 from time import time
 
-from nextcord import Embed, Colour, Guild, Role, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextChannel, TextInputStyle
-from nextcord.ui import View, Button, button, Select, TextInput, Modal
+from nextcord import Embed, Role, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextInputStyle
+from nextcord.ui import View, Button, Select, TextInput, Modal
 from nextcord.ext import commands, application_checks
 
 from config import path_to, bot_guilds_e, bot_guilds_r, prefix, in_row
@@ -33,7 +32,8 @@ settings_text = {
         9 : "Remove channel",
         10 : "Select channel",
         11 : "**`Select channel`**",
-        12 : "Not selected"
+        12 : "Not selected",
+        13 : "```fix\nnot selected\n```",
     },
     1 : {
         0 : "Выберите раздел",
@@ -55,7 +55,8 @@ settings_text = {
         9 : "Убрать канал",
         10 : "Выберите канал",
         11 : "**`Выберите канал`**",
-        12 : "Не выбрано"
+        12 : "Не выбрано",
+        13 : "```fix\nне выбран\n```"
     }
 }
 
@@ -202,7 +203,6 @@ ec_text = {
         3 : "💹 Salary from `/work`:\n**{}**",
         4 : "random integer from `{}` to `{}`",
         5 : "📙 Log channel for economic operations:\n{}",
-        6 : "```fix\nnot selected\n```",
         7 : "> To manage setting press button with\ncorresponding emoji",
         8 : "> To see and manage roles available for\npurchase/sale in the bot press 🛠️",
         9 : "Write amount of money gained for message (non negative integer number)",
@@ -219,8 +219,7 @@ ec_text = {
         18 : "__**role - role id - price - salary - cooldown for salary - type - how much in the store**__",
         19 : "No roles were added",
         20 : "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
-        21 : "Not selected",
-        22 : "**`You reseted log channel`**"
+        21 : "**`You reseted log channel`**"
     },
     1 : {
         0 : "Настройки экономики",
@@ -229,7 +228,6 @@ ec_text = {
         3 : "💹 Доход от команды `/work`:\n**{}**",
         4 : "рандомное целое число от `{}` до `{}`",
         5 : "📙 Канал для логов экономических операций:\n{}",
-        6 : "```fix\nне выбран\n```",
         7 : "> Для управления настройкой нажмите на кнопку с\nсоответствующим эмодзи",
         8 : "> Для просмотра и управления ролями, доступными\nдля покупки/продажи у бота, нажмите 🛠️",
         9 : "Укажите количество денег, получаемых за сообщение\n(неотрицательное целое число)",
@@ -247,8 +245,7 @@ ec_text = {
         18 : "__**роль - id роли - цена - заработок - кулдаун заработка - тип - сколько в магазине**__",
         19 : "Не добавлено ни одной роли",
         20 : "`Если роль не отображается ни в одном меню снизу, значит, бот не может управлять ею`",
-        21 : "Не выбрано",
-        22 : "**`Вы сбросили канал логов`**"
+        21 : "**`Вы сбросили канал логов`**"
     }
 }
 
@@ -374,7 +371,6 @@ ranking_text = {
         0 : "✨ Xp gained per message:\n**`{}`**",
         1 : "✨ Amount of xp between adjacent levels:\n**`{}`**",
         2 : "📗 Channel for the notification about new levels:\n{}",
-        3 : "```fix\nnot selected\n```",
         4 : "> To manage setting press button with corresponding emoji\n",
         5 : "> Press :mute: to manage channels where members can't get xp\n",
         6 : "> Press 🥇 to manage roles given for levels",
@@ -411,7 +407,6 @@ ranking_text = {
         0 : "✨ Опыт, получаемый за одно сообщение:\n**`{}`**",
         1 : "✨ Количество опыта между соседними уровнями:\n**`{}`**",
         2 : "📗 Канал для оповещений о получении нового уровня:\n{}",
-        3 : "```fix\nне выбран\n```",
         4 : "> Для управления настройкой нажмите на кнопку с соответствующим эмодзи\n",
         5 : "> Нажмите :mute: для управления каналами, в которых пользователи не могут получать опыт\n",
         6 : "> Нажмите 🥇 для управления ролями, выдаваемыми за уровни",
@@ -443,6 +438,21 @@ ranking_text = {
         32 : "**`Время истекло`**",
         33 : "**`Вы убрали роль за уровень {}`**",
         34 : "**`Уровню {} не соответствует ни одна роль`**"
+    }
+}
+
+poll_text = {
+    0 : {
+        0 : "🔎 Polls verification channel:\n{}",
+        1 : "📰 Channel for publishing polls:\n{}",
+        2 : "> **`Press `**🔎**` to change polls`**\n> **`verifcation channel`**",
+        3 : "> **`Press `**📰**` to change channel`**\n> **`for publishing polls`**",
+    },
+    1 : {
+        0 : "🔎 Канал для верификации поллов:\n{}",
+        1 : "📰 Канал для публикации поллов:\n{}",
+        2 : "> **`Нажмите `**🔎**`, чтобы изменить канал`**\n> **`для верификации поллов`**",
+        3 : "> **`Нажмите `**📰**`, чтобы изменить канал`**\n> **`для публикации поллов`**",
     }
 }
 
@@ -494,6 +504,7 @@ languages = {
 
 
 class c_select(Select):
+
     def __init__(self, custom_id: str, placeholder: str, opts: list) -> None:
         options = [SelectOption(label=r[0], value=r[1]) for r in opts]
         super().__init__(custom_id=custom_id, placeholder=placeholder, options=options)
@@ -841,14 +852,14 @@ class economy_view(View):
         if self.channel != 0:
             dsc[3] = ec_text[lng][5].format(f"<#{self.channel}>")
         else:
-            dsc[3] = ec_text[lng][5].format(ec_text[lng][6])
+            dsc[3] = ec_text[lng][5].format(settings_text[lng][13])
         emb.description = "\n\n".join(dsc)
         await interaction.message.edit(embed=emb, view=self)
 
         if self.channel != 0:
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][16].format(f"<#{self.channel}>")))
         else:
-            await interaction.edit_original_message(embed=Embed(description=ec_text[lng][22]))
+            await interaction.edit_original_message(embed=Embed(description=ec_text[lng][21]))
         
         self.channel = None
                     
@@ -1391,6 +1402,7 @@ class c_modal_edit(Modal):
 
 
 class verify_delete(View):
+
     def __init__(self, lng: int, role: int, m, auth_id: int):
         super().__init__(timeout=30)
         self.role = role
@@ -1679,6 +1691,7 @@ class mng_membs_view(View):
     
 
 class c_modal_xp(Modal):
+
     def __init__(self, timeout: int, lng: int, auth_id: int, g_id: int, cur_xp: int, cur_xpb: int):
         super().__init__(title=ranking_text[lng][7], timeout=timeout, custom_id=f"9100_{auth_id}_{randint(1, 100)}")
 
@@ -1752,6 +1765,7 @@ class c_modal_xp(Modal):
 
 
 class ic_view(View):
+
     def __init__(self, timeout: int, lng: int, auth_id: int, chnls: list, rem_dis: bool, cur_chnls: set, g_id: int) -> None:
         super().__init__(timeout=timeout)
         l = len(chnls)
@@ -1847,6 +1861,7 @@ class ic_view(View):
 
 
 class lvl_roles_view(View):
+
     def __init__(self, timeout: int, auth_id: int, g_id: int, disabled: bool):
         super().__init__(timeout=timeout)
         self.add_item(c_button(style=ButtonStyle.green, label="🔧", custom_id=f"27_{auth_id}_{randint(1, 100)}", emoji="<:add01:999663315804500078>"))
@@ -2073,7 +2088,7 @@ class ranking_view(View):
         if self.lvl_chnl:
             dsc[2] = ranking_text[lng][2].format(f"<#{self.lvl_chnl}>")
         else:
-            dsc[2] = ranking_text[lng][2].format(ranking_text[lng][3])
+            dsc[2] = ranking_text[lng][2].format(settings_text[lng][13])
         emb.description = "\n\n".join(dsc)
 
         self.lvl_chnl = None
@@ -2120,9 +2135,37 @@ class ranking_view(View):
         return True
 
 
+class poll_settings_view(View):
+    
+    def __init__(self, timeout: int, auth_id: int):
+        super().__init__(timeout=timeout)
+        self.add_item(c_button(style=ButtonStyle.green, label="", custom_id=f"28_{auth_id}_{randint(1, 100)}", emoji="🔎"))
+        self.add_item(c_button(style=ButtonStyle.green, label="", custom_id=f"29_{auth_id}_{randint(1, 100)}", emoji="📰"))
+        self.auth_id = auth_id
+
+    
+    async def click(self, interaction: Interaction, c_id: str) -> None:
+        lng = 1 if "ru" in interaction.locale else 0
+        if c_id.startswith("28_"):
+            me = interaction.guild.me
+            chnls = [(c.name, c.id) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
+            for i in range(min((len(chnls) + 23) // 24, 20)):
+                self.add_item(c_select(
+                    custom_id=f"{1400+i}_{self.auth_id}_{randint(1, 100)}", 
+                    placeholder=settings_text[lng][10], 
+                    opts=[(settings_text[lng][12], 0)] + chnls[i*24:min(len(chnls), (i+1)*24)]
+                ))
+        elif c_id.startswith("29_"):
+            pass
+
+    async def click_menu(self, _, c_id: str, values) -> None:
+        """ if c_id.startswith("12"):
+            self.x = int(values[0]) """
+        
+
 class settings_view(View):
     
-    def __init__(self, t_out: int, lng: int, auth_id: int, bot) -> None:
+    def __init__(self, t_out: int, auth_id: int, bot) -> None:
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
         self.bot = bot
@@ -2329,7 +2372,7 @@ class settings_view(View):
             else:
                 dsc.append(ec_text[lng][3].format(ec_text[lng][4].format(sal_l, sal_r)))
             if e_l_c == 0:
-                dsc.append(ec_text[lng][5].format(ec_text[lng][6]))
+                dsc.append(ec_text[lng][5].format(settings_text[lng][13]))
             else:
                 dsc.append(ec_text[lng][5].format(f"<#{e_l_c}>"))
             dsc.append(ec_text[lng][7])
@@ -2357,7 +2400,7 @@ class settings_view(View):
             dsc = [ranking_text[lng][0].format(xp_p_m)]
             dsc.append(ranking_text[lng][1].format(xp_b))
             if lvl_c_a == 0:
-                dsc.append(ranking_text[lng][2].format(ranking_text[lng][3]))
+                dsc.append(ranking_text[lng][2].format(settings_text[lng][13]))
             else:
                 dsc.append(ranking_text[lng][2].format(f"<#{lvl_c_a}>"))
 
@@ -2373,6 +2416,30 @@ class settings_view(View):
                 c.disabled = True
             await interaction.edit_original_message(view=rnk_v)
 
+        elif custom_id.startswith("5_"):
+            with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                with closing(base.cursor()) as cur:
+                    p_v_c = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
+                    p_c = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
+            
+            if p_v_c:
+                dsc = [poll_text[lng][0].format(f"<#{p_v_c}>")]
+            else:
+                dsc = [poll_text[lng][0].format(settings_text[lng][13])]
+            if p_c:
+                dsc.append(poll_text[lng][1].format(f"<#{p_c}>"))
+            else:
+                dsc.append(poll_text[lng][1].format(settings_text[lng][13]))
+            dsc.append(poll_text[lng][2])
+            dsc.append(poll_text[lng][3])
+
+            p_v = poll_settings_view(timeout=100, auth_id=self.auth_id)
+            await interaction.response.send_message(embed=Embed(description="\n\n".join(dsc)), view=p_v)
+            
+            await p_v.wait()
+            for c in p_v.children:
+                c.disabled = True
+            await interaction.edit_original_message(view=p_v)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
@@ -2389,7 +2456,6 @@ class m_cmds(commands.Cog):
         global bot_guilds_e
         global bot_guilds_r
 
-
     def mod_check(interaction: Interaction):
         u = interaction.user
         if u.guild_permissions.administrator or u.guild_permissions.manage_guild:
@@ -2403,13 +2469,12 @@ class m_cmds(commands.Cog):
                     return any(role.id in m_rls for role in u.roles)
                 return False
 
-
     async def settings(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
         dsc = []
         for i in settings_text[lng][1]:
             dsc.append(i)
-        st_view = settings_view(t_out=120, lng=lng, auth_id=interaction.user.id, bot=self.bot)
+        st_view = settings_view(t_out=120, auth_id=interaction.user.id, bot=self.bot)
         emb = Embed(title=settings_text[lng][0], description="\n".join(dsc))
         await interaction.response.send_message(embed=emb, view=st_view)
 
@@ -2420,7 +2485,6 @@ class m_cmds(commands.Cog):
         else:
             await interaction.delete_original_message()
         
-
     @slash_command(
         name="settings",
         description="Show menu to see and manage bot's settings",
@@ -2433,8 +2497,7 @@ class m_cmds(commands.Cog):
     @application_checks.check(mod_check)
     async def settings_e(self, interaction: Interaction):
         await self.settings(interaction=interaction)
-    
-    
+     
     @slash_command(
         name="settings",
         description="Вызывает меню просмотра и управления настройками бота",

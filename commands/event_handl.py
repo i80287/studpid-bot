@@ -107,7 +107,6 @@ class msg_h(commands.Cog):
         if user.bot or message.channel.type is ChannelType.private \
             or message.type is MessageType.chat_input_command:
             return
-        
 
     @commands.Cog.listener()
     async def on_application_command_error(self, interaction, exception):
