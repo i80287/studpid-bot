@@ -25,15 +25,14 @@ class msg_h(commands.Cog):
         self.bot = bot
         global bot_guilds_e
         global bot_guilds_r
-
     
     """src = connect(f'{path_to}/bases/bases_{guild_id}/{guild_id}.db')
-            bck = connect(f'{path_to}/bases/bases_{guild_id}/{guild_id}_shop_rec_1.db')
-            src.backup(bck)
-            src.close()
-            bck.close()
-            copy2(f'{path_to}/bases/bases_{guild_id}/{guild_id}.db', f'{path_to}/bases/bases_{guild_id}/{guild_id}_shop_rec_2.db')
-            print(f'{Fore.CYAN}Created a backup for {guild_id}{Fore.RED}\n')"""
+    bck = connect(f'{path_to}/bases/bases_{guild_id}/{guild_id}_shop_rec_1.db')
+    src.backup(bck)
+    src.close()
+    bck.close()
+    copy2(f'{path_to}/bases/bases_{guild_id}/{guild_id}.db', f'{path_to}/bases/bases_{guild_id}/{guild_id}_shop_rec_2.db')
+    print(f'{Fore.CYAN}Created a backup for {guild_id}{Fore.RED}\n')"""
 
     @commands.Cog.listener()
     async def on_ready(self):

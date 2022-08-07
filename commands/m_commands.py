@@ -447,12 +447,21 @@ poll_text = {
         1 : "📰 Channel for publishing polls:\n{}",
         2 : "> **`Press `**🔎**` to change polls`**\n> **`verifcation channel`**",
         3 : "> **`Press `**📰**` to change channel`**\n> **`for publishing polls`**",
+        4 : "**`New polls verification channel is `**<#{}>",
+        5 : "**`You reseted polls verification channel`**",
+        6 : "**`New channel for publishing polls is `**<#{}>",
+        7 : "**`You reseted channel for publishing polls`**",
+
     },
     1 : {
         0 : "🔎 Канал для верификации поллов:\n{}",
         1 : "📰 Канал для публикации поллов:\n{}",
         2 : "> **`Нажмите `**🔎**`, чтобы изменить канал`**\n> **`для верификации поллов`**",
         3 : "> **`Нажмите `**📰**`, чтобы изменить канал`**\n> **`для публикации поллов`**",
+        4 : "**`Новый канал для верификации поллов: `**<#{}>",
+        5 : "**`Вы сбросили канал для верификации поллов`**",
+        6 : "**`Новый канал для публикации поллов: `**<#{}>",
+        7 : "**`Вы сбросили канал для публикации поллов`**",
     }
 }
 
@@ -2135,6 +2144,31 @@ class ranking_view(View):
         return True
 
 
+class poll_v_c_view(View):
+    def __init__(self, timeout: int, lng: int, view_id_base: int,  auth_id: int, chnls: list):
+        super().__init__(timeout=timeout)
+        for i in range(min((len(chnls) + 23) // 24, 20)):
+            self.add_item(c_select(
+                custom_id=f"{view_id_base+i}_{auth_id}_{randint(1, 100)}", 
+                placeholder=settings_text[lng][10], 
+                opts=[(settings_text[lng][12], 0)] + chnls[i*24:min(len(chnls), (i+1)*24)]
+            ))
+        self.auth_id = auth_id
+        self.c = None
+        
+    async def click_menu(self, _, c_id: str, values) -> None:
+        if c_id.startswith("14") or c_id.startswith("15"):
+            self.c = int(values[0])
+            self.stop()
+
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
+            return False
+        return True
+
+
 class poll_settings_view(View):
     
     def __init__(self, timeout: int, auth_id: int):
@@ -2142,26 +2176,104 @@ class poll_settings_view(View):
         self.add_item(c_button(style=ButtonStyle.green, label="", custom_id=f"28_{auth_id}_{randint(1, 100)}", emoji="🔎"))
         self.add_item(c_button(style=ButtonStyle.green, label="", custom_id=f"29_{auth_id}_{randint(1, 100)}", emoji="📰"))
         self.auth_id = auth_id
-
     
     async def click(self, interaction: Interaction, c_id: str) -> None:
         lng = 1 if "ru" in interaction.locale else 0
-        if c_id.startswith("28_"):
-            me = interaction.guild.me
-            chnls = [(c.name, c.id) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
-            for i in range(min((len(chnls) + 23) // 24, 20)):
-                self.add_item(c_select(
-                    custom_id=f"{1400+i}_{self.auth_id}_{randint(1, 100)}", 
-                    placeholder=settings_text[lng][10], 
-                    opts=[(settings_text[lng][12], 0)] + chnls[i*24:min(len(chnls), (i+1)*24)]
-                ))
-        elif c_id.startswith("29_"):
-            pass
+        me = interaction.guild.me
+        chnls = [(c.name, c.id) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
 
-    async def click_menu(self, _, c_id: str, values) -> None:
-        """ if c_id.startswith("12"):
-            self.x = int(values[0]) """
-        
+        if c_id.startswith("28_"):
+
+            v_c = poll_v_c_view(timeout=25, lng=lng, view_id_base = 1400, auth_id=self.auth_id, chnls=chnls)
+            await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=v_c)
+            
+            await v_c.wait()
+            if v_c.c is None:
+                await interaction.delete_original_message()
+                return
+
+            if v_c.c:
+
+                with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                    with closing(base.cursor()) as cur:
+                        cur.execute("UPDATE server_info SET value = ? WHERE settings = 'poll_v_c'", (v_c.c,))
+                        base.commit()
+                
+                emb = interaction.message.embeds[0]
+                dsc = emb.description.split("\n\n")
+                dsc[0] = poll_text[lng][0].format(f"<#{v_c.c}>")
+                emb.description = "\n\n".join(dsc)
+                await interaction.message.edit(embed=emb)
+
+                await interaction.edit_original_message(embed=Embed(description=poll_text[lng][4].format(v_c.c)), view=None)     
+                           
+            else:
+
+                with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                    with closing(base.cursor()) as cur:
+                        cur.execute("UPDATE server_info SET value = 0 WHERE settings = 'poll_v_c'")
+                        base.commit()
+
+                emb = interaction.message.embeds[0]
+                dsc = emb.description.split("\n\n")
+                dsc[0] = poll_text[lng][0].format(settings_text[lng][13])
+                emb.description = "\n\n".join(dsc)
+                await interaction.message.edit(embed=emb)
+
+                await interaction.edit_original_message(embed=Embed(description=poll_text[lng][5]), view=None)
+
+            await interaction.delete_original_message(delay=5)
+
+
+        elif c_id.startswith("29_"):
+
+            v_c = poll_v_c_view(timeout=25, lng=lng, view_id_base = 1500, auth_id=self.auth_id, chnls=chnls)
+            await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=v_c)
+            
+            await v_c.wait()
+            if v_c.c is None:
+                await interaction.delete_original_message()
+                return
+
+            if v_c.c:
+
+                with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                    with closing(base.cursor()) as cur:
+                        cur.execute("UPDATE server_info SET value = ? WHERE settings = 'poll_c'", (v_c.c,))
+                        base.commit()
+                
+                emb = interaction.message.embeds[0]
+                dsc = emb.description.split("\n\n")
+                dsc[1] = poll_text[lng][1].format(f"<#{v_c.c}>")
+                emb.description = "\n\n".join(dsc)
+                await interaction.message.edit(embed=emb)
+
+                await interaction.edit_original_message(embed=Embed(description=poll_text[lng][6].format(v_c.c)), view=None)     
+                           
+            else:
+
+                with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                    with closing(base.cursor()) as cur:
+                        cur.execute("UPDATE server_info SET value = 0 WHERE settings = 'poll_c'")
+                        base.commit()
+
+                emb = interaction.message.embeds[0]
+                dsc = emb.description.split("\n\n")
+                dsc[1] = poll_text[lng][1].format(settings_text[lng][13])
+                emb.description = "\n\n".join(dsc)
+                await interaction.message.edit(embed=emb)
+
+                await interaction.edit_original_message(embed=Embed(description=poll_text[lng][7]), view=None)
+
+            await interaction.delete_original_message(delay=5)
+    
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
+            return False
+        return True
+
 
 class settings_view(View):
     
