@@ -7,9 +7,173 @@ from random import randint
 
 from nextcord.ext import commands
 from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Locale, ui, SelectOption, slash_command, Role, Member
-from nextcord.ui import Button, View
+from nextcord.ui import Button, View, Select
 
 from config import path_to, bot_guilds_e, bot_guilds_r, currency, in_row
+
+common_text = {
+    0 : {
+        0 : "**`Sorry, but you can't manage menu called by another member`**"
+    },
+    1 : {
+        0 : "**`Извините, но Вы не можете управлять чужой покупкой`**"
+    }
+}
+
+text_slash = {
+    0 : {
+        0 : "Error",
+        1 : "**`I don't have permission to manage roles on the server`**",
+        2 : "**`I don't have permission to manage this role. My role should be higher than this role`**",
+        3 : "Commands",
+        4 : "**`You already have this role`**",
+        5 : "**`This item not found. Please, check if you selected right role`**",
+        6 : "**`For purchasing this role you need {} {} more`**",
+        7 : "Purchase confirmation",
+        8 : "**`Are you sure that you want to buy`** {}?\n{} {} will be debited from your balance",
+        9 : "**`Purchase has expired`**",
+        10 : "Purchase completed",
+        11 : "**`If your DM are open, then purchase confirmation will be message you`**",
+        12 : "You successfully bought role `{}` on the server `{}` for `{}` {}",
+        13 : "Role purchase",
+        14 : "{} bought role {} for {} {}",
+        15 : "Roles for sale:",
+        16 : "**`You can't sell the role that you don't have`**",
+        17 : "**`You can't sell that role because it isn't in the list of roles available for purchase/sale on the server`**",
+        18 : "The sale is completed",
+        19 : "**`You sold role `**{}**` for {}`** {}\n**`If your DM are open, then confirmation of sale will be message you`**",
+        20 : "Confirmation of sale",
+        21 : "**`You sold role {} for {}`** {}",
+        22 : "Role sale",
+        23 : "{} sold role {} for {} {}",
+        24 : "Your balance",
+        25 : "**Your personal roles:**\n--- **Role** --- **Price** --- **Salary** (if it has)",
+        26 : "**`Please, wait {} before using this command`**",
+        27 : "Success",
+        28 : "**`You gained {}`** {}",
+        29 : "Work",
+        30 : "{} gained {} {}",
+        31 : "**`You can't make a bet, because you need {}`** {} **`more`**",
+        32 : "Bet",
+        33 : "**`You bet {}`** {}\n**`Now another user must make a counter bet`**",
+        34 : "**`Time for the counter bet has expired`**",
+        35 : "We have a winner!",
+        36 : "won",
+        37 : "Duel",
+        38 : "<@{}> gained {} {}, <@{}> lost",
+        39 : "**`Sorry, but for money transfering you need {}`** {} **`more`**",
+        40 : "Transaction completed", #title
+        41 : "**`You successfully transfered {}`** {} **`to`** {}",
+        42 : "Transaction",
+        43 : "{} transfered {} {} to {}"
+    },
+    1 : {
+        0 : "Ошибка", #title
+        1 : "**`У меня нет прав управлять ролями на сервере`**",
+        2 : "**`У меня нет прав управлять этой ролью. Моя роль должна быть выше, чем указанная Вами роль`**",
+        3 : "Команды", #title
+        4 : "**`У Вас уже есть эта роль`**",
+        5 : "**`Такой товар не найден. Пожалуйста, проверьте правильность выбранной роли`**",
+        6 : "**`Для покупки роли Вам не хватает {} {}`**",
+        7 : "Подтверждение покупки",
+        8 : "**`Вы уверены, что хотите купить роль`** {}?\nС Вас будет списано **`{}`** {}",
+        9 : '**`Истекло время подтверждения покупки`**',
+        10 : "Покупка совершена", #title
+        11 : "**`Если у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение покупки будет выслано Вам в личные сообщения`**",
+        12 : "Вы успешно купили роль `{}` на сервере `{}` за `{}` {}",
+        13 : "Покупка роли",
+        14 : "{} купил роль {} за {} {}",
+        15 : "Роли на продажу:",
+        16 : "**`Вы не можете продать роль, которой у Вас нет`**",
+        17 : "**`Продажа этой роли невозможна, т.к. она не находится в списке ролей, доступных для покупки/продажи на сервере`**",
+        18 : "Продажа совершена", #title
+        19 : "**`Вы продали роль `**{}**` за {}`** {}\n**`Если у Вас включена возможность получения личных сообщений от участников серверов, \
+            то подтверждение покупки будет выслано Вам в личные сообщения`**",
+        20 : "Подтверждение продажи",
+        21 : "**`Вы продали роль {} за {}`** {}",
+        22 : "Продажа роли",
+        23 : "{} продал роль {} за {} {}",
+        24 : "Ваш баланс",
+        25 : "**Ваши личные роли:**\n--- **Роль** --- **Цена** --- **Доход** (если есть)",
+        26 : "**`Пожалуйста, подождите {} перед тем, как снова использовать эту команду`**",
+        27 : "Успех",
+        28 : "**`Вы заработали {}`** {}",
+        29 : "Работа",
+        30 : "{} заработал {} {}",
+        31 : "**`Вы не можете сделать ставку, так как Вам не хватает {}`** {}",
+        32 : "Ставка",
+        33 : "**`Вы сделали ставку в размере {}`** {}\n**`Теперь кто-то должен принять Ваш вызов`**",
+        34 : "**`Истекло время ожидания встречной ставки`**",
+        35 : "У нас победитель!",
+        36 : "выиграл(a)",
+        37 : "Дуэль",
+        38 : "<@{}> заработал(a) {} {}, <@{}> - проиграл(a)",
+        39 : "**`Извините, но для совершения перевода Вам не хватает {}`** {}",
+        40 : "Перевод совершён",
+        41 : "**`Вы успешно перевели {}`** {} **`пользователю`** {}",
+        42 : "Транзакция",
+        43 : "{} передал {} {} пользователю {}"
+    }
+}
+
+buy_approve_text = {
+    0 : {
+        0 : "Yes",
+        1 : "No, cancel purchase"
+    },
+    1 : {
+        0 : "Да",
+        1 : "Нет, отменить покупку"
+    }
+}
+
+store_text = {
+    0 : {
+        0 : "**•** <@&{}>\n`Price` - `{}` {}\n`Listed for sale:`\n*{}*\n",
+        1 : "**•** <@&{}>\n`Price` - `{}` {}\n`Left` - `{}`\n`Last listed for sale:`\n*{}*\n",
+        2 : "`Average salary per week` - `{}` {}\n",
+        3 : "Page **`{}`** from **`{}`**",
+        4 : "Sort by...",
+        5 : "Sort by price",
+        6 : "Sort by date",
+        7 : "Sort from...",
+        8 : "From the lower price / newer role",
+        9 : "From the higher price / older role",
+        10 : "Roles for sale:"
+
+    },
+    1 : {
+        0 : "**•** <@&{}>\n`Цена` - `{}` {}\n`Выставленa на продажу:`\n*{}*\n",
+        1 : "**•** <@&{}>\n`Цена` - `{}` {}\n`Осталось` - `{}`\n`Последний раз выставленa на продажу:`\n*{}*\n",
+        2 : "`Средний доход за неделю` - `{}` {}\n",
+        3 : "Страница **`{}`** из **`{}`**",
+        4 : "Сортировать по...",
+        5 : "Сортировать по цене",
+        6 : "Сортировать по дате",
+        7 : "Сортировать от...",
+        8 : "От меньшей цены / более свежого товара",
+        9 : "От большей цены / более старого товара",
+        10 : "Роли на продажу:"
+    }
+}
+
+class c_button(Button):
+
+    def __init__(self, label: str, custom_id: str, style = ButtonStyle.secondary, emoji = None):
+        super().__init__(style=style, label=label, custom_id=custom_id, emoji=emoji)
+    
+    async def callback(self, interaction: Interaction) -> None:
+        await self.view.click_b(interaction, self.custom_id)
+
+
+class c_select(Select):
+
+    def __init__(self, custom_id: str, placeholder: str, opts: list) -> None:
+        super().__init__(custom_id=custom_id, placeholder=placeholder, options=opts)
+    
+    async def callback(self, interaction: Interaction):
+        await self.view.click_menu(interaction, self.custom_id, self.values)     
+
 
 class bet_slash_r(View):
 
@@ -50,6 +214,7 @@ class bet_slash_r(View):
         await interaction.response.edit_message(embed=emb, view=self)
         self.stop()
 
+
 class bet_slash_e(View):
 
     def __init__(self, timeout: int, ctx: Interaction, base: Connection, cur: Cursor, symbol: str, bet: int, function: filter):
@@ -89,536 +254,230 @@ class bet_slash_e(View):
         await interaction.response.edit_message(embed=emb, view=self)
         self.stop()
 
-""" class view_sell(View):
-    def __init__(self, timeout: int, ctx: Interaction):
-        super().__init__(timeout=timeout)
-        self.ctx = ctx
-        self.is_sold = 0
-        global text_sl
-        text_sl = {
-            'eng' : {
-                0 : 'Yes',
-                1 : "No, decline sale",
-                2 : "**`The sale has been canceled by user`**",
-                3 : "**`Sale status has changed`**",
-                4 : "You can't manage other's sale"
-            },
-            'rus' : {
-                1 : 'Да',
-                2 : "Нет, отменить продажу",
-                2 : '**`Продажа отмена пользователем`**',
-                3 : "Изменение статуса продажи",
-                4 : 'Вы не можете управлять чужой продажей'
-            }
-        }
-    @ui.button(label='Да', style=ButtonStyle.green, emoji="✅", custom_id = "goodbye")
-    async def goodbye_role(self, button: Button, interaction: Interaction):
-        self.is_sold = 1
-        self.stop()
 
-    @ui.button(label='Нет, отменить продажу', style=ButtonStyle.red, emoji="❌")
-    async def decline_sell(self, button: Button, interaction: Interaction):
-        button.disabled = True
-        button1 = [x for x in self.children if x.custom_id == "goodbye"][0]
-        button1.disabled=True
-        emb = interaction.message.embeds[0]
-        emb.description='**`Продажа отмена пользователем`**'
-        emb.title="Изменение статуса продажи"
-        await interaction.response.edit_message(embed = emb, view=self)
-        self.stop()
-        
-    async def interaction_check(self, interaction):
-        if interaction.user != self.ctx.user:
-            await interaction.response.send_message('Вы не можете управлять чужой продажей', ephemeral=True)
-            return False
-        return True """
+class store_slash_view(View):
 
-class store_slash_r(View):
-    def __init__(self, timeout: int, outer_store: list, ctx: Interaction, in_row: int, coin: str, tz: int):
+    def __init__(self, timeout: int, db_store: list, auth_id: int, lng: int, in_row: int, coin: str, tz: int):
         super().__init__(timeout=timeout)
-        self.outer_store = outer_store
-        self.ctx = ctx
+        self.db_store = db_store
+        self.l = len(db_store)
+        self.auth_id = auth_id
         self.in_row = in_row
-        self.sort_d = 0 #by default - sort by price, 1 - sort by date (time)
-        self.sort_grad = 0 #возрастание / убывание, от gradation, 0 - возрастание
         self.coin = coin
-        self.tz = tz #time zone of the guild
-        self.children[4].options[0].default=True
-        self.children[4].options[1].default=False
-        self.children[5].options[0].default=True
-        self.children[5].options[1].default=False
-    
-    def sort_by(self):
-        outer = self.outer_store
-        sort_d = self.sort_d
-        sort_grad = self.sort_grad
-        if sort_d == 0:
-            #price
-            array = [rr[3] for rr in outer]
-        elif sort_d == 1:
-            #time
-            array = [rr[4] for rr in outer]
-            
-        for i in range(len(array)-1):
-            for j in range(i+1, len(array)):
-                if sort_d == 0:
-                    if (sort_grad == 0 and array[i] > array[j]) or (sort_grad == 1 and array[i] < array[j]):
-                        temp = array[j]
-                        array[j] = array[i]
-                        array[i] = temp
-                        temp = outer[j]
-                        outer[j] = outer[i]
-                        outer[i] = temp
-                    elif array[i] == array[j]:
-                        #if datetime.strptime(outer[i][4], '%S/%M/%H/%d/%m/%Y') < datetime.strptime(outer[j][4], '%S/%M/%H/%d/%m/%Y'):
-                        #if prices are equal, at first select позже выставленную роль
-                        if outer[i][4] < outer[j][4]:
-                            temp = array[j]
-                            array[j] = array[i]
-                            array[i] = temp
-                            temp = outer[j]
-                            outer[j] = outer[i]
-                            outer[i] = temp
+        self.tz = tz # time zone of the guild
+        self.sort_d = 0 # by default - sort by price, 1 - sort by date (time)
+        self.sort_grad = 0 # возрастание / убывание, от gradation, 0 - возрастание
 
-                elif sort_d == 1:
-                    if (sort_grad == 0 and array[i] < array[j]) or (sort_grad == 1 and array[i] > array[j]):
-                        temp = array[j]
-                        array[j] = array[i]
-                        array[i] = temp
-                        temp = outer[j]
-                        outer[j] = outer[i]
-                        outer[i] = temp
-                    elif array[i] == array[j]:
-                        #if dates are equal, at first select role with lower price
-                        if outer[i][3] > outer[j][3]:
-                            temp = array[j]
-                            array[j] = array[i]
-                            array[i] = temp
-                            temp = outer[j]
-                            outer[j] = outer[i]
-                            outer[i] = temp
+        self.add_item(c_button(label="", custom_id=f"32_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
+        self.add_item(c_button(label="", custom_id=f"33_{auth_id}_{randint(1, 100)}", emoji="◀️"))
+        self.add_item(c_button(label="", custom_id=f"34_{auth_id}_{randint(1, 100)}", emoji="▶️"))
+        self.add_item(c_button(label="", custom_id=f"35_{auth_id}_{randint(1, 100)}", emoji="⏭"))
 
-        self.outer_store = outer
-        return
-
-        
-    def click(self, interaction: Interaction, click: int, in_row: int):
-        #print("Цена / Дата", self.sort_d, "Возрастание / убывание", self.sort_grad, interaction.user.id)
-        text = interaction.message.embeds[0].description
-        t1 = text.find('Страница **`')
-        t2 = text.find('из', t1)
-        counter = int(text[t1+12:t2-4])
-        counter = (counter - 1) * in_row
-        outer = self.outer_store
-        if counter < 0 or counter >= len(outer):
-            return ["-1"]
-        if click == 0:
-            if counter == 0:
-                return ["-1"]
-            counter -= in_row
-        elif click == 1:
-            if counter == (len(outer) + in_row - 1) // in_row * in_row - in_row:
-                return ["-1"]
-            counter += in_row
-        elif click == 2:
-            counter = 0
-        elif click == 3:
-            counter = (len(outer) + in_row - 1) // in_row * in_row - in_row
-
-        store_list = []
-
-        if counter + in_row < len(outer):
-            last = counter + in_row
-        else:
-            last = len(outer)
-
-        tzinfo = timezone(timedelta(hours=self.tz))                
-        for r in outer[counter:last]:
-            #date = datetime.strptime(r[4], '%S/%M/%H/%d/%m/%Y').strftime('%H:%M %d-%m-%Y')
-            date = datetime.fromtimestamp(r[4], tz=tzinfo).strftime("%H:%M %d-%m-%Y")
-            if r[5] == 1:
-                store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.coin}\n`Осталось` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
-            elif r[5] == 2:
-                store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.coin}\n`Осталось` - `∞`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
-            elif r[5] == 0:
-                store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.coin}\n`Выставленa на продажу:`\n*{date}*\n")
-                
-        #print(outer)
-        store_list.append(f'\nСтраница **`{(counter // in_row) + 1}`** из **`{(len(outer)+in_row-1)//in_row}`**')
-        
-        return store_list
-
-    @ui.button(emoji="⏮️")
-    async def callback_l_end(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
-        if store_list[0] != "-1":
-            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb)
-
-    @ui.button(emoji="◀️")
-    async def callback_l(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
-        if store_list[0] != "-1":
-            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb)
-
-    @ui.button(emoji="▶️")
-    async def callback_r(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
-        if store_list[0] != "-1":
-            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb)
-
-    @ui.button(emoji="⏭")
-    async def callback_r_end(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
-        if store_list[0] != "-1":
-            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb)
-        
-
-    @ui.select(
-        placeholder='Сортировать по...',
-        options=[
+        opts = [
             SelectOption(
-                label="Сортировать по цене",
+                label=store_text[lng][5],
+                value=0,
                 emoji="💰",
-                default=False
+                default=True
             ),
             SelectOption(
-                label="Сортировать по дате",
+                label=store_text[lng][6],
+                value=1,
                 emoji="📅",
                 default=False
             )
-
-        ], 
-        min_values=1, 
-        max_values=1
-    )
-    async def callback_select_value(self, menu: ui.Select, interaction: Interaction):
-
-        if menu._selected_values[0] == "Сортировать по цене":
-            self.sort_d = 0
-            self.children[4].options[0].default=True
-            self.children[4].options[1].default=False
-        else:
-            self.sort_d = 1
-            self.children[4].options[0].default=False
-            self.children[4].options[1].default=True
-        self.sort_by()
-
-        store_list=self.click(interaction=interaction, click=4, in_row=self.in_row)
-        if store_list[0] != "-1":
-            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb, view=self)
-
-    @ui.select(
-        placeholder='Сортировать от...',
-        options=[
+        ]
+        self.add_item(c_select(custom_id=f"102_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][4], opts=opts))
+        opts = [
             SelectOption(
-                label="От меньшей цены / более свежого товара",
-                emoji="↗️",
-                default=False
-            ),
-            SelectOption(
-                label="От большей цены / более старого товара",
-                emoji="↘️",
-                default=False
-            )
-        ], 
-        min_values=1, 
-        max_values=1
-    )
-    async def callback_select_how(self, menu: ui.Select, interaction: Interaction):
-        
-        if menu._selected_values[0].startswith("От меньшей"):
-            self.sort_grad = 0
-            self.children[5].options[0].default = True
-            self.children[5].options[1].default = False
-        else:
-            self.sort_grad = 1
-            self.children[5].options[0].default = False
-            self.children[5].options[1].default = True
-        self.sort_by()
-        
-        store_list=self.click(interaction=interaction, click=4, in_row=self.in_row)
-        if store_list[0] != "-1":
-            emb = Embed(title='Роли на продажу:', colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb, view=self)
-
-    async def interaction_check(self, interaction):
-        if interaction.user != self.ctx.user:
-            await interaction.response.send_message('**`Извините, но Вы не можете управлять меню, которое вызвано другим человеком`**', ephemeral=True)
-            return False
-        return True
-
-class store_slash_e(View):
-    def __init__(self, timeout: int, outer_store: list, ctx: Interaction, in_row: int, coin: str, tz: int):
-        super().__init__(timeout=timeout)
-        self.outer_store = outer_store
-        self.ctx = ctx
-        self.in_row = in_row
-        self.sort_d = 0 #by default - sort by price, 1 - sort by date (time)
-        self.sort_grad = 0 #возрастание / убывание, от gradation, 0 - возрастание
-        self.coin = coin
-        self.tz = tz #time zone of the guild
-        self.children[4].options[0].default=True
-        self.children[4].options[1].default=False
-        self.children[5].options[0].default=True
-        self.children[5].options[1].default=False
-
-    def sort_by(self):
-        outer = self.outer_store
-        sort_d = self.sort_d
-        sort_grad = self.sort_grad
-        if sort_d == 0:
-            #price
-            array = [rr[3] for rr in outer]
-        elif sort_d == 1:
-            #time
-            array = [rr[4] for rr in outer]
-            
-        for i in range(len(array)-1):
-            for j in range(i+1, len(array)):
-                if sort_d == 0:
-                    if (sort_grad == 0 and array[i] > array[j]) or (sort_grad == 1 and array[i] < array[j]):
-                        temp = array[j]
-                        array[j] = array[i]
-                        array[i] = temp
-                        temp = outer[j]
-                        outer[j] = outer[i]
-                        outer[i] = temp
-                    elif array[i] == array[j]:
-                        #if datetime.strptime(outer[i][4], '%S/%M/%H/%d/%m/%Y') < datetime.strptime(outer[j][4], '%S/%M/%H/%d/%m/%Y'):
-                        #if prices are equal, at first select позже выставленную роль
-                        if outer[i][4] < outer[j][4]:
-                            temp = array[j]
-                            array[j] = array[i]
-                            array[i] = temp
-                            temp = outer[j]
-                            outer[j] = outer[i]
-                            outer[i] = temp
-
-                elif sort_d == 1:
-                    if (sort_grad == 0 and array[i] < array[j]) or (sort_grad == 1 and array[i] > array[j]):
-                        temp = array[j]
-                        array[j] = array[i]
-                        array[i] = temp
-                        temp = outer[j]
-                        outer[j] = outer[i]
-                        outer[i] = temp
-                    elif array[i] == array[j]:
-                        #if dates are equal, at first select role with lower price
-                        if outer[i][3] > outer[j][3]:
-                            temp = array[j]
-                            array[j] = array[i]
-                            array[i] = temp
-                            temp = outer[j]
-                            outer[j] = outer[i]
-                            outer[i] = temp
-
-        self.outer_store = outer
-        return
-
-    def click(self, interaction: Interaction, click: int, in_row: int):
-        text = interaction.message.embeds[0].description
-        t1 = text.find('Page **`')
-        t2 = text.find('from', t1)
-        counter = int(text[t1+8:t2-4])
-        counter = (counter - 1) * in_row
-        outer = self.outer_store
-        if counter < 0 or counter >= len(outer):
-            return ["-1"]
-        if click == 0:
-            if counter == 0:
-                return ["-1"]
-            counter -= in_row
-        elif click == 1:
-            if counter == (len(outer) + in_row - 1) // in_row * in_row - in_row:
-                return ["-1"]
-            counter += in_row
-        elif click == 2:
-            counter = 0
-        elif click == 3:
-            counter = (len(outer) + in_row - 1) // in_row * in_row - in_row
-
-        store_list = []
-
-        if counter + in_row < len(outer):
-            last = counter + in_row
-        else:
-            last = len(outer)
-        tzinfo = timezone(timedelta(hours=self.tz))    
-        for r in outer[counter:last]:
-            #date = datetime.strptime(r[4], '%S/%M/%H/%d/%m/%Y').strftime('%H:%M %d-%m-%Y')
-            date = datetime.fromtimestamp(r[4], tz=tzinfo).strftime("%H:%M %d-%m-%Y")
-            if r[5] == 1:
-                store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}` {self.coin}\n`Left` - `{r[2]}`\n`Last listed for sale:`\n*{date}*\n")
-            elif r[5] == 2:
-                store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}` {self.coin}\n`Left` - `∞`\n`Last listed for sale:`\n*{date}*\n")
-            elif r[5] == 0:
-                store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}` {self.coin}\n`Listed for sale:`\n*{date}*\n")
-                
-        
-        store_list.append(f'\nPage **`{(counter // in_row) + 1}`** from **`{(len(outer)+in_row-1)//in_row}`**')
-        
-        return store_list
-
-    @ui.button(emoji="⏮️")
-    async def callback_l_end(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
-        if store_list[0] != "-1":
-            emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb)
-
-    @ui.button(emoji="◀️")
-    async def callback_l(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
-        if store_list[0] != "-1":
-            emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb)
-
-    @ui.button(emoji="▶️")
-    async def callback_r(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
-        if store_list[0] != "-1":
-            emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb)
-
-    @ui.button(emoji="⏭")
-    async def callback_r_end(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
-        if store_list[0] != "-1":
-            emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb)
-        
-    @ui.select(
-        placeholder="Sort by...",
-        options=[
-            SelectOption(
-                label="Sort by price",
-                emoji="💰",
-                default=False
-            ),
-            SelectOption(
-                label="Sort by date",
-                emoji="📅",
-                default=False
-            )
-
-        ], 
-        min_values=1, 
-        max_values=1
-    )
-    async def callback_select_value(self, menu: ui.Select, interaction: Interaction):
-
-        if menu._selected_values[0] == "Sort by price":
-            self.sort_d = 0
-            self.children[4].options[0].default=True
-            self.children[4].options[1].default=False
-        else:
-            self.sort_d = 1
-            self.children[4].options[0].default=False
-            self.children[4].options[1].default=True
-        self.sort_by()
-
-        store_list=self.click(interaction=interaction, click=4, in_row=self.in_row)
-        if store_list[0] != "-1":
-            emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb, view=self)
-
-    @ui.select(
-        placeholder="Sort from...",
-        options=[
-            SelectOption(
-                label="From the lower price / newer role",
+                label=store_text[lng][8],
+                value=0,
                 emoji="↗️",
                 default=True
             ),
             SelectOption(
-                label="From the higher price / older role",
-                emoji="↘️"
+                label=store_text[lng][9],
+                value=1,
+                emoji="↘️",
+                default=False
             )
-        ], 
-        min_values=1, 
-        max_values=1
-    )
-    async def callback_select_how(self, menu: ui.Select, interaction: Interaction):
+        ]
+        self.add_item(c_select(custom_id=f"103_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][7], opts=opts))
         
-        if menu._selected_values[0].startswith("From the lower"):
-            self.sort_grad = 0
-            self.children[5].options[0].default = True
-            self.children[5].options[1].default = False
+
+    def sort_by(self) -> None:
+        outer = self.db_store
+        sort_d = self.sort_d
+        sort_grad = self.sort_grad
+        if sort_d == 0:
+            #price
+            array = [rr[3] for rr in outer]
+        elif sort_d == 1:
+            #time
+            array = [rr[4] for rr in outer]
+            
+        for i in range(len(array)-1):
+            for j in range(i+1, len(array)):
+                if sort_d == 0:
+                    if (sort_grad == 0 and array[i] > array[j]) or (sort_grad == 1 and array[i] < array[j]):
+                        temp = array[j]
+                        array[j] = array[i]
+                        array[i] = temp
+                        temp = outer[j]
+                        outer[j] = outer[i]
+                        outer[i] = temp
+                    elif array[i] == array[j] and outer[i][4] < outer[j][4]:
+                        #if prices are equal, at first select позже выставленную роль
+                        temp = array[j]
+                        array[j] = array[i]
+                        array[i] = temp
+                        temp = outer[j]
+                        outer[j] = outer[i]
+                        outer[i] = temp
+
+                elif sort_d == 1:
+                    if (sort_grad == 0 and array[i] < array[j]) or (sort_grad == 1 and array[i] > array[j]):
+                        temp = array[j]
+                        array[j] = array[i]
+                        array[i] = temp
+                        temp = outer[j]
+                        outer[j] = outer[i]
+                        outer[i] = temp
+                    elif array[i] == array[j]:
+                        #if dates are equal, at first select role with lower price
+                        if outer[i][3] > outer[j][3]:
+                            temp = array[j]
+                            array[j] = array[i]
+                            array[i] = temp
+                            temp = outer[j]
+                            outer[j] = outer[i]
+                            outer[i] = temp
+
+        self.db_store = outer
+
+
+    def update_menu(self, interaction: Interaction, lng: int, click: int, in_row: int) -> list:
+        text = interaction.message.embeds[0].description
+
+        if lng == 0:
+            t1 = text.find('Page **`')
+            t2 = text.find('from', t1)
+            counter = int(text[t1+8:t2-4])
+        elif lng == 1:
+            t1 = text.find('Страница **`')
+            t2 = text.find('из', t1)
+            counter = int(text[t1+12:t2-4])
+        
+        counter = (counter - 1) * in_row
+        db_store = self.db_store
+
+        if counter < 0 or counter >= self.l:
+            return []
+        if click == 1:
+            if counter == 0:
+                return []
+            counter -= in_row
+        elif click == 2:
+            if counter == (self.l + in_row - 1) // in_row * in_row - in_row:
+                return []
+            counter += in_row
+        elif click == 0:
+            counter = 0
+        elif click == 3:
+            counter = (self.l + in_row - 1) // in_row * in_row - in_row
+
+        store_list = []
+        tzinfo = timezone(timedelta(hours=self.tz))
+
+        for r, q, p, d, s, s_t, tp in db_store[counter:min(counter + in_row, self.l)]:
+            date = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
+            if tp == 1:
+                r_inf = store_text[lng][0].format(r, p, currency, date)
+            elif tp == 2:
+                r_inf = store_text[lng][0].format(r, p, currency, q, date)
+            elif tp == 3:
+                r_inf = store_text[lng][0].format(r, p, currency, "∞", date)
+            if s:
+                r_inf += store_text[lng][2].format(s * 604800 // s_t, currency)
+            store_list.append(r_inf)
+        
+        if self.l:
+            store_list.append(store_text[lng][3].format((counter // in_row) + 1, (self.l + in_row - 1) // in_row))
         else:
-            self.sort_grad = 1
-            self.children[5].options[0].default = False
-            self.children[5].options[1].default = True
-        self.sort_by()
+            store_list.append(store_text[lng][3].format(1, 1))
         
-        store_list=self.click(interaction=interaction, click=4, in_row=self.in_row)
-        if store_list[0] != "-1":
-            emb = Embed(title="Roles for sale:", colour=Colour.dark_gray(), description='\n'.join(store_list))
+        return store_list
+
+
+    async def click_b(self, interaction: Interaction, c_id: str):
+        lng = 1 if "ru" in interaction.locale else 0
+
+        click = 4
+        if c_id.startswith("32_"):
+            click = 0
+        elif c_id.startswith("33_"):
+            click = 1
+        elif c_id.startswith("34_"):
+            click = 2
+        elif c_id.startswith("35_"):
+            click = 3
+
+        store_list=self.update_menu(interaction=interaction, lng=lng, click=click, in_row=self.in_row)
+        if store_list:
+            emb = Embed(title=store_text[lng][10], colour=Colour.dark_gray(), description='\n'.join(store_list))
+            await interaction.response.edit_message(embed=emb)
+
+
+    async def click_menu(self, interaction: Interaction, c_id: str, value):
+        lng = 1 if "ru" in interaction.locale else 0
+
+        if c_id.startswith("102_"):
+            if int(value[0]):
+                self.sort_d = 1
+                self.children[4].options[0].default=False
+                self.children[4].options[1].default=True
+            else:
+                self.sort_d = 0
+                self.children[4].options[0].default=True
+                self.children[4].options[1].default=False
+
+        elif c_id.startswith("103"):
+            if int(value[0]):
+                self.sort_grad = 1
+                self.children[5].options[0].default=False
+                self.children[5].options[1].default=True
+            else:
+                self.sort_grad = 0
+                self.children[5].options[0].default=True
+                self.children[5].options[1].default=False
+        
+        self.sort_by()
+        store_list = self.update_menu(interaction=interaction, lng=lng, click=4, in_row=self.in_row)
+        if store_list:
+            emb = Embed(title=store_text[lng][10], colour=Colour.dark_gray(), description='\n'.join(store_list))
             await interaction.response.edit_message(embed=emb, view=self)
 
-    async def interaction_check(self, interaction):
-        if interaction.user.id != self.ctx.user.id:
-            await interaction.response.send_message("**`Sorry, but you can't manage menu called by another user`**", ephemeral=True)
-            return False
-        return True
 
-class buy_slash_r(View):
+class buy_slash(View):
 
-        def __init__(self, timeout, ctx: Interaction):
+        def __init__(self, timeout: int, auth_id: int, lng: int):
             super().__init__(timeout=timeout)
-            self.ctx = ctx
-            self.value = 0
+            self.auth_id = auth_id
+            self.value = False
+            self.add_item(c_button(label=buy_approve_text[lng][0], custom_id=f"30_{auth_id}_{randint(1, 100)}", style=ButtonStyle.green, emoji="✅"))
+            self.add_item(c_button(label=buy_approve_text[lng][1], custom_id=f"31_{auth_id}_{randint(1, 100)}", style=ButtonStyle.red, emoji="❌"))
 
-        @ui.button(label='Да', style=ButtonStyle.green, emoji="✅", custom_id = "second")
-        async def agr_callback(self, button: Button, interaction: Interaction):
-            self.value = 1
-            self.stop()
-
-        @ui.button(label='Нет, отменить покупку', style=ButtonStyle.red, emoji="❌")
-        async def decl_callback(self, button: Button, interaction: Interaction):
-            button.disabled = True
-            button1 = [x for x in self.children if x.custom_id == "second"][0]
-            button1.disabled=True
-            emb = interaction.message.embeds[0]
-            emb.description='**`Покупка отмена пользователем`**'
-            await interaction.response.edit_message(embed = emb, view=self)
-            self.stop()
+        async def click_b(self, _, c_id: str):
+            if c_id.startswith("30_"):
+                self.value = True
+                self.stop()
+            elif c_id.startswith("31_"):
+                self.stop()
             
-        async def interaction_check(self, interaction):
-            if interaction.user != self.ctx.user:
-                await interaction.response.send_message('**`Извините, но Вы не можете управлять чужой покупкой`**', ephemeral=True)
-                return False
-            return True
-
-class buy_slash_e(View):
-
-        def __init__(self, timeout, ctx: Interaction):
-            super().__init__(timeout=timeout)
-            self.ctx = ctx
-            self.value = 0
-
-        @ui.button(label='Yes', style=ButtonStyle.green, emoji="✅", custom_id = "second")
-        async def agr_callback(self, button: Button, interaction: Interaction):
-            self.value = 1
-            self.stop()
-
-        @ui.button(label="No, cancel purchase", style=ButtonStyle.red, emoji="❌")
-        async def decl_callback(self, button: Button, interaction: Interaction):
-            button.disabled = True
-            button1 = [x for x in self.children if x.custom_id == "second"][0]
-            button1.disabled=True
-            emb = interaction.message.embeds[0]
-            emb.description='**`Purchase was cancelled by user`**'
-            await interaction.response.edit_message(embed = emb, view=self)
-            self.stop()
-            
-        async def interaction_check(self, interaction):
-            if interaction.user != self.ctx.user:
-                await interaction.response.send_message("**`Sorry, but you can't manage other's purchase`**", ephemeral=True)
+        async def interaction_check(self, interaction) -> bool:
+            if interaction.user.id != self.auth_id:
+                lng = 1 if "ru" in interaction.locale else 0
+                await interaction.response.send_message(common_text[lng][0], ephemeral=True)
                 return False
             return True
 
@@ -798,117 +657,19 @@ class slash(commands.Cog):
         self.bot = bot
         self.in_row = in_row
         self.currency = currency
+        
         global bot_guilds_e
         global bot_guilds_r        
-
-        global text_slash
-        text_slash = {
-            0 : {
-                0 : "Error",
-                1 : "**`I don't have permission to manage roles on the server`**",
-                2 : "**`I don't have permission to manage this role. My role should be higher than this role`**",
-                3 : "Commands",
-                4 : "**`You already have this role`**",
-                5 : "**`This item not found. Please, check if you selected right role`**",
-                6 : "**`For purchasing this role you need {} {} more`**",
-                7 : "Purchase confirmation",
-                8 : "**`Are you sure that you want to buy`** {}?\n{} {} will be debited from your balance",
-                9 : "**`Purchase has expired`**",
-                10 : "Purchase completed",
-                11 : "**`If your DM are open, then purchase confirmation will be message you`**",
-                12 : "You successfully bought role `{}` on the server `{}` for `{}` {}",
-                13 : "Role purchase",
-                14 : "{} bought role {} for {} {}",
-                15 : "Roles for sale:",
-                16 : "**`You can't sell the role that you don't have`**",
-                17 : "**`You can't sell that role because it isn't in the list of roles available for purchase/sale on the server`**",
-                18 : "The sale is completed",
-                19 : "**`You sold role `**{}**` for {}`** {}\n**`If your DM are open, then confirmation of sale will be message you`**",
-                20 : "Confirmation of sale",
-                21 : "**`You sold role {} for {}`** {}",
-                22 : "Role sale",
-                23 : "{} sold role {} for {} {}",
-                24 : "Your balance",
-                25 : "**Your personal roles:**\n--- **Role** --- **Price** --- **Salary** (if it has)",
-                26 : "**`Please, wait {} before using this command`**",
-                27 : "Success",
-                28 : "**`You gained {}`** {}",
-                29 : "Work",
-                30 : "{} gained {} {}",
-                31 : "**`You can't make a bet, because you need {}`** {} **`more`**",
-                32 : "Bet",
-                33 : "**`You bet {}`** {}\n**`Now another user must make a counter bet`**",
-                34 : "**`Time for the counter bet has expired`**",
-                35 : "We have a winner!",
-                36 : "won",
-                37 : "Duel",
-                38 : "<@{}> gained {} {}, <@{}> lost",
-                39 : "**`Sorry, but for money transfering you need {}`** {} **`more`**",
-                40 : "Transaction completed", #title
-                41 : "**`You successfully transfered {}`** {} **`to`** {}",
-                42 : "Transaction",
-                43 : "{} transfered {} {} to {}"
-            },
-            1 : {
-                0 : "Ошибка", #title
-                1 : "**`У меня нет прав управлять ролями на сервере`**",
-                2 : "**`У меня нет прав управлять этой ролью. Моя роль должна быть выше, чем указанная Вами роль`**",
-                3 : "Команды", #title
-                4 : "**`У Вас уже есть эта роль`**",
-                5 : "**`Такой товар не найден. Пожалуйста, проверьте правильность выбранной роли`**",
-                6 : "**`Для покупки роли Вам не хватает {} {}`**",
-                7 : "Подтверждение покупки",
-                8 : "**`Вы уверены, что хотите купить роль`** {}?\nС Вас будет списано **`{}`** {}",
-                9 : '**`Истекло время подтверждения покупки`**',
-                10 : "Покупка совершена", #title
-                11 : "**`Если у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение покупки будет выслано Вам в личные сообщения`**",
-                12 : "Вы успешно купили роль `{}` на сервере `{}` за `{}` {}",
-                13 : "Покупка роли",
-                14 : "{} купил роль {} за {} {}",
-                15 : "Роли на продажу:",
-                16 : "**`Вы не можете продать роль, которой у Вас нет`**",
-                17 : "**`Продажа этой роли невозможна, т.к. она не находится в списке ролей, доступных для покупки/продажи на сервере`**",
-                18 : "Продажа совершена", #title
-                19 : "**`Вы продали роль `**{}**` за {}`** {}\n**`Если у Вас включена возможность получения личных сообщений от участников серверов, \
-                    то подтверждение покупки будет выслано Вам в личные сообщения`**",
-                20 : "Подтверждение продажи",
-                21 : "**`Вы продали роль {} за {}`** {}",
-                22 : "Продажа роли",
-                23 : "{} продал роль {} за {} {}",
-                24 : "Ваш баланс",
-                25 : "**Ваши личные роли:**\n--- **Роль** --- **Цена** --- **Доход** (если есть)",
-                26 : "**`Пожалуйста, подождите {} перед тем, как снова использовать эту команду`**",
-                27 : "Успех",
-                28 : "**`Вы заработали {}`** {}",
-                29 : "Работа",
-                30 : "{} заработал {} {}",
-                31 : "**`Вы не можете сделать ставку, так как Вам не хватает {}`** {}",
-                32 : "Ставка",
-                33 : "**`Вы сделали ставку в размере {}`** {}\n**`Теперь кто-то должен принять Ваш вызов`**",
-                34 : "**`Истекло время ожидания встречной ставки`**",
-                35 : "У нас победитель!",
-                36 : "выиграл(a)",
-                37 : "Дуэль",
-                38 : "<@{}> заработал(a) {} {}, <@{}> - проиграл(a)",
-                39 : "**`Извините, но для совершения перевода Вам не хватает {}`** {}",
-                40 : "Перевод совершён",
-                41 : "**`Вы успешно перевели {}`** {} **`пользователю`** {}",
-                42 : "Транзакция",
-                43 : "{} передал {} {} пользователю {}"
-            }
-        }
 
     
     async def can_role(self, interaction: Interaction, role: Role, lng: int) -> bool:
         
-        if not interaction.guild.me.guild_permissions.manage_roles:
-            emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][1])
-            await interaction.response.send_message(embed=emb)
+        if not interaction.permissions.manage_roles:
+            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][1]))
             return False
 
         elif not role.is_assignable():
-            emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][2])
-            await interaction.response.send_message(embed=emb)
+            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][2]))
             return False
         
         return True
@@ -948,144 +709,108 @@ class slash(commands.Cog):
             return
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                outer = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchone()
-                if not outer:
+                store = cur.execute('SELECT * FROM store WHERE role_id = ?', (r_id,)).fetchone()
+                if not store:
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][5], colour=Colour.red()))
                     return
 
-                role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
-
+                role_info = cur.execute('SELECT price, type FROM server_roles WHERE role_id = ?', (r_id,)).fetchone()
                 memb_id = member_buyer.id
                 buyer = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 buyer_cash = buyer[1]
-                cost = role_info[1]
+                cost = role_info[0]
+
                 if buyer_cash < cost:
-                    emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=f"{text_slash[lng][6].format(cost - buyer_cash, self.currency)}")
-                    await interaction.response.send_message(embed=emb)
+                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][6].format(cost - buyer_cash, currency)))
+                    await interaction.delete_original_message(delay=10)
                     return
 
-                emb = Embed(title=text_slash[lng][7], description=text_slash[lng][8].format(role.mention, cost, self.currency))
-                if lng == 0:
-                    view = buy_slash_e(timeout=30, ctx=interaction)
-                else:
-                    view = buy_slash_r(timeout=30, ctx=interaction)
-                await interaction.response.send_message(embed=emb, view=view)
-                msg = await interaction.original_message()
-
-                chk = await view.wait()
-                if chk:
-                    for button in view.children:
-                        button.disabled = True
-                    emb.description = text_slash[lng][9]
-                    await msg.edit(embed = emb, view=view)
-                    return
+                emb = Embed(title=text_slash[lng][7], description=text_slash[lng][8].format(role.mention, cost, currency))
                 
-                if view.value:
+                view = buy_slash(timeout=30, auth_id=memb_id, lng=lng)
+                await interaction.response.send_message(embed=emb, view=view)
+
+                c = await view.wait()
+                if c or not view.value:
+                    await interaction.delete_original_message()
+                    return                    
                     
-                    is_special = role_info[2]
-                    if is_special == 0:
-                        outer = None
-                        #special_roles = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchall()
-                        #min_time = datetime.utcnow() + timedelta(hours=4)
-                        """ min_time = int(time()) + 57600
-                        for i in range(len(special_roles)):
-                            #if datetime.strptime(special_roles[i][4], "%S/%M/%H/%d/%m/%Y") < min_time:
-                            if special_roles[i][4] < min_time:
-                                outer = special_roles[i]
-                                #min_time = datetime.strptime(special_roles[i][4], "%S/%M/%H/%d/%m/%Y")
-                                min_time = special_roles[i][4] """
-                        outer = cur.execute("SELECT * FROM outer_store")
-                    await member_buyer.add_roles(role)                            
-                    buyer_owned_roles = buyer[2]
-                    buyer_owned_roles += f"#{role.id}"                        
-                    cur.execute('UPDATE users SET money = money - ?, owned_roles = ? WHERE memb_id = ?', (cost, buyer_owned_roles, memb_id))
-                    base.commit()
-                    
-                    if (outer[2] <= 1 and outer[2] != -404) or is_special == 0:
-                        item_id = cur.execute('SELECT item_id FROM outer_store WHERE role_id = ?', (role.id,)).fetchone()[0]
-                        cur.execute('DELETE FROM outer_store WHERE item_id = ?', (item_id,))
-                        base.commit()
-                    elif is_special == 1:
-                        cur.execute('UPDATE outer_store SET quantity = quantity - ? WHERE role_id = ?', (1, role.id))
-                        base.commit()
+                role_type = role_info[1]
+                await member_buyer.add_roles(role)                                                
+                cur.execute('UPDATE users SET money = money - ?, owned_roles = ? WHERE memb_id = ?', (cost, buyer[2]+f"#{r_id}" , memb_id))
+                base.commit()
+                
+                if role_type == 1:
+                    rowid_to_delete = sorted(cur.execute("SELECT rowid, last_date FROM store WHERE role_id = ?", (r_id,)).fetchall(), key=lambda tup: tup[1])[0][0]
+                    cur.execute("DELETE FROM store WHERE rowid = ?", (rowid_to_delete,))                        
+                elif role_type == 2:
+                    if store[1] > 1:
+                        cur.execute('UPDATE store SET quantity = quantity - ? WHERE role_id = ?', (1, r_id))
+                    else:
+                        cur.execute("DELETE FROM store WHERE role_id = ?", (r_id,))
+                base.commit()
+                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
 
-                    emb.title = text_slash[lng][10]
-                    emb.description = text_slash[lng][11]
-                    await msg.edit(embed=emb, view=None)
+        emb.title = text_slash[lng][10]
+        emb.description = text_slash[lng][11]
+        await interaction.edit_original_message(embed=emb, view=None)
 
-                    try:
-                        emb = Embed(title=text_slash[lng][7], description=text_slash[lng][12].format(role.name, interaction.guild.name, cost, self.currency), colour=Colour.green())
-                        await member_buyer.send(embed=emb)
-                    except:
-                        pass
-
-                    chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
-                    if chnl_id != 0:
-                        try:
-                            channel = interaction.guild.get_channel(chnl_id)
-                            await channel.send(embed=Embed(title=text_slash[lng][13], description=text_slash[lng][14].format(interaction.user.mention, role.mention, cost, self.currency)))
-                        except:
-                            pass
+        try: await member_buyer.send(embed=Embed(title=text_slash[lng][7], description=text_slash[lng][12].format(role.name, interaction.guild.name, cost, self.currency), colour=Colour.green()))
+        except: pass
+        
+        if chnl_id:
+            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][13], description=text_slash[lng][14].format(f"<@{memb_id}>", f"<@&{r_id}>", cost, self.currency)))
+            except: pass
 
 
     async def store(self, interaction: Interaction) -> None:
+        
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db")) as base:
-            with closing(base.cursor()) as cur:
-                in_row = self.in_row
-                counter = 0
-                store_list = []
-                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+            with closing(base.cursor()) as cur:        
                 tz = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
-                outer_list = cur.execute('SELECT * FROM store').fetchall()
-                for i in range(len(outer_list)-1):
-                    for j in range(i+1, len(outer_list)):
-                        if outer_list[i][3] > outer_list[j][3]:
-                            temp = outer_list[j]
-                            outer_list[j] = outer_list[i]
-                            outer_list[i] = temp
-                        elif outer_list[i][3] == outer_list[j][3]:
-                            #if datetime.strptime(outer_list[i][4], "%S/%M/%H/%d/%m/%Y") < datetime.strptime(outer_list[j][4], "%S/%M/%H/%d/%m/%Y"):
-                            if outer_list[i][4] < outer_list[j][4]:
-                                temp = outer_list[j]
-                                outer_list[j] = outer_list[i]
-                                outer_list[i] = temp
-                tzinfo = timezone(timedelta(hours=tz))
-                if lng == 0:
-                    for r in outer_list[counter:counter+in_row]:
-                        #date = datetime.strptime(r[4], '%S/%M/%H/%d/%m/%Y').strftime('%H:%M %d-%m-%Y')
-                        date = datetime.fromtimestamp(r[4], tz=tzinfo).strftime("%H:%M %d-%m-%Y")
-                        if r[5] == 1:
-                            store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}` {self.currency}\n`Left` - `{r[2]}`\n`Last listed for sale:`\n*{date}*\n")
-                        elif r[5] == 2:
-                            store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}` {self.currency}\n`Left` - `∞`\n`Last listed for sale:`\n*{date}*\n")
-                        elif r[5] == 0:
-                            store_list.append(f"**•** <@&{r[1]}>\n`Price` - `{r[3]}` {self.currency}\n`Listed for sale:`\n*{date}*\n")
-                    store_list.append(f'\nPage **`1`** from **`{(len(outer_list)+in_row-1)//in_row}`**')
-                else:
-                    for r in outer_list[counter:counter+in_row]:
-                        #date = datetime.strptime(r[4], '%S/%M/%H/%d/%m/%Y').strftime('%H:%M %d-%m-%Y')
-                        date = datetime.fromtimestamp(r[4], tz=tzinfo).strftime("%H:%M %d-%m-%Y")
-                        if r[5] == 1:
-                            store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.currency}\n`Осталось` - `{r[2]}`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
-                        elif r[5] == 2:
-                            store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.currency}\n`Осталось` - `∞`\n`Последний раз выставленa на продажу:`\n*{date}*\n")
-                        elif r[5] == 0:
-                            store_list.append(f"**•** <@&{r[1]}>\n`Цена` - `{r[3]}` {self.currency}\n`Выставленa на продажу:`\n*{date}*\n")
-                    store_list.append(f'\nСтраница **`1`** из **`{(len(outer_list)+in_row-1)//in_row}`**')
+                db_store = cur.execute('SELECT * FROM store').fetchall()
 
-                emb = Embed(title=text_slash[lng][15], colour=Colour.dark_gray(), description='\n'.join(store_list))
-                if lng == 0:
-                    myview_store = store_slash_e(timeout=60, outer_store=outer_list, ctx=interaction, in_row=in_row, coin=self.currency, tz=tz)
-                else:
-                    myview_store = store_slash_r(timeout=60, outer_store=outer_list, ctx=interaction, in_row=in_row, coin=self.currency, tz=tz)
-                await interaction.response.send_message(embed=emb, view=myview_store)
-                msg = await interaction.original_message()
-                chk = await myview_store.wait()
-                if chk:
-                    for button in myview_store.children:
-                        button.disabled = True
-                    await msg.edit(view=myview_store)
+        for i in range(len(db_store)-1):
+            for j in range(i+1, len(db_store)):
+                if db_store[i][2] > db_store[j][2]:
+                    temp = db_store[j]
+                    db_store[j] = db_store[i]
+                    db_store[i] = temp
+                elif db_store[i][2] == db_store[j][2] and db_store[i][3] < db_store[j][3]:
+                    temp = db_store[j]
+                    db_store[j] = db_store[i]
+                    db_store[i] = temp
+
+        store_list = []
+        tzinfo = timezone(timedelta(hours=tz))
+        
+        for r, q, p, d, s, s_t, tp in db_store[:in_row]:
+            date = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
+            if tp == 1:
+                r_inf = store_text[lng][0].format(r, p, currency, date)
+            elif tp == 2:
+                r_inf = store_text[lng][0].format(r, p, currency, q, date)
+            elif tp == 3:
+                r_inf = store_text[lng][0].format(r, p, currency, "∞", date)
+            if s:
+                r_inf += store_text[lng][2].format(s * 604800 // s_t, currency)
+            store_list.append(r_inf)               
+
+        if len(db_store):
+            store_list.append(store_text[lng][3].format(1, (len(db_store) + in_row - 1) // in_row))
+        else:
+            store_list.append(store_text[lng][3].format(1, 1))
+
+        emb = Embed(title=text_slash[lng][15], colour=Colour.dark_gray(), description='\n'.join(store_list))        
+        myview_store = store_slash_view(timeout=60, db_store=db_store, auth_id=interaction.user.id, lng=lng, in_row=in_row, coin=currency, tz=tz)
+
+        await interaction.response.send_message(embed=emb, view=myview_store)
+        
+        await myview_store.wait()
+        for button in myview_store.children:
+            button.disabled = True
+        await interaction.edit_original_message(view=myview_store)               
 
 
     async def sell(self, interaction: Interaction, role: Role) -> None:
@@ -1749,8 +1474,6 @@ class slash(commands.Cog):
     async def leaders_r(self, interaction: Interaction):
         await self.leaders(interaction=interaction)
     
-    
-   
 
 def setup(bot: commands.Bot, **kwargs):
     bot.add_cog(slash(bot, **kwargs))

@@ -1378,12 +1378,10 @@ class c_modal_edit(Modal):
         
         elif r_type == 1:
             if l_prev < l:
-                cur_request = [(r, 1, price, t, salary, salary_c, 1) for _ in range(l-l_prev)]
-                cur.executemany("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", cur_request)
+                cur.executemany("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", [(r, 1, price, t, salary, salary_c, 1) for _ in range(l-l_prev)])
             elif l_prev > l:
-                sort_rls = sorted(cur.execute("SELECT * FROM store WHERE role_id = ?", (r,)).fetchall(), key=lambda tup: tup[3])
-                cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
-                cur.executemany("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", sort_rls[l_prev-l:])
+                sort_rls = sorted(cur.execute("SELECT rowid, last_date FROM store WHERE role_id = ?", (r,)).fetchall(), key=lambda tup: tup[1])
+                cur.execute(f"DELETE FROM store WHERE rowid IN {tuple({x[0] for x in sort_rls[:l_prev-l]})}")
             else:
                 cur.execute("UPDATE store SET price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (price, t, salary, salary_c, r))
 
