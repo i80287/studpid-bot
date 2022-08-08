@@ -904,59 +904,52 @@ class slash(commands.Cog):
         if not interaction.guild.me.guild_permissions.manage_roles:
             emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][1])
             await interaction.response.send_message(embed=emb)
-            return 0
+            return False
 
         elif not role.is_assignable():
             emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][2])
             await interaction.response.send_message(embed=emb)
-            return 0
+            return False
         
-        return 1
+        return True
 
 
     def check_user(self, base: Connection, cur: Cursor, memb_id: int):
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
-        if member == None:
-            cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date) VALUES(?, ?, ?, ?)', (memb_id, 0, "", "0"))
+        if not member:
+            cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
             base.commit()
+            return (memb_id, 0, "", 0, 0)
         else:
-            if member[1] == None or member[1] < 0:
+            if member[1] is None or member[1] < 0:
                 cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
-            if member[2] == None:
+            if member[2] is None:
                 cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
                 base.commit()
-            if member[3] == None:
-                cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', ("0", memb_id))
+            if member[3] is None:
+                cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
+                base.commit()
+            if member[4] is None:
+                cur.execute('UPDATE users SET xp = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
     
-
-    """ async def help(self, interaction: Interaction) -> None:
-        lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
-            with closing(base.cursor()) as cur:
-                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                emb = Embed(title=text_slash[lng][3], colour=Colour.dark_purple())
-                for n, v in cmds[lng]:
-                    emb.add_field(name=n, value=v, inline=False)
-                await interaction.response.send_message(embed=emb) """
-
 
     async def buy(self, interaction: Interaction, role: Role) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
         member_buyer = interaction.user
-        if role in member_buyer.roles:
-            emb = Embed(title=text_slash[lng][0], description=text_slash[lng][4], colour=Colour.red())
-            await interaction.response.send_message(embed=emb)
+        r_id = role.id
+        rls = {x[0] for x in member_buyer.roles}
+        if r_id in rls:
+            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][4], colour=Colour.red()))
             return
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 outer = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchone()
-                if outer == [] or outer == None:
+                if not outer:
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][5], colour=Colour.red()))
                     return
 

@@ -44,7 +44,6 @@ class msg_h(commands.Cog):
         self._backup.start()
         
     
-    
     def correct_db(self, guild) -> None:
         with closing(connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
             with closing(base.cursor()) as cur:

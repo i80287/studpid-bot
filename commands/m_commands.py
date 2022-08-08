@@ -1017,10 +1017,13 @@ class economy_roles_manage_view(View):
             
             edit_mod = c_modal_edit(timeout=90, role=self.role, m=interaction.message, auth_id=interaction.user.id, lng=lng, p=r[1], s=r[2], s_c=r[3]//3600, r_t=r[4], in_store=cnt)
             await interaction.response.send_modal(modal=edit_mod)
+            await edit_mod.wait()
+            if edit_mod.changed:
+                self.role = None
             return
 
 
-    async def click_menu(self, interacion, c_id: str, values):
+    async def click_menu(self, _, c_id: str, values):
         if c_id.startswith("80"):
             self.role = int(values[0])
 
@@ -1200,6 +1203,7 @@ class c_modal_edit(Modal):
         self.prev_r_t = r_t
         self.s = s
         self.s_c = s_c
+        self.changed = False
         self.price = TextInput(
             label=ec_mr_text[lng][10],
             min_length=1,
@@ -1247,7 +1251,6 @@ class c_modal_edit(Modal):
         self.add_item(self.salary)
         self.add_item(self.r_type_inp)
         self.add_item(self.in_st)
-
 
     def check_ans(self) -> int:
         ans = 0
@@ -1338,6 +1341,7 @@ class c_modal_edit(Modal):
                 dsc[i] = f"<@&{r}> - **`{r}`** - **`{price}`** - **`{salary}`** - **`{salary_c//3600}`** - **`{r_types[lng][r_type]}`** - **`{l}`**"
         emb.description = "\n".join(dsc)
         await self.m.edit(embed=emb)
+        self.changed = True
 
         await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][30].format(r, price, salary, salary_c // 3600, r_types[lng][r_type], l)), ephemeral=True)
         self.stop()
@@ -1377,7 +1381,7 @@ class c_modal_edit(Modal):
                 cur_request = [(r, 1, price, t, salary, salary_c, 1) for _ in range(l-l_prev)]
                 cur.executemany("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", cur_request)
             elif l_prev > l:
-                sort_rls = cur.execute("SELECT * FROM store WHERE role_id = ? ORDER BY last_date", (r,)).fetchall()
+                sort_rls = sorted(cur.execute("SELECT * FROM store WHERE role_id = ?", (r,)).fetchall(), key=lambda tup: tup[3])
                 cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
                 cur.executemany("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", sort_rls[l_prev-l:])
             else:
@@ -2315,20 +2319,20 @@ class settings_view(View):
 
     def check_memb(self, base: Connection, cur: Cursor, memb_id: int):
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
-        if member == None:
+        if not member:
             cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
             base.commit()
         else:
-            if member[1] == None or member[1] < 0:
+            if member[1] is None or member[1] < 0:
                 cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
-            if member[2] == None:
+            if member[2] is None:
                 cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
                 base.commit()
-            if member[3] == None:
+            if member[3] is None:
                 cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
-            if member[4] == None:
+            if member[4] is None:
                 cur.execute('UPDATE users SET xp = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
