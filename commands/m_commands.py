@@ -2305,24 +2305,24 @@ class settings_view(View):
 
 
     def check_memb(self, base: Connection, cur: Cursor, memb_id: int):
-            member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
-            if member == None:
-                cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
+        member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
+        if member == None:
+            cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
+            base.commit()
+        else:
+            if member[1] == None or member[1] < 0:
+                cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
-            else:
-                if member[1] == None or member[1] < 0:
-                    cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
-                    base.commit()
-                if member[2] == None:
-                    cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
-                    base.commit()
-                if member[3] == None:
-                    cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
-                    base.commit()
-                if member[4] == None:
-                    cur.execute('UPDATE users SET xp = ? WHERE memb_id = ?', (0, memb_id))
-                    base.commit()
-            return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
+            if member[2] == None:
+                cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
+                base.commit()
+            if member[3] == None:
+                cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
+                base.commit()
+            if member[4] == None:
+                cur.execute('UPDATE users SET xp = ? WHERE memb_id = ?', (0, memb_id))
+                base.commit()
+        return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
 
 
     async def click(self, interaction: Interaction, custom_id: str):
@@ -2568,7 +2568,7 @@ class m_cmds(commands.Cog):
         global bot_guilds_e
         global bot_guilds_r
 
-    def mod_check(interaction: Interaction):
+    def mod_check(interaction: Interaction) -> bool:
         u = interaction.user
         if u.guild_permissions.administrator or u.guild_permissions.manage_guild:
             return True

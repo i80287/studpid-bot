@@ -28,7 +28,7 @@ if __name__ == "__main__":
     bot.load_extension(f"commands.event_handl")
 
     bot.load_extension(f"commands.m_commands")
-    bot.load_extension(f"commands.basic", extras={"prefix": prefix, "in_row": in_row})
+    bot.load_extension(f"commands.basic")
     bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row})
 
     #bot.run(token)
