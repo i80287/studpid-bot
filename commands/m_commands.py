@@ -325,7 +325,7 @@ mng_membs_text = {
         2 : "Xp",
         3 : "Level",
         4 : "Place in the rating",
-        5 : "**`Information about member `**<@{}>**` with id {}`**",
+        5 : "**`Information about member `**<@{}>**`\nwith id {}`**",
         6 : "**`Member doesn't have any roles from the bot's store`**",
         7 : "**`Member already has this role`**",
         8 : "**`You added role`**<@&{}>**` to the `**<@{}>",
@@ -348,7 +348,7 @@ mng_membs_text = {
         2 : "Опыт",
         3 : "Уровень",
         4 : "Место в рейтинге",
-        5 : "**`Информация о пользователе `**<@{}>**` с id {}`**",
+        5 : "**`Информация о пользователе `**<@{}>**`\nс id {}`**",
         6 : "**`У пользователя нет ролей из магазина бота`**",
         7 : "**`Эта роль уже есть у пользователя`**",
         8 : "**`Вы добавили роль `**<@&{}>**` пользователю `**<@{}>",
@@ -1545,7 +1545,7 @@ class c_modal_mng_memb(Modal):
 
 class mng_membs_view(View):
 
-    def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set, rls: list, cur_money: int, cur_xp: int, rem_dis: bool, g_id: int):
+    def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set, rls: list, cur_money: int, cur_xp: int, rem_dis: bool, g_id: int, member):
         super().__init__(timeout=timeout)
         self.add_item(c_button(style=ButtonStyle.blurple, label=mng_membs_text[lng][0], emoji="🔧", custom_id=f"18_{auth_id}_{randint(1, 100)}"))
         for i in range((len(rls)+24)//25):
@@ -1559,6 +1559,7 @@ class mng_membs_view(View):
         self.xp = cur_xp
         self.g_id = g_id
         self.auth_id = auth_id
+        self.member=member
 
     async def add_r(self, lng: int, interaction: Interaction) -> None:
         if self.role in self.memb_rls:
@@ -1570,7 +1571,11 @@ class mng_membs_view(View):
             with closing(base.cursor()) as cur:
                 m_rls = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
                 cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls + f"{self.role}#", self.memb_id))
+                membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
+                if membs:
+                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0] + f"{self.memb_id}#", self.role))
                 base.commit()
+        await self.member.add_roles(interaction.guild.get_role(self.role))
 
         embs = interaction.message.embeds
         emb3 = embs[2]
@@ -1600,7 +1605,11 @@ class mng_membs_view(View):
             with closing(base.cursor()) as cur:
                 m_rls = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
                 cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls.replace(f"{self.role}#", ""), self.memb_id))
+                membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
+                if membs:
+                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"{self.memb_id}#", ""), self.role))
                 base.commit()
+        await self.member.remove_roles(interaction.guild.get_role(self.role))
         
         embs = interaction.message.embeds
         emb3 = embs[2]
@@ -1914,11 +1923,11 @@ class lvl_roles_view(View):
                 await interaction.delete_original_message(delay=6)
                 return
             else:
-                for i in range((len(rls) + 23) // 24):
+                for i in range((len(rls) + 24) // 25):
                     self.add_item(c_select(
                         custom_id=f"{1300+i}_{self.auth_id}_{randint(1, 100)}", 
                         placeholder=settings_text[lng][2], 
-                        opts=[(settings_text[lng][12], 0)] + rls[i*24:min(len(rls), (i+1) * 24)]
+                        opts=rls[i*25:min(len(rls), (i+1) * 25)]
                     ))
                 await interaction.message.edit(view=self)
                 await interaction.edit_original_message(embed=Embed(description = ranking_text[lng][29].format(ans)))
@@ -2458,7 +2467,8 @@ class settings_view(View):
                 cur_money=cash,
                 cur_xp=xp,
                 rem_dis=rem_dis,
-                g_id=interaction.guild_id                 
+                g_id=interaction.guild_id,
+                member=memb
             )
 
             await interaction.edit_original_message(embeds=[emb1, emb2, emb3], view=mng_v)

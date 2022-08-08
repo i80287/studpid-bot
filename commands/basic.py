@@ -147,7 +147,6 @@ m_cmds = {
 }
 
 
-
 class custom_b(Button):
 
     def __init__(self, label: str, style: ButtonStyle, emoji, c_id: str):

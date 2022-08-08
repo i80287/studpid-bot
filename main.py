@@ -17,7 +17,7 @@ if __name__ == "__main__":
     """
     for filename in os.listdir(f"{path}commands"):
         if filename.endswith(".py"):
-            bot.load_extension(f"commands.{filename[:-3]}", extras={"prefix": prefix, "in_row": in_row, "currency": currency}) """
+            bot.load_extension(f"commands.{filename[:-3]}")"""
     bot = Bot()
     
     cmd = Console(bot)
@@ -29,7 +29,7 @@ if __name__ == "__main__":
 
     bot.load_extension(f"commands.m_commands")
     bot.load_extension(f"commands.basic")
-    bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row})
+    bot.load_extension(f"commands.slash_shop")
 
     #bot.run(token)
     bot.run(debug_token)

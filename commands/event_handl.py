@@ -10,7 +10,7 @@ from nextcord import Game, Message, ChannelType, MessageType, Embed, Guild
 from nextcord.ext import commands, tasks
 from nextcord.errors import ApplicationCheckFailure
 
-from config import path_to, bot_guilds_e, bot_guilds_r, bot_guilds, prefix, in_row
+from config import path_to, bot_guilds_e, bot_guilds_r, bot_guilds 
 
 event_handl_text = {
     0 : {
@@ -33,13 +33,16 @@ class msg_h(commands.Cog):
         tx = {
             0 : {
                 0 : "New level!",
-                1 : "{}, you raised your level to **{}**!"
+                1 : "{}, you raised level to **{}**!"
             },
             1 : {
                 0 : "Новый уровень!",
                 1 : "{}, Вы подняли уровень до **{}**!"
             }
         }
+        self.salary_roles.start()
+        self._backup.start()
+        
     
     
     def correct_db(self, guild) -> None:
@@ -97,7 +100,7 @@ class msg_h(commands.Cog):
     
         """ self.bot.load_extension(f"commands.m_commands")
         self.bot.load_extension(f"commands.basic")
-        self.bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row})
+        self.bot.load_extension(f"commands.slash_shop")
 
         await sleep(2)
         await self.bot.sync_all_application_commands()
@@ -153,21 +156,19 @@ class msg_h(commands.Cog):
                     if r:
                         t_n = int(time())
                         for role, members, salary, t, last_time in r:
-                            flag = 0
+                            flag = False
 
-                            if last_time == 0 or last_time is None:
-                                flag = 1
-                            elif last_time - t_n >= t:
-                                flag = 1
+                            if not last_time:
+                                flag = True
+                            elif t_n - last_time >= t:
+                                flag = True
 
                             if flag:
                                 cur.execute("UPDATE salary_roles SET last_time = ? WHERE role_id = ?", (t_n, role))
                                 base.commit()
                                 for member in members.split("#"):
                                     if member != "":
-                                        member = int(member)
-                                        self.check(base=base, cur=cur, memb_id=member)
-                                        cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, member))
+                                        cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, int(member)))
                                         base.commit()
             await sleep(0.5)
 
@@ -183,7 +184,7 @@ class msg_h(commands.Cog):
             with closing(connect(f"{path_to}/bases/bases_{guild_id}/{guild_id}.db")) as src:
                 with closing(connect(f"{path_to}/bases/bases_{guild_id}/{guild_id}_backup.db")) as bck:
                     src.backup(bck)
-            sleep(0.5)
+            await sleep(0.5)
         
 
     @_backup.before_loop
@@ -215,19 +216,18 @@ class msg_h(commands.Cog):
 
         with closing(connect(f"{path_to}/bases/bases_{message.guild.id}/{message.guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
-                if cur.execute("SELECT count() FROM ic WHERE ch_id = ?", (message.channel.id,)).fetchone()[0]:
-                    params = cur.execute("SELECT value FROM server_info WHERE settings IN ('lang', 'xp_border', 'xp_per_msg', 'mn_per_msg', 'lvl_c')").fetchone()[0]
-                    xp_b = params[1][0]
-                    xp_p_m = params[2][0]
-                    mn_p_m = params[3][0]
-                    print(params)
+                if not cur.execute("SELECT count() FROM ic WHERE chnl_id = ?", (message.channel.id,)).fetchone()[0]:
+                    xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border';").fetchone()[0]
+                    xp_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';").fetchone()[0]
+                    mn_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]
+                    
                     lvl = self.check_user(base=base, cur=cur, memb_id=user.id, xp_b=xp_b, mn_m=mn_p_m, xp_m=xp_p_m)
                     if lvl:
-                        chnl = params[4][0]
+                        chnl = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
                         if chnl != 0:
                             ch = message.guild.get_channel(chnl)
                             if ch:
-                                lng = params[0][0]
+                                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
                                 emb = Embed(title=tx[lng][0], description=tx[lng][1].format(user.mention, lvl))
                                 await ch.send(embed=emb)
                         lvl_rls = sorted(cur.execute("SELECT * FROM rank_roles").fetchall(), key=lambda tup: tup[0])
@@ -237,11 +237,11 @@ class msg_h(commands.Cog):
 
                         lvl_rls = {k: v for k, v in lvl_rls}
                         lvls = [k for k in lvl_rls.keys()]
-                        
+
                         if lvl in lvl_rls:
                             memb_rls = {role.id for role in user.roles}
-                            
-                            if lvl_rls[lvl] in memb_rls:
+
+                            if not lvl_rls[lvl] in memb_rls:
                                 role = user.guild.get_role(lvl_rls[lvl])
                                 await user.add_roles(role, reason=f"Member gained new level {lvl}")
 
