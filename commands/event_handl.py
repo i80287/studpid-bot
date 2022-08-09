@@ -39,6 +39,21 @@ class msg_h(commands.Cog):
                 0 : "Новый уровень!",
                 1 : "{}, Вы подняли уровень до **{}**!"
             }
+        },
+        global greetings
+        greetings = {
+            0 : {
+                ["Thanks for adding bot!",
+                "Use **`/guide`** to see guide about bot's system",
+                "**`/settings`** to manage bot",
+                "and **`/help`** to see available commands"]
+            },
+            1 : {
+                ["Благодарим за добавление бота!",
+                "Используйте **`/guide`** для просмотра гайда о системе бота",
+                "**`/settings`** для управления ботом",
+                "и **`/help`** для просмотра доступных команд"]
+            }
         }
         self.salary_roles.start()
         self._backup.start()
@@ -118,18 +133,23 @@ class msg_h(commands.Cog):
 
     @commands.Cog.listener()
     async def on_guild_join(self, guild: Guild) -> None:
+
         if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
-            try: mkdir(f"{path_to}/bases/bases_{guild.id}/")
-            except Exception as E:
-                with open("error.log", "a+", encoding="utf-8") as f:
-                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [can't create folder for db] [{guild.id}] [{guild.name}] [{str(E)}]\n")
-                return
+            mkdir(f"{path_to}/bases/bases_{guild.id}/")
 
         self.correct_db(guild=guild)
 
+        c = guild.system_channel
+        if c.permissions_for(guild.me).send_messages:
+            c.send(embed=Embed(description="\n".join(greetings)))
+        else:
+            for c in guild.text_channels:
+                if c.permissions_for(guild.me).send_messages:
+                    c.send(embed=Embed(description="\n".join(greetings)))
+                    break
+
         with open("guild.log", "a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.id}] [{guild.name}] \n")
-
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: Guild):

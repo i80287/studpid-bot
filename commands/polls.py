@@ -791,7 +791,8 @@ class polling(commands.Cog):
             description_localizations={
                 Locale.en_US: "Напишите 3-й вариант ответа полла"
             },
-            required=False
+            required=False,
+            default=""
         ),
         answer4: str = SlashOption(
             name="answer4",
@@ -802,7 +803,8 @@ class polling(commands.Cog):
             description_localizations={
                 Locale.en_US: "Напишите 4-й вариант ответа полла"
             },
-            required=False
+            required=False,
+            default=""
         ),
         answer5: str = SlashOption(
             name="answer5",
@@ -813,7 +815,8 @@ class polling(commands.Cog):
             description_localizations={
                 Locale.en_US: "Напишите 5-й вариант ответа полла"
             },
-            required=False
+            required=False,
+            default=""
         ),
         answer6: str = SlashOption(
             name="answer6",
@@ -824,7 +827,8 @@ class polling(commands.Cog):
             description_localizations={
                 Locale.en_US: "Напишите 6-й вариант ответа полла"
             },
-            required=False
+            required=False,
+            default=""
         ),
         answer7: str = SlashOption(
             name="answer7",
@@ -835,7 +839,8 @@ class polling(commands.Cog):
             description_localizations={
                 Locale.en_US: "Напишите 7-й вариант ответа полла"
             },
-            required=False
+            required=False,
+            default=""
         ),
         answer8: str = SlashOption(
             name="answer8",
@@ -846,7 +851,8 @@ class polling(commands.Cog):
             description_localizations={
                 Locale.en_US: "Напишите 8-й вариант ответа полла"
             },
-            required=False
+            required=False,
+            default=""
         ),
         answer9: str = SlashOption(
             name="answer9",
@@ -857,7 +863,8 @@ class polling(commands.Cog):
             description_localizations={
                 Locale.en_US: "Напишите 9-й вариант ответа полла"
             },
-            required=False
+            required=False,
+            default=""
         ),
         answer10: str = SlashOption(
             name="answer10",
@@ -868,7 +875,8 @@ class polling(commands.Cog):
             description_localizations={
                 Locale.en_US: "Напишите 10-й вариант ответа полла"
             },
-            required=False
+            required=False,
+            default=""
         ),
         answer11: str = SlashOption(
             name="answer11",
@@ -879,7 +887,8 @@ class polling(commands.Cog):
             description_localizations={
                 Locale.en_US: "Напишите 11-й вариант ответа полла"
             },
-            required=False
+            required=False,
+            default=""
         ),
         answer12: str = SlashOption(
             name="answer12",
@@ -890,7 +899,8 @@ class polling(commands.Cog):
             description_localizations={
                 Locale.en_US: "Напишите 12-й вариант ответа полла"
             },
-            required=False
+            required=False,
+            default=""
         )
     ):
         await self.poll(interaction, question, hours, minutes, anon, mult, answer1, answer2, answer3, answer4, answer5, answer6, answer7, answer8, answer9, answer10, answer11, answer12)
