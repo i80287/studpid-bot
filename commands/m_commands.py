@@ -1402,7 +1402,7 @@ class c_modal_edit(Modal):
                 if s_r in req[2]:
                     ids.add(f"{r[0]}")
             if len(ids):
-                membs = "#".join(ids) + "#"
+                membs = "#".join(ids)
             else:
                 membs = ""
             cur.execute("INSERT INTO salary_roles(role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, ?)", (r, membs, salary, salary_c, 0))
@@ -1441,7 +1441,7 @@ class verify_delete(View):
                     base.commit()
                     for r in cur.execute("SELECT * FROM users").fetchall():
                         if f"{self.role}" in r[2]:
-                            cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (r[2].replace(f"{self.role}#", ""), r[0]))
+                            cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (r[2].replace(f"#{self.role}", ""), r[0]))
                             base.commit()
                             
             await interaction.edit_original_message(embed=Embed(description=ec_mr_text[lng][5].format(self.role)))
@@ -1572,10 +1572,10 @@ class mng_membs_view(View):
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 m_rls = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
-                cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls + f"{self.role}#", self.memb_id))
+                cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls + f"#{self.role}", self.memb_id))
                 membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
                 if membs:
-                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0] + f"{self.memb_id}#", self.role))
+                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0] + f"#{self.memb_id}", self.role))
                 base.commit()
         await self.member.add_roles(interaction.guild.get_role(self.role))
 
@@ -1606,7 +1606,7 @@ class mng_membs_view(View):
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 m_rls = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
-                cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls.replace(f"{self.role}#", ""), self.memb_id))
+                cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls.replace(f"#{self.role}", ""), self.memb_id))
                 membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
                 if membs:
                     cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"{self.memb_id}#", ""), self.role))

@@ -87,8 +87,8 @@ text_slash = {
         16 : "**`Вы не можете продать роль, которой у Вас нет`**",
         17 : "**`Продажа этой роли невозможна, т.к. она не находится в списке ролей, доступных для покупки/продажи на сервере`**",
         18 : "Продажа совершена", #title
-        19 : "**`Вы продали роль `**{}**` за {}`** {}\n**`Если у Вас включена возможность получения личных сообщений от участников серверов, \
-            то подтверждение покупки будет выслано Вам в личные сообщения`**",
+        19 : "**`Вы продали роль `**{}**` за {}`** {}\n**`Если у Вас включена возможность получения личных сообщений от участников серверов, то \
+            подтверждение продажи будет выслано Вам в личные сообщения`**",
         20 : "Подтверждение продажи",
         21 : "**`Вы продали роль {} за {}`** {}",
         22 : "Продажа роли",
@@ -132,7 +132,7 @@ store_text = {
         0 : "**•** <@&{}>\n`Price` - `{}` {}\n`Listed for sale:`\n*{}*\n",
         1 : "**•** <@&{}>\n`Price` - `{}` {}\n`Left` - `{}`\n`Last listed for sale:`\n*{}*\n",
         2 : "`Average salary per week` - `{}` {}\n",
-        3 : "Page **`{}`** from **`{}`**",
+        3 : "Page {} from {}",
         4 : "Sort by...",
         5 : "Sort by price",
         6 : "Sort by date",
@@ -146,7 +146,7 @@ store_text = {
         0 : "**•** <@&{}>\n`Цена` - `{}` {}\n`Выставленa на продажу:`\n*{}*\n",
         1 : "**•** <@&{}>\n`Цена` - `{}` {}\n`Осталось` - `{}`\n`Последний раз выставленa на продажу:`\n*{}*\n",
         2 : "`Средний доход за неделю` - `{}` {}\n",
-        3 : "Страница **`{}`** из **`{}`**",
+        3 : "Страница {} из {}",
         4 : "Сортировать по...",
         5 : "Сортировать по цене",
         6 : "Сортировать по дате",
@@ -154,6 +154,72 @@ store_text = {
         8 : "От меньшей цены / более свежого товара",
         9 : "От большей цены / более старого товара",
         10 : "Роли на продажу:"
+    }
+}
+
+profile_text = {
+    0 : {
+        1 : "Cash",
+        2 : "Xp",
+        3 : "Level",
+        4 : "Place in the rating",
+        5 : "**`Information about member:`**\n<@{}>",
+        6 : "**`You don't have any roles from the bot's store`**",    
+    },
+    1 : {
+        1 : "Кэш",
+        2 : "Опыт",
+        3 : "Уровень",
+        4 : "Место в рейтинге",
+        5 : "**`Информация о пользователе:`**\n<@{}>",
+        6 : "**`У Вас нет ролей из магазина бота`**",
+    }
+}
+
+code_blocks = {
+    0 : "```\nMember's personal roles\n```",
+    5 : "```\nЛичные роли пользователя\n```",
+    1 : "```fix\n{}\n```",
+    2 : "```c\n{}\n```",
+}
+
+bet_text = {
+    0 : {
+        0 : "Make a counter bet",
+        1 : "Cancel bet",
+        2 : "**`Sorry, but you can't make counter bet for yourself`**",
+        3 : "**`Sorry, but you can't make counter bet, because you need at least {}`** {}",
+        4 : "**`Sorry, but you can't control bet made by another user`**",
+        5 : "**`Bet was cancelled by user`**"
+    },
+    1 : {
+        0 : "Сделать встречную ставку",
+        1 : "Отменить ставку",
+        2 : "**`Извините, но Вы не можете делать встречную ставку самому себе`**",
+        3 : "**`Извините, но Вы не можете сделать встречную ставку, так как Вам не хватает {}`** {}",
+        4 : "**`Извините, но Вы не можете управлять чужой ставкой`**",
+        5 : "**`Ставка была отменена пользователем`**"
+    }
+}
+
+rating_text = {
+    0 : {
+        0 : "Top members by balance",
+        1 : "Page {} from {}",
+        2 : "{} place",
+        3 : "{} level",
+        4 : "Sort by...",
+        5 : "Sort by cash",
+        6 : "Sort by xp",
+    },
+    1 : {
+        0 : "Топ пользователей по балансу",
+        1 : "Страница {} из {}",
+        2 : "{} место",
+        3 : "{} уровень",
+        4 : "Сортировать по...",
+        5 : "Сортировать по кэшу",
+        6 : "Сортировать по опыту",     
     }
 }
 
@@ -175,84 +241,58 @@ class c_select(Select):
         await self.view.click_menu(interaction, self.custom_id, self.values)     
 
 
-class bet_slash_r(View):
+class bet_slash_view(View):
 
-    def __init__(self, timeout: int, ctx: Interaction, base: Connection, cur: Cursor, symbol: str, bet: int, function: filter):
+    def __init__(self, timeout: int, lng: int, auth_id: int, bet: int):
         super().__init__(timeout=timeout)
-        self.base = base
-        self.cur = cur
-        self.ctx = ctx
-        self.symbol = symbol
         self.bet = bet
-        self.check_user = function
+        self.auth_id = auth_id
         self.dueler = None
+        self.declined = False
+        self.currency = currency
+        self.add_item(c_button(label=bet_text[lng][0], custom_id=f"36_{auth_id}_{randint(1, 100)}", style=ButtonStyle.green, emoji="💰"))
+        self.add_item(c_button(label=bet_text[lng][1], custom_id=f"37_{auth_id}_{randint(1, 100)}", style=ButtonStyle.red, emoji="❌"))
 
-    @ui.button(label="Сделать встречную ставку", style=ButtonStyle.green, emoji="💰", custom_id="Make")
-    async def callback_make(self, button: Button, interaction: Interaction):
-        if interaction.user == self.ctx.user:
-            await interaction.response.send_message("**`Извините, но Вы не можете делать встречную ставку самому себе`**", ephemeral=True)
-            return
+    async def click_b(self, interaction: Interaction, c_id: str):
+        memb_id =  interaction.user.id
+        lng = 1 if "ru" in interaction.locale else 0
 
-        member = self.check_user(self.base, self.cur, interaction.user.id)
-        if member[1] < self.bet:
-            emb = Embed(title="Ошибка", description=f"**`Извините, но Вы не можете сделать встречную ставку, так как Вам не хватает {self.bet-member[1]}`** {self.symbol}", colour=Colour.red())
-            await interaction.response.send_message(embed=emb, ephemeral=True)
-            return
-        
-        self.dueler = member
-        self.stop()   
+        if c_id.startswith("36_"):
 
-    @ui.button(label="Отменить ставку", style=ButtonStyle.red, emoji="❌", custom_id="Deny")
-    async def callback_deny(self, button: Button, interaction: Interaction):
-        if interaction.user != self.ctx.user:
-            await interaction.response.send_message("**`Извините, но Вы не можете управлять чужой ставкой`**", ephemeral=True)
-            return
+            if memb_id == self.auth_id:
+                await interaction.response.send_message(bet_text[lng][2], ephemeral=True)
+                return
+            
+            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(base.cursor()) as cur:
+                    db_cash = cur.execute('SELECT money FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
+                    if not db_cash:
+                        cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
+                        base.commit()
+                        cash = 0
+                    elif db_cash[0] is None:
+                        cur.execute("UPDATE users SET money = 0 WHERE memb_id = ?", (memb_id,))
+                        base.commit()
+                        cash = 0
+                    else:
+                        cash = db_cash[0]
+                                    
+            if cash < self.bet:
+                emb = Embed(description=bet_text[lng][3].format(self.bet-cash, self.currency), colour=Colour.red())
+                await interaction.response.send_message(embed=emb, ephemeral=True)
+                return
+            
+            self.dueler = memb_id
+            self.stop()
 
-        emb = Embed(title="Отмена ставки", description="**`Ставка была отменена пользователем`**")
-        for button in self.children:
-            button.disabled = True
-        await interaction.response.edit_message(embed=emb, view=self)
-        self.stop()
+        else:
 
+            if interaction.user.id != self.auth_id:
+                await interaction.response.send_message(embed=Embed(description=bet_text[lng][4]), ephemeral=True)
+                return
 
-class bet_slash_e(View):
-
-    def __init__(self, timeout: int, ctx: Interaction, base: Connection, cur: Cursor, symbol: str, bet: int, function: filter):
-        super().__init__(timeout=timeout)
-        self.base = base
-        self.cur = cur
-        self.ctx = ctx
-        self.symbol = symbol
-        self.bet = bet
-        self.check_user = function
-        self.dueler = None
-
-    @ui.button(label="Make a counter bet", style=ButtonStyle.green, emoji="💰", custom_id="Make")
-    async def callback_make(self, button: Button, interaction: Interaction):
-        if interaction.user == self.ctx.user:
-            await interaction.response.send_message("**`Sorry, but you can't make counter bet for yourself`**", ephemeral=True)
-            return
-
-        member = self.check_user(self.base, self.cur, interaction.user.id)
-        if member[1] < self.bet:
-            emb = Embed(title="Error", description=f"**`Sorry, but you can't make counter bet, because you need at least {self.bet-member[1]}`** {self.symbol}", colour=Colour.red())
-            await interaction.response.send_message(embed=emb, ephemeral=True)
-            return
-        
-        self.dueler = member
-        self.stop()   
-
-    @ui.button(label="Cancel bet", style=ButtonStyle.red, emoji="❌", custom_id="Deny")
-    async def callback_deny(self, button: Button, interaction: Interaction):
-        if interaction.user != self.ctx.user:
-            await interaction.response.send_message("**`Sorry, but you can't control bet made by another user`**", ephemeral=True)
-            return
-
-        emb = Embed(title="Cancelling bet", description="**`Bet was cancelled by user`**")
-        for button in self.children:
-            button.disabled = True
-        await interaction.response.edit_message(embed=emb, view=self)
-        self.stop()
+            self.declined = True            
+            self.stop()
 
 
 class store_slash_view(View):
@@ -267,7 +307,8 @@ class store_slash_view(View):
         self.tz = tz # time zone of the guild
         self.sort_by = True # True - sort by price, False - sort by date (time)
         self.reversed = False # возрастание / убывание при сортировке, False - возрастание
-        
+        self.lng = lng
+        self.pages = max(1, (self.l + in_row - 1) // in_row)
 
         self.add_item(c_button(label="", custom_id=f"32_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
         self.add_item(c_button(label="", custom_id=f"33_{auth_id}_{randint(1, 100)}", emoji="◀️"))
@@ -357,80 +398,76 @@ class store_slash_view(View):
             self.db_store = store
 
 
-    def update_menu(self, interaction: Interaction, lng: int, click: int, in_row: int) -> list:
-        text = interaction.message.embeds[0].description
+    async def update_menu(self, interaction: Interaction, click: int) -> list:
+        text = interaction.message.embeds[0].footer.text
 
-        if lng == 0:
-            t1 = text.find('Page **`')
-            t2 = text.find('from', t1)
-            counter = int(text[t1+8:t2-4])
-        elif lng == 1:
-            t1 = text.find('Страница **`')
+        if not self.lng:
+            t1 = text.find('Pa')
+            t2 = text.find('fr', t1)
+            page = int(text[t1+5:t2-1])
+        else:
+            t1 = text.find('Ст')
             t2 = text.find('из', t1)
-            counter = int(text[t1+12:t2-4])
+            page = int(text[t1+9:t2-1])
         
-        counter = (counter - 1) * in_row
         db_store = self.db_store
 
-        if counter < 0 or counter >= self.l:
-            return []
+        if click in (1, 2) and page <= 1:
+            return
+        elif click in (3, 4) and page >= self.pages:
+            return
+
         if click == 1:
-            if counter == 0:
-                return []
-            counter -= in_row
+            page = 1
         elif click == 2:
-            if counter == (self.l + in_row - 1) // in_row * in_row - in_row:
-                return []
-            counter += in_row
-        elif click == 0:
-            counter = 0
+            page -= 1
         elif click == 3:
-            counter = (self.l + in_row - 1) // in_row * in_row - in_row
+            page += 1
+        elif click == 4:
+            page = self.pages
 
         store_list = []
         tzinfo = timezone(timedelta(hours=self.tz))
 
-        for r, q, p, d, s, s_t, tp in db_store[counter:min(counter + in_row, self.l)]:
+        for r, q, p, d, s, s_t, tp in db_store[(page - 1) * self.in_row:min(page * self.in_row, self.l)]:
             date = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
             if tp == 1:
-                r_inf = store_text[lng][0].format(r, p, currency, date)
+                r_inf = store_text[self.lng][0].format(r, p, currency, date)
             elif tp == 2:
-                r_inf = store_text[lng][0].format(r, p, currency, q, date)
+                r_inf = store_text[self.lng][1].format(r, p, currency, q, date)
             elif tp == 3:
-                r_inf = store_text[lng][0].format(r, p, currency, "∞", date)
+                r_inf = store_text[self.lng][1].format(r, p, currency, "∞", date)
             if s:
-                r_inf += store_text[lng][2].format(s * 604800 // s_t, currency)
+                r_inf += store_text[self.lng][2].format(s * 604800 // s_t, currency)
             store_list.append(r_inf)
         
-        if self.l:
-            store_list.append(store_text[lng][3].format((counter // in_row) + 1, (self.l + in_row - 1) // in_row))
-        else:
-            store_list.append(store_text[lng][3].format(1, 1))
-        
-        return store_list
+        if store_list:
+
+            emb = Embed(title=store_text[self.lng][10], colour=Colour.dark_gray(), description='\n'.join(store_list))
+            emb.set_footer(text=store_text[self.lng][3].format(page, self.pages))
+
+            if click == 0:
+                await interaction.response.edit_message(embed=emb, view=self)
+            else:
+                await interaction.response.edit_message(embed=emb)
 
 
     async def click_b(self, interaction: Interaction, c_id: str):
-        lng = 1 if "ru" in interaction.locale else 0
 
-        click = 4
+        click = 0
         if c_id.startswith("32_"):
-            click = 0
-        elif c_id.startswith("33_"):
             click = 1
-        elif c_id.startswith("34_"):
+        elif c_id.startswith("33_"):
             click = 2
-        elif c_id.startswith("35_"):
+        elif c_id.startswith("34_"):
             click = 3
+        elif c_id.startswith("35_"):
+            click = 4
 
-        store_list=self.update_menu(interaction=interaction, lng=lng, click=click, in_row=self.in_row)
-        if store_list:
-            emb = Embed(title=store_text[lng][10], colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb)
+        await self.update_menu(interaction=interaction, click=click)
 
 
     async def click_menu(self, interaction: Interaction, c_id: str, value):
-        lng = 1 if "ru" in interaction.locale else 0
 
         if c_id.startswith("102_"):
             if int(value[0]):
@@ -453,13 +490,10 @@ class store_slash_view(View):
                 self.children[5].options[1].default=False
         
         self.sort_store()
-        store_list = self.update_menu(interaction=interaction, lng=lng, click=4, in_row=self.in_row)
-        if store_list:
-            emb = Embed(title=store_text[lng][10], colour=Colour.dark_gray(), description='\n'.join(store_list))
-            await interaction.response.edit_message(embed=emb, view=self)
+        await self.update_menu(interaction=interaction, click=0)
 
 
-class buy_slash(View):
+class buy_slash_view(View):
 
         def __init__(self, timeout: int, auth_id: int, lng: int):
             super().__init__(timeout=timeout)
@@ -482,177 +516,124 @@ class buy_slash(View):
                 return False
             return True
 
-class rating_slash_r(View):
-    def __init__(self, timeout, membs: list, in_row: int, curr: str, auth_id: int):
+
+class rating_slash_view(View):
+
+    def __init__(self, timeout: int, lng: int, auth_id: int, cash_list: list, xp_list: list, xp_b: int, in_row: int):
         super().__init__(timeout=timeout)
-        self.membs = membs
-        self.pages = (len(membs) + in_row - 1) // in_row
-        self.curr = curr
+        self.xp_b = xp_b
+        self.cash_list = cash_list
+        self.xp_list = xp_list
+        self.pages = max(1, (len(cash_list) + in_row - 1) // in_row)
+        self.currency = currency
         self.in_row = in_row
         self.auth_id = auth_id
-    
-    def click(self, interaction: Interaction, click: int, in_row: int):
-        text = interaction.message.embeds[0].footer.text
-        t1 = text.find("Страница ")
-        t2 = text.find(" из")
-        page = int(text[t1+9:t2])
-        if click <= 1 and page == 1:
-            return []
-        elif click >= 2 and page == self.pages:
-            return []
-        if click == 0:
-            page = 1
-        elif click == 3:
-            page = self.pages
-        elif click == 1:
-            page -= 1
-        elif click == 2:
-            page += 1
-        msg = []
-        counter = (page-1) * in_row + 1
-        for r in self.membs[(page-1) * in_row:min(page * in_row, len(self.membs))]:
-            msg.append((f"{counter} место", f"<@{r[0]}>\n{r[1]} {self.curr}"))
-            counter += 1
-        msg.append((f"Страница {page} из {self.pages}", ""))
-        return msg
+        self.lng = lng
+        self.sort_value = True # True - show ranking by cash, False - by xp
+        self.add_item(c_button(label="", custom_id=f"38_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
+        self.add_item(c_button(label="", custom_id=f"39_{auth_id}_{randint(1, 100)}", emoji="◀️"))
+        self.add_item(c_button(label="", custom_id=f"40_{auth_id}_{randint(1, 100)}", emoji="▶️"))
+        self.add_item(c_button(label="", custom_id=f"41_{auth_id}_{randint(1, 100)}", emoji="⏭"))
+        opts = [
+            SelectOption(
+                label=rating_text[lng][5],
+                value=0,
+                emoji="💰",
+                default=True
+            ),
+            SelectOption(
+                label=rating_text[lng][6],
+                value=1,
+                emoji="✨",
+                default=False
+            )
+        ]
+        self.add_item(c_select(custom_id=f"104_{auth_id}_{randint(1, 100)}", placeholder=rating_text[lng][4], opts=opts))
 
-
-    @ui.button(emoji="⏮️")
-    async def callback_l_top(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
-        if store_list != []:
-            emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
-            emb.set_footer(text=store_list[-1][0])
-            for r in store_list[:-1]:
-                emb.add_field(name=r[0], value=r[1], inline=False)
-            await interaction.response.edit_message(embed=emb)
-
-    @ui.button(emoji="◀️")
-    async def callback_l(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
-        if store_list != []:
-            emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
-            emb.set_footer(text=store_list[-1][0])
-            for r in store_list[:-1]:
-                emb.add_field(name=r[0], value=r[1], inline=False)
-            await interaction.response.edit_message(embed=emb)
-
-    @ui.button(emoji="▶️")
-    async def callback_r(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
-        if store_list != []:
-            emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
-            emb.set_footer(text=store_list[-1][0])
-            for r in store_list[:-1]:
-                emb.add_field(name=r[0], value=r[1], inline=False)
-            await interaction.response.edit_message(embed=emb)
-
-    @ui.button(emoji="⏭")
-    async def callback_r_top(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
-        if store_list != []:
-            emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
-            emb.set_footer(text=store_list[-1][0])
-            for r in store_list[:-1]:
-                emb.add_field(name=r[0], value=r[1], inline=False)
-            await interaction.response.edit_message(embed=emb)
-
-    async def interaction_check(self, interaction):
-            if interaction.user.id != self.auth_id:
-                await interaction.response.send_message('**`Извините, но Вы не можете управлять меню, которое вызвано другим пользователем`**', ephemeral=True)
-                return False
-            return True
-
-    """ async def on_timeout(self):
-        #return await super().on_timeout()
-        '''for child in self.children:
-            child.disabled = True'''
-        pass """
+    async def update_menu(self, interaction: Interaction, click: int):
         
-class rating_slash_e(View):
-    def __init__(self, timeout, membs: list, in_row: int, curr: str, auth_id: int):
-        super().__init__(timeout=timeout)
-        self.membs = membs
-        self.pages = (len(membs) + in_row - 1) // in_row
-        self.curr = curr
-        self.in_row = in_row
-        self.auth_id = auth_id
-    
-    def click(self, interaction: Interaction, click: int, in_row: int):
-        text = interaction.message.embeds[0].footer.text
-        t1 = text.find("Page ")
-        t2 = text.find(" from")
-        page = int(text[t1+5:t2])
-        if click <= 1 and page == 1:
-            return []
-        elif click >= 2 and page == self.pages:
-            return []
-        if click == 0:
+        page_text = interaction.message.embeds[0].footer.text
+
+        if not self.lng:
+            t1 = page_text.find("Pa")
+            t2 = page_text.find("fr", t1)
+            page = int(page_text[t1+5:t2-1])
+        else:
+            t1 = page_text.find("Ст")
+            t2 = page_text.find("из", t1)
+            page = int(page_text[t1+9:t2-1])
+
+        if click in (1, 2) and page <= 1:
+            return
+        elif click in (3, 4) and page >= self.pages:
+            return
+        
+        if click == 1:
             page = 1
-        elif click == 3:
-            page = self.pages
-        elif click == 1:
-            page -= 1
         elif click == 2:
+            page -= 1
+        elif click == 3:
             page += 1
-        msg = []
-        counter = (page-1) * in_row + 1
+        elif click == 4:
+            page = self.pages
 
-        for r in self.membs[(page-1) * in_row:min(page * in_row, len(self.membs))]:
-            msg.append((f"{counter} place", f"<@{r[0]}>\n{r[1]} {self.curr}"))
-            counter += 1
-        msg.append((f"Page {page} from {self.pages}", ""))
-        print(msg)
-        return msg
+        emb = Embed(title=rating_text[self.lng][0], colour=Colour.dark_gray())
+        
+        counter = (page - 1) * self.in_row + 1
 
+        if self.sort_value:
+            for r in self.cash_list[(page-1) * self.in_row:min(page*self.in_row, len(self.cash_list))]:
+                emb.add_field(name=rating_text[self.lng][2].format(counter), value=f"<@{r[0]}>\n{r[1]} {self.currency}", inline=False)
+                counter += 1
+        else:
+            for r in self.xp_list[(page-1) * self.in_row:min(page*self.in_row, len(self.xp_list))]:
+                level = (r[1] - 1) // self.xp_b + 1
+                emb.add_field(name=rating_text[self.lng][2].format(counter), value=f"<@{r[0]}>\n{rating_text[self.lng][3].format(level)}", inline=False)
+                counter += 1
 
-    @ui.button(emoji="⏮️")
-    async def callback_l_top(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=0, in_row=self.in_row)
-        if store_list != []:
-            emb = Embed(title="Top members by balance", colour=Colour.dark_gray())
-            emb.set_footer(text=store_list[-1][0])
-            for r in store_list[:-1]:
-                emb.add_field(name=r[0], value=r[1], inline=False)
+        emb.set_footer(text=rating_text[self.lng][1].format(page, self.pages))   
+        if not click:
+            await interaction.response.edit_message(embed=emb, view=self)
+        else:
             await interaction.response.edit_message(embed=emb)
 
-    @ui.button(emoji="◀️")
-    async def callback_l(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=1, in_row=self.in_row)
-        if store_list != []:
-            emb = Embed(title="Top members by balance", colour=Colour.dark_gray())
-            emb.set_footer(text=store_list[-1][0])
-            for r in store_list[:-1]:
-                emb.add_field(name=r[0], value=r[1], inline=False)
-            await interaction.response.edit_message(embed=emb)
+    async def click_b(self, interaction: Interaction, c_id: str):
+        
+        if c_id.startswith("38_"):
+            click = 1
+        elif c_id.startswith("39_"):
+            click = 2
+        elif c_id.startswith("39_"):
+            click = 3
+        else:
+            click = 4
 
-    @ui.button(emoji="▶️")
-    async def callback_r(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=2, in_row=self.in_row)
-        if store_list != []:
-            emb = Embed(title="Top members by balance", colour=Colour.dark_gray())
-            emb.set_footer(text=store_list[-1][0])
-            for r in store_list[:-1]:
-                emb.add_field(name=r[0], value=r[1], inline=False)
-            await interaction.response.edit_message(embed=emb)
+        await self.update_menu(interaction=interaction, click=click)
+        
 
-    @ui.button(emoji="⏭")
-    async def callback_r_top(self, button: Button, interaction: Interaction):
-        store_list=self.click(interaction=interaction, click=3, in_row=self.in_row)
-        if store_list != []:
-            emb = Embed(title="Top members by balance", colour=Colour.dark_gray())
-            emb.set_footer(text=store_list[-1][0])
-            for r in store_list[:-1]:
-                emb.add_field(name=r[0], value=r[1], inline=False)
-            await interaction.response.edit_message(embed=emb)
+    async def click_menu(self, interaction: Interaction, c_id: str, value):  
+
+        if c_id.startswith("104_"):
+            if int(value[0]):
+                self.sort_value = False
+                self.children[4].options[0].default=False
+                self.children[4].options[1].default=True
+            else:
+                self.sort_value = True
+                self.children[4].options[0].default=True
+                self.children[4].options[1].default=False
+
+        await self.update_menu(interaction=interaction, click=0)
+
 
     async def interaction_check(self, interaction):
-            if interaction.user.id != self.auth_id:
-                await interaction.response.send_message("**`Sorry, but you can't manage menu called by another member`**", ephemeral=True)
-                return False
-            return True
+        if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(common_text[lng][0], ephemeral=True)
+            return False
+        return True
 
-class slash(commands.Cog):
+class slash_commands(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
@@ -666,11 +647,11 @@ class slash(commands.Cog):
     async def can_role(self, interaction: Interaction, role: Role, lng: int) -> bool:
         
         if not interaction.permissions.manage_roles:
-            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][1]))
+            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][1]), ephemeral=True)
             return False
 
         elif not role.is_assignable():
-            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][2]))
+            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][2]), ephemeral=True)
             return False
         
         return True
@@ -700,44 +681,50 @@ class slash(commands.Cog):
 
     async def buy(self, interaction: Interaction, role: Role) -> None:
         lng = 1 if "ru" in interaction.locale else 0
+        
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
+
         member_buyer = interaction.user
-        r_id = role.id
-        rls = {x[0] for x in member_buyer.roles}
-        if r_id in rls:
-            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][4], colour=Colour.red()))
-            return
+        memb_id = member_buyer.id
+        r_id = role.id    
+
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 store = cur.execute('SELECT * FROM store WHERE role_id = ?', (r_id,)).fetchone()
                 if not store:
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][5], colour=Colour.red()))
                     return
-
-                role_info = cur.execute('SELECT price, type FROM server_roles WHERE role_id = ?', (r_id,)).fetchone()
-                memb_id = member_buyer.id
                 buyer = self.check_user(base=base, cur=cur, memb_id=memb_id)
-                buyer_cash = buyer[1]
-                cost = role_info[0]
+        
+        if not r_id in {int(x) for x in buyer[2].split("#") if x != ""}:
+            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][4], colour=Colour.red()), ephemeral=True)
+            return
 
-                if buyer_cash < cost:
-                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][6].format(cost - buyer_cash, currency)))
-                    await interaction.delete_original_message(delay=10)
-                    return
+        buyer_cash = buyer[1]
+        cost = store[2]
 
-                emb = Embed(title=text_slash[lng][7], description=text_slash[lng][8].format(role.mention, cost, currency))
+        if buyer_cash < cost:
+            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][6].format(cost - buyer_cash, currency)))
+            await interaction.delete_original_message(delay=10)
+            return
+
+        emb = Embed(title=text_slash[lng][7], description=text_slash[lng][8].format(role.mention, cost, currency))
+        
+        view = buy_slash_view(timeout=30, auth_id=memb_id, lng=lng)
+        await interaction.response.send_message(embed=emb, view=view)
+
+        c = await view.wait()
+        if c or not view.value:
+            await interaction.delete_original_message()
+            return          
+
+        role_type = store[6]
+        await member_buyer.add_roles(role)                                                
+
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(base.cursor()) as cur:   
                 
-                view = buy_slash(timeout=30, auth_id=memb_id, lng=lng)
-                await interaction.response.send_message(embed=emb, view=view)
-
-                c = await view.wait()
-                if c or not view.value:
-                    await interaction.delete_original_message()
-                    return                    
-                    
-                role_type = role_info[1]
-                await member_buyer.add_roles(role)                                                
                 cur.execute('UPDATE users SET money = money - ?, owned_roles = ? WHERE memb_id = ?', (cost, buyer[2]+f"#{r_id}" , memb_id))
                 base.commit()
                 
@@ -746,9 +733,10 @@ class slash(commands.Cog):
                     cur.execute("DELETE FROM store WHERE rowid = ?", (rowid_to_delete,))                        
                 elif role_type == 2:
                     if store[1] > 1:
-                        cur.execute('UPDATE store SET quantity = quantity - ? WHERE role_id = ?', (1, r_id))
+                        cur.execute('UPDATE store SET quantity = quantity - 1 WHERE role_id = ?', (r_id,))
                     else:
                         cur.execute("DELETE FROM store WHERE role_id = ?", (r_id,))
+                    
                 base.commit()
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
 
@@ -771,22 +759,22 @@ class slash(commands.Cog):
             with closing(base.cursor()) as cur:        
                 tz = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
                 db_store = cur.execute('SELECT * FROM store').fetchall()
-
-        for i in range(len(db_store)-1):
-            for j in range(i+1, len(db_store)):
-                if db_store[i][2] > db_store[j][2]:
-                    temp = db_store[j]
-                    db_store[j] = db_store[i]
-                    db_store[i] = temp
-                elif db_store[i][2] == db_store[j][2] and db_store[i][3] < db_store[j][3]:
-                    temp = db_store[j]
-                    db_store[j] = db_store[i]
-                    db_store[i] = temp
+        
+        db_l = len(db_store)
+        l = db_l // 2
+        while l:
+            for i in range(l, db_l):
+                moving_item = db_store[i]
+                while i >= l and (db_store[i-l][2] > db_store[i][2] or (db_store[i-l][2] == db_store[i][2] and db_store[i-l][3] < db_store[i][3])):
+                    db_store[i] = db_store[i - l]
+                    i -= l
+                    db_store[i] = moving_item
+            l //= 2
 
         store_list = []
         tzinfo = timezone(timedelta(hours=tz))
         
-        for r, q, p, d, s, s_t, tp in db_store[:in_row]:
+        for r, q, p, d, s, s_t, tp in db_store[:min(in_row, db_l)]:
             date = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
             if tp == 1:
                 r_inf = store_text[lng][0].format(r, p, currency, date)
@@ -798,12 +786,14 @@ class slash(commands.Cog):
                 r_inf += store_text[lng][2].format(s * 604800 // s_t, currency)
             store_list.append(r_inf)               
 
-        if len(db_store):
-            store_list.append(store_text[lng][3].format(1, (len(db_store) + in_row - 1) // in_row))
-        else:
-            store_list.append(store_text[lng][3].format(1, 1))
-
         emb = Embed(title=text_slash[lng][15], colour=Colour.dark_gray(), description='\n'.join(store_list))        
+
+        if db_l:
+            emb.set_footer(text=store_text[lng][3].format(1, (db_l + in_row - 1) // in_row))
+        else:
+            emb.set_footer(text=store_text[lng][3].format(1, 1))
+
+        
         myview_store = store_slash_view(timeout=60, db_store=db_store, auth_id=interaction.user.id, lng=lng, in_row=in_row, coin=currency, tz=tz)
 
         await interaction.response.send_message(embed=emb, view=myview_store)
@@ -816,301 +806,285 @@ class slash(commands.Cog):
 
     async def sell(self, interaction: Interaction, role: Role) -> None:
         lng = 1 if "ru" in interaction.locale else 0
-        if not role in interaction.user.roles:
-            await interaction.response.send_message(
-                embed=Embed(
-                    colour=Colour.red(),
-                    title=text_slash[lng][0],
-                    description=text_slash[lng][16]
-                )
-            )
-            return
+        r_id = role.id
+        
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()      
-                if role_info == None:
+                
+                role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (r_id,)).fetchone()      
+                if not role_info:
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][17], colour=Colour.red()))
                     return
 
                 memb_id = interaction.user.id
                 user = self.check_user(base=base, cur=cur, memb_id=memb_id)
-
-                #time_now = (datetime.utcnow() + timedelta(hours=3)).strftime('%S/%M/%H/%d/%m/%Y')
-                
-                role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (role.id,)).fetchone()
                 owned_roles = user[2]
-                cur.execute('UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?', (owned_roles.replace(f"#{role.id}", ""), role_info[1], memb_id))
-                base.commit()
-                outer  = cur.execute('SELECT * FROM outer_store WHERE role_id = ?', (role.id,)).fetchone()      
-                time_now = int(time())
-                if role_info[2] == 1:                   
-                    if outer == None:
-                        item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_store').fetchall()]
-                        item_ids.sort()
-                        free_id = 1
-                        while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
-                            free_id += 1
-                        cur.execute('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, 1, role_info[1], time_now, 1))
-                        base.commit()            
-                    else:
-                        cur.execute('UPDATE outer_store SET quantity = quantity + ?, last_date = ? WHERE role_id = ?', (1, time_now, role.id))
-                        base.commit()
-                elif role_info[2] == 2:
-                    if outer == None:
-                        item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_store').fetchall()]
-                        item_ids.sort()
-                        free_id = 1
-                        while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
-                            free_id += 1
-                        cur.execute('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, -404, role_info[1], time_now, 2))
-                        base.commit()
 
-                elif role_info[2] == 0:
-                    
-                    item_ids = [x[0] for x in cur.execute('SELECT item_id FROM outer_store').fetchall()]
-                    item_ids.sort()
-                    free_id = 1
-                    while(free_id < len(item_ids) + 1 and free_id == item_ids[free_id-1]):
-                        free_id += 1
-                    cur.execute('INSERT INTO outer_store(item_id, role_id, quantity, price, last_date, special) VALUES(?, ?, ?, ?, ?, ?)', (free_id, role.id, 1, role_info[1], time_now, 0))
-                    base.commit()
+                if not r_id in {int(x) for x in owned_roles.split("#") if x != ""}:
+                    await interaction.response.send_message(embed=Embed(colour=Colour.red(), title=text_slash[lng][0], description=text_slash[lng][16]), ephemeral=True)
+                    return
 
-                    membs = cur.execute("SELECT members FROM money_roles WHERE role_id = ?", (role.id,)).fetchone()
-                    if membs != None and membs[0] != None:
-                        cur.execute("UPDATE money_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"#{memb_id}", ""), role.id))
-                        base.commit()
+                r_price = role_info[1]
+                r_sal = role_info[2]
+                r_sal_c = role_info[3]
+                r_type = role_info[4]
 
                 await interaction.user.remove_roles(role)
-                emb = Embed(title=text_slash[lng][18], description=text_slash[lng][19].format(role.mention, role_info[1], self.currency), colour=Colour.gold())
-                await interaction.response.send_message(embed=emb)
+                
+                cur.execute('UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?', (owned_roles.replace(f"#{r_id}", ""), r_price, memb_id))
+                base.commit()
 
-                try:
-                    emb = Embed(title=text_slash[lng][20], description=text_slash[lng][21].format(role.id, role_info[1], self.currency), colour=Colour.green())
-                    await interaction.user.send(embed=emb)
-                except:
-                    pass
+                db_store = cur.execute('SELECT count() FROM store WHERE role_id = ?', (r_id,)).fetchone()      
+                time_now = int(time())
 
-                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
-                if chnl_id != 0:
-                    try:
-                        channel = interaction.guild.get_channel(chnl_id)
-                        await channel.send(embed=Embed(title=text_slash[lng][22], description=text_slash[lng][23].format(interaction.user.mention, role.mention, role_info[1])))
-                    except:
-                        pass
+                if r_type == 1:
+                    cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", 
+                            (r_id, 1, r_price, time_now, r_sal, r_sal_c, 1))
+                    membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (r_id,)).fetchone()
+                    if membs and membs[0]:
+                        cur.execute("UPDATE money_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"#{memb_id}", ""), r_id))
+                    base.commit()
+
+                elif r_type == 2:                   
+                    if not db_store:
+                        cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", 
+                            (r_id, 1, r_price, time_now, r_sal, r_sal_c, 2))
+                        base.commit()            
+                    else:
+                        cur.execute("UPDATE store SET quantity = quantity + ?, last_date = ? WHERE role_id = ?", (1, time_now, r_id))
+                        base.commit()
+
+                elif r_type == 3:
+                    if not db_store:
+                        cur.execute('INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)', 
+                        (r_id, -404, r_price, time_now, r_sal, r_sal_c ,3))
+                        base.commit()
+                
+                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+                
+        emb = Embed(title=text_slash[lng][18], description=text_slash[lng][19].format(role.mention, role_info[1], self.currency), colour=Colour.gold())
+        await interaction.response.send_message(embed=emb)
+
+        try: await interaction.user.send(embed=Embed(title=text_slash[lng][20], description=text_slash[lng][21].format(r_id, r_price, self.currency), colour=Colour.green()))
+        except: pass
+
+        if chnl_id:
+            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][22], description=text_slash[lng][23].format(interaction.user.mention, role.mention, role_info[1])))
+            except: pass
     
     
     async def profile(self, interaction: Interaction) -> None:
         lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
+        memb_id = interaction.user.id
+                        
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                memb_id = interaction.user.id
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
-                server_roles = cur.execute('SELECT role_id FROM server_roles').fetchall()
-                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                #emb = Embed(title=text_slash[lng][24])
-                roles = ""
-                uniq_roles = []
-                descr = []
-                descr.append(f'**{text_slash[lng][24]}** `{member[1]}`{self.currency}\n')
-                flag = 0
-                if server_roles != None:
-                    server_roles = set([x[0] for x in server_roles]) #ids of roles that user might has, set for quick searching in
-                    for role_g in interaction.user.roles:
-                        id = role_g.id
-                        if id in server_roles:
-                            if flag == 0:
-                                descr.append(text_slash[lng][25])
-                            flag = 1
-                            role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (id,)).fetchone()
-                            price = role_info[1]
-                            is_special = role_info[2]
-                            if is_special == 0:
-                                salary = cur.execute("SELECT salary FROM money_roles WHERE role_id = ?", (id,)).fetchone()[0]
-                                descr.append(f"**•** {role_g.mention} - `{price}`{self.currency} - `{salary}`{self.currency}")
-                                uniq_roles.append(id)
-                            else:
-                                descr.append(f"**•** {role_g.mention} - `{price}`{self.currency}")
-                            roles += f"#{id}"
-                if uniq_roles != None:
-                    # for each uniq user's role check if system knows that user has this role
-                    for role in uniq_roles:
-                        membs = cur.execute("SELECT members FROM money_roles WHERE role_id = ?", (role,)).fetchone()[0]
-                        if membs == None:
-                            cur.execute("UPDATE money_roles SET members = ? WHERE role_id = ?", (f"#{memb_id}", role))
-                            base.commit()
-                        else:
-                            if not str(memb_id) in membs:
-                                membs += f"#{memb_id}"
-                                cur.execute("UPDATE money_roles SET members = ? WHERE role_id = ?", (membs, role))
-                                base.commit()
+                xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                membs_cash = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+                membs_xp = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+        l = len(membs_cash)
 
-                if flag:
-                    cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', (roles, interaction.user.id))
-                    base.commit()
-                await interaction.response.send_message(embed=Embed(description="\n".join(descr)))
+        # cnt_cash is a place in the rating sorded by cash
+        cash = member[1]
+        if membs_cash[l//2][1] < cash:
+            cnt_cash = 1
+            while cnt_cash < l and memb_id != membs_cash[cnt_cash-1][0]:
+                cnt_cash += 1
+        else:
+            cnt_cash = l
+            while cnt_cash > 1 and memb_id != membs_cash[cnt_cash-1][0]:
+                cnt_cash -= 1
+
+        emb1 = Embed()
+        emb1.description = profile_text[lng][5].format(memb_id, memb_id)
+        emb1.add_field(name=profile_text[lng][1], value=code_blocks[1].format(cash), inline=True)
+        emb1.add_field(name=profile_text[lng][4], value=code_blocks[1].format(cnt_cash), inline=True)
+
+        # cnt_cash is a place in the rating sorded by xp
+        xp = member[4]
+        if membs_xp[l//2][1] < xp:
+            cnt_xp = 1
+            while cnt_xp < l and memb_id != membs_xp[cnt_xp-1][0]:
+                cnt_xp += 1
+        else:
+            cnt_xp = l
+            while cnt_xp > 1 and memb_id != membs_xp[cnt_xp-1][0]:
+                cnt_xp -= 1
+
+        level = (xp + xp_b - 1) // xp_b
+        
+        emb2 = Embed()
+        emb2.add_field(name=profile_text[lng][2], value=code_blocks[2].format(f"{xp}/{level * xp_b + 1}"), inline=True)
+        emb2.add_field(name=profile_text[lng][3], value=code_blocks[2].format(level), inline=True)
+        emb2.add_field(name=profile_text[lng][4], value=code_blocks[2].format(cnt_xp), inline=True)
+
+        emb3 = Embed()
+        if member[2] != "":
+            dsc = [code_blocks[lng*5]] + [f"<@&{r}>" for r in member[2].split("#") if r != ""]
+        else:
+            dsc = [profile_text[lng][6]]
+        emb3.description = "\n".join(dsc)
+
+        await interaction.response.send_message(embeds=[emb1, emb2, emb3])
     
-    
+
     async def work(self, interaction: Interaction) -> None:
         memb_id = interaction.user.id
         lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                time_reload = cur.execute("SELECT value FROM server_info WHERE settings = 'time_r'").fetchone()[0]
-                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                time_reload = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
-                flag = 0
-                if member[3] == 0:
-                    flag = 1
+                flag: bool = False
+                if not member[3]:
+                    flag = True
                 else:
-                    #lasted_time = datetime.strptime(datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S") + \
-                    #    timedelta(hours=3) - datetime.strptime(member[3], '%S/%M/%H/%d/%m/%Y')
                     lasted_time = int(time()) - member[3]
                     if lasted_time >= time_reload:
-                        flag = 1
+                        flag = True
                 if not flag:
                     time_l = time_reload - lasted_time
                     t_l = f"{time_l // 3600}:{(time_l % 3600)//60}:{time_l % 60}"
-                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][26].format(t_l)))
+                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][26].format(t_l)), ephemeral=True)
                     return 
                 sal_l = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l'").fetchone()[0]
                 sal_r = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r'").fetchone()[0]
                 salary = randint(sal_l, sal_r)
                 cur.execute('UPDATE users SET money = money + ?, work_date = ? WHERE memb_id = ?', (salary, int(time()), memb_id))
                 base.commit()
-                await interaction.response.send_message(embed=Embed(title=text_slash[lng][27], description=text_slash[lng][28].format(salary, self.currency), colour=Colour.gold()))
 
-                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
-                if chnl_id != 0:
-                    try:
-                        channel = interaction.guild.get_channel(chnl_id)
-                        await channel.send(embed=Embed(title=text_slash[lng][29], description=text_slash[lng][30].format(interaction.user.mention, salary)))
-                    except:
-                        pass
+                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+                
+        await interaction.response.send_message(embed=Embed(title=text_slash[lng][27], description=text_slash[lng][28].format(salary, self.currency), colour=Colour.gold()))                
+        
+        if chnl_id:
+            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][29], description=text_slash[lng][30].format(f"<@{memb_id}>", salary, self.currency)))
+            except: pass
     
 
     async def bet(self, interaction: Interaction, amount: int) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         memb_id = interaction.user.id
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
+
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
-                if amount > member[1]:
-                    await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][31].format(amount - member[1], self.currency), colour=Colour.red()), ephemeral=True)
-                    return
-                if lng == 0:
-                    betview = bet_slash_e(timeout=30, ctx=interaction, base=base, cur=cur, symbol=self.currency, bet=amount, function=self.check_user)
-                else:
-                    betview = bet_slash_r(timeout=30, ctx=interaction, base=base, cur=cur, symbol=self.currency, bet=amount, function=self.check_user)
-                emb = Embed(title=text_slash[lng][32], description=text_slash[lng][33].format(amount, self.currency))
-                await interaction.response.send_message(embed=emb, view=betview)
-                msg = await interaction.original_message()
 
-                chk = await betview.wait()
+        if amount > member[1]:
+            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][31].format(amount - member[1], self.currency), colour=Colour.red()), ephemeral=True)
+            return
 
-                if chk:
-                    for button in betview.children:
-                        button.disabled = True
-                    emb.description = text_slash[lng][34]
-                    await msg.edit(embed = emb, view=betview)
-                    return
-                
-                if betview.dueler == None:
-                    return
+        betview = bet_slash_view(timeout=30, lng=lng, auth_id=memb_id, bet=amount)
+        
+        emb = Embed(title=text_slash[lng][32], description=text_slash[lng][33].format(amount, self.currency))
+        await interaction.response.send_message(embed=emb, view=betview)
 
-                msg = await interaction.original_message()
-                dueler = betview.dueler
+        if await betview.wait():
+            emb.description = text_slash[lng][34]
+        
+        for c in betview.children:
+                c.disabled = True
 
-                winner = randint(0, 1)
-                emb = Embed(title=text_slash[lng][35], colour=Colour.gold())
-                if winner:
-                    loser_id = dueler[0]
-                    winner_id = interaction.user.id
-                    emb.description = f"{interaction.user.mention} {text_slash[lng][36]} `{amount}`{self.currency}"
-                    
-                else:
-                    winner_id = dueler[0]
-                    loser_id = interaction.user.id
-                    emb.description = f"<@{dueler[0]}> {text_slash[lng][36]} `{amount}`{self.currency}"        
+        if not betview.dueler:
+            if betview.declined:
+                emb.description = bet_text[lng][5]
+            await interaction.edit_original_message(embed=emb, view=betview)
+            await interaction.delete_original_message(delay=7)
+            return                  
 
+        dueler = betview.dueler
+
+        winner = randint(0, 1)
+        emb = Embed(title=text_slash[lng][35], colour=Colour.gold())
+
+        if winner:
+            loser_id = dueler
+            winner_id = memb_id
+            emb.description = f"<@{memb_id}> {text_slash[lng][36]} `{amount}`{self.currency}"
+            
+        else:
+            winner_id = dueler
+            loser_id = memb_id
+            emb.description = f"<@{dueler}> {text_slash[lng][36]} `{amount}`{self.currency}"        
+
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(base.cursor()) as cur:
                 cur.execute('UPDATE users SET money = money - ? WHERE memb_id = ?', (amount, loser_id))
                 base.commit()
                 cur.execute('UPDATE users SET money = money + ? WHERE memb_id = ?', (amount, winner_id))
                 base.commit()
-                for button in betview.children:
-                    button.disabled = True
-                await msg.edit(embed=emb, view=betview)
+                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
 
-                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
-                if chnl_id != 0:
-                    try:
-                        channel = interaction.guild.get_channel(chnl_id)
-                        await channel.send(embed=Embed(title=text_slash[lng][37], description=text_slash[lng][38].format(winner_id, amount, self.currency, loser_id)))
-                    except:
-                        pass
+        await interaction.edit_original_message(embed=emb, view=betview)
+        if chnl_id:
+            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][37], description=text_slash[lng][38].format(winner_id, amount, self.currency, loser_id)))
+            except: pass
     
 
     async def transfer(self, interaction: Interaction, value: int, target: Member) -> None:
         memb_id = interaction.user.id
+        t_id = target.id
         lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db')) as base:
+        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
+
                 act = self.check_user(base=base, cur=cur, memb_id=memb_id)
-                self.check_user(base=base, cur=cur, memb_id=target.id)
-                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                self.check_user(base=base, cur=cur, memb_id=t_id)
+
                 if value > act[1]:
                     emb=Embed(title=text_slash[lng][0], description=text_slash[lng][39].format(value - act[1], self.currency), colour=Colour.red())
                     await interaction.response.send_message(embed=emb)
-                else:
-                    cur.execute('UPDATE users SET money = money - ? WHERE memb_id = ?', (value, memb_id))
-                    base.commit()
-                    cur.execute('UPDATE users SET money = money + ? WHERE memb_id = ?', (value, target.id))
-                    base.commit()
-                    emb=Embed(title=text_slash[lng][40], description=text_slash[lng][41].format(value, self.currency, target.mention), colour=Colour.green())
-                    await interaction.response.send_message(embed=emb)
+                    return
+                
+                cur.execute('UPDATE users SET money = money - ? WHERE memb_id = ?', (value, memb_id))
+                base.commit()
+                cur.execute('UPDATE users SET money = money + ? WHERE memb_id = ?', (value, t_id))
+                base.commit()
 
-                    chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_channel'").fetchone()[0]
-                    if chnl_id != 0:
-                        try:
-                            channel = interaction.guild.get_channel(chnl_id)
-                            await channel.send(embed=Embed(title=text_slash[lng][42], description= text_slash[lng][43].format(interaction.user.mention, value, self.currency, target.mention)))
-                        except:
-                            pass
+                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+
+        emb=Embed(title=text_slash[lng][40], description=text_slash[lng][41].format(value, self.currency, f"<@{t_id}>"), colour=Colour.green())
+        await interaction.response.send_message(embed=emb)
+        if chnl_id:
+            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][42], description= text_slash[lng][43].format(f"<@{memb_id}>", value, self.currency, f"<@{t_id}>")))
+            except: pass
 
     
     async def leaders(self, interaction: Interaction) -> None:
         lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f"{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db")) as base:
+
+        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                #lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 self.check_user(base=base, cur=cur, memb_id=interaction.user.id)
-                membs = cur.execute("SELECT * FROM users ORDER BY money DESC").fetchall()
-                counter = 1
-                 
-                if lng == 0:
-                    emb = Embed(title="Top members by balance", colour=Colour.dark_gray())
-                    emb.set_footer(text=f"Page 1 from {(len(membs) + self.in_row - 1) // self.in_row}")
-                    for r in membs[0:min(self.in_row, len(membs))]:
-                        emb.add_field(name=f"{counter} place", value=f"<@{r[0]}>\n{r[1]} {self.currency}", inline=False)
-                        counter += 1 
-                    view_r = rating_slash_e(timeout=30, membs=membs, in_row=self.in_row, curr=self.currency, auth_id=interaction.user.id)
-                else:
-                    emb = Embed(title="Топ пользователей по балансу", colour=Colour.dark_gray())
-                    emb.set_footer(text=f"Страница 1 из {(len(membs) + self.in_row - 1) // self.in_row}")
-                    for r in membs[0:min(self.in_row, len(membs))]:
-                        emb.add_field(name=f"{counter} место", value=f"<@{r[0]}>\n{r[1]} {self.currency}", inline=False)
-                        counter += 1 
-                    view_r = rating_slash_r(timeout=30, membs=membs, in_row=self.in_row, curr=self.currency, auth_id=interaction.user.id)
-                await interaction.response.send_message(embed=emb, view=view_r)
-                end = await view_r.wait()
-                if end:
-                    for child in view_r.children:
-                        child.disabled = True
-                    msg = await interaction.original_message()
-                    await msg.edit(view=view_r)
+                membs_cash = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+                membs_xp = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+                xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+        
+        l = len(membs_cash)
+
+        emb = Embed(title=rating_text[lng][0], colour=Colour.dark_gray())
+        
+        counter = 1
+        for r in membs_cash[0:min(self.in_row, l)]:
+            emb.add_field(name=rating_text[lng][2].format(counter), value=f"<@{r[0]}>\n{r[1]} {self.currency}", inline=False)
+            counter += 1 
+
+        if l:
+            emb.set_footer(text=rating_text[lng][1].format(1, (l + in_row - 1) // in_row))
+        else:
+            emb.set_footer(text=rating_text[lng][1].format(1, 1))
+
+        rate_view = rating_slash_view(timeout=40, lng=lng, auth_id=interaction.user.id, cash_list=membs_cash, xp_list=membs_xp, xp_b=xp_b, in_row=in_row)
+
+        await interaction.response.send_message(embed=emb, view=rate_view)
+        await rate_view.wait()
+        
+        for c in rate_view.children:
+            c.disabled = True
+        await interaction.edit_original_message(view=rate_view)
     
     
     @slash_command(
@@ -1477,4 +1451,4 @@ class slash(commands.Cog):
     
 
 def setup(bot: commands.Bot, **kwargs):
-    bot.add_cog(slash(bot, **kwargs))
+    bot.add_cog(slash_commands(bot, **kwargs))
