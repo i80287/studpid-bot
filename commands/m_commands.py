@@ -1609,7 +1609,7 @@ class mng_membs_view(View):
                 cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls.replace(f"#{self.role}", ""), self.memb_id))
                 membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
                 if membs:
-                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"{self.memb_id}#", ""), self.role))
+                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"#{self.memb_id}", ""), self.role))
                 base.commit()
         await self.member.remove_roles(interaction.guild.get_role(self.role))
         

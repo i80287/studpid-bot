@@ -60,7 +60,7 @@ class msg_h(commands.Cog):
                 base.commit()
                 
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()
-                if lng is None:
+                if not lng:
                     lng = 1 if "ru" in guild.preferred_locale else 0
                 else:
                     lng = lng[0]
