@@ -265,8 +265,9 @@ class store_slash_view(View):
         self.in_row = in_row
         self.coin = coin
         self.tz = tz # time zone of the guild
-        self.sort_d = 0 # by default - sort by price, 1 - sort by date (time)
-        self.sort_grad = 0 # возрастание / убывание, от gradation, 0 - возрастание
+        self.sort_by = True # True - sort by price, False - sort by date (time)
+        self.reversed = False # возрастание / убывание при сортировке, False - возрастание
+        
 
         self.add_item(c_button(label="", custom_id=f"32_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
         self.add_item(c_button(label="", custom_id=f"33_{auth_id}_{randint(1, 100)}", emoji="◀️"))
@@ -305,55 +306,55 @@ class store_slash_view(View):
         self.add_item(c_select(custom_id=f"103_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][7], opts=opts))
         
 
-    def sort_by(self) -> None:
-        outer = self.db_store
-        sort_d = self.sort_d
-        sort_grad = self.sort_grad
-        if sort_d == 0:
-            #price
-            array = [rr[3] for rr in outer]
-        elif sort_d == 1:
-            #time
-            array = [rr[4] for rr in outer]
+    def sort_store(self) -> None:
+        
+        sort_by = self.sort_by
+
+        if self.reversed:
+            if sort_by:
+                # Reversed sort by price, from higher to lower. 
+                # If prices are equal sort by date from higher to lower (latest is higher, early date is lower)
+                # tup[2] - price of the role, tup[3] - last date of adding role to the store
+                self.db_store.sort(key=lambda tup: (tup[2], tup[3]), reverse=True)
+            else:
+                # Reversed sort by date from lower to higher (early date is lower, goes first) 
+                # If dates are equal then item with lower price goes first
+                # tup[2] - price of the role, tup[3] - last date of adding role to the store. If dates are equal
+                self.db_store.sort(key=lambda tup: (tup[3], tup[2]), reverse=False)
+            return
+        
+        # If sort is not reversed
+        store = self.db_store
+        l = self.l // 2
+
+        if sort_by:
+            # Sort by price from lower to higher 
+            # If prices are equal sort by date from higher to lower (latest is higher, early date is lower)
             
-        for i in range(len(array)-1):
-            for j in range(i+1, len(array)):
-                if sort_d == 0:
-                    if (sort_grad == 0 and array[i] > array[j]) or (sort_grad == 1 and array[i] < array[j]):
-                        temp = array[j]
-                        array[j] = array[i]
-                        array[i] = temp
-                        temp = outer[j]
-                        outer[j] = outer[i]
-                        outer[i] = temp
-                    elif array[i] == array[j] and outer[i][4] < outer[j][4]:
-                        #if prices are equal, at first select позже выставленную роль
-                        temp = array[j]
-                        array[j] = array[i]
-                        array[i] = temp
-                        temp = outer[j]
-                        outer[j] = outer[i]
-                        outer[i] = temp
-
-                elif sort_d == 1:
-                    if (sort_grad == 0 and array[i] < array[j]) or (sort_grad == 1 and array[i] > array[j]):
-                        temp = array[j]
-                        array[j] = array[i]
-                        array[i] = temp
-                        temp = outer[j]
-                        outer[j] = outer[i]
-                        outer[i] = temp
-                    elif array[i] == array[j]:
-                        #if dates are equal, at first select role with lower price
-                        if outer[i][3] > outer[j][3]:
-                            temp = array[j]
-                            array[j] = array[i]
-                            array[i] = temp
-                            temp = outer[j]
-                            outer[j] = outer[i]
-                            outer[i] = temp
-
-        self.db_store = outer
+            # Shell sort
+            while l:
+                for i in range(l, self.l):
+                    moving_item = store[i]
+                    while i >= l and (store[i-l][2] > store[i][2] or (store[i-l][2] == store[i][2] and store[i-l][3] < store[i][3])):
+                        store[i] = store[i - l]
+                        i -= l
+                        store[i] = moving_item
+                l //= 2
+            self.db_store = store
+        else:
+            # Sort by date from higher to lower (latest is higher, early date is lower)
+            # If dates are equal then item with lower price goes first
+            
+            # Shell sort
+            while l:
+                for i in range(l, self.l):
+                    moving_item = store[i]
+                    while i >= l and (store[i-l][3] < store[i][3] or (store[i-l][3] == store[i][3] and store[i-l][2] > store[i][2])):
+                        store[i] = store[i - l]
+                        i -= l
+                        store[i] = moving_item
+                l //= 2
+            self.db_store = store
 
 
     def update_menu(self, interaction: Interaction, lng: int, click: int, in_row: int) -> list:
@@ -433,25 +434,25 @@ class store_slash_view(View):
 
         if c_id.startswith("102_"):
             if int(value[0]):
-                self.sort_d = 1
+                self.sort_by = False
                 self.children[4].options[0].default=False
                 self.children[4].options[1].default=True
             else:
-                self.sort_d = 0
+                self.sort_by = True
                 self.children[4].options[0].default=True
                 self.children[4].options[1].default=False
 
-        elif c_id.startswith("103"):
+        elif c_id.startswith("103_"):
             if int(value[0]):
-                self.sort_grad = 1
+                self.reversed = True
                 self.children[5].options[0].default=False
                 self.children[5].options[1].default=True
             else:
-                self.sort_grad = 0
+                self.reversed = False
                 self.children[5].options[0].default=True
                 self.children[5].options[1].default=False
         
-        self.sort_by()
+        self.sort_store()
         store_list = self.update_menu(interaction=interaction, lng=lng, click=4, in_row=self.in_row)
         if store_list:
             emb = Embed(title=store_text[lng][10], colour=Colour.dark_gray(), description='\n'.join(store_list))
