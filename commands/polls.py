@@ -678,7 +678,7 @@ class polling(commands.Cog):
             Locale.ru: "создаёт новый полл"
         },
         guild_ids=bot_guilds_e,
-        force_global=True     
+        force_global=False     
     )
     async def poll_e(
         self, 

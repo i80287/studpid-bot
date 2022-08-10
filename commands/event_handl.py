@@ -129,11 +129,19 @@ class msg_h(commands.Cog):
         if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
             mkdir(f"{path_to}/bases/bases_{guild.id}/")
         
+        self.correct_db(guild=guild)
         self.bot.unload_extension(f"commands.m_commands")
         self.bot.unload_extension(f"commands.basic")
         self.bot.unload_extension(f"commands.slash_shop")
         self.bot.unload_extension(f"commands.polls")
-        self.correct_db(guild=guild)
+        self.bot.load_extension(f"commands.m_commands")
+        self.bot.load_extension(f"commands.basic")
+        self.bot.load_extension(f"commands.slash_shop")
+        self.bot.load_extension(f"commands.polls")
+        await sleep(2)
+        await self.bot.sync_all_application_commands()
+        await sleep(1)
+
 
         lng = 1 if "ru" in guild.preferred_locale else 0
 
