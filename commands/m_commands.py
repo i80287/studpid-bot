@@ -592,9 +592,11 @@ class gen_settings_view(View):
         self.bot.unload_extension(f"commands.m_commands")
         self.bot.unload_extension(f"commands.basic")
         self.bot.unload_extension(f"commands.slash_shop")
+        self.bot.unload_extension(f"commands.polls")
+        self.bot.load_extension(f"commands.polls")
         self.bot.load_extension(f"commands.m_commands")
-        self.bot.load_extension(f"commands.basic", extras={"prefix": prefix, "in_row": in_row})
-        self.bot.load_extension(f"commands.slash_shop", extras={"prefix": prefix, "in_row": in_row})
+        self.bot.load_extension(f"commands.basic")
+        self.bot.load_extension(f"commands.slash_shop")
 
         await sleep(2)
         await self.bot.sync_all_application_commands()

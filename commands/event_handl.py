@@ -42,18 +42,18 @@ class msg_h(commands.Cog):
         },
         global greetings
         greetings = {
-            0 : {
-                ["Thanks for adding bot!",
+            0 : [
+                "Thanks for adding bot!",
                 "Use **`/guide`** to see guide about bot's system",
                 "**`/settings`** to manage bot",
-                "and **`/help`** to see available commands"]
-            },
-            1 : {
-                ["Благодарим за добавление бота!",
+                "and **`/help`** to see available commands"
+            ],
+            1 : [
+                "Благодарим за добавление бота!",
                 "Используйте **`/guide`** для просмотра гайда о системе бота",
                 "**`/settings`** для управления ботом",
-                "и **`/help`** для просмотра доступных команд"]
-            }
+                "и **`/help`** для просмотра доступных команд"
+            ]
         }
         self.salary_roles.start()
         self._backup.start()
@@ -96,29 +96,21 @@ class msg_h(commands.Cog):
             bot_guilds_e.add(guild.id)
         bot_guilds.add(guild.id)
 
-
     @commands.Cog.listener()
     async def on_ready(self):
         for guild in self.bot.guilds:
             if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
-                try: mkdir(f"{path_to}/bases/bases_{guild.id}/")
-                except Exception as E:
-                    with open("error.log", "a+", encoding="utf-8") as f:
-                        f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [can't create folder for db] [{guild.id}] [{guild.name}] [{str(E)}]\n")
-                    return
-            try:
-                self.correct_db(guild=guild)
-            except Exception:
-                with open("error.log", "a+", encoding="utf-8") as f:
-                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [on_ready] [{guild.id}] [{guild.name}] [{str(Exception)}]\n")
-    
-        """ self.bot.load_extension(f"commands.m_commands")
+                mkdir(f"{path_to}/bases/bases_{guild.id}/")
+            self.correct_db(guild=guild)
+
+        self.bot.load_extension(f"commands.m_commands")
         self.bot.load_extension(f"commands.basic")
         self.bot.load_extension(f"commands.slash_shop")
+        self.bot.load_extension(f"commands.polls")
 
         await sleep(2)
         await self.bot.sync_all_application_commands()
-        await sleep(1) """
+        await sleep(1)
 
         print(f'{Fore.CYAN}[>>>]Logged into Discord as {self.bot.user}\n')
 
@@ -136,20 +128,27 @@ class msg_h(commands.Cog):
 
         if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
             mkdir(f"{path_to}/bases/bases_{guild.id}/")
-
+        
+        self.bot.unload_extension(f"commands.m_commands")
+        self.bot.unload_extension(f"commands.basic")
+        self.bot.unload_extension(f"commands.slash_shop")
+        self.bot.unload_extension(f"commands.polls")
         self.correct_db(guild=guild)
+
+        lng = 1 if "ru" in guild.preferred_locale else 0
 
         c = guild.system_channel
         if c.permissions_for(guild.me).send_messages:
-            c.send(embed=Embed(description="\n".join(greetings)))
+            await c.send(embed=Embed(description="\n".join(greetings[lng])))
         else:
             for c in guild.text_channels:
                 if c.permissions_for(guild.me).send_messages:
-                    c.send(embed=Embed(description="\n".join(greetings)))
+                    await c.send(embed=Embed(description="\n".join(greetings[lng])))
                     break
 
         with open("guild.log", "a+", encoding="utf-8") as f:
-            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.id}] [{guild.name}] \n")
+            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.id}] [{guild.name}]\n")
+            
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: Guild):

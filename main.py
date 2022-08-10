@@ -27,10 +27,10 @@ if __name__ == "__main__":
     print(f'\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}')
     bot.load_extension(f"commands.event_handl")
 
-    bot.load_extension(f"commands.polls")
+    """ bot.load_extension(f"commands.polls")
     bot.load_extension(f"commands.m_commands")
     bot.load_extension(f"commands.basic")
-    bot.load_extension(f"commands.slash_shop")
+    bot.load_extension(f"commands.slash_shop") """
 
     #bot.run(token)
     bot.run(debug_token)
