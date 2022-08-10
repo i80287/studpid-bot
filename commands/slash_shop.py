@@ -697,7 +697,7 @@ class slash_commands(commands.Cog):
                     return
                 buyer = self.check_user(base=base, cur=cur, memb_id=memb_id)
         
-        if not r_id in {int(x) for x in buyer[2].split("#") if x != ""}:
+        if r_id in {int(x) for x in buyer[2].split("#") if x != ""}:
             await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][4], colour=Colour.red()), ephemeral=True)
             return
 
