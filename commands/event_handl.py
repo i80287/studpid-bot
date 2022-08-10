@@ -98,6 +98,9 @@ class msg_h(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        if not path.exists(f"{path_to}/bases/"):
+            mkdir(f"{path_to}/bases/")
+
         for guild in self.bot.guilds:
             if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
                 mkdir(f"{path_to}/bases/bases_{guild.id}/")

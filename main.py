@@ -1,3 +1,7 @@
+"""activate_this = '/home/bot/python/bin/activate_this.py'
+with open(activate_this) as f:
+    exec(f.read(), {'__file__': activate_this})"""
+
 from nextcord import Intents
 from nextcord.ext import commands as cmds
 from colorama import Fore
