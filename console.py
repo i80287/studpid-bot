@@ -38,7 +38,7 @@ class ConsoleCog(Cog):
                     CREATE TABLE IF NOT EXISTS salary_roles(role_id INTEGER PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, salary_cooldown INTEGER, last_time INTEGER);
                     CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER);
                     CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER);
-                    CREATE TABLE IF NOT EXISTS ic(chn_id INTEGER PRIMARY KEY);
+                    CREATE TABLE IF NOT EXISTS ic(chnl_id INTEGER PRIMARY KEY);
                     CREATE TABLE IF NOT EXISTS mod_roles(role_id INTEGER PRIMARY KEY);
                 """)
                 base.commit()

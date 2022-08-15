@@ -239,8 +239,9 @@ class msg_h(commands.Cog):
     @commands.Cog.listener()
     async def on_message(self, message: Message):
         user = message.author
+
         if user.bot or message.channel.type is ChannelType.private \
-            or message.type is MessageType.chat_input_command:
+            or message.type is MessageType.chat_input_command or message.content.startswith(",,,,"):
             return
 
         with closing(connect(f"{path_to}/bases/bases_{message.guild.id}/{message.guild.id}.db")) as base:

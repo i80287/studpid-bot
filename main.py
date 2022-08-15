@@ -25,12 +25,12 @@ if __name__ == "__main__":
     bot = Bot()
     
     cmd = Console(bot)
-    cmd.load_extension(f'console')
+    cmd.load_extension("console")
     cmd.start()
 
-    print(f'\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}')
+    print(f"\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}")
     bot.load_extension(f"commands.event_handl")
-
+    
     """ bot.load_extension(f"commands.polls")
     bot.load_extension(f"commands.m_commands")
     bot.load_extension(f"commands.basic")
