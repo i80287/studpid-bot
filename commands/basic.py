@@ -1,4 +1,5 @@
 
+from os import path
 from random import randint
 from sqlite3 import connect, Connection, Cursor
 from contextlib import closing
@@ -380,6 +381,34 @@ class mod_commands(commands.Cog):
         feedback_channel = chnl.id
         msg = await ctx.reply(embed=Embed(description=f"New feedback channel is <#{feedback_channel}>"), mention_author=False)
         await msg.delete(delay=5)
+
+
+    @commands.command(name="load")
+    @commands.is_owner()
+    async def _load(self, ctx, extension):
+        if path.exists(f"{path_to}/commands/{extension}.py"):
+            self.bot.load_extension(f"commands.{extension}")
+            m = await ctx.reply(embed=Embed(description=f"**Loaded `{extension}`**"), mention_author=False)
+            await m.delete(delay=5)
+    
+
+    @commands.command(name="unload")
+    @commands.is_owner()
+    async def _unload(self, ctx, extension):
+        if path.exists(f"{path_to}/commands/{extension}.py"):
+            self.bot.unload_extension(f"commands.{extension}")
+            m = await ctx.reply(embed=Embed(description=f"**Unloaded `{extension}`**"), mention_author=False)
+            await m.delete(delay=5)
+
+
+    @commands.command(name="reload")
+    @commands.is_owner()
+    async def _reload(self, ctx, extension):
+        if path.exists(f"{path_to}/commands/{extension}.py"):
+            self.bot.unload_extension(f"commands.{extension}")
+            self.bot.load_extension(f"commands.{extension}")
+            m = await ctx.reply(embed=Embed(description=f"**Reloaded `{extension}`**"), mention_author=False)
+            await m.delete(delay=5)
 
 
     @commands.Cog.listener()

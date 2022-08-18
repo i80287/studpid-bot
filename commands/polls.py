@@ -109,15 +109,20 @@ class Poll(View):
                     return
 
                 if label == "disapprove":
+
                     for i in self.children:
                         i.disabled = True
                     emb = interaction.message.embeds[0]
                     emb.description = f"{self.text[lng][0]}{interaction.user.mention}\n" + emb.description
                     await interaction.message.edit(view=self, embed=emb)
                     self.stop()
+
                 elif label == "approve":
+
                     chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
-                    if chnl_id != 0:
+
+                    if chnl_id:
+
                         chnl = g.get_channel(chnl_id)     
                         self.verified = True
                         emb = interaction.message.embeds[0]
@@ -173,7 +178,9 @@ class Poll(View):
         L = int(label)
         u_id = interaction.user.id
         lng = 1 if "ru" in interaction.locale else 0
+
         if u_id in self.voters[L-1]:
+
             await self.update_votes(interaction=interaction, L=L, val=0)
             self.voters[L-1].remove(u_id)
             try:
@@ -184,6 +191,7 @@ class Poll(View):
                     await interaction.response.send_message(embed=Embed(description=self.text[lng][4].format(L)), ephemeral=True)
                 except:
                     pass
+                
         else:    
             fl = -1
             for x in range(self.n):
@@ -214,6 +222,7 @@ class Poll(View):
                 
             
     async def on_timeout(self):
+        
         if not self.verified:
             self.stop()
             return
@@ -257,56 +266,34 @@ class Poll(View):
 
 class polling(commands.Cog):
 
-    
+
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        global text_4
-        text_4 = {
-            0 : {
-                0 : "Timeout for poll has expired",
-                1 : "Create poll menu",
-                2 : "Write a name for the poll",
-                3 : "Write a question for the poll",
-                4 : "How much days the poll will be active and **in which time** it will expired? Write in format **`after_how_much_days-hours-minutes`**. \
-                    You can choose no more than 21 days. \n For example **`1-18-0`** will publish poll that will expire tomorrow at 18:00",
-                5 : "Will the poll be anonymous? Write **`y`**/**`yes`**/**`1`** if you want poll to be anonymous and **`n`**/**`no`**/**`0`** if not",
-                6 : "How much answers will the poll have?\nChoose integer from 1 to 12",
-                #7 : "Write {} answer",
-                7 : "**`You can't select time for the poll less than it's now`**",
-                8 : "**`You created poll and it was sent to the verification`**",
-                9 : "Poll creation was cancelled",
-                10 : "Verification channel isn't configured",
-                11 : "Channel for polls isn't configured",
-                12 : "Poll is anonymous",
-                13 : "Poll isn't anonymous",
-                14 : "Poll with multiple choice",
-                15 : "Poll with single choice",
-                16 : "Votes: 0",
-                17 : "answer",
-                18 : "\n**`Author: `**<@{}>"
+        global polls_text
+        polls_text = {
+            0 : {               
+                0 : "**`Poll creation was cancelled because polls verification channel isn't configured`**",
+                1 : "**`You can't select time for the poll less than it's now`**",
+                2 : "answer",
+                3 : "Votes: 0",
+                4 : "Poll is anonymous",
+                5 : "Poll isn't anonymous",
+                6 : "Poll with multiple choice",
+                7 : "Poll with single choice",
+                8 : "\n**`Author: `**<@{}>",
+                9 : "**`You created poll and it was sent to the verification`**"
             },
             1 : {
-                0 : "Истёк таймаут создания полла",
-                1 : "Меню создания полла. Напишите cancel для отмены",
-                2 : "Напишите имя полла",
-                3 : "Напишите вопрос или тезис полла",
-                4 : "Сколько дней будет действовать полл и **в какое время** он закончится? Напишите в формате **`через_сколько_дней-часы-минуты`**. \
-                    Можно указать не более 21 дня. \nНапример, **`1-18-0`** опубликует полл, который будет действовать до завтра 18:00",
-                5 : "Будет ли полл анонимным? Напишите **`y`**/**`yes`**/**`да`**/**`1`**  для анонимности или **`n`**/**`no`**/**`нет`**/**`0`** иначе.",
-                6 : "Сколько вариантов ответов будет у полла?\nВыберите натуральное число от 1 до 12",
-                #7 : "Введите {}-й вариант ответа",
-                7 : "**`Вы не можете выбрать время меньше, чем сейчас`**",
-                8 : "**`Вы создали полл, и он был отправлен на верификацию`**",
-                9 : "Создание полла отменено",
-                10 : "Канал верификации поллов не настроен",
-                11 : "Канал поллов не настроен",
-                12 : "Полл анонимный",
-                13 : "Полл неанонимный",
-                14 : "Полл с несколькими вариантами выбора",
-                15 : "Полл с одним вариантом выбора",
-                16 : "Голосов: 0",
-                17 : "ответ",
-                18 : "\n**`Автор: `**<@{}>"
+                0 : "**`Создание полла отменено, потому что канал верификации поллов не настроен`**",
+                1 : "**`Вы не можете выбрать время меньше, чем сейчас`**",
+                2 : "ответ",
+                3 : "Голосов: 0",
+                4 : "Полл анонимный",
+                5 : "Полл неанонимный",
+                6 : "Полл с несколькими вариантами выбора",
+                7 : "Полл с одним вариантом выбора",                
+                8 : "\n**`Автор: `**<@{}>",
+                9 : "**`Вы создали полл, и он был отправлен на верификацию`**"
             }
         }                     
     
@@ -546,18 +533,17 @@ class polling(commands.Cog):
         with closing(connect(f"{path_to}/bases/bases_{g.id}/{g.id}.db")) as base:
             with closing(base.cursor()) as cur:
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
-                if chnl_id == 0:
-                    await interaction.response.send_message(embed=Embed(description=text_4[lng][9], colour=Colour.red()))
+                if not chnl_id:
+                    await interaction.response.send_message(embed=Embed(description=polls_text[lng][0], colour=Colour.red()))
+                    return
+                elif not g.get_channel(chnl_id):
+                    await interaction.response.send_message(embed=Embed(description=polls_text[lng][0], colour=Colour.red()))
                     return
                 else:
-                    try:
-                        chnl = g.get_channel(chnl_id)
-                    except:
-                        await interaction.response.send_message(embed=Embed(description=text_4[lng][9], colour=Colour.red()))
-                        return
+                    chnl = g.get_channel(chnl_id)
         
         if not hours and not minutes:
-            await interaction.response.send_message(embed=Embed(description=text_4[lng][7], colour=Colour.dark_red()), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=polls_text[lng][1], colour=Colour.dark_red()), ephemeral=True)
             return
 
         poll = Poll()
@@ -593,19 +579,19 @@ class polling(commands.Cog):
         emb = Embed()
 
         for i in range(poll.n):
-            emb.add_field(name=f"{i+1} {text_4[lng][17]}", value=f"{poll.questions[i]}\n{text_4[lng][16]}")
+            emb.add_field(name=f"{i+1} {polls_text[lng][2]}", value=f"{poll.questions[i]}\n{polls_text[lng][3]}")
         emb.timestamp=poll.timestamp
-        emb.set_author(name=text_4[lng][16])
+        emb.set_author(name=polls_text[lng][3])
         if poll.anon:
-            f = f"\n**`{text_4[lng][12]}`**"
+            f = f"\n**`{polls_text[lng][4]}`**"
         else:
-            f = f"\n**`{text_4[lng][13]}`**"
+            f = f"\n**`{polls_text[lng][5]}`**"
         if poll.mult:
-            f += f"\n**`{text_4[lng][14]}`**"
+            f += f"\n**`{polls_text[lng][6]}`**"
         else:
-            f += f"\n**`{text_4[lng][15]}`**"
+            f += f"\n**`{polls_text[lng][7]}`**"
         
-        f += text_4[lng][18].format(interaction.user.id)
+        f += polls_text[lng][8].format(interaction.user.id)
 
         emb.description = f"**{poll.thesis}**{f}"
 
@@ -615,7 +601,7 @@ class polling(commands.Cog):
         poll.init_ans()
         m = await chnl.send(view=poll, embed=emb)
         poll.m = m
-        await interaction.response.send_message(embed=Embed(description=text_4[lng][8], colour=Colour.dark_purple()), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=polls_text[lng][9], colour=Colour.dark_purple()), ephemeral=True)
 
 
 def setup(bot, **kwargs):
