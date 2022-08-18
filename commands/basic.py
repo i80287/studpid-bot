@@ -390,6 +390,9 @@ class mod_commands(commands.Cog):
             self.bot.load_extension(f"commands.{extension}")
             m = await ctx.reply(embed=Embed(description=f"**Loaded `{extension}`**"), mention_author=False)
             await m.delete(delay=5)
+        else:
+            m = await ctx.reply(embed=Embed(description=f"**`{extension}` not found**"), mention_author=False)
+            await m.delete(delay=5)
     
 
     @commands.command(name="unload")
@@ -398,6 +401,9 @@ class mod_commands(commands.Cog):
         if path.exists(f"{path_to}/commands/{extension}.py"):
             self.bot.unload_extension(f"commands.{extension}")
             m = await ctx.reply(embed=Embed(description=f"**Unloaded `{extension}`**"), mention_author=False)
+            await m.delete(delay=5)
+        else:
+            m = await ctx.reply(embed=Embed(description=f"**`{extension}` not found**"), mention_author=False)
             await m.delete(delay=5)
 
 
@@ -408,6 +414,9 @@ class mod_commands(commands.Cog):
             self.bot.unload_extension(f"commands.{extension}")
             self.bot.load_extension(f"commands.{extension}")
             m = await ctx.reply(embed=Embed(description=f"**Reloaded `{extension}`**"), mention_author=False)
+            await m.delete(delay=5)
+        else:
+            m = await ctx.reply(embed=Embed(description=f"**`{extension}` not found**"), mention_author=False)
             await m.delete(delay=5)
 
 
