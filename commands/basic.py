@@ -9,7 +9,7 @@ from nextcord.ext.commands import CheckFailure
 from nextcord import Embed, Colour, Locale, Interaction, slash_command, ButtonStyle, TextInputStyle, Permissions, TextChannel
 from nextcord.ui import Button, Modal, TextInput
 
-from config import *
+from config import path_to, bot_guilds
 
 feedback_channel = 910291295157768263
 
@@ -219,8 +219,6 @@ class mod_commands(commands.Cog):
         self.bot = bot
         
         global bot_guilds
-        global bot_guilds_e
-        global bot_guilds_r
 
         global text
         text = {
@@ -232,7 +230,7 @@ class mod_commands(commands.Cog):
                 21 : '**`This user not found`**',
                 22 : '**`Please, wait before reusing this command`**',
                 23 : "**`Sorry, but you don't have enough permissions for using this command`**",
-                24 : f"**Economic moderator role is not chosen! User with administrator or manage server permissions can do it via `{prefix}mod_role` `role_id`**",
+                24 : "**Economic moderator role is not chosen! User with administrator or manage server permissions can do it via `{}mod_role` `role_id`**",
                 40 : "**`This role not found`**",
                 41 : "**`This channel not found`**"
             },
@@ -244,7 +242,7 @@ class mod_commands(commands.Cog):
                 21 : "**`Такой пользователь не найден`**",
                 22 : "**`Пожалуйста, подождите перед повторным использованием команды`**",
                 23 : "**`У Ваc недостаточно прав для использования этой команды`**",
-                24 : f"**Роль модератора экономики не выбрана! Пользователь с правами админитратора или управляющего сервером должен сделать это при помощи `{prefix}mod_role` `role_id`**",
+                24 : "**Роль модератора экономики не выбрана! Пользователь с правами админитратора или управляющего сервером должен сделать это при помощи `{}mod_role` `role_id`**",
                 40 : "**`Такая роль не найдена`**",
                 41 : "**`Такой канал не найден`**"
             }
@@ -346,25 +344,9 @@ class mod_commands(commands.Cog):
         description="show guide about bot's system",
         description_localizations={
             Locale.ru: "показывает гайд о системе бота"
-        },
-        guild_ids=bot_guilds_e,
-        force_global=False
+        }
     )
     async def guide_e(self, interaction: Interaction):
-        await self.guide(interaction)
-
-
-    @slash_command(
-        name="guide",
-        description="показывает гайд о системе бота",
-        description_localizations={
-            Locale.en_GB: "show guide about bot's system",
-            Locale.en_US: "show guide about bot's system"
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False
-    )
-    async def guide_r(self, interaction: Interaction):
         await self.guide(interaction)
 
 
@@ -373,25 +355,9 @@ class mod_commands(commands.Cog):
         description="Calls menu with commands",
         description_localizations={
             Locale.ru : "Вызывает меню команд"
-        },
-        guild_ids=bot_guilds_e,
-        force_global=False
+        }
     )
     async def help_e(self, interaction: Interaction):
-        await self.help(interaction=interaction)
-    
-
-    @slash_command(
-        name="help", 
-        description="Вызывает меню команд",
-        description_localizations={
-            Locale.en_GB: "Calls menu with commands",
-            Locale.en_US: "Calls menu with commands"
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False
-    )
-    async def help_r(self, interaction: Interaction):
         await self.help(interaction=interaction)
 
 
@@ -401,26 +367,9 @@ class mod_commands(commands.Cog):
         description_localizations={
             Locale.ru: "Отправляет отзыв на сервер поддержки"
         },
-        guild_ids=bot_guilds_e,
-        force_global=False,
         default_member_permissions=Permissions.administrator.flag
     )
     async def feedback_e(self, interaction: Interaction):
-        await self.feedback(interaction=interaction)
-
-    
-    @slash_command(
-        name="feedback",
-        description="Отправляет отзыв на сервер поддержки",
-        description_localizations={
-            Locale.en_US: "Sends a feedback to the support server",
-            Locale.en_GB: "Sends a feedback to the support server"
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False,
-        default_member_permissions=Permissions.administrator.flag
-    )
-    async def feedback_r(self, interaction: Interaction):
         await self.feedback(interaction=interaction)
 
 

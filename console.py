@@ -1,6 +1,5 @@
 
-import os
-from shutil import copy2
+from os import mkdir, path
 from sqlite3 import connect
 from contextlib import closing
 
@@ -16,15 +15,15 @@ class ConsoleCog(Cog):
     
     @console.command()
     async def setup(self, guild_id, lng = "0"):
-        if not os.path.exists(f"{path_to}/bases/"):
+        if not path.exists(f"{path_to}/bases/"):
             try:
-                os.mkdir(f"{path_to}/bases/")
+                mkdir(f"{path_to}/bases/")
             except:
                 print(f"Can't create {path_to}/bases folder")
 
-        if not os.path.exists(f"{path_to}/bases/bases_{guild_id}/"):
+        if not path.exists(f"{path_to}/bases/bases_{guild_id}/"):
             try:
-                os.mkdir(f"{path_to}/bases/bases_{guild_id}/")
+                mkdir(f"{path_to}/bases/bases_{guild_id}/")
             except:
                 print(f"{Fore.YELLOW}Can't create path to the database in the {path_to}/bases/ folder!{Fore.RED}\n")
 

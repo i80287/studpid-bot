@@ -9,7 +9,7 @@ from nextcord.ext import commands
 from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Locale, ui, SelectOption, slash_command, Role, Member
 from nextcord.ui import Button, View, Select
 
-from config import path_to, bot_guilds_e, bot_guilds_r, currency, in_row
+from config import path_to, currency, in_row
 
 common_text = {
     0 : {
@@ -19,6 +19,7 @@ common_text = {
         0 : "**`Извините, но Вы не можете управлять чужой покупкой`**"
     }
 }
+
 
 text_slash = {
     0 : {
@@ -116,6 +117,7 @@ text_slash = {
     }
 }
 
+
 buy_approve_text = {
     0 : {
         0 : "Yes",
@@ -126,6 +128,7 @@ buy_approve_text = {
         1 : "Нет, отменить покупку"
     }
 }
+
 
 store_text = {
     0 : {
@@ -157,6 +160,7 @@ store_text = {
     }
 }
 
+
 profile_text = {
     0 : {
         1 : "Cash",
@@ -175,6 +179,7 @@ profile_text = {
         6 : "**`У Вас нет ролей из магазина бота`**",
     }
 }
+
 
 code_blocks = {
     0 : "```\nMember's personal roles\n```",
@@ -202,6 +207,7 @@ bet_text = {
     }
 }
 
+
 rating_text = {
     0 : {
         0 : "Top members by balance",
@@ -222,6 +228,7 @@ rating_text = {
         6 : "Сортировать по опыту",     
     }
 }
+
 
 class c_button(Button):
 
@@ -633,15 +640,14 @@ class rating_slash_view(View):
             return False
         return True
 
+
 class slash_commands(commands.Cog):
+
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         self.in_row = in_row
-        self.currency = currency
-        
-        global bot_guilds_e
-        global bot_guilds_r        
+        self.currency = currency 
 
     
     async def can_role(self, interaction: Interaction, role: Role, lng: int) -> bool:
@@ -1092,8 +1098,7 @@ class slash_commands(commands.Cog):
         description="Makes a role purchase from the store",
         description_localizations={
             Locale.ru : "Совершает покупку роли из магазина"
-        },
-        guild_ids=bot_guilds_e,
+        }
     )
     async def buy_e(
         self, 
@@ -1112,72 +1117,24 @@ class slash_commands(commands.Cog):
     ):
         await self.buy(interaction=interaction, role=role)
                     
-
-    @slash_command(
-        name="buy", 
-        description="Совершает покупку роли из магазина",
-        description_localizations={
-            Locale.en_GB : "Makes a role purchase from the store",
-            Locale.en_US : "Makes a role purchase from the store",
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False
-    )
-    async def buy_r(
-        self, 
-        interaction: Interaction, 
-        role: Role = SlashOption(
-            name="роль",
-            name_localizations={
-                Locale.en_GB: "role",
-                Locale.en_US: "role"
-            },
-            description="Роль, которую Вы хотите купить", 
-            description_localizations={
-                Locale.en_GB: "Role that you want to buy",
-                Locale.en_US: "Role that you want to buy"
-            },
-            required=True
-        )
-    ):
-        await self.buy(interaction=interaction, role=role)
-
     
     @slash_command(
         name="store",
         description="Shows store",
         description_localizations={
             Locale.ru : "Открывает меню магазина"
-        },
-        guild_ids=bot_guilds_e,
-        force_global=False
+        }
     )
     async def store_e(self, interaction: Interaction):
         await self.store(interaction=interaction)
-    
-    
-    @slash_command(
-        name="store",
-        description="Открывает меню магазина",
-        description_localizations={
-            Locale.en_GB: "Shows store",
-            Locale.en_US: "Shows store"
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False
-    )
-    async def store_r(self, interaction: Interaction):
-        await self.store(interaction=interaction)
-    
+     
 
     @slash_command(
         name="sell", 
         description="Sells the role",
         description_localizations={
             Locale.ru: "Совершает продажу роли"
-        },
-        guild_ids=bot_guilds_e,
-        force_global=False
+        }
     )
     async def sell_e(
         self,
@@ -1198,59 +1155,13 @@ class slash_commands(commands.Cog):
 
 
     @slash_command(
-        name="sell", 
-        description="Совершает продажу роли",
-        description_localizations={
-            Locale.en_GB: "Sells the role",
-            Locale.en_US: "Sells the role"
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False
-    )
-    async def sell_r(
-        self,
-        interaction: Interaction,
-        role: Role = SlashOption(
-            name="роль",
-            name_localizations={
-                Locale.en_GB: "role",
-                Locale.en_US: "role"
-            },
-            description="Ваша роль, которую Вы хотите продать",
-            description_localizations={
-                Locale.en_GB: "Your role that you want to sell",
-                Locale.en_US: "Your role that you want to sell"
-            },
-            required=True
-        )
-    ):
-        await self.sell(interaction=interaction, role=role)
-
-
-    @slash_command(
         name="profile", 
         description="Shows your profile",
         description_localizations={
             Locale.ru: "Показывает меню Вашего профиля"
-        },
-        guild_ids=bot_guilds_e,
-        force_global=False
+        }
     )
     async def profile_e(self, interaction: Interaction):
-        await self.profile(interaction=interaction)
-
-
-    @slash_command(
-        name="profile", 
-        description="Показывает меню Вашего профиля",
-        description_localizations={
-            Locale.en_GB: "Shows your profile",
-            Locale.en_US: "Shows your profile"
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False
-    )
-    async def profile_r(self, interaction: Interaction):
         await self.profile(interaction=interaction)
 
 
@@ -1259,36 +1170,18 @@ class slash_commands(commands.Cog):
         description="Allows to gain money",
         description_localizations={
             Locale.ru: "Позволяет заработать деньги"
-        },
-        guild_ids=bot_guilds_e,
-        force_global=False
+        }
     )
     async def work_e(self, interaction: Interaction):
         await self.work(interaction=interaction)
     
 
     @slash_command(
-        name="work", 
-        description="Позволяет заработать деньги",
-        description_localizations={
-            Locale.en_GB: "Allows to gain money",
-            Locale.en_US: "Allows to gain money"
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False
-    )
-    async def work_r(self, interaction: Interaction):
-        await self.work(interaction=interaction)
-    
-    
-    @slash_command(
         name="duel", 
         description="Make a bet",
         description_localizations={
             Locale.ru: "Сделать ставку"
-        },
-        guild_ids=bot_guilds_e,
-        force_global=False
+        }
     )
     async def duel_e(
         self, 
@@ -1310,44 +1203,11 @@ class slash_commands(commands.Cog):
 
     
     @slash_command(
-        name="duel", 
-        description="Сделать ставку",
-        description_localizations={
-            Locale.en_GB: "Make a bet",
-            Locale.en_US: "Make a bet"
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False
-    )
-    async def duel_r(
-        self, 
-        interaction: Interaction, 
-        amount: int = SlashOption(
-            name="количество", 
-            name_localizations={
-                Locale.en_GB: "amount",
-                Locale.en_US: "amount"
-            },
-            description="Сумма ставки",
-            description_localizations={
-                Locale.en_GB: "Bet amount",
-                Locale.en_US: "Bet amount"
-            },
-            required=True, 
-            min_value=1
-        )
-    ): 
-        await self.bet(interaction=interaction, amount=amount)
-
-    
-    @slash_command(
         name="transfer", 
         description="Transfers money to another member",
         description_localizations={
             Locale.ru: "Совершает перевод валюты другому пользователю"
-        },
-        guild_ids=bot_guilds_e,
-        force_global=False
+        }
     )
     async def transfer_e(
         self,
@@ -1377,50 +1237,6 @@ class slash_commands(commands.Cog):
         )
     ):
         await self.transfer(interaction=interaction, value=value, target=target)
-    
-
-    @slash_command(
-        name="transfer", 
-        description="Совершает перевод валюты другому пользователю",
-        description_localizations={
-            Locale.en_GB: "Transfers money to another member",
-            Locale.en_US: "Transfers money to another member"
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False
-    )
-    async def transfer_r(
-        self,
-        interaction: Interaction, 
-        value: int = SlashOption(
-            name="сумма", 
-            name_localizations={
-                Locale.en_GB: "value",
-                Locale.en_US: "value"
-            },
-            description="Переводимая сумма денег", 
-            description_localizations={
-                Locale.en_GB: "Amount of money to transfer",
-                Locale.en_US: "Amount of money to transfer"
-            },
-            required=True, 
-            min_value=1
-        ),
-        target: Member = SlashOption(
-            name="кому", 
-            name_localizations={
-                Locale.en_US: "target",
-                Locale.en_GB: "target"
-            },
-            description= "Пользователь, которому Вы хотите перевести деньги",
-            description_localizations={
-                Locale.en_GB: "The member you want to transfer money to",
-                Locale.en_US: "The member you want to transfer money to"
-            },
-            required=True
-        )
-    ):
-        await self.transfer(interaction=interaction, value=value, target=target)
 
     
     @slash_command(
@@ -1428,25 +1244,9 @@ class slash_commands(commands.Cog):
         description="Shows top members by balance",
         description_localizations={
             Locale.ru: "Показывет топ пользователей по балансу"
-        },
-        guild_ids=bot_guilds_e,
-        force_global=False
+        }
     )
     async def leaders_e(self, interaction: Interaction):
-        await self.leaders(interaction=interaction)
-    
-
-    @slash_command(
-        name="leaders", 
-        description="Показывет топ пользователей по балансу",
-        description_localizations={
-            Locale.en_GB: "Shows top members by balance",
-            Locale.en_US: "Shows top members by balance"
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False
-    )
-    async def leaders_r(self, interaction: Interaction):
         await self.leaders(interaction=interaction)
     
 

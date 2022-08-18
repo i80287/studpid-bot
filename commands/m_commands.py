@@ -9,7 +9,7 @@ from nextcord import Embed, Role, Locale, Interaction, slash_command, ButtonStyl
 from nextcord.ui import View, Button, Select, TextInput, Modal
 from nextcord.ext import commands, application_checks
 
-from config import path_to, bot_guilds_e, bot_guilds_r, prefix, in_row
+from config import path_to
 
 settings_text = {
     0 : {
@@ -509,8 +509,7 @@ languages = {
 }
 
 #with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
-#    with closing(base.cursor()) as cur:             
-
+#    with closing(base.cursor()) as cur:
 
 class c_select(Select):
 
@@ -576,31 +575,6 @@ class gen_settings_view(View):
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lang'", (s_lng,))
                 base.commit()
         
-        if s_lng == 0:
-            if not g_id in bot_guilds_e:
-                bot_guilds_e.add(g_id)
-            if g_id in bot_guilds_r:
-                bot_guilds_r.remove(g_id)
-        else:
-            if not g_id in bot_guilds_r:
-                bot_guilds_r.add(g_id)
-            if g_id in bot_guilds_e:
-                bot_guilds_e.remove(g_id)
-        
-        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][11]), ephemeral=True)
-        
-        self.bot.unload_extension(f"commands.m_commands")
-        self.bot.unload_extension(f"commands.basic")
-        self.bot.unload_extension(f"commands.slash_shop")
-        self.bot.unload_extension(f"commands.polls")
-        self.bot.load_extension(f"commands.polls")
-        self.bot.load_extension(f"commands.m_commands")
-        self.bot.load_extension(f"commands.basic")
-        self.bot.load_extension(f"commands.slash_shop")
-
-        await sleep(2)
-        await self.bot.sync_all_application_commands()
-        await sleep(1)
         s_lng_nm = languages[lng][s_lng]
         
         m = interaction.message
@@ -611,7 +585,7 @@ class gen_settings_view(View):
         emb.description = "\n".join(dsc)
         await m.edit(embed=emb)
 
-        await interaction.edit_original_message(embed=Embed(description=gen_settings_text[lng][10].format(s_lng_nm)))
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][10].format(s_lng_nm)), ephemeral=True)
         self.lang = None
 
     async def click(self, interaction: Interaction, c_id: str):
@@ -2577,10 +2551,10 @@ class settings_view(View):
 
 class m_cmds(commands.Cog):
 
+
     def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
-        global bot_guilds_e
-        global bot_guilds_r
+
 
     def mod_check(interaction: Interaction) -> bool:
         u = interaction.user
@@ -2594,6 +2568,7 @@ class m_cmds(commands.Cog):
                     m_rls = {x[0] for x in m_rls}
                     return any(role.id in m_rls for role in u.roles)
                 return False
+
 
     async def settings(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
@@ -2610,32 +2585,17 @@ class m_cmds(commands.Cog):
             await interaction.edit_original_message(view=st_view)
         else:
             await interaction.delete_original_message()
-        
+
+
     @slash_command(
         name="settings",
         description="Show menu to see and manage bot's settings",
         description_localizations={
             Locale.ru : "Вызывает меню просмотра и управления настройками бота"
-        },
-        guild_ids=bot_guilds_e,
-        force_global=False
+        }
     )
     @application_checks.check(mod_check)
     async def settings_e(self, interaction: Interaction):
-        await self.settings(interaction=interaction)
-     
-    @slash_command(
-        name="settings",
-        description="Вызывает меню просмотра и управления настройками бота",
-        description_localizations={
-            Locale.en_GB: "Show menu to see and manage bot's settings",
-            Locale.en_US: "Show menu to see and manage bot's settings"
-        },
-        guild_ids=bot_guilds_r,
-        force_global=False
-    )
-    @application_checks.check(mod_check)
-    async def settings_r(self, interaction: Interaction):
         await self.settings(interaction=interaction)
     
 

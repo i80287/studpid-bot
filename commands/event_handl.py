@@ -10,7 +10,7 @@ from nextcord import Game, Message, ChannelType, MessageType, Embed, Guild
 from nextcord.ext import commands, tasks
 from nextcord.errors import ApplicationCheckFailure
 
-from config import path_to, bot_guilds_e, bot_guilds_r, bot_guilds 
+from config import path_to, bot_guilds 
 
 event_handl_text = {
     0 : {
@@ -27,8 +27,6 @@ class msg_h(commands.Cog):
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         global bot_guilds
-        global bot_guilds_e
-        global bot_guilds_r
         global tx
         tx = {
             0 : {
@@ -90,10 +88,6 @@ class msg_h(commands.Cog):
                 cur.executemany("INSERT OR IGNORE INTO server_info(settings, value) VALUES(?, ?)", r)
                 base.commit()
 
-        if lng == 1:
-            bot_guilds_r.add(guild.id)
-        else:
-            bot_guilds_e.add(guild.id)
         bot_guilds.add(guild.id)
 
     @commands.Cog.listener()
@@ -105,15 +99,6 @@ class msg_h(commands.Cog):
             if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
                 mkdir(f"{path_to}/bases/bases_{guild.id}/")
             self.correct_db(guild=guild)
-
-        self.bot.load_extension(f"commands.m_commands")
-        self.bot.load_extension(f"commands.basic")
-        self.bot.load_extension(f"commands.slash_shop")
-        self.bot.load_extension(f"commands.polls")
-
-        await sleep(2)
-        await self.bot.sync_all_application_commands()
-        await sleep(1)
 
         print(f'{Fore.CYAN}[>>>]Logged into Discord as {self.bot.user}\n')
 
@@ -133,20 +118,11 @@ class msg_h(commands.Cog):
             mkdir(f"{path_to}/bases/bases_{guild.id}/")
         
         self.correct_db(guild=guild)
-        self.bot.unload_extension(f"commands.m_commands")
-        self.bot.unload_extension(f"commands.basic")
-        self.bot.unload_extension(f"commands.slash_shop")
-        self.bot.unload_extension(f"commands.polls")
-        self.bot.load_extension(f"commands.m_commands")
-        self.bot.load_extension(f"commands.basic")
-        self.bot.load_extension(f"commands.slash_shop")
-        self.bot.load_extension(f"commands.polls")
-        await sleep(2)
-        await self.bot.sync_all_application_commands()
-        await sleep(1)
 
-
-        lng = 1 if "ru" in guild.preferred_locale else 0
+        try:
+            lng = 1 if "ru" in guild.preferred_locale else 0
+        except:
+            lng = 0
 
         c = guild.system_channel
         if c.permissions_for(guild.me).send_messages:
@@ -165,10 +141,6 @@ class msg_h(commands.Cog):
     async def on_guild_remove(self, guild: Guild):
         g_id = guild.id
 
-        if g_id in bot_guilds_e:
-            bot_guilds_e.remove(g_id)
-        if g_id in bot_guilds_r:
-            bot_guilds_r.remove(g_id)
         if g_id in bot_guilds:
             bot_guilds.remove(g_id)
 
