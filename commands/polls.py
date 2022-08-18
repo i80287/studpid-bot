@@ -390,12 +390,9 @@ class polling(commands.Cog):
 
     @slash_command(
         name="poll",
-        name_localizations={
-            Locale.ru: "полл"
-        },
         description="creates new poll",
         description_localizations={
-            Locale.ru: "создаёт новый полл"
+            Locale.ru: "создаёт новый опрос (полл)"
         } 
     )
     async def poll_e(
