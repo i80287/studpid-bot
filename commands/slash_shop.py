@@ -132,7 +132,7 @@ buy_approve_text = {
 
 store_text = {
     0 : {
-        0 : "**•** <@&{}>\n`Price` - `{}` {}\n`Listed for sale:`\n*{}*\n",
+        0 : "**•** <@&{}>\n`Price` - `{}` {}\n`Left` - `1`\n`Listed for sale:`\n*{}*\n",
         1 : "**•** <@&{}>\n`Price` - `{}` {}\n`Left` - `{}`\n`Last listed for sale:`\n*{}*\n",
         2 : "`Average salary per week` - `{}` {}\n",
         3 : "Page {} from {}",
@@ -146,7 +146,7 @@ store_text = {
 
     },
     1 : {
-        0 : "**•** <@&{}>\n`Цена` - `{}` {}\n`Выставленa на продажу:`\n*{}*\n",
+        0 : "**•** <@&{}>\n`Цена` - `{}` {}\n`Осталось` - `1`\n`Выставленa на продажу:`\n*{}*\n",
         1 : "**•** <@&{}>\n`Цена` - `{}` {}\n`Осталось` - `{}`\n`Последний раз выставленa на продажу:`\n*{}*\n",
         2 : "`Средний доход за неделю` - `{}` {}\n",
         3 : "Страница {} из {}",
@@ -267,7 +267,7 @@ class bet_slash_view(View):
         if c_id.startswith("36_"):
 
             if memb_id == self.auth_id:
-                await interaction.response.send_message(bet_text[lng][2], ephemeral=True)
+                await interaction.response.send_message(embed=Embed(description=bet_text[lng][2]), ephemeral=True)
                 return
             
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
@@ -519,7 +519,7 @@ class buy_slash_view(View):
         async def interaction_check(self, interaction) -> bool:
             if interaction.user.id != self.auth_id:
                 lng = 1 if "ru" in interaction.locale else 0
-                await interaction.response.send_message(common_text[lng][0], ephemeral=True)
+                await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
                 return False
             return True
 
@@ -636,7 +636,7 @@ class rating_slash_view(View):
     async def interaction_check(self, interaction):
         if interaction.user.id != self.auth_id:
             lng = 1 if "ru" in interaction.locale else 0
-            await interaction.response.send_message(common_text[lng][0], ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
             return False
         return True
 
@@ -785,9 +785,9 @@ class slash_commands(commands.Cog):
             if tp == 1:
                 r_inf = store_text[lng][0].format(r, p, currency, date)
             elif tp == 2:
-                r_inf = store_text[lng][0].format(r, p, currency, q, date)
+                r_inf = store_text[lng][1].format(r, p, currency, q, date)
             elif tp == 3:
-                r_inf = store_text[lng][0].format(r, p, currency, "∞", date)
+                r_inf = store_text[lng][1].format(r, p, currency, "∞", date)
             if s:
                 r_inf += store_text[lng][2].format(s * 604800 // s_t, currency)
             store_list.append(r_inf)               
@@ -851,22 +851,22 @@ class slash_commands(commands.Cog):
                     membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (r_id,)).fetchone()
                     if membs and membs[0]:
                         cur.execute("UPDATE money_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"#{memb_id}", ""), r_id))
-                    base.commit()
 
                 elif r_type == 2:                   
-                    if not db_store:
+                    if db_store:
+                        cur.execute("UPDATE store SET quantity = quantity + ?, last_date = ? WHERE role_id = ?", (1, time_now, r_id))      
+                    else:
                         cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", 
                             (r_id, 1, r_price, time_now, r_sal, r_sal_c, 2))
-                        base.commit()            
-                    else:
-                        cur.execute("UPDATE store SET quantity = quantity + ?, last_date = ? WHERE role_id = ?", (1, time_now, r_id))
-                        base.commit()
 
                 elif r_type == 3:
-                    if not db_store:
+                    if db_store:
+                        cur.execute("UPDATE store SET last_date = ? WHERE role_id = ?", (time_now, r_id))
+                    else:
                         cur.execute('INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)', 
-                        (r_id, -404, r_price, time_now, r_sal, r_sal_c ,3))
-                        base.commit()
+                        (r_id, -404, r_price, time_now, r_sal, r_sal_c, 3))
+
+                base.commit()
                 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
                 

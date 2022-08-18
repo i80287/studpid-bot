@@ -6,7 +6,7 @@ from time import time
 from asyncio import sleep
 
 from colorama import Fore
-from nextcord import Game, Message, ChannelType, Embed, Guild, Interaction
+from nextcord import Game, Message, ChannelType, Embed, Guild
 from nextcord.ext import commands, tasks
 from nextcord.errors import ApplicationCheckFailure
 
@@ -261,7 +261,7 @@ class msg_h(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_application_command_error(self, interaction: Interaction, exception):
+    async def on_application_command_error(self, interaction, exception):
         if isinstance(exception, ApplicationCheckFailure):
             if "ru" in interaction.locale:
                 await interaction.response.send_message(embed=Embed(description="**`Извините, но у Вас недостаточно прав для использования этой команды`**"), ephemeral=True)

@@ -2,12 +2,12 @@
 with open(activate_this) as f:
     exec(f.read(), {'__file__': activate_this})"""
 
+from os import listdir
+
 from nextcord import Intents
 from nextcord.ext import commands as cmds
 from colorama import Fore
 from dpyConsole import Console
-
-from os import listdir
 
 from config import path_to, prefix, debug_token, token
 
