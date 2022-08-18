@@ -6,7 +6,7 @@ from time import time
 from asyncio import sleep
 
 from colorama import Fore
-from nextcord import Game, Message, ChannelType, MessageType, Embed, Guild
+from nextcord import Game, Message, ChannelType, Embed, Guild, Interaction
 from nextcord.ext import commands, tasks
 from nextcord.errors import ApplicationCheckFailure
 
@@ -38,7 +38,7 @@ class msg_h(commands.Cog):
                 0 : "Новый уровень!",
                 1 : "{}, Вы подняли уровень до **{}**!"
             }
-        },
+        }
         global greetings
         greetings = {
             0 : [
@@ -213,50 +213,55 @@ class msg_h(commands.Cog):
     async def on_message(self, message: Message):
         user = message.author
 
-        if user.bot or message.channel.type is ChannelType.private \
-            or message.type is MessageType.chat_input_command or message.content.startswith(",,,,"):
+        #or message.type is MessageType.chat_input_command
+        if user.bot or message.channel.type is ChannelType.private:
             return
 
         with closing(connect(f"{path_to}/bases/bases_{message.guild.id}/{message.guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
-                if not cur.execute("SELECT count() FROM ic WHERE chnl_id = ?", (message.channel.id,)).fetchone()[0]:
-                    xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border';").fetchone()[0]
-                    xp_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';").fetchone()[0]
-                    mn_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]
+                
+                if cur.execute("SELECT count() FROM ic WHERE chnl_id = ?", (message.channel.id,)).fetchone()[0]:
+                    return
                     
-                    lvl = self.check_user(base=base, cur=cur, memb_id=user.id, xp_b=xp_b, mn_m=mn_p_m, xp_m=xp_p_m)
-                    if lvl:
-                        chnl = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
-                        if chnl != 0:
-                            ch = message.guild.get_channel(chnl)
-                            if ch:
-                                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
-                                emb = Embed(title=tx[lng][0], description=tx[lng][1].format(user.mention, lvl))
-                                await ch.send(embed=emb)
-                        lvl_rls = sorted(cur.execute("SELECT * FROM rank_roles").fetchall(), key=lambda tup: tup[0])
-                        
-                        if not lvl_rls:
-                            return
+                xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border';").fetchone()[0]
+                xp_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';").fetchone()[0]
+                mn_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]
+                
+                lvl = self.check_user(base=base, cur=cur, memb_id=user.id, xp_b=xp_b, mn_m=mn_p_m, xp_m=xp_p_m)
 
-                        lvl_rls = {k: v for k, v in lvl_rls}
-                        lvls = [k for k in lvl_rls.keys()]
+                if lvl:
+                    chnl = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
+                    
+                    if chnl != 0:
+                        ch = message.guild.get_channel(chnl)
+                        if ch:
+                            lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
+                            emb = Embed(title=tx[lng][0], description=tx[lng][1].format(user.mention, lvl))
+                            await ch.send(embed=emb)
 
-                        if lvl in lvl_rls:
-                            memb_rls = {role.id for role in user.roles}
+                    lvl_rls = sorted(cur.execute("SELECT * FROM rank_roles").fetchall(), key=lambda tup: tup[0])
+                    
+                    if not lvl_rls:
+                        return
 
-                            if not lvl_rls[lvl] in memb_rls:
-                                role = user.guild.get_role(lvl_rls[lvl])
-                                await user.add_roles(role, reason=f"Member gained new level {lvl}")
+                    lvl_rls = {k: v for k, v in lvl_rls}
+                    lvls = [k for k in lvl_rls.keys()]
 
-                            i = lvls.index(lvl)
-                            if i != 0 and lvl_rls[lvls[i-1]] in memb_rls:                                
-                                role = user.guild.get_role(lvl_rls[lvls[i-1]])
-                                await user.remove_roles(role, reason=f"Member gained new level {lvl}")
+                    if lvl in lvl_rls:
+                        memb_rls = {role.id for role in user.roles}
 
-                            return
+                        if not lvl_rls[lvl] in memb_rls:
+                            role = user.guild.get_role(lvl_rls[lvl])
+                            await user.add_roles(role, reason=f"Member gained new level {lvl}")
+
+                        i = lvls.index(lvl)
+                        if i != 0 and lvl_rls[lvls[i-1]] in memb_rls:                                
+                            role = user.guild.get_role(lvl_rls[lvls[i-1]])
+                            await user.remove_roles(role, reason=f"Member gained new level {lvl}")
+
 
     @commands.Cog.listener()
-    async def on_application_command_error(self, interaction, exception):
+    async def on_application_command_error(self, interaction: Interaction, exception):
         if isinstance(exception, ApplicationCheckFailure):
             if "ru" in interaction.locale:
                 await interaction.response.send_message(embed=Embed(description="**`Извините, но у Вас недостаточно прав для использования этой команды`**"), ephemeral=True)
@@ -265,7 +270,7 @@ class msg_h(commands.Cog):
             return
         
         with open("error.log", "a+", encoding="utf-8") as f:
-            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash command] [{interaction.guild_id}] [{interaction.guild.name}] [{str(exception)}]\n")
+            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash_command] [{interaction.application_command}] [{interaction.guild_id}] [{interaction.guild.name}] [{str(exception)}]\n")
 
 
 def setup(bot: commands.Bot, **kwargs):

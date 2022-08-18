@@ -257,6 +257,7 @@ class Poll(View):
 
 class polling(commands.Cog):
 
+    
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         global text_4
@@ -309,84 +310,6 @@ class polling(commands.Cog):
             }
         }                     
     
-
-    async def poll(self, interaction, question, hours, minutes, anon, mult, answer1, answer2, answer3, answer4, answer5, answer6, answer7, answer8, answer9, answer10, answer11, answer12):
-        lng = 1 if "ru" in interaction.locale else 0
-        g = interaction.guild
-        with closing(connect(f"{path_to}/bases/bases_{g.id}/{g.id}.db")) as base:
-            with closing(base.cursor()) as cur:
-                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
-                if chnl_id == 0:
-                    await interaction.response.send_message(embed=Embed(description=text_4[lng][9], colour=Colour.red()))
-                    return
-                else:
-                    try:
-                        chnl = g.get_channel(chnl_id)
-                    except:
-                        await interaction.response.send_message(embed=Embed(description=text_4[lng][9], colour=Colour.red()))
-                        return
-        
-        if not hours and not minutes:
-            await interaction.response.send_message(embed=Embed(description=text_4[lng][7], colour=Colour.dark_red()), ephemeral=True)
-            return
-
-        poll = Poll()
-        poll.timestamp = datetime.fromtimestamp(int(time()) + 3600 * hours + 60 * minutes)
-        poll.timeout = 3600 * hours + 60 * minutes
-        poll.init_timeout()
-
-        poll.n = 0
-        if answer1 != "": poll.n += 1; poll.questions.append(answer1)
-        if answer2 != "": poll.n += 1; poll.questions.append(answer2)
-        if answer3 != "": poll.n += 1; poll.questions.append(answer3)
-        if answer4 != "": poll.n += 1; poll.questions.append(answer4)
-        if answer5 != "": poll.n += 1; poll.questions.append(answer5)
-        if answer6 != "": poll.n += 1; poll.questions.append(answer6)
-        if answer7 != "": poll.n += 1; poll.questions.append(answer7)
-        if answer8 != "": poll.n += 1; poll.questions.append(answer8)
-        if answer9 != "": poll.n += 1; poll.questions.append(answer9)
-        if answer10 != "": poll.n += 1; poll.questions.append(answer10)
-        if answer11 != "": poll.n += 1; poll.questions.append(answer11)
-        if answer12 != "": poll.n += 1; poll.questions.append(answer12)
-        poll.thesis = question
-        
-        if anon in ["да", "yes"]:
-            poll.anon = True
-        else:
-            poll.anon = False
-        
-        if mult in ["да", "yes"]:
-            poll.mult = True
-        else:
-            poll.mult = False
-
-        emb = Embed()
-
-        for i in range(poll.n):
-            emb.add_field(name=f"{i+1} {text_4[lng][17]}", value=f"{poll.questions[i]}\n{text_4[lng][16]}")
-        emb.timestamp=poll.timestamp
-        emb.set_author(name=text_4[lng][16])
-        if poll.anon:
-            f = f"\n**`{text_4[lng][12]}`**"
-        else:
-            f = f"\n**`{text_4[lng][13]}`**"
-        if poll.mult:
-            f += f"\n**`{text_4[lng][14]}`**"
-        else:
-            f += f"\n**`{text_4[lng][15]}`**"
-        
-        f += text_4[lng][18].format(interaction.user.id)
-
-        emb.description = f"**{poll.thesis}**{f}"
-
-        poll.lng = lng
-        poll.init_timeout()
-        poll.init_buttons()
-        poll.init_ans()
-        m = await chnl.send(view=poll, embed=emb)
-        poll.m = m
-        await interaction.response.send_message(embed=Embed(description=text_4[lng][8], colour=Colour.dark_purple()), ephemeral=True)
-        
 
     @slash_command(
         name="poll",
@@ -618,7 +541,81 @@ class polling(commands.Cog):
             default=""
         )
     ):
-        await self.poll(interaction, question, hours, minutes, anon, mult, answer1, answer2, answer3, answer4, answer5, answer6, answer7, answer8, answer9, answer10, answer11, answer12)
+        lng = 1 if "ru" in interaction.locale else 0
+        g = interaction.guild
+        with closing(connect(f"{path_to}/bases/bases_{g.id}/{g.id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
+                if chnl_id == 0:
+                    await interaction.response.send_message(embed=Embed(description=text_4[lng][9], colour=Colour.red()))
+                    return
+                else:
+                    try:
+                        chnl = g.get_channel(chnl_id)
+                    except:
+                        await interaction.response.send_message(embed=Embed(description=text_4[lng][9], colour=Colour.red()))
+                        return
+        
+        if not hours and not minutes:
+            await interaction.response.send_message(embed=Embed(description=text_4[lng][7], colour=Colour.dark_red()), ephemeral=True)
+            return
+
+        poll = Poll()
+        poll.timestamp = datetime.fromtimestamp(int(time()) + 3600 * hours + 60 * minutes)
+        poll.timeout = 3600 * hours + 60 * minutes
+        poll.init_timeout()
+
+        poll.n = 0
+        if answer1 != "": poll.n += 1; poll.questions.append(answer1)
+        if answer2 != "": poll.n += 1; poll.questions.append(answer2)
+        if answer3 != "": poll.n += 1; poll.questions.append(answer3)
+        if answer4 != "": poll.n += 1; poll.questions.append(answer4)
+        if answer5 != "": poll.n += 1; poll.questions.append(answer5)
+        if answer6 != "": poll.n += 1; poll.questions.append(answer6)
+        if answer7 != "": poll.n += 1; poll.questions.append(answer7)
+        if answer8 != "": poll.n += 1; poll.questions.append(answer8)
+        if answer9 != "": poll.n += 1; poll.questions.append(answer9)
+        if answer10 != "": poll.n += 1; poll.questions.append(answer10)
+        if answer11 != "": poll.n += 1; poll.questions.append(answer11)
+        if answer12 != "": poll.n += 1; poll.questions.append(answer12)
+        poll.thesis = question
+        
+        if anon in ["да", "yes"]:
+            poll.anon = True
+        else:
+            poll.anon = False
+        
+        if mult in ["да", "yes"]:
+            poll.mult = True
+        else:
+            poll.mult = False
+
+        emb = Embed()
+
+        for i in range(poll.n):
+            emb.add_field(name=f"{i+1} {text_4[lng][17]}", value=f"{poll.questions[i]}\n{text_4[lng][16]}")
+        emb.timestamp=poll.timestamp
+        emb.set_author(name=text_4[lng][16])
+        if poll.anon:
+            f = f"\n**`{text_4[lng][12]}`**"
+        else:
+            f = f"\n**`{text_4[lng][13]}`**"
+        if poll.mult:
+            f += f"\n**`{text_4[lng][14]}`**"
+        else:
+            f += f"\n**`{text_4[lng][15]}`**"
+        
+        f += text_4[lng][18].format(interaction.user.id)
+
+        emb.description = f"**{poll.thesis}**{f}"
+
+        poll.lng = lng
+        poll.init_timeout()
+        poll.init_buttons()
+        poll.init_ans()
+        m = await chnl.send(view=poll, embed=emb)
+        poll.m = m
+        await interaction.response.send_message(embed=Embed(description=text_4[lng][8], colour=Colour.dark_purple()), ephemeral=True)
 
 
 def setup(bot, **kwargs):
