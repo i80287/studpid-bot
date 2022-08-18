@@ -140,6 +140,7 @@ u_other_cmds = {
         ("`/emoji`", "Показывает png и url эмодзи")
     ]
 }
+
 m_cmds = {
     0 : [
         ("`/guide`", "Show guide about bot's system"), ("`/settings`", "Call bot's settings menu")
@@ -163,7 +164,8 @@ feedback_text = {
     }
 }
 
-class custom_b(Button):
+
+class c_button(Button):
 
     def __init__(self, label: str, style: ButtonStyle, emoji, c_id: str):
         super().__init__(style=style, label=label, emoji=emoji, custom_id=c_id)
@@ -215,6 +217,7 @@ class mod_commands(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        
         global bot_guilds
         global bot_guilds_e
         global bot_guilds_r

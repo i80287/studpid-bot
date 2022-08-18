@@ -4,3 +4,4 @@ config.py
 *.log
 /for tests
 additional_files
+.vs
