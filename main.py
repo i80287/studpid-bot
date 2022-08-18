@@ -17,7 +17,7 @@ class Bot(cmds.Bot):
 
     # just because if i put handler only in the cog i get an error message in the cmd every time
     async def on_application_command_error(*args):
-        pass
+        return
 
 if __name__ == "__main__":
     

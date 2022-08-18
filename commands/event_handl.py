@@ -24,6 +24,7 @@ event_handl_text = {
 
 class msg_h(commands.Cog):
 
+    
     def __init__(self, bot: commands.Bot):
         self.bot = bot
         global bot_guilds

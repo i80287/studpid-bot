@@ -62,7 +62,7 @@ settings_text = {
 
 gen_settings_text = {
     0 : {
-        0 : "🗣️ server language for description of slash commands: {}",
+        0 : "🗣️ language for new level announcements: {}",
         1 : "⏱ time zone: UTC{}",
         2 : "tap 🗣️ to change language",
         3 : "tap ⏱ to change time zone",
@@ -72,12 +72,12 @@ gen_settings_text = {
         7 : "**`You hasn't selected time zone yet`**",
         8 : "**`Current server time zone: UTC{}`**",
         9 : "**`New time zone: UTC{}`**",
-        10 : "**`New server language for description of slash commands: {}`**",
+        10 : "**`New language for new level announcements: {}`**",
         11 : "**`Language is changing, please wait a bit...`**",
-        12 : "**`This language is already selected as language for description of slash commands`**"        
+        12 : "**`This language is already selected as language for new level announcements`**"        
     },
     1 : {
-        0 : "🗣️ язык сервера для описания слэш команд: {}",
+        0 : "🗣️ язык сообщений для оповещений о новом уровне: {}",
         1 : "⏱ часовой пояс: UTC{}",
         2 : "нажмите 🗣️, чтобы изменить язык",
         3 : "нажмите ⏱, чтобы изменить часовой пояс",
@@ -87,9 +87,9 @@ gen_settings_text = {
         7 : "**`Вы не выбрали часовой пояс`**",
         8 : "**`Текущий часовой пояс сервера: UTC{}`**",
         9 : "**`Новый часовой пояс сервера: UTC{}`**",
-        10 : "**`Новый язык сервера для описания слэш команд: {}`**",
+        10 : "**`Новый язык сообщений для оповещений о новом уровне: {}`**",
         11 : "**`Язык изменяется, пожалуйста, подождите немного...`**",
-        12 : "**`Этот язык уже выбран в качестве языка для описания слэш команд`**"
+        12 : "**`Этот язык уже выбран в качестве языка для оповещений о новом уровне`**"
     }
 }
 
@@ -508,8 +508,6 @@ languages = {
     "русский" : 1
 }
 
-#with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
-#    with closing(base.cursor()) as cur:
 
 class c_select(Select):
 
