@@ -543,24 +543,24 @@ class gen_settings_view(View):
 
 
     async def digit_tz(self, interaction: Interaction, lng: int):
-            tz = self.tz
-            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
-                with closing(base.cursor()) as cur:
-                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (tz,))
-                    base.commit()
-            if tz >= 0: tz = f"+{tz}"
-            else: tz = f"{tz}"
+        tz = self.tz
+        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (tz,))
+                base.commit()
+        if tz >= 0: tz = f"+{tz}"
+        else: tz = f"{tz}"
 
-            m = interaction.message
-            emb = m.embeds[0]
-            dsc = emb.description.split("\n")
-            t = dsc[1].find("UTC")
-            dsc[1] = dsc[1][:t+3] + tz
-            emb.description = "\n".join(dsc)
-            await m.edit(embed=emb)
+        m = interaction.message
+        emb = m.embeds[0]
+        dsc = emb.description.split("\n")
+        t = dsc[1].find("UTC")
+        dsc[1] = dsc[1][:t+3] + tz
+        emb.description = "\n".join(dsc)
+        await m.edit(embed=emb)
 
-            await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][9].format(tz)), ephemeral=True)
-            self.tz = None
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][9].format(tz)), ephemeral=True)
+        self.tz = None
 
     async def select_lng(self, interaction: Interaction, lng: int):
         s_lng = self.lang
@@ -607,6 +607,12 @@ class gen_settings_view(View):
         elif c_id.startswith("101_"):
             self.tz = int(values[0])
     
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
+            return False
+        return True
 
 class mod_roles_view(View):
 
@@ -700,7 +706,7 @@ class mod_roles_view(View):
     async def click_menu(self, __, c_id: str, values):
         if c_id.startswith("20") and c_id[3] == "_":
             self.role =  int(values[0])
-
+    
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
             lng = 1 if "ru" in interaction.locale else 0
@@ -1391,6 +1397,7 @@ class verify_delete(View):
     def __init__(self, lng: int, role: int, m, auth_id: int):
         super().__init__(timeout=30)
         self.role = role
+        self.auth_id = auth_id
         self.m = m
         self.deleted = False
         self.add_item(c_button(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_{randint(1, 100)}"))
@@ -1436,6 +1443,13 @@ class verify_delete(View):
             await self.m.edit(embed=emb)
             self.deleted = True
             self.stop()
+    
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
+            return False
+        return True
 
 
 class c_modal_mng_memb(Modal):
@@ -1683,6 +1697,13 @@ class mng_membs_view(View):
         if c_id.startswith("30") and c_id[3] == "_":
             self.role = int(values[0])
     
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
+            return False
+        return True
+        
 
 class c_modal_xp(Modal):
 

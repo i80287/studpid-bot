@@ -1,5 +1,6 @@
 
 from os import path
+from asyncio import sleep
 from random import randint
 from sqlite3 import connect, Connection, Cursor
 from contextlib import closing
@@ -385,39 +386,54 @@ class mod_commands(commands.Cog):
 
     @commands.command(name="load")
     @commands.is_owner()
-    async def _load(self, ctx, extension):
+    async def _load(self, ctx: commands.Context, extension):
         if path.exists(f"{path_to}/commands/{extension}.py"):
             self.bot.load_extension(f"commands.{extension}")
-            m = await ctx.reply(embed=Embed(description=f"**Loaded `{extension}`**"), mention_author=False)
-            await m.delete(delay=5)
+            await sleep(1)
+            await self.bot.sync_all_application_commands()
+            await sleep(1)
+            emb=Embed(description=f"**Loaded `{extension}`**")
         else:
-            m = await ctx.reply(embed=Embed(description=f"**`{extension}` not found**"), mention_author=False)
-            await m.delete(delay=5)
+            emb=Embed(description=f"**`{extension}` not found**")
+        await ctx.reply(embed=emb, mention_author=False, delete_after=5)
     
 
     @commands.command(name="unload")
     @commands.is_owner()
-    async def _unload(self, ctx, extension):
+    async def _unload(self, ctx: commands.Context, extension):
         if path.exists(f"{path_to}/commands/{extension}.py"):
             self.bot.unload_extension(f"commands.{extension}")
-            m = await ctx.reply(embed=Embed(description=f"**Unloaded `{extension}`**"), mention_author=False)
-            await m.delete(delay=5)
+            await sleep(1)
+            await self.bot.sync_all_application_commands()
+            await sleep(1)
+            emb=Embed(description=f"**Unloaded `{extension}`**")
         else:
-            m = await ctx.reply(embed=Embed(description=f"**`{extension}` not found**"), mention_author=False)
-            await m.delete(delay=5)
+            emb=Embed(description=f"**`{extension}` not found**")
+        await ctx.reply(embed=emb, mention_author=False, delete_after=5)
 
 
     @commands.command(name="reload")
     @commands.is_owner()
-    async def _reload(self, ctx, extension):
+    async def _reload(self, ctx: commands.Context, extension):
         if path.exists(f"{path_to}/commands/{extension}.py"):
             self.bot.unload_extension(f"commands.{extension}")
             self.bot.load_extension(f"commands.{extension}")
-            m = await ctx.reply(embed=Embed(description=f"**Reloaded `{extension}`**"), mention_author=False)
-            await m.delete(delay=5)
+            await sleep(1)
+            await self.bot.sync_all_application_commands()
+            await sleep(1)
+            emb=Embed(description=f"**Reloaded `{extension}`**")
         else:
-            m = await ctx.reply(embed=Embed(description=f"**`{extension}` not found**"), mention_author=False)
-            await m.delete(delay=5)
+            emb=Embed(description=f"**`{extension}` not found**")
+        await ctx.reply(embed=emb, mention_author=False, delete_after=5)
+
+
+    @commands.command(name="guilds_info")
+    @commands.is_owner()
+    async def _guilds_info(self, ctx: commands.Context):
+        emb = Embed(description="guild-id-member_count")
+        for g in self.bot.guilds:
+            emb.description += f"\n{g.name}-{'{' + f'{g.id}' + '}'}-{g.member_count}"
+        await ctx.reply(embed=emb, mention_author=False, delete_after=15)
 
 
     @commands.Cog.listener()
