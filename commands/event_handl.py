@@ -10,7 +10,7 @@ from nextcord import Game, Message, ChannelType, Embed, Guild
 from nextcord.ext import commands, tasks
 from nextcord.errors import ApplicationCheckFailure
 
-from config import path_to, bot_guilds 
+from config import path_to 
 
 event_handl_text = {
     0 : {
@@ -27,7 +27,10 @@ class msg_h(commands.Cog):
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
+        
         global bot_guilds
+        bot_guilds = set()
+        
         global tx
         tx = {
             0 : {
@@ -93,6 +96,9 @@ class msg_h(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
+        
+        setattr(self.bot, "current_polls", 0)
+
         if not path.exists(f"{path_to}/bases/"):
             mkdir(f"{path_to}/bases/")
 
@@ -270,7 +276,7 @@ class msg_h(commands.Cog):
             return
         
         with open("error.log", "a+", encoding="utf-8") as f:
-            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash_command] [{interaction.application_command}] [{interaction.guild_id}] [{interaction.guild.name}] [{str(exception)}]\n")
+            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash_command] [{interaction.application_command.name}] [{interaction.guild_id}] [{interaction.guild.name}] [{str(exception)}]\n")
 
 
 def setup(bot: commands.Bot, **kwargs):

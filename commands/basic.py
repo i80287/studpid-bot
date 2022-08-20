@@ -11,9 +11,7 @@ from nextcord.ext.commands import CheckFailure
 from nextcord import Embed, Colour, Locale, Interaction, slash_command, ButtonStyle, TextInputStyle, Permissions, TextChannel
 from nextcord.ui import Button, Modal, TextInput
 
-from config import path_to, bot_guilds
-
-feedback_channel = 910291295157768263
+from config import path_to, feedback_channel
 
 guide = {
     0 : {
@@ -156,13 +154,14 @@ feedback_text = {
     0 : {
         0 : "Feedback",
         1 : "What problems did you get while using the bot? What new would you want to see in bot's functional?",
-        2 : "**`Thanks a lot for your feedback!\nIt was delivered to the bot's support server`**"
-        
+        2 : "**`Thanks a lot for your feedback!\nIt was delivered to the bot's support server`**",
+        3 : "**`We're so sorry, but during the creation of feedback something went wrong. You can get help on the support server`**"        
     },
     1 : {
         0 : "Отзыв",
         1 : "Какие проблемы возникли у Вас при использовании бота? Чтобы бы Вы хотели добавить?",
-        2 : "**`Спасибо большое за Выш отзыв! Он был доставлен на сервер поддержки`**"
+        2 : "**`Спасибо большое за Выш отзыв! Он был доставлен на сервер поддержки`**",
+        3 : "**`Извнините, при создании фидбэка что-то пошло не так. Вы можете получить помощь/оставить отзыв на сервере поддержки`**"
     }
 }
 
@@ -180,6 +179,7 @@ class c_feedback_modal(Modal):
 
     def __init__(self, lng: int, auth_id: int) -> None:
         super().__init__(title=feedback_text[lng][0], timeout=1200, custom_id=f"10100_{auth_id}_{randint(1, 100)}")
+        global feedback_channel
         self.feedback = TextInput(
             label=feedback_text[lng][0],
             placeholder=feedback_text[lng][1],
@@ -200,16 +200,14 @@ class c_feedback_modal(Modal):
         )
 
         chnl = interaction.client.get_channel(feedback_channel)
-        if chnl:
-            print(chnl.name)
-            msg = await chnl.send(embed=Embed(description="\n".join(dsc)))
-            if msg:
-                print(msg.embeds[0].description)
-        else:
-            print("u're fool")
-        
-
         lng = 1 if "ru" in interaction.locale else 0
+
+        if chnl:
+            await chnl.send(embed=Embed(description="\n".join(dsc)))
+        else:
+            await interaction.response.send_message(embed=Embed(description=feedback_text[lng][3]), content="https://discord.gg/4kxkPStDaG", ephemeral=True)
+            return
+        
         await interaction.response.send_message(embed=Embed(description=feedback_text[lng][2]), ephemeral=True)
 
         self.stop()
@@ -219,8 +217,6 @@ class mod_commands(commands.Cog):
 
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        
-        global bot_guilds
 
         global text
         text = {
@@ -378,8 +374,10 @@ class mod_commands(commands.Cog):
     @commands.command(aliases=("sunload_access_level_two", "s_a_l_2"))
     @commands.is_owner()
     async def _salt(self, ctx: commands.Context, chnl: TextChannel):
+        
         global feedback_channel
         feedback_channel = chnl.id
+        
         msg = await ctx.reply(embed=Embed(description=f"New feedback channel is <#{feedback_channel}>"), mention_author=False)
         await msg.delete(delay=5)
 
@@ -427,12 +425,15 @@ class mod_commands(commands.Cog):
         await ctx.reply(embed=emb, mention_author=False, delete_after=5)
 
 
-    @commands.command(name="guilds_info")
+    @commands.command(name="statistic")
     @commands.is_owner()
-    async def _guilds_info(self, ctx: commands.Context):
-        emb = Embed(description="guild-id-member_count")
+    async def _statistic(self, ctx: commands.Context):
+        emb = Embed(description="```guild - id - member_count```")
         for g in self.bot.guilds:
             emb.description += f"\n{g.name}-{'{' + f'{g.id}' + '}'}-{g.member_count}"
+        
+        emb.description += f"\n\n**`Currently active polls: {self.bot.current_polls}`**"
+
         await ctx.reply(embed=emb, mention_author=False, delete_after=15)
 
 

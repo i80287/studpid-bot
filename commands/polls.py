@@ -10,6 +10,7 @@ from nextcord.ui import Button, View
 
 from config import path_to
 
+
 class custom_button_p(Button):
     def __init__(self, label: str, disabled: bool, style, row: int):
         super().__init__(label=label, disabled=disabled, style=style, row=row)
@@ -27,7 +28,8 @@ class custom_button(Button):
 
 
 class Poll(View):
-    def __init__(self):
+
+    def __init__(self, bot):
         self.thesis: str = ""
         self.n: int = 12
         self.questions: list = []
@@ -38,6 +40,7 @@ class Poll(View):
         self.anon: bool = True
         self.mult: bool = True
         self.lng: bool = 0
+        self.bot = bot
         self.text = {
             0 : {
                 0 : "❌**`Disapproved by `**",
@@ -85,13 +88,13 @@ class Poll(View):
 
     def init_ans(self):
         self.voters = [set() for _ in range(self.n)]
-    
+
     
     def check_moder(self, interaction: Interaction, base: Connection, cur: Cursor) -> bool:
         if interaction.user.guild_permissions.administrator:
             return True
         mdrls = cur.execute("SELECT * FROM mod_roles").fetchall()
-        if mdrls is None or mdrls == []:
+        if not mdrls:
             return False
         else:
             mdrls = {x[0] for x in mdrls}
@@ -101,52 +104,58 @@ class Poll(View):
     async def click_p(self, interaction: Interaction, label):
         g = interaction.guild
         lng = 1 if "ru" in interaction.locale else 0
+
         with closing(connect(f"{path_to}/bases/bases_{g.id}/{g.id}.db")) as base:
             with closing(base.cursor()) as cur:
-                
+
                 if not self.check_moder(interaction=interaction, base=base, cur=cur):
                     await interaction.response.send_message(embed=Embed(description=self.text[lng][11]), ephemeral=True)
                     return
+                
+                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
 
-                if label == "disapprove":
+        if label == "disapprove":
 
-                    for i in self.children:
-                        i.disabled = True
-                    emb = interaction.message.embeds[0]
-                    emb.description = f"{self.text[lng][0]}{interaction.user.mention}\n" + emb.description
-                    await interaction.message.edit(view=self, embed=emb)
-                    self.stop()
+            for i in self.children:
+                i.disabled = True
+            emb = interaction.message.embeds[0]
+            emb.description = f"{self.text[lng][0]}{interaction.user.mention}\n" + emb.description
+            await interaction.message.edit(view=self, embed=emb)
+            self.stop()
 
-                elif label == "approve":
+        elif label == "approve":
 
-                    chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
+            if chnl_id:
 
-                    if chnl_id:
+                chnl = g.get_channel(chnl_id)     
+                
+                emb = interaction.message.embeds[0]
+                o_dsc = emb.description
+                emb.description = f"{self.text[lng][1]}{interaction.user.mention}\n" + emb.description
+                self.children[-1].disabled = True
+                self.children[-2].disabled = True
+                await interaction.message.edit(view=self, embed=emb)
 
-                        chnl = g.get_channel(chnl_id)     
-                        self.verified = True
-                        emb = interaction.message.embeds[0]
-                        o_dsc = emb.description
-                        emb.description = f"{self.text[lng][1]}{interaction.user.mention}\n" + emb.description
-                        self.children[-1].disabled = True
-                        self.children[-2].disabled = True
-                        await interaction.message.edit(view=self, embed=emb)
-
-                        i = 0
-                        while i < len(self.children):
-                            if "prove" in self.children[i].label:
-                                self.remove_item(self.children[i])
-                            else:
-                                self.children[i].disabled = False
-                                i += 1
-
-                        emb.description = o_dsc
-                        self.m_v = await chnl.send(view=self, embed=emb)
+                i = 0
+                while i < len(self.children):
+                    if "prove" in self.children[i].label:
+                        self.remove_item(self.children[i])
                     else:
-                        await interaction.response.send_message(self.text[lng][2])
+                        self.children[i].disabled = False
+                        i += 1
+
+                emb.description = o_dsc
+                self.m_v = await chnl.send(view=self, embed=emb)
+                
+                self.verified = True
+                self.bot.current_polls += 1
+
+            else:
+                await interaction.response.send_message(self.text[lng][2])
             
     
     async def update_votes(self, interaction: Interaction, L: int, val: bool):
+
         emb = interaction.message.embeds[0]
         field = emb.fields[L-1]
 
@@ -173,8 +182,10 @@ class Poll(View):
         
 
     async def click(self, interaction: Interaction, label: str):
+
         if not label.isdigit():
             return
+
         L = int(label)
         u_id = interaction.user.id
         lng = 1 if "ru" in interaction.locale else 0
@@ -183,6 +194,7 @@ class Poll(View):
 
             await self.update_votes(interaction=interaction, L=L, val=0)
             self.voters[L-1].remove(u_id)
+
             try:
                 await interaction.response.send_message(embed=Embed(description=self.text[lng][4].format(L)), ephemeral=True)
             except NotFound:
@@ -261,6 +273,8 @@ class Poll(View):
             c.disabled = True
         await self.m_v.edit(view=self, embed=emb)
         
+        self.bot.current_polls -= 1
+
         self.stop()
 
 
@@ -392,7 +406,7 @@ class polling(commands.Cog):
             },
             description="Write 1 answer of the poll",
             description_localizations={
-                Locale.en_US: "Напишите 1-й вариант ответа полла"
+                Locale.ru: "Напишите 1-й вариант ответа полла"
             },
             required=True
         ),
@@ -403,7 +417,7 @@ class polling(commands.Cog):
             },
             description="Write 2 answer of the poll",
             description_localizations={
-                Locale.en_US: "Напишите 2-й вариант ответа полла"
+                Locale.ru: "Напишите 2-й вариант ответа полла"
             },
             required=True
         ),
@@ -414,7 +428,7 @@ class polling(commands.Cog):
             },
             description="Write 3 answer of the poll",
             description_localizations={
-                Locale.en_US: "Напишите 3-й вариант ответа полла"
+                Locale.ru: "Напишите 3-й вариант ответа полла"
             },
             required=False,
             default=""
@@ -426,7 +440,7 @@ class polling(commands.Cog):
             },
             description="Write 4 answer of the poll",
             description_localizations={
-                Locale.en_US: "Напишите 4-й вариант ответа полла"
+                Locale.ru: "Напишите 4-й вариант ответа полла"
             },
             required=False,
             default=""
@@ -438,7 +452,7 @@ class polling(commands.Cog):
             },
             description="Write 5 answer of the poll",
             description_localizations={
-                Locale.en_US: "Напишите 5-й вариант ответа полла"
+                Locale.ru: "Напишите 5-й вариант ответа полла"
             },
             required=False,
             default=""
@@ -450,7 +464,7 @@ class polling(commands.Cog):
             },
             description="Write 6 answer of the poll",
             description_localizations={
-                Locale.en_US: "Напишите 6-й вариант ответа полла"
+                Locale.ru: "Напишите 6-й вариант ответа полла"
             },
             required=False,
             default=""
@@ -462,7 +476,7 @@ class polling(commands.Cog):
             },
             description="Write 7 answer of the poll",
             description_localizations={
-                Locale.en_US: "Напишите 7-й вариант ответа полла"
+                Locale.ru: "Напишите 7-й вариант ответа полла"
             },
             required=False,
             default=""
@@ -474,7 +488,7 @@ class polling(commands.Cog):
             },
             description="Write 8 answer of the poll",
             description_localizations={
-                Locale.en_US: "Напишите 8-й вариант ответа полла"
+                Locale.ru: "Напишите 8-й вариант ответа полла"
             },
             required=False,
             default=""
@@ -486,7 +500,7 @@ class polling(commands.Cog):
             },
             description="Write 9 answer of the poll",
             description_localizations={
-                Locale.en_US: "Напишите 9-й вариант ответа полла"
+                Locale.ru: "Напишите 9-й вариант ответа полла"
             },
             required=False,
             default=""
@@ -498,7 +512,7 @@ class polling(commands.Cog):
             },
             description="Write 10 answer of the poll",
             description_localizations={
-                Locale.en_US: "Напишите 10-й вариант ответа полла"
+                Locale.ru: "Напишите 10-й вариант ответа полла"
             },
             required=False,
             default=""
@@ -510,7 +524,7 @@ class polling(commands.Cog):
             },
             description="Write 11 answer of the poll",
             description_localizations={
-                Locale.en_US: "Напишите 11-й вариант ответа полла"
+                Locale.ru: "Напишите 11-й вариант ответа полла"
             },
             required=False,
             default=""
@@ -522,7 +536,7 @@ class polling(commands.Cog):
             },
             description="Write 12 answer of the poll",
             description_localizations={
-                Locale.en_US: "Напишите 12-й вариант ответа полла"
+                Locale.ru: "Напишите 12-й вариант ответа полла"
             },
             required=False,
             default=""
@@ -534,10 +548,10 @@ class polling(commands.Cog):
             with closing(base.cursor()) as cur:
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
                 if not chnl_id:
-                    await interaction.response.send_message(embed=Embed(description=polls_text[lng][0], colour=Colour.red()))
+                    await interaction.response.send_message(embed=Embed(description=polls_text[lng][0], colour=Colour.red()), ephemeral=True)
                     return
                 elif not g.get_channel(chnl_id):
-                    await interaction.response.send_message(embed=Embed(description=polls_text[lng][0], colour=Colour.red()))
+                    await interaction.response.send_message(embed=Embed(description=polls_text[lng][0], colour=Colour.red()), ephemeral=True)
                     return
                 else:
                     chnl = g.get_channel(chnl_id)
@@ -546,7 +560,7 @@ class polling(commands.Cog):
             await interaction.response.send_message(embed=Embed(description=polls_text[lng][1], colour=Colour.dark_red()), ephemeral=True)
             return
 
-        poll = Poll()
+        poll = Poll(bot=self.bot)
         poll.timestamp = datetime.fromtimestamp(int(time()) + 3600 * hours + 60 * minutes)
         poll.timeout = 3600 * hours + 60 * minutes
         poll.init_timeout()
