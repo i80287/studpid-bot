@@ -328,7 +328,7 @@ mng_membs_text = {
         5 : "**`Information about member `**<@{}>**`\nwith id {}`**",
         6 : "**`Member doesn't have any roles from the bot's store`**",
         7 : "**`Member already has this role`**",
-        8 : "**`You added role`**<@&{}>**` to the `**<@{}>",
+        8 : "**`You added role `**<@&{}>**` to the `**<@{}>",
         9 : "**`Member doesn't have this role`**",
         10 : "**`You removed role`**<@&{}>**` from the `**<@{}>",
         11 : "Cash of the member",
@@ -1565,25 +1565,28 @@ class mng_membs_view(View):
                 if membs:
                     cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0] + f"#{self.memb_id}", self.role))
                 base.commit()
+
         await self.member.add_roles(interaction.guild.get_role(self.role))
 
         embs = interaction.message.embeds
         emb3 = embs[2]
         dsc = emb3.description.split("\n")
+        
         if len(dsc) == 1:
             dsc = [code_blocks[lng*5], f"<@&{self.role}>**` - {self.role}`**"]
             self.children[-1].disabled = False
             emb3.description = "\n".join(dsc)
             embs[2] = emb3
             await interaction.message.edit(embeds=embs, view=self)
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(self.role, self.memb_id)), ephemeral=True)
+            self.role = None
         else:
             dsc.append(f"<@&{self.role}>**` - {self.role}`**")
             emb3.description = "\n".join(dsc)
             embs[2] = emb3
             await interaction.message.edit(embeds=embs)
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(self.role, self.memb_id)), ephemeral=True)       
         
-        await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(self.role, self.memb_id)), ephemeral=True)
-        self.role = None
 
     async def rem_r(self, lng: int, interaction: Interaction) -> None:
         if not self.role in self.memb_rls:
@@ -1609,6 +1612,8 @@ class mng_membs_view(View):
             self.children[-1].disabled = True
             embs[2] = emb3
             await interaction.message.edit(embeds=embs, view=self)
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)
+            self.role = None
         else:
             i = 0
             s_role = f"{self.role}"
@@ -1620,9 +1625,8 @@ class mng_membs_view(View):
             emb3.description = "\n".join(dsc)
             embs[2] = emb3
             await interaction.message.edit(embeds=embs)
-        
-        await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)
-        self.role = None
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)
+            
 
     async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
@@ -2410,6 +2414,8 @@ class settings_view(View):
                     xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
                     membs_cash = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
                     membs_xp = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+                    db_roles = cur.execute("SELECT role_id FROM server_roles").fetchall()
+
             l = len(membs_cash)     
 
             # cnt_cash is a place in the rating sorded by cash
@@ -2453,7 +2459,10 @@ class settings_view(View):
                 dsc = [mng_membs_text[lng][6]]
             emb3.description = "\n".join(dsc)
             rem_dis = True if len(dsc) == 1 else False
-            roles = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable()]
+
+            if db_roles: db_roles = {x[0] for x in db_roles}
+            roles = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable() and rl.id in db_roles]
+
             mng_v = mng_membs_view(
                 timeout=110, 
                 lng=lng, 
