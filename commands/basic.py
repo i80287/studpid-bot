@@ -378,8 +378,7 @@ class mod_commands(commands.Cog):
         global feedback_channel
         feedback_channel = chnl.id
         
-        msg = await ctx.reply(embed=Embed(description=f"New feedback channel is <#{feedback_channel}>"), mention_author=False)
-        await msg.delete(delay=5)
+        await ctx.reply(embed=Embed(description=f"New feedback channel is <#{feedback_channel}>"), mention_author=False, delete_after=5)
 
 
     @commands.command(name="load")

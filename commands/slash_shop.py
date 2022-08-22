@@ -711,8 +711,7 @@ class slash_commands(commands.Cog):
         cost = store[2]
 
         if buyer_cash < cost:
-            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][6].format(cost - buyer_cash, currency)))
-            await interaction.delete_original_message(delay=10)
+            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][6].format(cost - buyer_cash, currency)), delete_after=10)
             return
 
         emb = Embed(title=text_slash[lng][7], description=text_slash[lng][8].format(role.mention, cost, currency))

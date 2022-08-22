@@ -891,13 +891,10 @@ class economy_view(View):
             else: rd = True
             ec_rls_view = economy_roles_manage_view(t_out=105, lng=lng, auth_id=self.auth_id, rem_dis=rd, rls=rls, s_rls=s_rls)
             await interaction.response.send_message(embed=emb, view=ec_rls_view)
-            if await ec_rls_view.wait():
-                for c in ec_rls_view.children:
-                    c.disabled = True
-                await interaction.edit_original_message(view=ec_rls_view)
-            else:
-                ec_rls_view.stop()
-                await interaction.delete_original_message()
+            await ec_rls_view.wait()
+            for c in ec_rls_view.children:
+                c.disabled = True
+            await interaction.edit_original_message(view=ec_rls_view)
 
         elif c_id[:2] in {"10", "11", "12"}:
             await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (int(c_id[:2]) - 10) * 2]), ephemeral=True)
@@ -956,6 +953,7 @@ class economy_roles_manage_view(View):
                 return
             v_d = verify_delete(lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(self.role)), view=v_d)
+            
             if await v_d.wait():
                 for c in v_d.children:
                     c.disabled = True
@@ -2354,12 +2352,10 @@ class settings_view(View):
             emb.description="\n".join(dsc)
             gen_view = gen_settings_view(t_out=50, auth_id=self.auth_id, bot=self.bot, lng=lng)
             await interaction.response.send_message(embed=emb, view=gen_view)
-            if await gen_view.wait():
-                for c in gen_view.children:
-                    c.disabled = True
-                await interaction.edit_original_message(view=gen_view)
-            else:
-                await interaction.delete_original_message()
+            await gen_view.wait()
+            for c in gen_view.children:
+                c.disabled = True
+            await interaction.edit_original_message(view=gen_view)
 
         elif custom_id.startswith("1_"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
@@ -2381,12 +2377,10 @@ class settings_view(View):
             
             m_rls_v = mod_roles_view(t_out=50, m_rls=m_rls, lng=lng, auth_id=self.auth_id, rem_dis=rem_dis, rls=rls)
             await interaction.response.send_message(embed=emb, view=m_rls_v)
-            if await m_rls_v.wait():
-                for c in m_rls_v.children:
-                    c.disabled = True
-                await interaction.edit_original_message(view=m_rls_v)
-            else:
-                await interaction.delete_original_message()
+            await m_rls_v.wait()
+            for c in m_rls_v.children:
+                c.disabled = True
+            await interaction.edit_original_message(view=m_rls_v)
 
         elif custom_id.startswith("2_"):
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][7]))
@@ -2478,10 +2472,11 @@ class settings_view(View):
             )
 
             await interaction.edit_original_message(embeds=[emb1, emb2, emb3], view=mng_v)
-            if await mng_v.wait():
-                for c in mng_v.children:
-                    c.disabled = True
-                await interaction.edit_original_message(view=mng_v)
+            
+            await mng_v.wait()
+            for c in mng_v.children:
+                c.disabled = True
+            await interaction.edit_original_message(view=mng_v)
 
         elif custom_id.startswith("3_"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
@@ -2509,12 +2504,10 @@ class settings_view(View):
             
             ec_v = economy_view(t_out=110, auth_id=self.auth_id)
             await interaction.response.send_message(embed=emb, view=ec_v)
-            if await ec_v.wait():
-                for c in ec_v.children:
-                    c.disabled = True
-                await interaction.edit_original_message(view=ec_v)
-            else:
-                await interaction.delete_original_message()
+            await ec_v.wait()
+            for c in ec_v.children:
+                c.disabled = True
+            await interaction.edit_original_message(view=ec_v)
 
         elif custom_id.startswith("4_"):
             
@@ -2607,12 +2600,10 @@ class m_cmds(commands.Cog):
         emb = Embed(title=settings_text[lng][0], description="\n".join(dsc))
         await interaction.response.send_message(embed=emb, view=st_view)
 
-        if await st_view.wait():
-            for c in st_view.children:
-                c.disabled = True
-            await interaction.edit_original_message(view=st_view)
-        else:
-            await interaction.delete_original_message()
+        await st_view.wait()
+        for c in st_view.children:
+            c.disabled = True
+        await interaction.edit_original_message(view=st_view)
 
 
     @slash_command(
