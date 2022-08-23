@@ -22,11 +22,13 @@ class Bot(cmds.Bot):
 if __name__ == "__main__":
     
     bot = Bot()
-
-    for filename in listdir(f"{path_to}/commands"):
-        if filename.endswith(".py"):
-            bot.load_extension(f"commands.{filename[:-3]}")
     
+    """ for filename in listdir(f"{path_to}/commands"):
+        if filename.endswith(".py"):
+            bot.load_extension(f"commands.{filename[:-3]}") """
+            
+    print(" loaded\n".join(bot.load_extensions_from_module("commands")))
+
     cmd = Console(bot)
     cmd.load_extension("console")
     cmd.start()
