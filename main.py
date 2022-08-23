@@ -9,7 +9,7 @@ from nextcord.ext import commands as cmds
 from colorama import Fore
 from dpyConsole import Console
 
-from config import path_to, prefix, debug_token, token
+from config import prefix, debug_token, token
 
 class Bot(cmds.Bot):
     def __init__(self) -> None:
@@ -23,17 +23,12 @@ if __name__ == "__main__":
     
     bot = Bot()
     
-    """ for filename in listdir(f"{path_to}/commands"):
-        if filename.endswith(".py"):
-            bot.load_extension(f"commands.{filename[:-3]}") """
-            
-    print(" loaded\n".join(bot.load_extensions_from_module("commands")))
-
+    bot.load_extensions_from_module("commands")
     cmd = Console(bot)
     cmd.load_extension("console")
     cmd.start()
 
     print(f"\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}")
-
+    
     #bot.run(token)
     bot.run(debug_token)
