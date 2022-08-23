@@ -1,7 +1,0 @@
-config.py
-*__pycache__
-*bases
-*.log
-/for tests
-additional_files
-.vs
