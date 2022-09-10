@@ -42,17 +42,15 @@ class ConsoleCog(Cog):
                 """)
                 base.commit()
                 
-                try:
-                    lng = int(lng)
-                except:
-                    lng = 0
+                try: lng = int(lng)
+                except: lng = 0
                     
                 r = [
                     ('lang', lng), ('tz', 0),
                     ('xp_border', 100), ('xp_per_msg', 1), ('mn_per_msg', 1),
                     ('w_cd', 14400), ('sal_l', 1), ('sal_r', 250),
                     ('lvl_c', 0), ('log_c', 0), ('poll_v_c', 0), ('poll_c', 0), 
-                    ('economy_enabled', 1), ('ranking_enabled', 1)
+                    ('economy_enabled', 1), ('ranking_enabled', 1), ('currency', ":coin:")
                 ]
                     
                 cur.executemany("INSERT OR IGNORE INTO server_info(settings, value) VALUES(?, ?)", r)

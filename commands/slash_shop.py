@@ -9,16 +9,18 @@ from nextcord.ext import commands
 from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Locale, ui, SelectOption, slash_command, Role, Member
 from nextcord.ui import Button, View, Select
 
-from config import path_to, currency, in_row
+from config import path_to, in_row
 
 common_text = {
     0 : {
         0 : "**`Sorry, but you can't manage menu called by another member`**",
-        1 : "**`Economy system and leveling system are disabled on this server`**"
+        1 : "**`Economy system and leveling system are disabled on this server`**",
+        2 : "**`Economy system is disabled on this server`**"
     },
     1 : {
         0 : "**`Извините, но Вы не можете управлять чужой покупкой`**",
-        1 : "**`Экономическая система и система уровней отключены на этом сервере`**"
+        1 : "**`Экономическая система и система уровней отключены на этом сервере`**",
+        2 : "**`Экономическая система отключена на этом сервере`**"
     }
 }
 
@@ -248,7 +250,7 @@ class c_select(Select):
 
 class bet_slash_view(View):
 
-    def __init__(self, timeout: int, lng: int, auth_id: int, bet: int):
+    def __init__(self, timeout: int, lng: int, auth_id: int, bet: int, currency: str):
         super().__init__(timeout=timeout)
         self.bet = bet
         self.auth_id = auth_id
@@ -263,11 +265,9 @@ class bet_slash_view(View):
         lng = 1 if "ru" in interaction.locale else 0
 
         if c_id.startswith("36_"):
-
             if memb_id == self.auth_id:
                 await interaction.response.send_message(embed=Embed(description=bet_text[lng][2]), ephemeral=True)
                 return
-            
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     db_cash = cur.execute('SELECT money FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
@@ -286,29 +286,25 @@ class bet_slash_view(View):
                 emb = Embed(description=bet_text[lng][3].format(self.bet-cash, self.currency), colour=Colour.red())
                 await interaction.response.send_message(embed=emb, ephemeral=True)
                 return
-            
             self.dueler = memb_id
             self.stop()
-
         else:
-
             if interaction.user.id != self.auth_id:
                 await interaction.response.send_message(embed=Embed(description=bet_text[lng][4]), ephemeral=True)
                 return
-
             self.declined = True            
             self.stop()
 
 
 class store_slash_view(View):
 
-    def __init__(self, timeout: int, db_store: list, auth_id: int, lng: int, in_row: int, coin: str, tz: int):
+    def __init__(self, timeout: int, db_store: list, auth_id: int, lng: int, in_row: int, currency: str, tz: int):
         super().__init__(timeout=timeout)
         self.db_store = db_store
         self.l = len(db_store)
         self.auth_id = auth_id
         self.in_row = in_row
-        self.coin = coin
+        self.currency = currency
         self.tz = tz # time zone of the guild
         self.sort_by = True # True - sort by price, False - sort by date (time)
         self.reversed = False # возрастание / убывание при сортировке, False - возрастание
@@ -403,7 +399,7 @@ class store_slash_view(View):
             self.db_store = store
 
 
-    async def update_menu(self, interaction: Interaction, click: int) -> list:
+    async def update_menu(self, interaction: Interaction, click: int) -> None:
         text = interaction.message.embeds[0].footer.text
 
         if not self.lng:
@@ -437,13 +433,13 @@ class store_slash_view(View):
         for r, q, p, d, s, s_t, tp in db_store[(page - 1) * self.in_row:min(page * self.in_row, self.l)]:
             date = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
             if tp == 1:
-                r_inf = store_text[self.lng][0].format(r, p, currency, date)
+                r_inf = store_text[self.lng][0].format(r, p, self.currency, date)
             elif tp == 2:
-                r_inf = store_text[self.lng][1].format(r, p, currency, q, date)
+                r_inf = store_text[self.lng][1].format(r, p, self.currency, q, date)
             elif tp == 3:
-                r_inf = store_text[self.lng][1].format(r, p, currency, "∞", date)
+                r_inf = store_text[self.lng][1].format(r, p, self.currency, "∞", date)
             if s:
-                r_inf += store_text[self.lng][2].format(s * 604800 // s_t, currency)
+                r_inf += store_text[self.lng][2].format(s * 604800 // s_t, self.currency)
             store_list.append(r_inf)
         
         if store_list:
@@ -457,8 +453,7 @@ class store_slash_view(View):
                 await interaction.response.edit_message(embed=emb)
 
 
-    async def click_b(self, interaction: Interaction, c_id: str):
-
+    async def click_b(self, interaction: Interaction, c_id: str) -> None:
         click = 0
         if c_id.startswith("32_"):
             click = 1
@@ -472,7 +467,7 @@ class store_slash_view(View):
         await self.update_menu(interaction=interaction, click=click)
 
 
-    async def click_menu(self, interaction: Interaction, c_id: str, value):
+    async def click_menu(self, interaction: Interaction, c_id: str, value) -> None:
 
         if c_id.startswith("102_"):
             if int(value[0]):
@@ -497,7 +492,7 @@ class store_slash_view(View):
         self.sort_store()
         await self.update_menu(interaction=interaction, click=0)
 
-    async def interaction_check(self, interaction) -> bool:
+    async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
             lng = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
@@ -521,7 +516,7 @@ class buy_slash_view(View):
         elif c_id.startswith("31_"):
             self.stop()
         
-    async def interaction_check(self, interaction) -> bool:
+    async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
             lng = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
@@ -531,7 +526,7 @@ class buy_slash_view(View):
 
 class rating_slash_view(View):
 
-    def __init__(self, timeout: int, lng: int, auth_id: int, l: int, cash_list: list, xp_list: list, xp_b: int, in_row: int, ec_status: int, rnk_status: int):
+    def __init__(self, timeout: int, lng: int, auth_id: int, l: int, cash_list: list, xp_list: list, xp_b: int, in_row: int, ec_status: int, rnk_status: int, currency: str):
         super().__init__(timeout=timeout)
         self.xp_b = xp_b
         self.cash_list = cash_list
@@ -652,11 +647,10 @@ class rating_slash_view(View):
 
 class slash_commands(commands.Cog):
 
-
-    def __init__(self, bot: commands.Bot):
+    
+    def __init__(self, bot: commands.Bot) -> None:
         self.bot = bot
         self.in_row = in_row
-        self.currency = currency 
 
     
     async def can_role(self, interaction: Interaction, role: Role, lng: int) -> bool:
@@ -672,7 +666,7 @@ class slash_commands(commands.Cog):
         return True
 
 
-    def check_user(self, base: Connection, cur: Cursor, memb_id: int) -> tuple:
+    def check_user(self, base: Connection, cur: Cursor, memb_id: int) -> tuple[int, int, str, int, int]:
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
         if not member:
             cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
@@ -707,15 +701,17 @@ class slash_commands(commands.Cog):
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
-                    await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+                    await interaction.response.send_message(embed=Embed(description=common_text[lng][2]), ephemeral=True)
                     return
                 store = cur.execute('SELECT * FROM store WHERE role_id = ?', (r_id,)).fetchone()
                 if not store:
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][5], colour=Colour.red()))
                     return
+                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 buyer = self.check_user(base=base, cur=cur, memb_id=memb_id)
         
-        if r_id in {int(x) for x in buyer[2].split("#") if x != ""}:
+        #if r_id in {int(x) for x in buyer[2].split("#") if x != ""}:
+        if r_id in buyer[2]:
             await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][4], colour=Colour.red()), ephemeral=True)
             return
 
@@ -761,11 +757,11 @@ class slash_commands(commands.Cog):
         emb.description = text_slash[lng][11]
         await interaction.edit_original_message(embed=emb, view=None)
 
-        try: await member_buyer.send(embed=Embed(title=text_slash[lng][7], description=text_slash[lng][12].format(role.name, interaction.guild.name, cost, self.currency), colour=Colour.green()))
+        try: await member_buyer.send(embed=Embed(title=text_slash[lng][7], description=text_slash[lng][12].format(role.name, interaction.guild.name, cost, currency), colour=Colour.green()))
         except: pass
         
         if chnl_id:
-            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][13], description=text_slash[lng][14].format(f"<@{memb_id}>", f"<@&{r_id}>", cost, self.currency)))
+            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][13], description=text_slash[lng][14].format(f"<@{memb_id}>", f"<@&{r_id}>", cost, currency)))
             except: pass
 
 
@@ -775,10 +771,11 @@ class slash_commands(commands.Cog):
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
-                    await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+                    await interaction.response.send_message(embed=Embed(description=common_text[lng][2]), ephemeral=True)
                     return
-                tz = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
-                db_store = cur.execute('SELECT * FROM store').fetchall()
+                tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
+                db_store: list[tuple[int, int, int, int, int, int, int]] = cur.execute('SELECT * FROM store').fetchall()
+                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
         
         db_l = len(db_store)
         l = db_l // 2
@@ -814,7 +811,7 @@ class slash_commands(commands.Cog):
             emb.set_footer(text=store_text[lng][3].format(1, 1))
 
         
-        myview_store = store_slash_view(timeout=60, db_store=db_store, auth_id=interaction.user.id, lng=lng, in_row=in_row, coin=currency, tz=tz)
+        myview_store = store_slash_view(timeout=60, db_store=db_store, auth_id=interaction.user.id, lng=lng, in_row=in_row, currency=currency, tz=tz)
 
         await interaction.response.send_message(embed=emb, view=myview_store)
         
@@ -833,7 +830,7 @@ class slash_commands(commands.Cog):
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
-                    await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+                    await interaction.response.send_message(embed=Embed(description=common_text[lng][2]), ephemeral=True)
                     return
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (r_id,)).fetchone()      
                 if not role_info:
@@ -843,8 +840,9 @@ class slash_commands(commands.Cog):
                 memb_id = interaction.user.id
                 user = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 owned_roles = user[2]
-
-                if not r_id in {int(x) for x in owned_roles.split("#") if x != ""}:
+                
+                #if not r_id in {int(x) for x in owned_roles.split("#") if x != ""}:
+                if r_id not in owned_roles:
                     await interaction.response.send_message(embed=Embed(colour=Colour.red(), title=text_slash[lng][0], description=text_slash[lng][16]), ephemeral=True)
                     return
 
@@ -885,15 +883,16 @@ class slash_commands(commands.Cog):
                 base.commit()
                 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 
-        emb = Embed(title=text_slash[lng][18], description=text_slash[lng][19].format(role.mention, role_info[1], self.currency), colour=Colour.gold())
+        emb = Embed(title=text_slash[lng][18], description=text_slash[lng][19].format(f"<@&{r_id}>", role_info[1], currency), colour=Colour.gold())
         await interaction.response.send_message(embed=emb)
 
-        try: await interaction.user.send(embed=Embed(title=text_slash[lng][20], description=text_slash[lng][21].format(r_id, r_price, self.currency), colour=Colour.green()))
+        try: await interaction.user.send(embed=Embed(title=text_slash[lng][20], description=text_slash[lng][21].format(r_id, r_price, currency), colour=Colour.green()))
         except: pass
 
         if chnl_id:
-            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][22], description=text_slash[lng][23].format(interaction.user.mention, role.mention, role_info[1])))
+            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][22], description=text_slash[lng][23].format(f"<@{memb_id}>", f"<@&{r_id}>", role_info[1])))
             except: pass
     
     
@@ -914,7 +913,7 @@ class slash_commands(commands.Cog):
                     membs_xp: list[int, int] = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
 
         if not (ec_status | rnk_status):
-            await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+            await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
             return
 
         if ec_status:
@@ -980,7 +979,7 @@ class slash_commands(commands.Cog):
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
-                    await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+                    await interaction.response.send_message(embed=Embed(description=common_text[lng][2]), ephemeral=True)
                     return
                 time_reload = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
@@ -1003,11 +1002,12 @@ class slash_commands(commands.Cog):
                 base.commit()
 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 
-        await interaction.response.send_message(embed=Embed(title=text_slash[lng][27], description=text_slash[lng][28].format(salary, self.currency), colour=Colour.gold()))                
+        await interaction.response.send_message(embed=Embed(title=text_slash[lng][27], description=text_slash[lng][28].format(salary, currency), colour=Colour.gold()))                
         
         if chnl_id:
-            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][29], description=text_slash[lng][30].format(f"<@{memb_id}>", salary, self.currency)))
+            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][29], description=text_slash[lng][30].format(f"<@{memb_id}>", salary, currency)))
             except: pass
     
 
@@ -1018,24 +1018,25 @@ class slash_commands(commands.Cog):
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
-                    await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+                    await interaction.response.send_message(embed=Embed(description=common_text[lng][2]), ephemeral=True)
                     return
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
+                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
 
         if amount > member[1]:
-            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][31].format(amount - member[1], self.currency), colour=Colour.red()), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][31].format(amount - member[1], currency), colour=Colour.red()), ephemeral=True)
             return
 
-        betview = bet_slash_view(timeout=30, lng=lng, auth_id=memb_id, bet=amount)
+        betview = bet_slash_view(timeout=30, lng=lng, auth_id=memb_id, bet=amount, currency=currency)
         
-        emb = Embed(title=text_slash[lng][32], description=text_slash[lng][33].format(amount, self.currency))
+        emb = Embed(title=text_slash[lng][32], description=text_slash[lng][33].format(amount, currency))
         await interaction.response.send_message(embed=emb, view=betview)
 
         if await betview.wait():
             emb.description = text_slash[lng][34]
         
         for c in betview.children:
-                c.disabled = True
+            c.disabled = True
 
         if not betview.dueler:
             if betview.declined:
@@ -1052,12 +1053,12 @@ class slash_commands(commands.Cog):
         if winner:
             loser_id = dueler
             winner_id = memb_id
-            emb.description = f"<@{memb_id}> {text_slash[lng][36]} `{amount}`{self.currency}"
+            emb.description = f"<@{memb_id}> {text_slash[lng][36]} `{amount}`{currency}"
             
         else:
             winner_id = dueler
             loser_id = memb_id
-            emb.description = f"<@{dueler}> {text_slash[lng][36]} `{amount}`{self.currency}"        
+            emb.description = f"<@{dueler}> {text_slash[lng][36]} `{amount}`{currency}"        
 
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
@@ -1069,7 +1070,7 @@ class slash_commands(commands.Cog):
 
         await interaction.edit_original_message(embed=emb, view=betview)
         if chnl_id:
-            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][37], description=text_slash[lng][38].format(winner_id, amount, self.currency, loser_id)))
+            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][37], description=text_slash[lng][38].format(winner_id, amount, currency, loser_id)))
             except: pass
     
 
@@ -1080,13 +1081,13 @@ class slash_commands(commands.Cog):
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
-                    await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+                    await interaction.response.send_message(embed=Embed(description=common_text[lng][2]), ephemeral=True)
                     return
                 act = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 self.check_user(base=base, cur=cur, memb_id=t_id)
-
+                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 if value > act[1]:
-                    emb=Embed(title=text_slash[lng][0], description=text_slash[lng][39].format(value - act[1], self.currency), colour=Colour.red())
+                    emb=Embed(title=text_slash[lng][0], description=text_slash[lng][39].format(value - act[1], currency), colour=Colour.red())
                     await interaction.response.send_message(embed=emb)
                     return
                 
@@ -1097,10 +1098,10 @@ class slash_commands(commands.Cog):
 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
 
-        emb=Embed(title=text_slash[lng][40], description=text_slash[lng][41].format(value, self.currency, f"<@{t_id}>"), colour=Colour.green())
+        emb=Embed(title=text_slash[lng][40], description=text_slash[lng][41].format(value, currency, f"<@{t_id}>"), colour=Colour.green())
         await interaction.response.send_message(embed=emb)
         if chnl_id:
-            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][42], description= text_slash[lng][43].format(f"<@{memb_id}>", value, self.currency, f"<@{t_id}>")))
+            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][42], description= text_slash[lng][43].format(f"<@{memb_id}>", value, currency, f"<@{t_id}>")))
             except: pass
 
     
@@ -1121,9 +1122,10 @@ class slash_commands(commands.Cog):
                 else:
                     membs_xp = []
                 xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
         
         if not (ec_status | rnk_status):
-            await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+            await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
             return
 
         # I know about `l = len(membs_cash) if ec_status else len(membs_xp)` but it calls len() twice
@@ -1161,7 +1163,8 @@ class slash_commands(commands.Cog):
             xp_b=xp_b, 
             in_row=in_row, 
             ec_status=ec_status,
-            rnk_status=rnk_status
+            rnk_status=rnk_status,
+            currency=currency
         )
 
         await interaction.response.send_message(embed=emb, view=rate_view)

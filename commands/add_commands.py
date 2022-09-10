@@ -169,7 +169,7 @@ emojis = [
     "<:online:995823257993363587>", "<:idle:995823256621813770>", "<:dnd:995823255199957032>", "<:offline:995823253878738944>"
 ]
 
-ms = {
+months = {
     0 : ["January {}", "February {}", "Mart {}", "April {}", "May {}", "June {}", "Jule {}", "August {}", "September {}", "October {}", "November {}", "December {}"],
     1 : ["{} Января", "{} Февраля", "{} Марта", "{} Апреля", "{} Мая", "{} Июня", "{} Июля", "{} Августа", "{} Сентября", "{} Октября", "{} Ноября", "{} Декабря"]
 }
@@ -277,7 +277,7 @@ class cms(commands.Cog):
                 ofl += 1
 
         ca = guild.created_at
-        time = f"{ca.strftime('%Y-%m-%d %H:%M:%S')}\n{ms[lng][ca.month-1].format(ca.day)}, {ca.year}"
+        time = f"{ca.strftime('%Y-%m-%d %H:%M:%S')}\n{months[lng][ca.month-1].format(ca.day)}, {ca.year}"
         
         vls = [len(guild.humans), len(guild.bots), len(guild.text_channels), len(guild.voice_channels), len(guild.emojis), len(guild.stickers),
         time, guild.verification_level, guild.filesize_limit / 1024 / 1024, f"`{len(guild.premium_subscribers)}` - `{guild.premium_tier}{text_slash[lng][6]}`"]
