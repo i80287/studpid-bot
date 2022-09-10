@@ -7,7 +7,8 @@ from time import time
 
 from nextcord import Embed, Role, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextInputStyle
 from nextcord.ui import View, Button, Select, TextInput, Modal
-from nextcord.ext import commands, application_checks
+from nextcord.ext import application_checks
+from nextcord.ext.commands import Cog, Bot
 
 from config import path_to
 
@@ -15,12 +16,12 @@ settings_text = {
     0 : {
         0 : "Choose section",
         1: [
-        "⚙️ general settings",
-        "<:moder:1000090629897998336> manage moders' roles",
-        "<:user:1002245779089535006> manage members",
-        "💰 economy",
-        "📈 ranking",
-        "📊 polls"
+            "⚙️ general settings",
+            "<:moder:1000090629897998336> manage moders' roles",
+            "<:user:1002245779089535006> manage members",
+            "💰 economy",
+            "📈 ranking",
+            "📊 polls"
         ],
         2 : "Select role",
         3 : "Adding role",
@@ -38,12 +39,12 @@ settings_text = {
     1 : {
         0 : "Выберите раздел",
         1 : [
-        "⚙️ основные настройки",
-        "<:moder:1000090629897998336> настройка ролей модераторов",
-        "<:user:1002245779089535006> управление пользователями",
-        "💰 экономика",
-        "📈 ранговая система",
-        "📊 поллы"
+            "⚙️ основные настройки",
+            "<:moder:1000090629897998336> настройка ролей модераторов",
+            "<:user:1002245779089535006> управление пользователями",
+            "💰 экономика",
+            "📈 ранговая система",
+            "📊 поллы"
         ],
         2 : "Выберите роль",
         3 : "Добавление роли",
@@ -64,21 +65,27 @@ gen_settings_text = {
     0 : {
         0 : "🗣️ language for new level announcements: {}",
         1 : "⏱ time zone: UTC{}",
-        2 : "tap 🗣️ to change language",
-        3 : "tap ⏱ to change time zone",
-        4 : "Select new language",
-        5 : "Select new time zone",
-        6 : "**`You hasn't selected the language yet`**",
-        7 : "**`You hasn't selected time zone yet`**",
-        8 : "**`Current server time zone: UTC{}`**",
-        9 : "**`New time zone: UTC{}`**",
-        10 : "**`New language for new level announcements: {}`**",
-        11 : "**`Language is changing, please wait a bit...`**",
-        12 : "**`This language is already selected as language for new level announcements`**"        
+        2 : "💰 economy system is {}",
+        3 : "📈 leveling system is {}",
+        4 : "tap 🗣️ to change language",
+        5 : "tap ⏱ to change time zone",
+        6 : "tap 💰 to {} economy system",
+        7 : "tap 📈 to {} leveling system",
+        8 : "Select new language",
+        9 : "Select new time zone",
+        10 : "**`You hasn't selected the language yet`**",
+        11 : "**`You hasn't selected time zone yet`**",
+        12 : "**`New time zone: UTC{}`**",
+        13 : "**`New language for new level announcements: {}`**",
+        14 : "**`This language is already selected as language for new level announcements`**",
+        15 : "**You {} economy system**",
+        16 : "**You {} leveling system**",
     },
     1 : {
         0 : "🗣️ язык сообщений для оповещений о новом уровне: {}",
         1 : "⏱ часовой пояс: UTC{}",
+        2 : "💰 экономическая система: {}",
+        3 : "📈 уровневая система: ",
         2 : "нажмите 🗣️, чтобы изменить язык",
         3 : "нажмите ⏱, чтобы изменить часовой пояс",
         4 : "Выбрать новый язык",
@@ -508,6 +515,25 @@ languages = {
     "русский" : 1
 }
 
+system_status = {
+    0 : {
+        0 : "`disabled`",
+        1 : "`enabled`",
+        2 : "`enable`",
+        3 : "`disable`",
+        4 : "`disabled`",
+        5 : "`enabled`",
+    },
+    1 : {
+        0 : "`отключена`",
+        1 : "`включена`",
+        2 : "`включить`",
+        3 : "`выключить`",
+        4 : "`отключили`",
+        5 : "`включили`",
+    }
+}
+
 
 class c_select(Select):
 
@@ -529,21 +555,52 @@ class c_button(Button):
 
 class gen_settings_view(View):
 
-    def __init__(self, t_out: int, auth_id: int, bot, lng: int):
+    def __init__(self, t_out: int, auth_id: int, bot: Bot, lng: int, ec_status: int, rnk_status: int) -> None:
         super().__init__(timeout=t_out)
-        self.bot = bot
-        self.auth_id = auth_id
-        self.lang = None
-        self.tz = None
-        tzs = [(f"UTC{i}", i) for i in range(-12, 0)] + [(f"UTC+{i}", i) for i in range(0, 13)]
-        self.add_item(c_select(custom_id=f"100_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][4], opts=languages[2][lng]))
-        self.add_item(c_select(custom_id=f"101_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][5], opts=tzs))
+        self.bot: Bot = bot
+        self.auth_id: int = auth_id
+        self.lang: int = None
+        self.tz: int = None
+        self.ec_status: int = ec_status
+        self.rnk_status: int = rnk_status
+        tzs: list[tuple[str, int]] = [(f"UTC{i}", i) for i in range(-12, 0)] + [(f"UTC+{i}", i) for i in range(0, 13)]
+        self.add_item(c_select(custom_id=f"100_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][8], opts=languages[2][lng]))
+        self.add_item(c_select(custom_id=f"101_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][9], opts=tzs))
         self.add_item(c_button(style=ButtonStyle.green, label=None, custom_id=f"6_{auth_id}_{randint(1, 100)}", emoji="🗣️"))
         self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id=f"7_{auth_id}_{randint(1, 100)}", emoji="⏱"))
+        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"42_{auth_id}_{randint(1, 100)}", emoji="💰"))
+        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"43_{auth_id}_{randint(1, 100)}", emoji="📈"))
+    
+    async def select_lng(self, interaction: Interaction, lng: int) -> None:
+        s_lng = self.lang
+        if s_lng is None:
+            await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][10]), ephemeral=True)
+            return
+        g_id = interaction.guild_id
+        with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                if cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0] == s_lng:
+                    await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][14]), ephemeral=True)
+                    return
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lang'", (s_lng,))
+                base.commit()
+        
+        s_lng_nm = languages[lng][s_lng]
+        
+        emb = interaction.message.embeds[0]
+        dsc = emb.description.split("\n")
+        dsc[0] = gen_settings_text[lng][0].format(s_lng_nm)
+        emb.description = "\n".join(dsc)
+        await interaction.message.edit(embed=emb)
 
-
-    async def digit_tz(self, interaction: Interaction, lng: int):
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][13].format(s_lng_nm)), ephemeral=True)
+        self.lang = None
+    
+    async def digit_tz(self, interaction: Interaction, lng: int) -> None:
         tz = self.tz
+        if tz is None:
+            await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][11]), ephemeral=True)
+            return
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (tz,))
@@ -551,57 +608,61 @@ class gen_settings_view(View):
         if tz >= 0: tz = f"+{tz}"
         else: tz = f"{tz}"
 
-        m = interaction.message
-        emb = m.embeds[0]
+        emb = interaction.message.embeds[0]
         dsc = emb.description.split("\n")
-        t = dsc[1].find("UTC")
-        dsc[1] = dsc[1][:t+3] + tz
+        dsc[1] = gen_settings_text[lng][1].format(tz)
         emb.description = "\n".join(dsc)
-        await m.edit(embed=emb)
+        await interaction.message.edit(embed=emb)
 
-        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][9].format(tz)), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][12].format(tz)), ephemeral=True)
         self.tz = None
-
-    async def select_lng(self, interaction: Interaction, lng: int):
-        s_lng = self.lang
-        g_id = interaction.guild_id
-        with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
+    
+    async def change_ec_system(self, interaction: Interaction, lng: int) -> None:
+        self.ec_status = (self.ec_status + 1) % 2
+        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                if cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0] == s_lng:
-                    await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][12]), ephemeral=True)
-                    return
-                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lang'", (s_lng,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'economy_enabled'", (self.ec_status,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (self.ec_status,))
+                base.commit()
+
+        emb = interaction.message.embeds[0]
+        dsc = emb.description.split("\n")
+        dsc[2] = gen_settings_text[lng][2].format(system_status[lng][self.ec_status])
+        dsc[6] = gen_settings_text[lng][6].format(system_status[lng][self.ec_status+2])
+        emb.description = "\n".join(dsc)
+        await interaction.message.edit(embed=emb)
+
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][15].format(system_status[lng][self.ec_status+4])), ephemeral=True)
+
+    async def change_rnk_system(self, interaction: Interaction, lng: int) -> None:
+        self.rnk_status = (self.rnk_status + 1) % 2
+        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'ranking_enabled'", (self.rnk_status,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_per_msg'", (self.rnk_status,))
                 base.commit()
         
-        s_lng_nm = languages[lng][s_lng]
-        
-        m = interaction.message
-        emb = m.embeds[0]
+        emb = interaction.message.embeds[0]
         dsc = emb.description.split("\n")
-        t = dsc[0].find(":")
-        dsc[0] = dsc[0][:t+2]+ s_lng_nm
+        dsc[3] = gen_settings_text[lng][3].format(system_status[lng][self.rnk_status])
+        dsc[7] = gen_settings_text[lng][7].format(system_status[lng][self.rnk_status+2])
         emb.description = "\n".join(dsc)
-        await m.edit(embed=emb)
+        await interaction.message.edit(embed=emb)
+            
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][16].format(system_status[lng][self.rnk_status+4])), ephemeral=True)
 
-        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][10].format(s_lng_nm)), ephemeral=True)
-        self.lang = None
-
-    async def click(self, interaction: Interaction, c_id: str):
-        lng = 1 if "ru" in interaction.locale else 0
-        
-        if c_id.startswith("6") and self.lang is None:
-            await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][6]), ephemeral=True)
-            return
-        elif c_id.startswith("7") and self.tz is None:
-            await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][7]), ephemeral=True)
-            return
-                
-        if c_id.startswith("6"):
+    async def click(self, interaction: Interaction, c_id: str) -> None:
+        lng = 1 if "ru" in interaction.locale else 0        
+        if c_id.startswith("6_"):
             await self.select_lng(interaction=interaction, lng=lng)
-        elif c_id.startswith("7"):
+        elif c_id.startswith("7_"):
             await self.digit_tz(interaction=interaction, lng=lng)
+        elif c_id.startswith("42_"):
+            await self.change_ec_system(interaction=interaction, lng=lng)
+        elif c_id.startswith("43_"):
+            await self.change_rnk_system(interaction=interaction, lng=lng)
 
-    async def click_menu(self, __, c_id: str, values):
+    async def click_menu(self, __, c_id: str, values) -> None:
         if c_id.startswith("100_"):
             self.lang = int(values[0])
         elif c_id.startswith("101_"):
@@ -613,6 +674,7 @@ class gen_settings_view(View):
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
+
 
 class mod_roles_view(View):
 
@@ -2285,7 +2347,7 @@ class poll_settings_view(View):
 
 class settings_view(View):
     
-    def __init__(self, t_out: int, auth_id: int, bot) -> None:
+    def __init__(self, t_out: int, auth_id: int, bot: Bot) -> None:
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
         self.bot = bot
@@ -2339,18 +2401,26 @@ class settings_view(View):
         if custom_id.startswith("0_"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
-                    s_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                    tz = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
+                    s_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                    tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
+                    ec_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
+                    rnk_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
+                    
             emb = Embed()
             dsc = [gen_settings_text[lng][0].format(languages[lng][s_lng])]
             if tz >= 0:
                 dsc.append(gen_settings_text[lng][1].format(f"+{tz}"))
             else:
                 dsc.append(gen_settings_text[lng][1].format(f"{tz}"))
-            for i in 2, 3:
+            dsc.append(gen_settings_text[lng][2].format(system_status[lng][ec_status]))
+            dsc.append(gen_settings_text[lng][3].format(system_status[lng][rnk_status]))
+            for i in 4, 5:
                 dsc.append(gen_settings_text[lng][i])
+            dsc.append(gen_settings_text[lng][6].format(system_status[lng][ec_status+2]))
+            dsc.append(gen_settings_text[lng][7].format(system_status[lng][rnk_status+2]))
+
             emb.description="\n".join(dsc)
-            gen_view = gen_settings_view(t_out=50, auth_id=self.auth_id, bot=self.bot, lng=lng)
+            gen_view = gen_settings_view(t_out=50, auth_id=self.auth_id, bot=self.bot, lng=lng, ec_status=ec_status, rnk_status=rnk_status)
             await interaction.response.send_message(embed=emb, view=gen_view)
             await gen_view.wait()
             for c in gen_view.children:
@@ -2570,10 +2640,10 @@ class settings_view(View):
         return True
 
 
-class m_cmds(commands.Cog):
+class m_cmds(Cog):
 
 
-    def __init__(self, bot: commands.Bot) -> None:
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
 
@@ -2618,5 +2688,5 @@ class m_cmds(commands.Cog):
         await self.settings(interaction=interaction)
     
 
-def setup(bot: commands.Bot, **kwargs):
+def setup(bot: Bot, **kwargs):
     bot.add_cog(m_cmds(bot, **kwargs))

@@ -2,8 +2,6 @@
 with open(activate_this) as f:
     exec(f.read(), {'__file__': activate_this})"""
 
-from os import listdir
-
 from nextcord import Intents
 from nextcord.ext import commands as cmds
 from colorama import Fore
@@ -22,13 +20,13 @@ class Bot(cmds.Bot):
 if __name__ == "__main__":
     
     bot = Bot()
-    
     bot.load_extensions_from_module("commands")
+
     cmd = Console(bot)
     cmd.load_extension("console")
     cmd.start()
 
     print(f"\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}")
-    
+
     #bot.run(token)
     bot.run(debug_token)

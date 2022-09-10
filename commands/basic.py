@@ -428,9 +428,12 @@ class mod_commands(commands.Cog):
     @commands.is_owner()
     async def _statistic(self, ctx: commands.Context):
         emb = Embed(description="```guild - id - member_count```")
+        k = 0
         for g in self.bot.guilds:
+            k += 1
             emb.description += f"\n{g.name}-{'{' + f'{g.id}' + '}'}-{g.member_count}"
         
+        emb.description += f"\n\n**`Total guilds: {k}`**"
         emb.description += f"\n\n**`Currently active polls: {self.bot.current_polls}`**"
 
         await ctx.reply(embed=emb, mention_author=False, delete_after=15)

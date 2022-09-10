@@ -13,13 +13,14 @@ from config import path_to, currency, in_row
 
 common_text = {
     0 : {
-        0 : "**`Sorry, but you can't manage menu called by another member`**"
+        0 : "**`Sorry, but you can't manage menu called by another member`**",
+        1 : "**`Economy system and leveling system are disabled on this server`**"
     },
     1 : {
-        0 : "**`Извините, но Вы не можете управлять чужой покупкой`**"
+        0 : "**`Извините, но Вы не можете управлять чужой покупкой`**",
+        1 : "**`Экономическая система и система уровней отключены на этом сервере`**"
     }
 }
-
 
 text_slash = {
     0 : {
@@ -117,7 +118,6 @@ text_slash = {
     }
 }
 
-
 buy_approve_text = {
     0 : {
         0 : "Yes",
@@ -128,7 +128,6 @@ buy_approve_text = {
         1 : "Нет, отменить покупку"
     }
 }
-
 
 store_text = {
     0 : {
@@ -160,7 +159,6 @@ store_text = {
     }
 }
 
-
 profile_text = {
     0 : {
         1 : "Cash",
@@ -168,7 +166,7 @@ profile_text = {
         3 : "Level",
         4 : "Place in the rating",
         5 : "**`Information about member:`**\n<@{}>",
-        6 : "**`You don't have any roles from the bot's store`**",    
+        6 : "**`You don't have any roles from the bot's store`**"        
     },
     1 : {
         1 : "Кэш",
@@ -176,10 +174,9 @@ profile_text = {
         3 : "Уровень",
         4 : "Место в рейтинге",
         5 : "**`Информация о пользователе:`**\n<@{}>",
-        6 : "**`У Вас нет ролей из магазина бота`**",
+        6 : "**`У Вас нет ролей из магазина бота`**"
     }
 }
-
 
 code_blocks = {
     0 : "```\nMember's personal roles\n```",
@@ -207,25 +204,26 @@ bet_text = {
     }
 }
 
-
 rating_text = {
     0 : {
         0 : "Top members by balance",
-        1 : "Page {} from {}",
-        2 : "{} place",
-        3 : "{} level",
-        4 : "Sort by...",
-        5 : "Sort by cash",
-        6 : "Sort by xp",
+        1 : "Top members by xp",
+        2 : "Page {} from {}",
+        3 : "{} place",
+        4 : "{} level",
+        5 : "Sort by...",
+        6 : "Sort by cash",
+        7 : "Sort by xp",
     },
     1 : {
         0 : "Топ пользователей по балансу",
-        1 : "Страница {} из {}",
-        2 : "{} место",
-        3 : "{} уровень",
-        4 : "Сортировать по...",
-        5 : "Сортировать по кэшу",
-        6 : "Сортировать по опыту",     
+        1 : "Топ пользователей по опыту",
+        2 : "Страница {} из {}",
+        3 : "{} место",
+        4 : "{} уровень",
+        5 : "Сортировать по...",
+        6 : "Сортировать по кэшу",
+        7 : "Сортировать по опыту",     
     }
 }
 
@@ -499,77 +497,90 @@ class store_slash_view(View):
         self.sort_store()
         await self.update_menu(interaction=interaction, click=0)
 
+    async def interaction_check(self, interaction) -> bool:
+        if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
+            return False
+        return True
+
 
 class buy_slash_view(View):
 
-        def __init__(self, timeout: int, auth_id: int, lng: int):
-            super().__init__(timeout=timeout)
-            self.auth_id = auth_id
-            self.value = False
-            self.add_item(c_button(label=buy_approve_text[lng][0], custom_id=f"30_{auth_id}_{randint(1, 100)}", style=ButtonStyle.green, emoji="✅"))
-            self.add_item(c_button(label=buy_approve_text[lng][1], custom_id=f"31_{auth_id}_{randint(1, 100)}", style=ButtonStyle.red, emoji="❌"))
+    def __init__(self, timeout: int, auth_id: int, lng: int):
+        super().__init__(timeout=timeout)
+        self.auth_id = auth_id
+        self.value = False
+        self.add_item(c_button(label=buy_approve_text[lng][0], custom_id=f"30_{auth_id}_{randint(1, 100)}", style=ButtonStyle.green, emoji="✅"))
+        self.add_item(c_button(label=buy_approve_text[lng][1], custom_id=f"31_{auth_id}_{randint(1, 100)}", style=ButtonStyle.red, emoji="❌"))
 
-        async def click_b(self, _, c_id: str):
-            if c_id.startswith("30_"):
-                self.value = True
-                self.stop()
-            elif c_id.startswith("31_"):
-                self.stop()
-            
-        async def interaction_check(self, interaction) -> bool:
-            if interaction.user.id != self.auth_id:
-                lng = 1 if "ru" in interaction.locale else 0
-                await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
-                return False
-            return True
+    async def click_b(self, _, c_id: str):
+        if c_id.startswith("30_"):
+            self.value = True
+            self.stop()
+        elif c_id.startswith("31_"):
+            self.stop()
+        
+    async def interaction_check(self, interaction) -> bool:
+        if interaction.user.id != self.auth_id:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
+            return False
+        return True
 
 
 class rating_slash_view(View):
 
-    def __init__(self, timeout: int, lng: int, auth_id: int, cash_list: list, xp_list: list, xp_b: int, in_row: int):
+    def __init__(self, timeout: int, lng: int, auth_id: int, l: int, cash_list: list, xp_list: list, xp_b: int, in_row: int, ec_status: int, rnk_status: int):
         super().__init__(timeout=timeout)
         self.xp_b = xp_b
         self.cash_list = cash_list
         self.xp_list = xp_list
-        self.pages = max(1, (len(cash_list) + in_row - 1) // in_row)
+        self.pages = max(1, (l + in_row - 1) // in_row)
         self.currency = currency
         self.in_row = in_row
         self.auth_id = auth_id
         self.lng = lng
-        self.sort_value = True # True - show ranking by cash, False - by xp
+        if ec_status:
+            self.sort_value = True # True - show ranking by cash, False - by xp
+        else:
+            self.sort_value = False # True - show ranking by cash, False - by xp
         self.add_item(c_button(label="", custom_id=f"38_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
         self.add_item(c_button(label="", custom_id=f"39_{auth_id}_{randint(1, 100)}", emoji="◀️"))
         self.add_item(c_button(label="", custom_id=f"40_{auth_id}_{randint(1, 100)}", emoji="▶️"))
         self.add_item(c_button(label="", custom_id=f"41_{auth_id}_{randint(1, 100)}", emoji="⏭"))
-        opts = [
-            SelectOption(
-                label=rating_text[lng][5],
-                value=0,
-                emoji="💰",
-                default=True
-            ),
-            SelectOption(
-                label=rating_text[lng][6],
-                value=1,
-                emoji="✨",
-                default=False
-            )
-        ]
-        self.add_item(c_select(custom_id=f"104_{auth_id}_{randint(1, 100)}", placeholder=rating_text[lng][4], opts=opts))
+        if ec_status and rnk_status:
+            opts = [
+                SelectOption(
+                    label=rating_text[lng][6],
+                    value=0,
+                    emoji="💰",
+                    default=True
+                ),
+                SelectOption(
+                    label=rating_text[lng][7],
+                    value=1,
+                    emoji="✨",
+                    default=False
+                )
+            ]
+            self.add_item(c_select(custom_id=f"104_{auth_id}_{randint(1, 100)}", placeholder=rating_text[lng][3], opts=opts))
 
     async def update_menu(self, interaction: Interaction, click: int):
         
-        page_text = interaction.message.embeds[0].footer.text
+        
+        # page_text = interaction.message.embeds[0].footer.text
+        # if not self.lng:
+        #     t1 = page_text.find("Pa")
+        #     t2 = page_text.find("fr", t1)
+        #     page = int(page_text[t1+5:t2-1])
+        # else:
+        #     t1 = page_text.find("Ст")
+        #     t2 = page_text.find("из", t1)
+        #     page = int(page_text[t1+9:t2-1])
 
-        if not self.lng:
-            t1 = page_text.find("Pa")
-            t2 = page_text.find("fr", t1)
-            page = int(page_text[t1+5:t2-1])
-        else:
-            t1 = page_text.find("Ст")
-            t2 = page_text.find("из", t1)
-            page = int(page_text[t1+9:t2-1])
-
+        page = int(interaction.message.embeds[0].footer.text.split(" ")[1])
+        
         if click in (1, 2) and page <= 1:
             return
         elif click in (3, 4) and page >= self.pages:
@@ -583,28 +594,28 @@ class rating_slash_view(View):
             page += 1
         elif click == 4:
             page = self.pages
-
-        emb = Embed(title=rating_text[self.lng][0], colour=Colour.dark_gray())
         
         counter = (page - 1) * self.in_row + 1
-
+        
         if self.sort_value:
+            emb = Embed(title=rating_text[self.lng][0], colour=Colour.dark_gray())
             for r in self.cash_list[(page-1) * self.in_row:min(page*self.in_row, len(self.cash_list))]:
-                emb.add_field(name=rating_text[self.lng][2].format(counter), value=f"<@{r[0]}>\n{r[1]} {self.currency}", inline=False)
+                emb.add_field(name=rating_text[self.lng][3].format(counter), value=f"<@{r[0]}>\n{r[1]} {self.currency}", inline=False)
                 counter += 1
         else:
+            emb = Embed(title=rating_text[self.lng][1], colour=Colour.dark_gray())
             for r in self.xp_list[(page-1) * self.in_row:min(page*self.in_row, len(self.xp_list))]:
                 level = (r[1] - 1) // self.xp_b + 1
-                emb.add_field(name=rating_text[self.lng][2].format(counter), value=f"<@{r[0]}>\n{rating_text[self.lng][3].format(level)}", inline=False)
+                emb.add_field(name=rating_text[self.lng][3].format(counter), value=f"<@{r[0]}>\n{rating_text[self.lng][4].format(level)}", inline=False)
                 counter += 1
 
-        emb.set_footer(text=rating_text[self.lng][1].format(page, self.pages))   
+        emb.set_footer(text=rating_text[self.lng][2].format(page, self.pages))   
         if not click:
             await interaction.response.edit_message(embed=emb, view=self)
         else:
             await interaction.response.edit_message(embed=emb)
 
-    async def click_b(self, interaction: Interaction, c_id: str):
+    async def click_b(self, interaction: Interaction, c_id: str) -> None:
         
         if c_id.startswith("38_"):
             click = 1
@@ -617,8 +628,7 @@ class rating_slash_view(View):
 
         await self.update_menu(interaction=interaction, click=click)
         
-
-    async def click_menu(self, interaction: Interaction, c_id: str, value):  
+    async def click_menu(self, interaction: Interaction, c_id: str, value) -> None:  
 
         if c_id.startswith("104_"):
             if int(value[0]):
@@ -631,7 +641,6 @@ class rating_slash_view(View):
                 self.children[4].options[1].default=False
 
         await self.update_menu(interaction=interaction, click=0)
-
 
     async def interaction_check(self, interaction):
         if interaction.user.id != self.auth_id:
@@ -663,7 +672,7 @@ class slash_commands(commands.Cog):
         return True
 
 
-    def check_user(self, base: Connection, cur: Cursor, memb_id: int):
+    def check_user(self, base: Connection, cur: Cursor, memb_id: int) -> tuple:
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
         if not member:
             cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
@@ -697,6 +706,9 @@ class slash_commands(commands.Cog):
 
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
+                if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
+                    await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+                    return
                 store = cur.execute('SELECT * FROM store WHERE role_id = ?', (r_id,)).fetchone()
                 if not store:
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][5], colour=Colour.red()))
@@ -761,7 +773,10 @@ class slash_commands(commands.Cog):
         
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db")) as base:
-            with closing(base.cursor()) as cur:        
+            with closing(base.cursor()) as cur:
+                if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
+                    await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+                    return
                 tz = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
                 db_store = cur.execute('SELECT * FROM store').fetchall()
         
@@ -817,7 +832,9 @@ class slash_commands(commands.Cog):
             return
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                
+                if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
+                    await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+                    return
                 role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (r_id,)).fetchone()      
                 if not role_info:
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][17], colour=Colour.red()))
@@ -883,57 +900,78 @@ class slash_commands(commands.Cog):
     async def profile(self, interaction: Interaction) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         memb_id = interaction.user.id
-                        
+        embs: list[Embed] = []
+
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                member = self.check_user(base=base, cur=cur, memb_id=memb_id)
-                xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
-                membs_cash = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
-                membs_xp = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
-        l = len(membs_cash)
+                member: int = self.check_user(base=base, cur=cur, memb_id=memb_id)
+                xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                ec_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
+                rnk_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
+                if ec_status:
+                    membs_cash: list[int, int] = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+                if rnk_status:
+                    membs_xp: list[int, int] = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
 
-        # cnt_cash is a place in the rating sorded by cash
-        cash = member[1]
-        if membs_cash[l//2][1] < cash:
-            cnt_cash = 1
-            while cnt_cash < l and memb_id != membs_cash[cnt_cash-1][0]:
-                cnt_cash += 1
+        if not (ec_status | rnk_status):
+            await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+            return
+
+        if ec_status:
+            l: int = len(membs_cash)
         else:
-            cnt_cash = l
-            while cnt_cash > 1 and memb_id != membs_cash[cnt_cash-1][0]:
-                cnt_cash -= 1
+            l: int = len(membs_xp)
 
-        emb1 = Embed()
-        emb1.description = profile_text[lng][5].format(memb_id, memb_id)
-        emb1.add_field(name=profile_text[lng][1], value=code_blocks[1].format(cash), inline=True)
-        emb1.add_field(name=profile_text[lng][4], value=code_blocks[1].format(cnt_cash), inline=True)
+        if ec_status:
+            # cnt_cash is a place in the rating sorded by cash
+            cash = member[1]
+            if membs_cash[l//2][1] < cash:
+                cnt_cash = 1
+                while cnt_cash < l and memb_id != membs_cash[cnt_cash-1][0]:
+                    cnt_cash += 1
+            else:
+                cnt_cash = l
+                while cnt_cash > 1 and memb_id != membs_cash[cnt_cash-1][0]:
+                    cnt_cash -= 1
 
-        # cnt_cash is a place in the rating sorded by xp
-        xp = member[4]
-        if membs_xp[l//2][1] < xp:
-            cnt_xp = 1
-            while cnt_xp < l and memb_id != membs_xp[cnt_xp-1][0]:
-                cnt_xp += 1
-        else:
-            cnt_xp = l
-            while cnt_xp > 1 and memb_id != membs_xp[cnt_xp-1][0]:
-                cnt_xp -= 1
+            emb1 = Embed()
+            emb1.description = profile_text[lng][5].format(memb_id, memb_id)
+            emb1.add_field(name=profile_text[lng][1], value=code_blocks[1].format(cash), inline=True)
+            emb1.add_field(name=profile_text[lng][4], value=code_blocks[1].format(cnt_cash), inline=True)
+            embs.append(emb1)
 
-        level = (xp + xp_b - 1) // xp_b
-        
-        emb2 = Embed()
-        emb2.add_field(name=profile_text[lng][2], value=code_blocks[2].format(f"{xp}/{level * xp_b + 1}"), inline=True)
-        emb2.add_field(name=profile_text[lng][3], value=code_blocks[2].format(level), inline=True)
-        emb2.add_field(name=profile_text[lng][4], value=code_blocks[2].format(cnt_xp), inline=True)
+        if rnk_status:
+            # cnt_cash is a place in the rating sorded by xp
+            xp = member[4]
+            if membs_xp[l//2][1] < xp:
+                cnt_xp = 1
+                while cnt_xp < l and memb_id != membs_xp[cnt_xp-1][0]:
+                    cnt_xp += 1
+            else:
+                cnt_xp = l
+                while cnt_xp > 1 and memb_id != membs_xp[cnt_xp-1][0]:
+                    cnt_xp -= 1
 
-        emb3 = Embed()
-        if member[2] != "":
-            dsc = [code_blocks[lng*5]] + [f"<@&{r}>" for r in member[2].split("#") if r != ""]
-        else:
-            dsc = [profile_text[lng][6]]
-        emb3.description = "\n".join(dsc)
+            level = (xp + xp_b - 1) // xp_b
+            
+            emb2 = Embed()
+            if not len(embs):
+                emb2.description = profile_text[lng][5].format(memb_id, memb_id)
+            emb2.add_field(name=profile_text[lng][2], value=code_blocks[2].format(f"{xp}/{level * xp_b + 1}"), inline=True)
+            emb2.add_field(name=profile_text[lng][3], value=code_blocks[2].format(level), inline=True)
+            emb2.add_field(name=profile_text[lng][4], value=code_blocks[2].format(cnt_xp), inline=True)
+            embs.append(emb2)
 
-        await interaction.response.send_message(embeds=[emb1, emb2, emb3])
+        if ec_status:
+            emb3 = Embed()
+            if member[2] != "":
+                dsc = [code_blocks[lng*5]] + [f"<@&{r}>" for r in member[2].split("#") if r != ""]
+            else:
+                dsc = [profile_text[lng][6]]
+            emb3.description = "\n".join(dsc)
+            embs.append(emb3)
+
+        await interaction.response.send_message(embeds=embs)
     
 
     async def work(self, interaction: Interaction) -> None:
@@ -941,6 +979,9 @@ class slash_commands(commands.Cog):
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
+                if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
+                    await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+                    return
                 time_reload = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 flag: bool = False
@@ -976,6 +1017,9 @@ class slash_commands(commands.Cog):
 
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
+                if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
+                    await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+                    return
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
 
         if amount > member[1]:
@@ -1035,7 +1079,9 @@ class slash_commands(commands.Cog):
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-
+                if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
+                    await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+                    return
                 act = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 self.check_user(base=base, cur=cur, memb_id=t_id)
 
@@ -1060,29 +1106,63 @@ class slash_commands(commands.Cog):
     
     async def leaders(self, interaction: Interaction) -> None:
         lng = 1 if "ru" in interaction.locale else 0
-
+        
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 self.check_user(base=base, cur=cur, memb_id=interaction.user.id)
-                membs_cash = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
-                membs_xp = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
-                xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                ec_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
+                rnk_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
+                if ec_status:
+                    membs_cash: list[int, int] = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+                else:
+                    membs_cash = []
+                if rnk_status:
+                    membs_xp: list[int, int] = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+                else:
+                    membs_xp = []
+                xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
         
-        l = len(membs_cash)
+        if not (ec_status | rnk_status):
+            await interaction.response.send_message(embed=Embed(description=common_text[lng][1]))
+            return
 
-        emb = Embed(title=rating_text[lng][0], colour=Colour.dark_gray())
-        
+        # I know about `l = len(membs_cash) if ec_status else len(membs_xp)` but it calls len() twice
+
+        if ec_status:
+            l = len(membs_cash)
+        else:
+            l = len(membs_xp)
         counter = 1
-        for r in membs_cash[0:min(self.in_row, l)]:
-            emb.add_field(name=rating_text[lng][2].format(counter), value=f"<@{r[0]}>\n{r[1]} {self.currency}", inline=False)
-            counter += 1 
+        
+        if ec_status:
+            emb = Embed(title=rating_text[lng][0], colour=Colour.dark_gray())
+            for r in membs_cash[0:min(in_row, l)]:
+                emb.add_field(name=rating_text[lng][3].format(counter), value=f"<@{r[0]}>\n{r[1]} {currency}", inline=False)
+                counter += 1 
+        else:
+            emb = Embed(title=rating_text[lng][1], colour=Colour.dark_gray())
+            for r in membs_xp[0:min(in_row, l)]:
+                level = (r[1] - 1) // xp_b + 1
+                emb.add_field(name=rating_text[lng][3].format(counter), value=f"<@{r[0]}>\n{rating_text[lng][4].format(level)}", inline=False)
+                counter += 1
 
         if l:
-            emb.set_footer(text=rating_text[lng][1].format(1, (l + in_row - 1) // in_row))
+            emb.set_footer(text=rating_text[lng][2].format(1, (l + in_row - 1) // in_row))
         else:
-            emb.set_footer(text=rating_text[lng][1].format(1, 1))
+            emb.set_footer(text=rating_text[lng][2].format(1, 1))
 
-        rate_view = rating_slash_view(timeout=40, lng=lng, auth_id=interaction.user.id, cash_list=membs_cash, xp_list=membs_xp, xp_b=xp_b, in_row=in_row)
+        rate_view = rating_slash_view(
+            timeout=40, 
+            lng=lng, 
+            auth_id=interaction.user.id, 
+            l=l,
+            cash_list=membs_cash,
+            xp_list=membs_xp, 
+            xp_b=xp_b, 
+            in_row=in_row, 
+            ec_status=ec_status,
+            rnk_status=rnk_status
+        )
 
         await interaction.response.send_message(embed=emb, view=rate_view)
         await rate_view.wait()
@@ -1113,7 +1193,7 @@ class slash_commands(commands.Cog):
             },
             required=True
         )
-    ):
+    ) -> None:
         await self.buy(interaction=interaction, role=role)
                     
     
@@ -1124,7 +1204,7 @@ class slash_commands(commands.Cog):
             Locale.ru : "Открывает меню магазина"
         }
     )
-    async def store_e(self, interaction: Interaction):
+    async def store_e(self, interaction: Interaction) -> None:
         await self.store(interaction=interaction)
      
 
@@ -1149,7 +1229,7 @@ class slash_commands(commands.Cog):
             },
             required=True
         )
-    ):
+    ) -> None:
         await self.sell(interaction=interaction, role=role)
 
 
@@ -1160,7 +1240,7 @@ class slash_commands(commands.Cog):
             Locale.ru: "Показывает меню Вашего профиля"
         }
     )
-    async def profile_e(self, interaction: Interaction):
+    async def profile_e(self, interaction: Interaction) -> None:
         await self.profile(interaction=interaction)
 
 
@@ -1171,7 +1251,7 @@ class slash_commands(commands.Cog):
             Locale.ru: "Позволяет заработать деньги"
         }
     )
-    async def work_e(self, interaction: Interaction):
+    async def work_e(self, interaction: Interaction) -> None:
         await self.work(interaction=interaction)
     
 
@@ -1197,7 +1277,7 @@ class slash_commands(commands.Cog):
             required=True, 
             min_value=1
         )
-    ): 
+    ) -> None: 
         await self.bet(interaction=interaction, amount=amount)
 
     
@@ -1234,7 +1314,7 @@ class slash_commands(commands.Cog):
             },
             required=True
         )
-    ):
+    ) -> None:
         await self.transfer(interaction=interaction, value=value, target=target)
 
     
@@ -1245,7 +1325,7 @@ class slash_commands(commands.Cog):
             Locale.ru: "Показывет топ пользователей по балансу"
         }
     )
-    async def leaders_e(self, interaction: Interaction):
+    async def leaders_e(self, interaction: Interaction) -> None:
         await self.leaders(interaction=interaction)
     
 
