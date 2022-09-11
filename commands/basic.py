@@ -4,11 +4,9 @@ from asyncio import sleep
 from random import randint
 from sqlite3 import connect, Connection, Cursor
 from contextlib import closing
-from datetime import datetime, timedelta
 
-from nextcord.ext import commands
-from nextcord.ext.commands import CheckFailure
-from nextcord import Embed, Colour, Locale, Interaction, slash_command, ButtonStyle, TextInputStyle, Permissions, TextChannel
+from nextcord.ext.commands import command, is_owner, Bot, Context, Cog
+from nextcord import Embed, Locale, Interaction, slash_command, ButtonStyle, TextInputStyle, Permissions, TextChannel
 from nextcord.ui import Button, Modal, TextInput
 
 from config import path_to, feedback_channel
@@ -160,7 +158,7 @@ feedback_text = {
     1 : {
         0 : "Отзыв",
         1 : "Какие проблемы возникли у Вас при использовании бота? Чтобы бы Вы хотели добавить?",
-        2 : "**`Спасибо большое за Выш отзыв! Он был доставлен на сервер поддержки`**",
+        2 : "**`Спасибо большое за Ваш отзыв! Он был доставлен на сервер поддержки`**",
         3 : "**`Извнините, при создании фидбэка что-то пошло не так. Вы можете получить помощь/оставить отзыв на сервере поддержки`**"
     }
 }
@@ -213,9 +211,9 @@ class c_feedback_modal(Modal):
         self.stop()
 
 
-class mod_commands(commands.Cog):
+class mod_commands(Cog):
 
-    def __init__(self, bot: commands.Bot):
+    def __init__(self, bot: Bot):
         self.bot = bot
 
         global text
@@ -247,16 +245,13 @@ class mod_commands(commands.Cog):
         }
         
 
-    def mod_role_set(self, ctx: commands.Context) -> bool:
+    def mod_role_set(self, ctx: Context) -> bool:
         with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
-                r = cur.execute("SELECT count() FROM mod_roles").fetchone()
-                if r is None or r[0] == 0:
-                    return False
-                return True
+                return cur.execute("SELECT count() FROM mod_roles").fetchone()[0] > 0
     
 
-    def mod_check(ctx: commands.Context) -> bool:
+    def mod_check(ctx: Context) -> bool:
         u = ctx.author
         if u.guild_permissions.administrator or u.guild_permissions.manage_guild:
             return True
@@ -371,9 +366,9 @@ class mod_commands(commands.Cog):
         await self.feedback(interaction=interaction)
 
 
-    @commands.command(aliases=("sunload_access_level_two", "s_a_l_2"))
-    @commands.is_owner()
-    async def _salt(self, ctx: commands.Context, chnl: TextChannel):
+    @command(aliases=("sunload_access_level_two", "s_a_l_2"))
+    @is_owner()
+    async def _salt(self, ctx: Context, chnl: TextChannel):
         
         global feedback_channel
         feedback_channel = chnl.id
@@ -381,9 +376,9 @@ class mod_commands(commands.Cog):
         await ctx.reply(embed=Embed(description=f"New feedback channel is <#{feedback_channel}>"), mention_author=False, delete_after=5)
 
 
-    @commands.command(name="load")
-    @commands.is_owner()
-    async def _load(self, ctx: commands.Context, extension):
+    @command(name="load")
+    @is_owner()
+    async def _load(self, ctx: Context, extension):
         if path.exists(f"{path_to}/commands/{extension}.py"):
             self.bot.load_extension(f"commands.{extension}")
             await sleep(1)
@@ -395,9 +390,9 @@ class mod_commands(commands.Cog):
         await ctx.reply(embed=emb, mention_author=False, delete_after=5)
     
 
-    @commands.command(name="unload")
-    @commands.is_owner()
-    async def _unload(self, ctx: commands.Context, extension):
+    @command(name="unload")
+    @is_owner()
+    async def _unload(self, ctx: Context, extension):
         if path.exists(f"{path_to}/commands/{extension}.py"):
             self.bot.unload_extension(f"commands.{extension}")
             await sleep(1)
@@ -409,9 +404,9 @@ class mod_commands(commands.Cog):
         await ctx.reply(embed=emb, mention_author=False, delete_after=5)
 
 
-    @commands.command(name="reload")
-    @commands.is_owner()
-    async def _reload(self, ctx: commands.Context, extension):
+    @command(name="reload")
+    @is_owner()
+    async def _reload(self, ctx: Context, extension):
         if path.exists(f"{path_to}/commands/{extension}.py"):
             self.bot.unload_extension(f"commands.{extension}")
             self.bot.load_extension(f"commands.{extension}")
@@ -424,9 +419,9 @@ class mod_commands(commands.Cog):
         await ctx.reply(embed=emb, mention_author=False, delete_after=5)
 
 
-    @commands.command(name="statistic")
-    @commands.is_owner()
-    async def _statistic(self, ctx: commands.Context):
+    @command(aliases=["statistic", "statistics"])
+    @is_owner()
+    async def _statistic(self, ctx: Context):
         emb = Embed(description="```guild - id - member_count```")
         k = 0
         for g in self.bot.guilds:
@@ -439,43 +434,48 @@ class mod_commands(commands.Cog):
         await ctx.reply(embed=emb, mention_author=False, delete_after=15)
 
 
-    @commands.Cog.listener()
-    async def on_command_error(self, ctx: commands.Context, error):
+    @Cog.listener()
+    async def on_command_error(self, ctx: Context, error):
         return
+        
+        # from nextcord.ext import commands
+        # from nextcord.ext.commands import CheckFailure
+        # from nextcord import Colour
+        # from datetime import datetime, timedelta
 
-        lng = 1 if "ru" in ctx.guild.preferred_locale else 0
-        emb=Embed(title=text[lng][404],colour=Colour.red())
-        if isinstance(error, commands.MemberNotFound):
-            emb.description = text[lng][18]
-            """elif isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
-            try:
-                emb.description = text[lng][19].format(self.prefix, str(ctx.command)[1:])
-            except:
-                emb.description = text[lng][19].format(self.prefix, "name_of_the_command") """
+        # lng = 1 if "ru" in ctx.guild.preferred_locale else 0
+        # emb=Embed(title=text[lng][404],colour=Colour.red())
+        # if isinstance(error, commands.MemberNotFound):
+        #     emb.description = text[lng][18]
+        #     """elif isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
+        #     try:
+        #         emb.description = text[lng][19].format(self.prefix, str(ctx.command)[1:])
+        #     except:
+        #         emb.description = text[lng][19].format(self.prefix, "name_of_the_command") """
 
-        elif isinstance(error, commands.CommandNotFound):
-            return
-            #emb.description = text[lng][20]
-        elif isinstance(error, commands.UserNotFound):
-            emb.description = text[lng][21]
-        elif isinstance(error, commands.RoleNotFound):
-            emb.description = text[lng][40]
-        elif isinstance(error, commands.ChannelNotFound):
-            emb.description = text[lng][41]
-        elif isinstance(error, commands.CommandOnCooldown):
-            emb.description = text[lng][22]
-        elif isinstance(error, CheckFailure):
-            if self.mod_role_set(ctx=ctx):
-                emb.description = text[lng][23]
-            else:
-                emb.description = text[lng][24]
-        else:
-            #raise error
-            with open("error.log", "a+", encoding="utf-8") as f:
-                f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{ctx.guild.name}] [{str(error)}]\n")
-            return
-        await ctx.reply(embed=emb, mention_author=False)
+        # elif isinstance(error, commands.CommandNotFound):
+        #     return
+        #     #emb.description = text[lng][20]
+        # elif isinstance(error, commands.UserNotFound):
+        #     emb.description = text[lng][21]
+        # elif isinstance(error, commands.RoleNotFound):
+        #     emb.description = text[lng][40]
+        # elif isinstance(error, commands.ChannelNotFound):
+        #     emb.description = text[lng][41]
+        # elif isinstance(error, commands.CommandOnCooldown):
+        #     emb.description = text[lng][22]
+        # elif isinstance(error, CheckFailure):
+        #     if self.mod_role_set(ctx=ctx):
+        #         emb.description = text[lng][23]
+        #     else:
+        #         emb.description = text[lng][24]
+        # else:
+        #     #raise error
+        #     with open("error.log", "a+", encoding="utf-8") as f:
+        #         f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{ctx.guild.name}] [{str(error)}]\n")
+        #     return
+        # await ctx.reply(embed=emb, mention_author=False)
 
   
-def setup(bot: commands.Bot, **kwargs):
-    bot.add_cog(mod_commands(bot, **kwargs))
+def setup(bot: Bot):
+    bot.add_cog(mod_commands(bot))

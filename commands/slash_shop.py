@@ -6,7 +6,7 @@ from time import time
 from random import randint
 
 from nextcord.ext import commands
-from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Locale, ui, SelectOption, slash_command, Role, Member
+from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Locale, SelectOption, slash_command, Role, Member
 from nextcord.ui import Button, View, Select
 
 from config import path_to, in_row
@@ -912,7 +912,7 @@ class slash_commands(commands.Cog):
                 if rnk_status:
                     membs_xp: list[int, int] = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
 
-        if not (ec_status | rnk_status):
+        if not (ec_status or rnk_status):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
             return
 
@@ -1124,7 +1124,7 @@ class slash_commands(commands.Cog):
                 xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
                 currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
         
-        if not (ec_status | rnk_status):
+        if not (ec_status or rnk_status):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
             return
 
@@ -1332,5 +1332,5 @@ class slash_commands(commands.Cog):
         await self.leaders(interaction=interaction)
     
 
-def setup(bot: commands.Bot, **kwargs):
-    bot.add_cog(slash_commands(bot, **kwargs))
+def setup(bot: commands.Bot):
+    bot.add_cog(slash_commands(bot))

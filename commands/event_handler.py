@@ -6,20 +6,20 @@ from time import time
 from asyncio import sleep
 
 from colorama import Fore
-from nextcord import Game, Message, ChannelType, Embed, Guild
+from nextcord import Game, Message, ChannelType, Embed, Guild, Interaction
 from nextcord.ext import commands, tasks
 from nextcord.errors import ApplicationCheckFailure
 
 from config import path_to 
 
-event_handl_text = {
-    0 : {
-        0 : "**Sorry, but you don't have enough permissions to use this command**",
-    },
-    1 : {
-        0 : "**Извините, но у Вас недостаточно прав для использования этой командыы**",
-    }
-}
+# event_handl_text = {
+#     0 : {
+#         0 : "**Sorry, but you don't have enough permissions to use this command**",
+#     },
+#     1 : {
+#         0 : "**Извините, но у Вас недостаточно прав для использования этой командыы**",
+#     }
+# }
 
 
 class msg_h(commands.Cog):
@@ -60,7 +60,7 @@ class msg_h(commands.Cog):
         self._backup.start()
         
     
-    def correct_db(self, guild) -> None:
+    def correct_db(self, guild: Guild) -> None:
         with closing(connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 cur.executescript("""
@@ -130,10 +130,9 @@ class msg_h(commands.Cog):
             lng = 1 if "ru" in guild.preferred_locale else 0
         except:
             lng = 0
-
-        c = guild.system_channel
-        if c.permissions_for(guild.me).send_messages:
-            await c.send(embed=Embed(description="\n".join(greetings[lng])))
+        
+        if guild.system_channel.permissions_for(guild.me).send_messages:
+            await guild.system_channel.send(embed=Embed(description="\n".join(greetings[lng])))
         else:
             for c in guild.text_channels:
                 if c.permissions_for(guild.me).send_messages:
@@ -164,7 +163,7 @@ class msg_h(commands.Cog):
                     if r:
                         t_n = int(time())
                         for role, members, salary, t, last_time in r:
-                            flag = False
+                            flag: bool = False
 
                             if not last_time:
                                 flag = True
@@ -267,17 +266,16 @@ class msg_h(commands.Cog):
 
 
     @commands.Cog.listener()
-    async def on_application_command_error(self, interaction, exception):
+    async def on_application_command_error(self, interaction: Interaction, exception) -> None:
         if isinstance(exception, ApplicationCheckFailure):
             if "ru" in interaction.locale:
                 await interaction.response.send_message(embed=Embed(description="**`Извините, но у Вас недостаточно прав для использования этой команды`**"), ephemeral=True)
             else:
                 await interaction.response.send_message(embed=Embed(description="**`Sorry, but you don't have enough permissions to use this command`**"), ephemeral=True)
             return
-        
         with open("error.log", "a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash_command] [{interaction.application_command.name}] [{interaction.guild_id}] [{interaction.guild.name}] [{str(exception)}]\n")
 
 
-def setup(bot: commands.Bot, **kwargs):
-    bot.add_cog(msg_h(bot, **kwargs))
+def setup(bot: commands.Bot):
+    bot.add_cog(msg_h(bot))

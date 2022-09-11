@@ -181,7 +181,7 @@ class cms(commands.Cog):
         self.bot = bot
 
 
-    def check_user(self, base: Connection, cur: Cursor, memb_id: int):
+    def check_user(self, base: Connection, cur: Cursor, memb_id: int) -> None:
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
         if not member:
             cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
@@ -305,7 +305,5 @@ class cms(commands.Cog):
 
         await interaction.response.send_message(embed=emb)
     
-
-
-def setup(bot: commands.Bot, **kwargs):
-    bot.add_cog(cms(bot, **kwargs))
+def setup(bot: commands.Bot):
+    bot.add_cog(cms(bot))

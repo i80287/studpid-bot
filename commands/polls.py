@@ -618,5 +618,5 @@ class polling(commands.Cog):
         await interaction.response.send_message(embed=Embed(description=polls_text[lng][9], colour=Colour.dark_purple()), ephemeral=True)
 
 
-def setup(bot, **kwargs):
-    bot.add_cog(polling(bot, **kwargs))
+def setup(bot: commands.Bot):
+    bot.add_cog(polling(bot))

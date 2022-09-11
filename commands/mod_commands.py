@@ -65,40 +65,48 @@ gen_settings_text = {
     0 : {
         0 : "🗣️ language for new level announcements: {}",
         1 : "⏱ time zone: UTC{}",
-        2 : "💰 economy system is {}",
-        3 : "📈 leveling system is {}",
-        4 : "tap 🗣️ to change language",
-        5 : "tap ⏱ to change time zone",
-        6 : "tap 💰 to {} economy system",
-        7 : "tap 📈 to {} leveling system",
-        8 : "Select new language",
-        9 : "Select new time zone",
-        10 : "**`You hasn't selected the language yet`**",
-        11 : "**`You hasn't selected time zone yet`**",
-        12 : "**`New time zone: UTC{}`**",
-        13 : "**`New language for new level announcements: {}`**",
-        14 : "**`This language is already selected as language for new level announcements`**",
-        15 : "**You {} economy system**",
-        16 : "**You {} leveling system**"
+        2 : "💵 server money emoji: {}",
+        3 : "💰 economy system is {}",
+        4: "📈 leveling system is {}",
+        5: "tap 🗣️ to change language",
+        6: "tap ⏱ to change time zone",
+        7 : "tap 💵 to change money emoji",
+        8: "tap 💰 to {} economy system",
+        9 : "tap 📈 to {} leveling system",
+        20 : "Select new language",
+        21 : "Select new time zone",
+        22 : "**`You hasn't selected the language yet`**",
+        23 : "**`You hasn't selected time zone yet`**",
+        24 : "**`New time zone: UTC{}`**",
+        25 : "**`New language for new level announcements: {}`**",
+        26 : "**`This language is already selected as language for new level announcements`**",
+        27 : "**You {} economy system**",
+        28 : "**You {} leveling system**",
+        29 : "**If emoji is `default discord emoji` (not from any server), print it's `name without ':'`. Otherwise print `emoji or it's id`**",
+        30 : "**`New money emoji is `**{}"
     },
     1 : {
         0 : "🗣️ язык сообщений для оповещений о новом уровне: {}",
         1 : "⏱ часовой пояс: UTC{}",
-        2 : "💰 экономическая система: {}",
-        3 : "📈 уровневая система: {}",
-        4 : "нажмите 🗣️, чтобы изменить язык",
-        5 : "нажмите ⏱, чтобы изменить часовой пояс",
-        6 : "нажмите 💰, чтобы {} экономическую систему",
-        7 : "нажмите 📈, чтобы {} уровневую систему",
-        8 : "Выбрать новый язык",
-        9 : "Выбрать новый часовой пояс",
-        10 : "**`Вы не выбрали язык`**",
-        11 : "**`Вы не выбрали часовой пояс`**",
-        12 : "**`Новый часовой пояс сервера: UTC{}`**",
-        13 : "**`Новый язык сообщений для оповещений о новом уровне: {}`**",
-        14 : "**`Этот язык уже выбран в качестве языка для оповещений о новом уровне`**",
-        15 : "**Вы {} экономическую систему**",
-        16 : "**Вы {} уровневую систему**"
+        2 : "💵 эмодзи валюты сервера: {}",
+        3 : "💰 экономическая система: {}",
+        4 : "📈 уровневая система: {}",
+        5 : "нажмите 🗣️, чтобы изменить язык",
+        6 : "нажмите ⏱, чтобы изменить часовой пояс",
+        7 : "нажмите 💵, чтобы изменить эмодзи валюты сервера",
+        8 : "нажмите 💰, чтобы {} экономическую систему",
+        9 : "нажмите 📈, чтобы {} уровневую систему",
+        20 : "Выбрать новый язык",
+        21 : "Выбрать новый часовой пояс",
+        22 : "**`Вы не выбрали язык`**",
+        23 : "**`Вы не выбрали часовой пояс`**",
+        24 : "**`Новый часовой пояс сервера: UTC{}`**",
+        25 : "**`Новый язык сообщений для оповещений о новом уровне: {}`**",
+        26 : "**`Этот язык уже выбран в качестве языка для оповещений о новом уровне`**",
+        27 : "**Вы {} экономическую систему**",
+        28 : "**Вы {} уровневую систему**",
+        29 : "**Если эмодзи является `стандартным эмодзи дискорда` (не с сервера), напишите `имя эмодзи без ':'`. Инача напишите `эмодзи или его id`**",
+        30 : "**`Новое эмодзи валюты сервера: `**{}"
     }
 }
 
@@ -188,7 +196,7 @@ mod_roles_text = {
         2 : "__**role - id**__",
         7 : "**`This role already in the list`**",
         8 : "**`Role `**{}**` added to the list`**",
-        9 : "**`This role not in the list`**",
+        9 : "**`This role is not in the list`**",
         10 : "**`Role `**{}**` removed from the list`**",
         11 : "**`Sorry, but you can't manage menu called by another user`**"
     },
@@ -543,15 +551,15 @@ class c_select(Select):
         options = [SelectOption(label=r[0], value=r[1]) for r in opts]
         super().__init__(custom_id=custom_id, placeholder=placeholder, options=options)
     
-    async def callback(self, interaction: Interaction):
+    async def callback(self, interaction: Interaction) -> None:
         await self.view.click_menu(interaction, self.custom_id, self.values)        
 
 
 class c_button(Button):
-    def __init__(self, style: ButtonStyle, label: str, custom_id: str, disabled: bool = False, emoji = None, row: int = None):
+    def __init__(self, style: ButtonStyle, label: str, custom_id: str, disabled: bool = False, emoji = None, row: int = None) -> None:
         super().__init__(style=style, label=label, disabled=disabled, custom_id=custom_id, emoji=emoji, row=row)
 
-    async def callback(self, interaction: Interaction):
+    async def callback(self, interaction: Interaction) -> None:
         await super().view.click(interaction, self.custom_id)
 
 
@@ -561,28 +569,29 @@ class gen_settings_view(View):
         super().__init__(timeout=t_out)
         self.bot: Bot = bot
         self.auth_id: int = auth_id
-        self.lang: int = None
-        self.tz: int = None
+        self.lang = None
+        self.tz = None
         self.ec_status: int = ec_status
         self.rnk_status: int = rnk_status
         tzs: list[tuple[str, int]] = [(f"UTC{i}", i) for i in range(-12, 0)] + [(f"UTC+{i}", i) for i in range(0, 13)]
-        self.add_item(c_select(custom_id=f"100_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][8], opts=languages[2][lng]))
-        self.add_item(c_select(custom_id=f"101_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][9], opts=tzs))
+        self.add_item(c_select(custom_id=f"100_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][20], opts=languages[2][lng]))
+        self.add_item(c_select(custom_id=f"101_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][21], opts=tzs))
         self.add_item(c_button(style=ButtonStyle.green, label=None, custom_id=f"6_{auth_id}_{randint(1, 100)}", emoji="🗣️"))
         self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id=f"7_{auth_id}_{randint(1, 100)}", emoji="⏱"))
-        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"42_{auth_id}_{randint(1, 100)}", emoji="💰"))
-        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"43_{auth_id}_{randint(1, 100)}", emoji="📈"))
-    
+        self.add_item(c_button(style=ButtonStyle.gray, label=None, custom_id=f"42_{auth_id}_{randint(1, 100)}", emoji="💵"))
+        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"43_{auth_id}_{randint(1, 100)}", emoji="💰", row=2))
+        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"44_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
+        
     async def select_lng(self, interaction: Interaction, lng: int) -> None:
         s_lng = self.lang
         if s_lng is None:
-            await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][10]), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][22]), ephemeral=True)
             return
         g_id = interaction.guild_id
         with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0] == s_lng:
-                    await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][14]), ephemeral=True)
+                    await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][26]), ephemeral=True)
                     return
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lang'", (s_lng,))
                 base.commit()
@@ -595,13 +604,13 @@ class gen_settings_view(View):
         emb.description = "\n".join(dsc)
         await interaction.message.edit(embed=emb)
 
-        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][13].format(s_lng_nm)), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][25].format(s_lng_nm)), ephemeral=True)
         self.lang = None
     
     async def digit_tz(self, interaction: Interaction, lng: int) -> None:
         tz = self.tz
         if tz is None:
-            await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][11]), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][25]), ephemeral=True)
             return
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
@@ -616,9 +625,40 @@ class gen_settings_view(View):
         emb.description = "\n".join(dsc)
         await interaction.message.edit(embed=emb)
 
-        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][12].format(tz)), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][24].format(tz)), ephemeral=True)
         self.tz = None
-    
+
+    def parse_emoji(self, ans: str) -> str:
+        if ans.isdigit():
+            emj = self.bot.get_emoji(int(ans))
+            if emj:
+                return emj.__str__()
+        t1 = ans.rfind(":")
+        if t1 != -1 and ans[t1+1:ans.find(">")].isdigit():
+            return ans
+        return f":{ans}:"
+        
+    async def change_currency(self, interaction: Interaction, lng: int) -> None:
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][29]), ephemeral=True)
+        try:
+            user_ans: Message = await self.bot.wait_for(event="message", check=lambda m: m.channel.id == interaction.channel_id and m.author.id == self.auth_id, timeout=25)
+        except TimeoutError:
+            return
+        else:
+            emoji_str: str = self.parse_emoji(user_ans.content)
+            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(base.cursor()) as cur:
+                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'currency'", (emoji_str,))
+                    base.commit()
+            emb = interaction.message.embeds[0]
+            dsc = emb.description.split("\n")
+            dsc[2] = gen_settings_text[lng][2].format(emoji_str)
+            emb.description = "\n".join(dsc)
+            await interaction.message.edit(embed=emb)
+
+            if await interaction.original_message():
+                await interaction.edit_original_message(embed=Embed(description=gen_settings_text[lng][30].format(emoji_str)))
+
     async def change_ec_system(self, interaction: Interaction, lng: int) -> None:
         self.ec_status = (self.ec_status + 1) % 2
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
@@ -629,12 +669,12 @@ class gen_settings_view(View):
 
         emb = interaction.message.embeds[0]
         dsc = emb.description.split("\n")
-        dsc[2] = gen_settings_text[lng][2].format(system_status[lng][self.ec_status])
-        dsc[6] = gen_settings_text[lng][6].format(system_status[lng][self.ec_status+2])
+        dsc[2] = gen_settings_text[lng][3].format(system_status[lng][self.ec_status])
+        dsc[6] = gen_settings_text[lng][8].format(system_status[lng][self.ec_status+2])
         emb.description = "\n".join(dsc)
         await interaction.message.edit(embed=emb)
 
-        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][15].format(system_status[lng][self.ec_status+4])), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][27].format(system_status[lng][self.ec_status+4])), ephemeral=True)
 
     async def change_rnk_system(self, interaction: Interaction, lng: int) -> None:
         self.rnk_status = (self.rnk_status + 1) % 2
@@ -646,12 +686,12 @@ class gen_settings_view(View):
         
         emb = interaction.message.embeds[0]
         dsc = emb.description.split("\n")
-        dsc[3] = gen_settings_text[lng][3].format(system_status[lng][self.rnk_status])
-        dsc[7] = gen_settings_text[lng][7].format(system_status[lng][self.rnk_status+2])
+        dsc[3] = gen_settings_text[lng][4].format(system_status[lng][self.rnk_status])
+        dsc[7] = gen_settings_text[lng][9].format(system_status[lng][self.rnk_status+2])
         emb.description = "\n".join(dsc)
         await interaction.message.edit(embed=emb)
             
-        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][16].format(system_status[lng][self.rnk_status+4])), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][28].format(system_status[lng][self.rnk_status+4])), ephemeral=True)
 
     async def click(self, interaction: Interaction, c_id: str) -> None:
         lng = 1 if "ru" in interaction.locale else 0        
@@ -660,8 +700,10 @@ class gen_settings_view(View):
         elif c_id.startswith("7_"):
             await self.digit_tz(interaction=interaction, lng=lng)
         elif c_id.startswith("42_"):
-            await self.change_ec_system(interaction=interaction, lng=lng)
+            await self.change_currency(interaction=interaction, lng=lng)
         elif c_id.startswith("43_"):
+            await self.change_ec_system(interaction=interaction, lng=lng)
+        elif c_id.startswith("44_"):
             await self.change_rnk_system(interaction=interaction, lng=lng)
 
     async def click_menu(self, __, c_id: str, values) -> None:
@@ -680,7 +722,7 @@ class gen_settings_view(View):
 
 class mod_roles_view(View):
 
-    def __init__(self, t_out: int, m_rls: set, lng: int, auth_id: int, rem_dis: bool, rls: list):
+    def __init__(self, t_out: int, m_rls: set, lng: int, auth_id: int, rem_dis: bool, rls: list) -> None:
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
         self.m_rls = m_rls
@@ -691,12 +733,12 @@ class mod_roles_view(View):
         self.add_item(c_button(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
     
 
-    async def add_role(self, rl: Role, interaction: Interaction, lng: int, m: Message):
+    async def add_role(self, rl: Role, interaction: Interaction, lng: int, m: Message) -> None:
         if rl.id in self.m_rls:
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][7]), ephemeral=True)
             return
         
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("INSERT OR IGNORE INTO mod_roles(role_id) VALUES(?)", (rl.id,))
                 base.commit()
@@ -716,7 +758,7 @@ class mod_roles_view(View):
         await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][8].format(rl.mention)), ephemeral=True)
     
 
-    async def rem_role(self, rl: Role, interaction: Interaction, lng: int, m: Message):
+    async def rem_role(self, rl: Role, interaction: Interaction, lng: int, m: Message) -> None:
         if not rl.id in self.m_rls:
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][9]), ephemeral=True)
             return
@@ -728,13 +770,13 @@ class mod_roles_view(View):
         self.m_rls.remove(rl.id)
         emb = m.embeds[0]
 
-        if len(self.m_rls) == 0:
-            dsc = [mod_roles_text[lng][1]]
-        else:
+        if len(self.m_rls):
             dsc = emb.description.split("\n")
             dsc.remove(f"<@&{rl.id}> - {rl.id}")
+            emb.description = "\n".join(dsc)
+        else:
+            emb.description = mod_roles_text[lng][1]
 
-        emb.description = "\n".join(dsc)
         await m.edit(embed=emb)
         await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][10].format(rl.mention)), ephemeral=True)
 
@@ -791,7 +833,7 @@ class economy_view(View):
         self.add_item(c_button(style=ButtonStyle.green, label="", custom_id=f"13_{auth_id}_{randint(1, 100)}", emoji="📙"))
         self.add_item(c_button(style=ButtonStyle.red, label="", custom_id=f"14_{auth_id}_{randint(1, 100)}", emoji="🛠️"))        
 
-    async def msg_salary(self, interaction: Interaction, lng: int, ans) -> bool:
+    async def msg_salary(self, interaction: Interaction, lng: int, ans: str) -> bool:
         if ans.isdigit() and int(ans) >= 0:
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
@@ -810,7 +852,7 @@ class economy_view(View):
         else:
             return True
 
-    async def work_cldwn(self, interaction: Interaction, lng: int, ans) -> bool:
+    async def work_cldwn(self, interaction: Interaction, lng: int, ans: str) -> bool:
         if ans.isdigit() and int(ans) >= 60:
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
@@ -823,26 +865,25 @@ class economy_view(View):
             dsc[1] = ec_text[lng][2].format(ans)
             emb.description = "\n\n".join(dsc)
             await interaction.message.edit(embed=emb)
-
             return False
         else:
             return True
 
-    async def work_salary(self, interaction: Interaction, lng: int, ans) -> bool:
+    async def work_salary(self, interaction: Interaction, lng: int, ans: str) -> bool:
         ans = ans.split()
-        fl = 0
+        fl: bool = False
         if len(ans) >= 2:
             n1 = ans[0]
             n2 = ans[1]
             if n1.isdigit() and n2.isdigit():
                 n1 = int(n1); n2 = int(n2)
-                if 0 <= n1 <= n2: fl = 1
+                if 0 <= n1 <= n2: fl = True
             
         elif len(ans):
             n1 = ans[0]
-            if n1.isdigit() and 0 <= int(n1):
+            if n1.isdigit() and int(n1) >= 0:
                 n2 = n1 = int(n1)
-                fl = 1       
+                fl = True      
         
         if fl:
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
@@ -917,7 +958,7 @@ class economy_view(View):
         self.channel = None
                     
     
-    async def click(self, interaction: Interaction, c_id: str):
+    async def click(self, interaction: Interaction, c_id: str) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         if c_id.startswith("13"):
             await self.log_chnl(interaction=interaction, lng=lng)
@@ -967,9 +1008,9 @@ class economy_view(View):
                 try:
                     user_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == self.auth_id and m.channel.id == interaction.channel_id, timeout=40)
                 except TimeoutError:
-                    flag = 0
+                    flag = False
                 else:
-                    ans = user_ans.content
+                    ans: str = user_ans.content
                     if c_id.startswith("10"): flag = await self.msg_salary(interaction=interaction, lng=lng, ans=ans)
                     elif c_id.startswith("11"): flag = await self.work_cldwn(interaction=interaction, lng=lng, ans=ans)
                     elif c_id.startswith("12"): flag = await self.work_salary(interaction=interaction, lng=lng, ans=ans)
@@ -2405,6 +2446,7 @@ class settings_view(View):
                 with closing(base.cursor()) as cur:
                     s_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                     tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
+                    currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                     ec_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
                     rnk_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
                     
@@ -2414,12 +2456,13 @@ class settings_view(View):
                 dsc.append(gen_settings_text[lng][1].format(f"+{tz}"))
             else:
                 dsc.append(gen_settings_text[lng][1].format(f"{tz}"))
-            dsc.append(gen_settings_text[lng][2].format(system_status[lng][ec_status]))
-            dsc.append(gen_settings_text[lng][3].format(system_status[lng][rnk_status]))
-            for i in 4, 5:
+            dsc.append(gen_settings_text[lng][2].format(currency))
+            dsc.append(gen_settings_text[lng][3].format(system_status[lng][ec_status]))
+            dsc.append(gen_settings_text[lng][4].format(system_status[lng][rnk_status]))
+            for i in (5, 6, 7):
                 dsc.append(gen_settings_text[lng][i])
-            dsc.append(gen_settings_text[lng][6].format(system_status[lng][ec_status+2]))
-            dsc.append(gen_settings_text[lng][7].format(system_status[lng][rnk_status+2]))
+            dsc.append(gen_settings_text[lng][8].format(system_status[lng][ec_status+2]))
+            dsc.append(gen_settings_text[lng][9].format(system_status[lng][rnk_status+2]))
 
             emb.description="\n".join(dsc)
             gen_view = gen_settings_view(t_out=50, auth_id=self.auth_id, bot=self.bot, lng=lng, ec_status=ec_status, rnk_status=rnk_status)
@@ -2432,19 +2475,17 @@ class settings_view(View):
         elif custom_id.startswith("1_"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
-                    m_rls = cur.execute("SELECT * FROM mod_roles").fetchall()
+                    m_rls: list = cur.execute("SELECT * FROM mod_roles").fetchall()
             emb = Embed(title=mod_roles_text[lng][0])
-            if len(m_rls) == 0:
+            if m_rls:
+                m_rls: set[int] = {x[0] for x in m_rls}
+                emb.description = "\n".join([mod_roles_text[lng][2]] + [f"<@&{i}> - {i}" for i in m_rls])
+                rem_dis = False
+            else:
                 emb.description=mod_roles_text[lng][1]
                 m_rls = set()
                 rem_dis = True
-            else:
-                m_rls = {x[0] for x in m_rls}
-                dsc = [mod_roles_text[lng][2]]
-                for i in m_rls:
-                    dsc.append(f"<@&{i}> - {i}")
-                emb.description = "\n".join(dsc)
-                rem_dis = False
+
             rls = [(r.name, r.id) for r in interaction.guild.roles if not r.is_bot_managed()]
             
             m_rls_v = mod_roles_view(t_out=50, m_rls=m_rls, lng=lng, auth_id=self.auth_id, rem_dis=rem_dis, rls=rls)
@@ -2690,5 +2731,5 @@ class m_cmds(Cog):
         await self.settings(interaction=interaction)
     
 
-def setup(bot: Bot, **kwargs):
-    bot.add_cog(m_cmds(bot, **kwargs))
+def setup(bot: Bot):
+    bot.add_cog(m_cmds(bot))

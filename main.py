@@ -28,5 +28,5 @@ if __name__ == "__main__":
 
     print(f"\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}")
 
-    #bot.run(token)
-    bot.run(debug_token)
+    bot.run(token)
+    #bot.run(debug_token)
