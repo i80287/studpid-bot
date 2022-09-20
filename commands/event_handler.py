@@ -96,12 +96,9 @@ class msg_h(commands.Cog):
 
     @commands.Cog.listener()
     async def on_ready(self):
-        
         setattr(self.bot, "current_polls", 0)
-
         if not path.exists(f"{path_to}/bases/"):
             mkdir(f"{path_to}/bases/")
-
         for guild in self.bot.guilds:
             if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
                 mkdir(f"{path_to}/bases/bases_{guild.id}/")
@@ -115,7 +112,7 @@ class msg_h(commands.Cog):
             f'{Fore.RED}\n[>>>]Enter command:'
 
         print(opt, end=' ')
-        await self.bot.change_presence(activity=Game("/help"))
+        await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
 
 
     @commands.Cog.listener()
@@ -123,9 +120,7 @@ class msg_h(commands.Cog):
 
         if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
             mkdir(f"{path_to}/bases/bases_{guild.id}/")
-        
         self.correct_db(guild=guild)
-
         try:
             lng = 1 if "ru" in guild.preferred_locale else 0
         except:
@@ -138,6 +133,7 @@ class msg_h(commands.Cog):
                 if c.permissions_for(guild.me).send_messages:
                     await c.send(embed=Embed(description="\n".join(greetings[lng])))
                     break
+        await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
 
         with open("guild.log", "a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.id}] [{guild.name}]\n")
@@ -146,10 +142,9 @@ class msg_h(commands.Cog):
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: Guild):
         g_id = guild.id
-
         if g_id in bot_guilds:
             bot_guilds.remove(g_id)
-
+        await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
         with open("guild.log", "a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_remove] [{g_id}] [{guild.name}]\n")
 

@@ -412,7 +412,7 @@ ranking_text = {
         25 : "**`No roles matched for levels`**",
         26 : "Roles for level",
         27 : "**`Press `**<:add01:999663315804500078>🔧**`to add / change role for the level`**\n**`Press `**<:remove01:999663428689997844>**` to remove role for the level`**",
-        28 : "**`Write the level: positive integer from 1 to 100`**",
+        28 : "Write the level: positive integer from 1 to 100",
         29 : "**`Select role for level {}`**",
         30 : "**`Bot can't give any role on the server`**",
         31 : "**`From now role given for the level {} is `**<@&{}>",
@@ -448,7 +448,7 @@ ranking_text = {
         25 : "**`Роли за уровни не назначены`**",
         26 : "Роли за уровни",
         27 : "**`Нажмите `**<:add01:999663315804500078>🔧**`, чтобы добавить / изменить роль за уровень`**\n**`Нажмите `**<:remove01:999663428689997844>**`, чтобы убрать роль за уровень`**",
-        28 : "**`Напишите номер уровня: положительное целое число от 1 до 100`**",
+        28 : "Напишите номер уровня: положительное целое число от 1 до 100",
         29 : "**`Выберите роль для уровня {}`**",
         30 : "**`Бот не может выдать ни одной роли на сервере`**",
         31 : "**`Теперь за уровень {} выдаётся роль `**<@&{}>",
@@ -669,8 +669,8 @@ class gen_settings_view(View):
 
         emb = interaction.message.embeds[0]
         dsc = emb.description.split("\n")
-        dsc[2] = gen_settings_text[lng][3].format(system_status[lng][self.ec_status])
-        dsc[6] = gen_settings_text[lng][8].format(system_status[lng][self.ec_status+2])
+        dsc[3] = gen_settings_text[lng][3].format(system_status[lng][self.ec_status])
+        dsc[8] = gen_settings_text[lng][8].format(system_status[lng][self.ec_status+2])
         emb.description = "\n".join(dsc)
         await interaction.message.edit(embed=emb)
 
@@ -686,8 +686,8 @@ class gen_settings_view(View):
         
         emb = interaction.message.embeds[0]
         dsc = emb.description.split("\n")
-        dsc[3] = gen_settings_text[lng][4].format(system_status[lng][self.rnk_status])
-        dsc[7] = gen_settings_text[lng][9].format(system_status[lng][self.rnk_status+2])
+        dsc[4] = gen_settings_text[lng][4].format(system_status[lng][self.rnk_status])
+        dsc[9] = gen_settings_text[lng][9].format(system_status[lng][self.rnk_status+2])
         emb.description = "\n".join(dsc)
         await interaction.message.edit(embed=emb)
             
@@ -1982,6 +1982,37 @@ class ic_view(View):
         return True
 
 
+class select_level_modal(Modal):
+
+    def __init__(self, lng: int, auth_id: int, timeout: int) -> None:
+        super().__init__(title=ranking_text[lng][24], timeout=timeout, custom_id=f"11100_{auth_id}_{randint(1, 100)}")
+        self.lng = lng
+        self.level = None
+        self.level_selection = TextInput(
+            label=ranking_text[lng][24],
+            style=TextInputStyle.short,
+            custom_id=f"11101_{auth_id}_{randint(1, 100)}",
+            min_length=1,
+            max_length=3,
+            required=True,
+            placeholder=ranking_text[lng][28]
+        )
+        self.add_item(self.level_selection)
+    
+    def check_level(self, value: str):
+        if not value.isdigit() and int(value) > 0 and int(value) < 101:
+            return None
+        return int(value)
+
+    async def callback(self, interaction: Interaction) -> None:
+        ans = self.check_level(self.level_selection.value)
+        if not ans:
+            await interaction.response.send_message(embed=Embed(description=ranking_text[self.lng][28]))
+            return
+        self.level = ans
+        self.stop()
+        
+
 class lvl_roles_view(View):
 
     def __init__(self, timeout: int, auth_id: int, g_id: int, disabled: bool):
@@ -1992,57 +2023,39 @@ class lvl_roles_view(View):
         self.g_id: int = g_id
         self.role = None
     
-    def check_role(self, ans: str) -> int:
-        if not (ans.isdigit() and 1 <= int(ans) <= 100):
-            return 0
-        return int(ans)
-
     async def click(self, interaction: Interaction, c_id: str) -> None:
         if not (c_id.startswith("27_") or c_id.startswith("28_")):
             return
         lng = 1 if "ru" in interaction.locale else 0
-        await interaction.response.send_message(embed=Embed(description=ranking_text[lng][28]))
-        flag: int = 0
-        while not flag:
-            try:
-                memb_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == self.auth_id and m.channel.id == interaction.channel_id, timeout=25)
-            except TimeoutError:
-                flag = 1
-            else:
-                ans: int = self.check_role(ans=memb_ans.content)
-                if ans:
-                    flag = 2
-                try: await memb_ans.delete()
-                except: pass
-                    
-        if flag != 2:
-            await interaction.delete_original_message()
+        lvl_modal = select_level_modal(lng=lng, auth_id=interaction.user.id, timeout=60)
+        await interaction.response.send_modal(modal=lvl_modal)
+        await lvl_modal.wait()
+        if lvl_modal.level:
+            ans = lvl_modal.level
+        else:
             return
-
+        
         if c_id.startswith("27_"):
             
             rls = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
             if not len(rls):
-                await interaction.edit_original_message(embed=Embed(description = ranking_text[lng][30]))
-                await interaction.delete_original_message(delay=6)
+                await interaction.send(embed=Embed(description = ranking_text[lng][30]), delete_after=6)
                 return
-            else:
-                for i in range((len(rls) + 24) // 25):
-                    self.add_item(c_select(
-                        custom_id=f"{1300+i}_{self.auth_id}_{randint(1, 100)}", 
-                        placeholder=settings_text[lng][2], 
-                        opts=rls[i*25:min(len(rls), (i+1) * 25)]
-                    ))
-                await interaction.message.edit(view=self)
-                await interaction.edit_original_message(embed=Embed(description = ranking_text[lng][29].format(ans)))
+            for i in range((len(rls) + 24) // 25):
+                self.add_item(c_select(
+                    custom_id=f"{1300+i}_{self.auth_id}_{randint(1, 100)}", 
+                    placeholder=settings_text[lng][2], 
+                    opts=rls[i*25:min(len(rls), (i+1) * 25)]
+                ))
+            await interaction.message.edit(view=self)
+            msg = await interaction.send(embed=Embed(description = ranking_text[lng][29].format(ans)))
 
             cnt = 0
             while self.role is None and cnt < 25:
                 cnt += 1
                 await sleep(1)
             if self.role is None:
-                await interaction.edit_original_message(embed=Embed(description=ranking_text[lng][32]))
-                await interaction.delete_original_message(delay=6)
+                await msg.edit(embed=Embed(description=ranking_text[lng][32]), delete_after=6)
                 return
 
             with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
@@ -2061,18 +2074,16 @@ class lvl_roles_view(View):
                 else:
                     i += 1
             
-            dsc = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]
+            dsc = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]  
             dsc.append(ranking_text[lng][27])
             emb = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
-            
             
             if self.children[1].disabled:
                 self.children[1].disabled = False
 
             await interaction.message.edit(embed=emb, view=self)
-            await interaction.edit_original_message(embed=Embed(description=ranking_text[lng][31].format(ans, self.role)))
-            await interaction.delete_original_message(delay=6)
-            self.role = None
+            await msg.edit(embed=Embed(description=ranking_text[lng][31].format(ans, self.role)), delete_after=6)
+            self.role = None    
 
         else:
             with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
@@ -2082,8 +2093,7 @@ class lvl_roles_view(View):
                         base.commit()
                         lvl_rls = sorted(cur.execute("SELECT * FROM rank_roles").fetchall(), key=lambda tup: tup[0])
                     else:
-                        await interaction.edit_original_message(embed=Embed(description=ranking_text[lng][34].format(ans)))
-                        await interaction.delete_original_message(delay=6)
+                        await interaction.send(embed=Embed(description=ranking_text[lng][34].format(ans)), delete_after=6)
                         return
 
             if len(lvl_rls):
@@ -2102,8 +2112,7 @@ class lvl_roles_view(View):
             else:
                 await interaction.message.edit(embed=emb)
 
-            await interaction.edit_original_message(embed=Embed(description=ranking_text[lng][33].format(ans)))
-            await interaction.delete_original_message(delay=6)
+            await interaction.send(embed=Embed(description=ranking_text[lng][33].format(ans)), delete_after=6)
 
 
     async def click_menu(self, _, c_id: str, values):
