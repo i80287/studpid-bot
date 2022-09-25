@@ -8,8 +8,7 @@ from nextcord.ext import commands
 from nextcord import slash_command, Interaction, Embed, ButtonStyle, Colour, Locale, SlashOption, NotFound
 from nextcord.ui import Button, View
 
-from config import path_to
-
+from Variables.vars import path_to
 
 class custom_button_p(Button):
     def __init__(self, label: str, disabled: bool, style, row: int):

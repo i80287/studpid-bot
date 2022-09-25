@@ -5,7 +5,7 @@ from contextlib import closing
 
 from colorama import Fore
 from dpyConsole import console, Cog, Console
-from config import path_to
+from Variables.vars import path_to
 
 
 class ConsoleCog(Cog):

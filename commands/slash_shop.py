@@ -9,7 +9,8 @@ from nextcord.ext import commands
 from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Locale, SelectOption, slash_command, Role, Member
 from nextcord.ui import Button, View, Select
 
-from config import path_to, in_row
+from config import in_row
+from Variables.vars import path_to
 
 common_text = {
     0 : {

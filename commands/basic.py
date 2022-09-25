@@ -9,7 +9,8 @@ from nextcord.ext.commands import command, is_owner, Bot, Context, Cog
 from nextcord import Embed, Locale, Interaction, slash_command, ButtonStyle, TextInputStyle, Permissions, TextChannel
 from nextcord.ui import Button, Modal, TextInput
 
-from config import path_to, feedback_channel
+from config import feedback_channel
+from Variables.vars import path_to
 
 guide = {
     0 : {
@@ -177,7 +178,6 @@ class c_feedback_modal(Modal):
 
     def __init__(self, lng: int, auth_id: int) -> None:
         super().__init__(title=feedback_text[lng][0], timeout=1200, custom_id=f"10100_{auth_id}_{randint(1, 100)}")
-        global feedback_channel
         self.feedback = TextInput(
             label=feedback_text[lng][0],
             placeholder=feedback_text[lng][1],
@@ -207,7 +207,6 @@ class c_feedback_modal(Modal):
             return
         
         await interaction.response.send_message(embed=Embed(description=feedback_text[lng][2]), ephemeral=True)
-
         self.stop()
 
 
@@ -369,10 +368,8 @@ class mod_commands(Cog):
     @command(aliases=("sunload_access_level_two", "s_a_l_2"))
     @is_owner()
     async def _salt(self, ctx: Context, chnl: TextChannel):
-        
         global feedback_channel
         feedback_channel = chnl.id
-        
         await ctx.reply(embed=Embed(description=f"New feedback channel is <#{feedback_channel}>"), mention_author=False, delete_after=5)
 
 

@@ -5,8 +5,7 @@ from contextlib import closing
 from nextcord.ext import commands
 from nextcord import Embed, Colour, SlashOption, Interaction, Status, slash_command, Locale
 
-from config import path_to
-
+from Variables.vars import path_to
 
 text_slash = {
     0 : {

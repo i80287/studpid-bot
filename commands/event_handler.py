@@ -10,7 +10,7 @@ from nextcord import Game, Message, ChannelType, Embed, Guild, Interaction
 from nextcord.ext import commands, tasks
 from nextcord.errors import ApplicationCheckFailure
 
-from config import path_to 
+from Variables.vars import path_to, bot_guilds, ignored_channels
 
 # event_handl_text = {
 #     0 : {
@@ -26,9 +26,6 @@ class msg_h(commands.Cog):
     
     def __init__(self, bot: commands.Bot):
         self.bot = bot
-        
-        global bot_guilds
-        bot_guilds = set()
         
         global tx
         tx = {
@@ -88,11 +85,15 @@ class msg_h(commands.Cog):
                     ('lvl_c', 0), ('log_c', 0), ('poll_v_c', 0), ('poll_c', 0),
                     ('economy_enabled', 1), ('ranking_enabled', 1), ('currency', ":coin:")
                 ]
-                    
                 cur.executemany("INSERT OR IGNORE INTO server_info(settings, value) VALUES(?, ?)", r)
                 base.commit()
 
+                ignored_channels[guild.id] = {r[0] for r in cur.execute("SELECT chnl_id FROM ic").fetchall()}
+
         bot_guilds.add(guild.id)
+
+    # @commands.Cog.listener()
+    # async def on_connected():
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -216,13 +217,14 @@ class msg_h(commands.Cog):
         #or message.type is MessageType.chat_input_command
         if user.bot or message.channel.type is ChannelType.private:
             return
+        
+        if message.guild.id not in ignored_channels:
+            ignored_channels[message.guild.id] = set()
+        elif message.channel.id in ignored_channels[message.guild.id]:
+            return
 
         with closing(connect(f"{path_to}/bases/bases_{message.guild.id}/{message.guild.id}.db")) as base:
-            with closing(base.cursor()) as cur:
-                
-                if cur.execute("SELECT count() FROM ic WHERE chnl_id = ?", (message.channel.id,)).fetchone()[0]:
-                    return
-                    
+            with closing(base.cursor()) as cur:                    
                 xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border';").fetchone()[0]
                 xp_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';").fetchone()[0]
                 mn_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]

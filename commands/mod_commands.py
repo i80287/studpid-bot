@@ -10,7 +10,7 @@ from nextcord.ui import View, Button, Select, TextInput, Modal
 from nextcord.ext import application_checks
 from nextcord.ext.commands import Cog, Bot
 
-from config import path_to
+from Variables.vars import path_to, ignored_channels
 
 settings_text = {
     0 : {
@@ -1888,7 +1888,7 @@ class c_modal_xp(Modal):
 
 class ic_view(View):
 
-    def __init__(self, timeout: int, lng: int, auth_id: int, chnls: list, rem_dis: bool, cur_chnls: set, g_id: int) -> None:
+    def __init__(self, timeout: int, lng: int, auth_id: int, chnls: list, rem_dis: bool, g_id: int) -> None:
         super().__init__(timeout=timeout)
         l = len(chnls)
         for i in range(min((l + 23) // 24, 20)):
@@ -1896,7 +1896,6 @@ class ic_view(View):
         self.add_item(c_button(style=ButtonStyle.green, label=settings_text[lng][8], emoji="<:add01:999663315804500078>", custom_id=f"25_{auth_id}_{randint(1, 100)}"))
         self.add_item(c_button(style=ButtonStyle.red, label=settings_text[lng][9], emoji="<:remove01:999663428689997844>", custom_id=f"26_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
         self.chnl = None
-        self.chnls = cur_chnls
         self.g_id = g_id
         self.auth_id = auth_id
 
@@ -1906,7 +1905,7 @@ class ic_view(View):
             with closing(base.cursor()) as cur:
                 cur.execute("INSERT OR IGNORE INTO ic(chnl_id) VALUES(?)", (self.chnl,))
                 base.commit()
-        self.chnls.add(self.chnl)
+        ignored_channels[self.g_id].add(self.chnl)
 
         emb = interaction.message.embeds[0]
         dsc = emb.description.split("\n")
@@ -1929,7 +1928,7 @@ class ic_view(View):
             with closing(base.cursor()) as cur:
                 cur.execute("DELETE FROM ic WHERE chnl_id = ?", (self.chnl,))
                 base.commit()
-        self.chnls.remove(self.chnl)
+        ignored_channels[self.g_id].remove(self.chnl)
 
         emb = interaction.message.embeds[0]
         dsc = emb.description.split("\n")
@@ -1956,16 +1955,16 @@ class ic_view(View):
     async def click(self, interaction: Interaction, c_id: str) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         if not self.chnl:
-            await interaction.response.send_message(embed=Embed(description=ranking_text[lng][21]), ephemeral= True)
+            await interaction.response.send_message(embed=Embed(description=ranking_text[lng][21]), ephemeral=True)
             return
         if c_id.startswith("25_"):
-            if self.chnl in self.chnls:
-                await interaction.response.send_message(embed=Embed(description=ranking_text[lng][22]), ephemeral= True)
+            if self.chnl in ignored_channels[self.g_id]:
+                await interaction.response.send_message(embed=Embed(description=ranking_text[lng][22]), ephemeral=True)
                 return
             await self.add_chnl(interaction=interaction, lng=lng)
         elif c_id.startswith("26_"):
-            if not self.chnl in self.chnls:
-                await interaction.response.send_message(embed=Embed(description=ranking_text[lng][23]), ephemeral= True)
+            if not self.chnl in ignored_channels[self.g_id]:
+                await interaction.response.send_message(embed=Embed(description=ranking_text[lng][23]), ephemeral=True)
                 return
             await self.rem_chnl(interaction=interaction, lng=lng)           
 
@@ -2158,22 +2157,21 @@ class ranking_view(View):
             await interaction.message.edit(embed=emb)
 
     async def ic(self, lng: int, interaction: Interaction) -> None:
-        
         chnls = [(c.name, c.id) for c in interaction.guild.text_channels]
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 db_chnls = cur.execute("SELECT chnl_id FROM ic").fetchall()
-                if len(db_chnls):
-                    cur_chnls = {r[0] for r in db_chnls}
-                    dsc = [ranking_text[lng][17]] + [f"<#{r}>**` - {r}`**" for r in cur_chnls]
-                    rd = False
-                else:
-                    cur_chnls = set()
-                    rd = True
-                    dsc = [ranking_text[lng][18]]
+        if len(db_chnls):
+            ignored_channels[self.g_id] = {r[0] for r in db_chnls}
+            dsc = [ranking_text[lng][17]] + [f"<#{r}>**` - {r}`**" for r in ignored_channels[self.g_id]]
+            rd = False
+        else:
+            ignored_channels[self.g_id] = set()
+            rd = True
+            dsc = [ranking_text[lng][18]]
         
         emb = Embed(description="\n".join(dsc))     
-        ic_v = ic_view(timeout=80, lng=lng, auth_id=self.auth_id, chnls=chnls, rem_dis=rd, cur_chnls=cur_chnls, g_id=self.g_id)
+        ic_v = ic_view(timeout=80, lng=lng, auth_id=self.auth_id, chnls=chnls, rem_dis=rd, g_id=self.g_id)
 
         await interaction.response.send_message(embed=emb, view=ic_v)
         await ic_v.wait()
@@ -2243,7 +2241,7 @@ class ranking_view(View):
         await lr_v.wait()
         await interaction.delete_original_message()
 
-    async def click(self, interaction: Interaction, c_id) -> None:
+    async def click(self, interaction: Interaction, c_id: str) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         if c_id.startswith("21_"):
             await self.xp_change(lng=lng, interaction=interaction)

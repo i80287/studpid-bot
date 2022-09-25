@@ -20,7 +20,7 @@ class Bot(cmds.Bot):
 if __name__ == "__main__":
     
     bot = Bot()
-    bot.load_extensions_from_module("commands")
+    bot.load_extensions_from_module("Commands")
 
     cmd = Console(bot)
     cmd.load_extension("console")
