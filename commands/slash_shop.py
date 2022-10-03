@@ -19,7 +19,7 @@ common_text = {
         2 : "**`Economy system is disabled on this server`**"
     },
     1 : {
-        0 : "**`Извините, но Вы не можете управлять чужой покупкой`**",
+        0 : "**`Извините, но Вы не можете меню, которое вызвано другим пользователем`**",
         1 : "**`Экономическая система и система уровней отключены на этом сервере`**",
         2 : "**`Экономическая система отключена на этом сервере`**"
     }
@@ -975,13 +975,13 @@ class slash_commands(commands.Cog):
     
 
     async def work(self, interaction: Interaction) -> None:
-        memb_id = interaction.user.id
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
                     await interaction.response.send_message(embed=Embed(description=common_text[lng][2]), ephemeral=True)
                     return
+                memb_id = interaction.user.id
                 time_reload = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd'").fetchone()[0]
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 flag: bool = False
@@ -995,11 +995,11 @@ class slash_commands(commands.Cog):
                     time_l = time_reload - lasted_time
                     t_l = f"{time_l // 3600}:{(time_l % 3600)//60}:{time_l % 60}"
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][26].format(t_l)), ephemeral=True)
-                    return 
+                    return
                 sal_l = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l'").fetchone()[0]
                 sal_r = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r'").fetchone()[0]
                 salary = randint(sal_l, sal_r)
-                cur.execute('UPDATE users SET money = money + ?, work_date = ? WHERE memb_id = ?', (salary, int(time()), memb_id))
+                cur.execute("UPDATE users SET money = money + ?, work_date = ? WHERE memb_id = ?", (salary, int(time()), memb_id))
                 base.commit()
 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]

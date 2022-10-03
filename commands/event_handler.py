@@ -91,9 +91,20 @@ class msg_h(commands.Cog):
                 ignored_channels[guild.id] = {r[0] for r in cur.execute("SELECT chnl_id FROM ic").fetchall()}
 
         bot_guilds.add(guild.id)
+        self.log_event(report=["correct_db func", str(guild.id), str(guild.name)])
 
-    # @commands.Cog.listener()
-    # async def on_connected():
+    def log_event(self, filename: str = "common_logs", report: list[str] = [""]) -> None:
+        with open(file=filename+".log", mode="a+", encoding="utf-8") as f:
+            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] {' '.join([f'[{s}]' for s in report])}\n")
+
+    async def send_first_message(self, guild: Guild, lng: int) -> None:
+        if guild.system_channel.permissions_for(guild.me).send_messages:
+            await guild.system_channel.send(embed=Embed(description="\n".join(greetings[lng])))
+        else:
+            for c in guild.text_channels:
+                if c.permissions_for(guild.me).send_messages:
+                    await c.send(embed=Embed(description="\n".join(greetings[lng])))
+                    break
 
     @commands.Cog.listener()
     async def on_ready(self):
@@ -115,10 +126,8 @@ class msg_h(commands.Cog):
         print(opt, end=' ')
         await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
 
-
     @commands.Cog.listener()
     async def on_guild_join(self, guild: Guild) -> None:
-
         if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
             mkdir(f"{path_to}/bases/bases_{guild.id}/")
         self.correct_db(guild=guild)
@@ -127,18 +136,12 @@ class msg_h(commands.Cog):
         except:
             lng = 0
         
-        if guild.system_channel.permissions_for(guild.me).send_messages:
-            await guild.system_channel.send(embed=Embed(description="\n".join(greetings[lng])))
-        else:
-            for c in guild.text_channels:
-                if c.permissions_for(guild.me).send_messages:
-                    await c.send(embed=Embed(description="\n".join(greetings[lng])))
-                    break
-        await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
+        await self.send_first_message(guild=guild, lng=lng)
+    
+        self.log_event(filename="guild", report=["guild_join", str(guild.id), str(guild.name)])
+        self.log_event(report=["guild_join", str(guild.id), str(guild.name)])
 
-        with open("guild.log", "a+", encoding="utf-8") as f:
-            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_join] [{guild.id}] [{guild.name}]\n")
-            
+        await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
 
     @commands.Cog.listener()
     async def on_guild_remove(self, guild: Guild):
@@ -146,9 +149,8 @@ class msg_h(commands.Cog):
         if g_id in bot_guilds:
             bot_guilds.remove(g_id)
         await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
-        with open("guild.log", "a+", encoding="utf-8") as f:
-            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [guild_remove] [{g_id}] [{guild.name}]\n")
-
+        self.log_event(filename="guild", report=["guild_remove", str(guild.id), str(guild.name)])
+        self.log_event(filename="common_logs", report=["guild_remove", str(guild.id), str(guild.name)])
     
     @tasks.loop(seconds=60)
     async def salary_roles(self):
