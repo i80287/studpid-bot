@@ -738,7 +738,7 @@ class slash_commands(commands.Cog):
 
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:   
-                
+                server_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 cur.execute('UPDATE users SET money = money - ?, owned_roles = ? WHERE memb_id = ?', (cost, buyer[2]+f"#{r_id}" , memb_id))
                 base.commit()
                 
@@ -762,12 +762,15 @@ class slash_commands(commands.Cog):
         except: pass
         
         if chnl_id:
-            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][13], description=text_slash[lng][14].format(f"<@{memb_id}>", f"<@&{r_id}>", cost, currency)))
+            try: 
+                await interaction.guild.get_channel(chnl_id).send(embed=Embed(
+                    title=text_slash[server_lng][13], 
+                    description=text_slash[server_lng][14].format(f"<@{memb_id}>", f"<@&{r_id}>", cost, currency)
+                ))
             except: pass
 
 
     async def store(self, interaction: Interaction) -> None:
-        
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
@@ -885,6 +888,7 @@ class slash_commands(commands.Cog):
                 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
                 currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                server_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 
         emb = Embed(title=text_slash[lng][18], description=text_slash[lng][19].format(f"<@&{r_id}>", role_info[1], currency), colour=Colour.gold())
         await interaction.response.send_message(embed=emb)
@@ -893,7 +897,11 @@ class slash_commands(commands.Cog):
         except: pass
 
         if chnl_id:
-            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][22], description=text_slash[lng][23].format(f"<@{memb_id}>", f"<@&{r_id}>", role_info[1])))
+            try:
+                await interaction.guild.get_channel(chnl_id).send(embed=Embed(
+                    title=text_slash[server_lng][22], 
+                    description=text_slash[server_lng][23].format(f"<@{memb_id}>", f"<@&{r_id}>", role_info[1])
+                ))
             except: pass
     
     
@@ -1004,11 +1012,16 @@ class slash_commands(commands.Cog):
 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
                 currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                server_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 
         await interaction.response.send_message(embed=Embed(title=text_slash[lng][27], description=text_slash[lng][28].format(salary, currency), colour=Colour.gold()))                
         
         if chnl_id:
-            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][29], description=text_slash[lng][30].format(f"<@{memb_id}>", salary, currency)))
+            try: 
+                await interaction.guild.get_channel(chnl_id).send(embed=Embed(
+                    title=text_slash[server_lng][29], 
+                    description=text_slash[server_lng][30].format(f"<@{memb_id}>", salary, currency)
+                ))
             except: pass
     
 
@@ -1023,6 +1036,7 @@ class slash_commands(commands.Cog):
                     return
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                server_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
         if amount > member[1]:
             await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][31].format(amount - member[1], currency), colour=Colour.red()), ephemeral=True)
@@ -1071,7 +1085,11 @@ class slash_commands(commands.Cog):
 
         await interaction.edit_original_message(embed=emb, view=betview)
         if chnl_id:
-            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][37], description=text_slash[lng][38].format(winner_id, amount, currency, loser_id)))
+            try: 
+                await interaction.guild.get_channel(chnl_id).send(embed=Embed(
+                    title=text_slash[server_lng][37], 
+                    description=text_slash[server_lng][38].format(winner_id, amount, currency, loser_id)
+                ))
             except: pass
     
 
@@ -1098,17 +1116,21 @@ class slash_commands(commands.Cog):
                 base.commit()
 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+                server_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
         emb=Embed(title=text_slash[lng][40], description=text_slash[lng][41].format(value, currency, f"<@{t_id}>"), colour=Colour.green())
         await interaction.response.send_message(embed=emb)
         if chnl_id:
-            try: await interaction.guild.get_channel(chnl_id).send(embed=Embed(title=text_slash[lng][42], description= text_slash[lng][43].format(f"<@{memb_id}>", value, currency, f"<@{t_id}>")))
+            try: 
+                await interaction.guild.get_channel(chnl_id).send(embed=Embed(
+                    title=text_slash[server_lng][42], 
+                    description= text_slash[server_lng][43].format(f"<@{memb_id}>", value, currency, f"<@{t_id}>")
+                ))
             except: pass
 
     
     async def leaders(self, interaction: Interaction) -> None:
         lng = 1 if "ru" in interaction.locale else 0
-        
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 self.check_user(base=base, cur=cur, memb_id=interaction.user.id)

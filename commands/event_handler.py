@@ -107,6 +107,10 @@ class msg_h(commands.Cog):
                     break
 
     @commands.Cog.listener()
+    async def on_connect(self):
+        self.log_event(report=["on_connect"])
+    
+    @commands.Cog.listener()
     async def on_ready(self):
         setattr(self.bot, "current_polls", 0)
         if not path.exists(f"{path_to}/bases/"):
@@ -126,8 +130,10 @@ class msg_h(commands.Cog):
         print(opt, end=' ')
         await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
 
+        self.log_event(report=["on_ready", f"total {len(bot_guilds)} guilds"])
+
     @commands.Cog.listener()
-    async def on_guild_join(self, guild: Guild) -> None:
+    async def on_guild_join(self, guild: Guild):
         if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
             mkdir(f"{path_to}/bases/bases_{guild.id}/")
         self.correct_db(guild=guild)
@@ -148,9 +154,10 @@ class msg_h(commands.Cog):
         g_id = guild.id
         if g_id in bot_guilds:
             bot_guilds.remove(g_id)
-        await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
         self.log_event(filename="guild", report=["guild_remove", str(guild.id), str(guild.name)])
         self.log_event(filename="common_logs", report=["guild_remove", str(guild.id), str(guild.name)])
+        await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
+        
     
     @tasks.loop(seconds=60)
     async def salary_roles(self):
