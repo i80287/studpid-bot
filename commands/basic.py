@@ -1,4 +1,3 @@
-
 from os import path
 from asyncio import sleep
 from random import randint
@@ -166,7 +165,6 @@ feedback_text = {
 
 
 class c_button(Button):
-
     def __init__(self, label: str, style: ButtonStyle, emoji, c_id: str):
         super().__init__(style=style, label=label, emoji=emoji, custom_id=c_id)
     
@@ -175,7 +173,6 @@ class c_button(Button):
 
 
 class c_feedback_modal(Modal):
-
     def __init__(self, lng: int, auth_id: int) -> None:
         super().__init__(title=feedback_text[lng][0], timeout=1200, custom_id=f"10100_{auth_id}_{randint(1, 100)}")
         self.feedback = TextInput(
@@ -211,7 +208,6 @@ class c_feedback_modal(Modal):
 
 
 class mod_commands(Cog):
-
     def __init__(self, bot: Bot):
         self.bot = bot
 
@@ -298,14 +294,12 @@ class mod_commands(Cog):
                 base.commit()
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
 
-
     async def guide(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
         emb = Embed(title=guide[lng][0])
         for i in range(1, 20, 2):
             emb.add_field(name=guide[lng][i], value=guide[lng][i+1], inline=False)
         await interaction.response.send_message(embed=emb)
-
 
     async def help(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
@@ -323,8 +317,7 @@ class mod_commands(Cog):
         for n, v in m_cmds[lng]:
             emb4.add_field(name=n, value=v, inline=False)
         await interaction.response.send_message(embeds=[emb1, emb2, emb3, emb4])
-
-    
+  
     async def feedback(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
         mdl = c_feedback_modal(lng=lng, auth_id=interaction.user.id)
@@ -341,7 +334,6 @@ class mod_commands(Cog):
     async def guide_e(self, interaction: Interaction):
         await self.guide(interaction)
 
-
     @slash_command(
         name="help", 
         description="Calls menu with commands",
@@ -351,7 +343,6 @@ class mod_commands(Cog):
     )
     async def help_e(self, interaction: Interaction):
         await self.help(interaction=interaction)
-
 
     @slash_command(
         name="feedback",
@@ -364,14 +355,12 @@ class mod_commands(Cog):
     async def feedback_e(self, interaction: Interaction):
         await self.feedback(interaction=interaction)
 
-
     @command(aliases=("sunload_access_level_two", "s_a_l_2"))
     @is_owner()
     async def _salt(self, ctx: Context, chnl: TextChannel):
         global feedback_channel
         feedback_channel = chnl.id
         await ctx.reply(embed=Embed(description=f"New feedback channel is <#{feedback_channel}>"), mention_author=False, delete_after=5)
-
 
     @command(name="load")
     @is_owner()
@@ -386,7 +375,6 @@ class mod_commands(Cog):
             emb=Embed(description=f"**`{extension}` not found**")
         await ctx.reply(embed=emb, mention_author=False, delete_after=5)
     
-
     @command(name="unload")
     @is_owner()
     async def _unload(self, ctx: Context, extension):
@@ -399,7 +387,6 @@ class mod_commands(Cog):
         else:
             emb=Embed(description=f"**`{extension}` not found**")
         await ctx.reply(embed=emb, mention_author=False, delete_after=5)
-
 
     @command(name="reload")
     @is_owner()
@@ -415,7 +402,6 @@ class mod_commands(Cog):
             emb=Embed(description=f"**`{extension}` not found**")
         await ctx.reply(embed=emb, mention_author=False, delete_after=5)
 
-
     @command(aliases=["statistic", "statistics"])
     @is_owner()
     async def _statistic(self, ctx: Context):
@@ -429,7 +415,6 @@ class mod_commands(Cog):
         emb.description += f"\n\n**`Currently active polls: {self.bot.current_polls}`**"
 
         await ctx.reply(embed=emb, mention_author=False, delete_after=15)
-
 
     @Cog.listener()
     async def on_command_error(self, ctx: Context, error):
@@ -473,6 +458,5 @@ class mod_commands(Cog):
         #     return
         # await ctx.reply(embed=emb, mention_author=False)
 
-  
 def setup(bot: Bot):
     bot.add_cog(mod_commands(bot))
