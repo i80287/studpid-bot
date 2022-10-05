@@ -33,7 +33,7 @@ text_slash = {
         3 : "Commands",
         4 : "**`You already have this role`**",
         5 : "**`This item not found. Please, check if you selected right role`**",
-        6 : "**`For purchasing this role you need {} {} more`**",
+        6 : "**`For purchasing this role you need {} `{}` more`**",
         7 : "Purchase confirmation",
         8 : "**`Are you sure that you want to buy`** {}?\n{} {} will be debited from your balance",
         9 : "**`Purchase has expired`**",
@@ -79,7 +79,7 @@ text_slash = {
         3 : "Команды", #title
         4 : "**`У Вас уже есть эта роль`**",
         5 : "**`Такой товар не найден. Пожалуйста, проверьте правильность выбранной роли`**",
-        6 : "**`Для покупки роли Вам не хватает {} {}`**",
+        6 : "**`Для покупки роли Вам не хватает {} `**{}",
         7 : "Подтверждение покупки",
         8 : "**`Вы уверены, что хотите купить роль`** {}?\nС Вас будет списано **`{}`** {}",
         9 : '**`Истекло время подтверждения покупки`**',
@@ -712,7 +712,7 @@ class slash_commands(commands.Cog):
                 buyer = self.check_user(base=base, cur=cur, memb_id=memb_id)
         
         #if r_id in {int(x) for x in buyer[2].split("#") if x != ""}:
-        if r_id in buyer[2]:
+        if str(r_id) in buyer[2]:
             await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][4], colour=Colour.red()), ephemeral=True)
             return
 
@@ -846,7 +846,7 @@ class slash_commands(commands.Cog):
                 owned_roles = user[2]
                 
                 #if not r_id in {int(x) for x in owned_roles.split("#") if x != ""}:
-                if r_id not in owned_roles:
+                if str(r_id) not in owned_roles:
                     await interaction.response.send_message(embed=Embed(colour=Colour.red(), title=text_slash[lng][0], description=text_slash[lng][16]), ephemeral=True)
                     return
 
