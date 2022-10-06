@@ -92,8 +92,7 @@ text_slash = {
         16 : "**`Вы не можете продать роль, которой у Вас нет`**",
         17 : "**`Продажа этой роли невозможна, т.к. она не находится в списке ролей, доступных для покупки/продажи на сервере`**",
         18 : "Продажа совершена", #title
-        19 : "**`Вы продали роль `**{}**` за {}`** {}\n**`Если у Вас включена возможность получения личных сообщений от участников серверов, то \
-            подтверждение продажи будет выслано Вам в личные сообщения`**",
+        19 : "**`Вы продали роль `**{}**` за {}`** {}\n**`Если у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение продажи будет выслано Вам в личные сообщения`**",
         20 : "Подтверждение продажи",
         21 : "**`Вы продали роль {} за {}`** {}",
         22 : "Продажа роли",
@@ -136,7 +135,7 @@ store_text = {
     0 : {
         0 : "**•** <@&{}>\n`Price` - `{}` {}\n`Left` - `1`\n`Listed for sale:`\n*{}*\n",
         1 : "**•** <@&{}>\n`Price` - `{}` {}\n`Left` - `{}`\n`Last listed for sale:`\n*{}*\n",
-        2 : "`Average salary per week` - `{}` {}\n",
+        2 : "`Average passive salary per week` - `{}` {}\n",
         3 : "Page {} from {}",
         4 : "Sort by...",
         5 : "Sort by price",
@@ -150,7 +149,7 @@ store_text = {
     1 : {
         0 : "**•** <@&{}>\n`Цена` - `{}` {}\n`Осталось` - `1`\n`Выставленa на продажу:`\n*{}*\n",
         1 : "**•** <@&{}>\n`Цена` - `{}` {}\n`Осталось` - `{}`\n`Последний раз выставленa на продажу:`\n*{}*\n",
-        2 : "`Средний доход за неделю` - `{}` {}\n",
+        2 : "`Средний пассивный доход за неделю` - `{}` {}\n",
         3 : "Страница {} из {}",
         4 : "Сортировать по...",
         5 : "Сортировать по цене",
@@ -655,11 +654,10 @@ class slash_commands(commands.Cog):
 
     
     async def can_role(self, interaction: Interaction, role: Role, lng: int) -> bool:
-        
-        if not interaction.permissions.manage_roles:
+        #if not interaction.permissions.manage_roles:
+        if not interaction.guild.me.guild_permissions.manage_roles:
             await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][1]), ephemeral=True)
             return False
-
         elif not role.is_assignable():
             await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][2]), ephemeral=True)
             return False
@@ -893,14 +891,13 @@ class slash_commands(commands.Cog):
         emb = Embed(title=text_slash[lng][18], description=text_slash[lng][19].format(f"<@&{r_id}>", role_info[1], currency), colour=Colour.gold())
         await interaction.response.send_message(embed=emb)
 
-        try: await interaction.user.send(embed=Embed(title=text_slash[lng][20], description=text_slash[lng][21].format(r_id, r_price, currency), colour=Colour.green()))
+        try: await interaction.user.send(embed=Embed(title=text_slash[lng][20], description=text_slash[lng][21].format(role.name, r_price, currency), colour=Colour.green()))
         except: pass
-
         if chnl_id:
             try:
                 await interaction.guild.get_channel(chnl_id).send(embed=Embed(
                     title=text_slash[server_lng][22], 
-                    description=text_slash[server_lng][23].format(f"<@{memb_id}>", f"<@&{r_id}>", role_info[1])
+                    description=text_slash[server_lng][23].format(f"<@{memb_id}>", f"<@&{r_id}>", role_info[1], currency)
                 ))
             except: pass
     
