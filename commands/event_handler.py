@@ -5,12 +5,12 @@ from datetime import datetime, timedelta
 from time import time
 from asyncio import sleep
 
-from colorama import Fore
 from nextcord import Game, Message, ChannelType, Embed, Guild, Interaction
 from nextcord.ext import commands, tasks
 from nextcord.errors import ApplicationCheckFailure
 
 from Variables.vars import path_to, bot_guilds, ignored_channels
+from config import DEBUG
 
 # event_handl_text = {
 #     0 : {
@@ -119,14 +119,15 @@ class msg_h(commands.Cog):
                 mkdir(f"{path_to}/bases/bases_{guild.id}/")
             self.correct_db(guild=guild)
 
-        print(f'{Fore.CYAN}[>>>]Logged into Discord as {self.bot.user}\n')
+        if DEBUG:
+            from colorama import Fore
+            print(f'{Fore.CYAN}[>>>]Logged into Discord as {self.bot.user}\n')
+            opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
+                f'\n{Fore.GREEN}1) setup guild_id lng - creates and setups new database for selected server.\n' \
+                f'{Fore.RED}   Warning: if old database exists, it will be restored to default and all infromation will be lost.\n'\
+                f'{Fore.RED}\n[>>>]Enter command:'
+            print(opt, end=' ')
 
-        opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
-            f'\n{Fore.GREEN}1) setup guild_id lng - creates and setups new database for selected server.\n' \
-            f'{Fore.RED}   Warning: if old database exists, it will be restored to default and all infromation will be lost.\n'\
-            f'{Fore.RED}\n[>>>]Enter command:'
-
-        print(opt, end=' ')
         await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
 
         self.log_event(report=["on_ready", f"total {len(bot_guilds)} guilds"])

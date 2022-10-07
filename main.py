@@ -4,10 +4,8 @@ with open(activate_this) as f:
 
 from nextcord import Intents
 from nextcord.ext import commands as cmds
-from colorama import Fore
-from dpyConsole import Console
 
-from config import prefix, debug_token, token
+from config import prefix, DEBUG_TOKEN, TOKEN, DEBUG
 
 class Bot(cmds.Bot):
     def __init__(self) -> None:
@@ -18,15 +16,19 @@ class Bot(cmds.Bot):
         return
 
 if __name__ == "__main__":
-    
     bot = Bot()
     bot.load_extensions_from_module("Commands")
 
-    cmd = Console(bot)
-    cmd.load_extension("console")
-    cmd.start()
+    if DEBUG:
+        from colorama import Fore
+        from dpyConsole import Console
+        
+        cmd = Console(bot)
+        cmd.load_extension("console")
+        cmd.start()
 
-    print(f"\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}")
+        print(f"\n{Fore.RED}[>>>]Please, wait a bit...{Fore.RESET}")
 
-    #bot.run(token)
-    bot.run(debug_token)
+        bot.run(DEBUG_TOKEN)
+    else:
+        bot.run(TOKEN)
