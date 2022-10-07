@@ -1,33 +1,94 @@
+from sqlite3 import connect, Connection, Cursor
+from contextlib import closing
+from datetime import datetime
 from asyncio import sleep
 from time import time
-from datetime import datetime
-from contextlib import closing
-from sqlite3 import connect, Connection, Cursor
 
-from nextcord.ext import commands
 from nextcord import slash_command, Interaction, Embed, ButtonStyle, Colour, Locale, SlashOption, NotFound
+from nextcord.ext.commands import Cog, Bot
 from nextcord.ui import Button, View
 
 from Variables.vars import path_to
 
-class custom_button_p(Button):
-    def __init__(self, label: str, disabled: bool, style, row: int):
+polls_text = {
+    0 : {               
+        0 : "**`Poll creation was cancelled because polls verification channel isn't configured`**",
+        1 : "**`You can't select time for the poll less than it's now`**",
+        2 : "answer",
+        3 : "Votes: 0",
+        4 : "Poll is anonymous",
+        5 : "Poll isn't anonymous",
+        6 : "Poll with multiple choice",
+        7 : "Poll with single choice",
+        8 : "\n**`Author: `**<@{}>",
+        9 : "**`You created poll and it was sent to the verification`**"
+    },
+    1 : {
+        0 : "**`Создание полла отменено, потому что канал верификации поллов не настроен`**",
+        1 : "**`Вы не можете выбрать время меньше, чем сейчас`**",
+        2 : "ответ",
+        3 : "Голосов: 0",
+        4 : "Полл анонимный",
+        5 : "Полл неанонимный",
+        6 : "Полл с несколькими вариантами выбора",
+        7 : "Полл с одним вариантом выбора",                
+        8 : "\n**`Автор: `**<@{}>",
+        9 : "**`Вы создали полл, и он был отправлен на верификацию`**"
+    }
+}    
+
+
+poll_class_text = {
+    0 : {
+        0 : "❌**`Disapproved by `**",
+        1 : "✅**`Approved by `**",
+        2 : "**`Channel for polls posting isn't configured`**",
+        3 : "**`You voted for the {}`**",
+        4 : "**`You retracked vote from the {}`**",
+        5 : "**`You voted for the {} and your vote for the {} was retracked`**",
+        6 : "**Winner:**",
+        7 : "**Winners:**",
+        8 : "**Votes for all choices:**",
+        9 : "**Voters**",
+        10 : "{} votes",
+        11 : "**`You don't have permissions to accept/decline the polls`**",
+        12 : "{} vote",
+    },
+    1 : {
+        0 : "❌**`Отказано пользователем `**",
+        1 : "✅**`Принято пользователем `**",
+        2 : "**`Канал для постинга поллов не настроен`**",
+        3 : "**`Вы проголосовали за вариант {}`**",
+        4 : "**`Вы отозвали голос за вариант {}`**",
+        5 : "**`Вы проголосовали за вариант {} и Ваш голос за {} был отозван`**",
+        6 : "**Победитель:**",
+        7 : "**Победители:**",
+        8 : "**Количество голосов за все варианты:**",
+        9 : "**Проголосовавшие:**",
+        10 : "{} голосов",
+        11 : "**`У вас нет прав одобрять/отклонять поллы`**",
+        12 : "{} голос",
+    }
+}
+
+
+class cutom_button_with_row(Button):
+    def __init__(self, label: str, disabled: bool, style: ButtonStyle, row: int):
         super().__init__(label=label, disabled=disabled, style=style, row=row)
 
     async def callback(self, interaction: Interaction):
-        await super().view.click_p(interaction=interaction, label=super().label)
+        await super().view.click_row_button(interaction=interaction, label=super().label)
 
 
 class custom_button(Button):
-    def __init__(self, label: str, disabled: bool, style):
+    def __init__(self, label: str, disabled: bool, style: ButtonStyle):
         super().__init__(label=label, disabled=disabled, style=style)
-
+    
     async def callback(self, interaction: Interaction):
         await super().view.click(interaction=interaction, label=super().label)
 
 
 class Poll(View):
-
     def __init__(self, bot):
         self.thesis: str = ""
         self.n: int = 12
@@ -39,56 +100,20 @@ class Poll(View):
         self.anon: bool = True
         self.mult: bool = True
         self.lng: bool = 0
-        self.bot = bot
-        self.text = {
-            0 : {
-                0 : "❌**`Disapproved by `**",
-                1 : "✅**`Approved by `**",
-                2 : "**`Channel for polls posting isn't configured`**",
-                3 : "**`You voted for the {}`**",
-                4 : "**`You retracked vote from the {}`**",
-                5 : "**`You voted for the {} and your vote for the {} was retracked`**",
-                6 : "**Winner:**",
-                7 : "**Winners:**",
-                8 : "**Votes for all choices:**",
-                9 : "**Voters**",
-                10 : "{} votes",
-                11 : "**`You don't have permissions to accept/decline the polls`**",
-                12 : "{} vote",
-            },
-            1 : {
-                0 : "❌**`Отказано пользователем `**",
-                1 : "✅**`Принято пользователем `**",
-                2 : "**`Канал для постинга поллов не настроен`**",
-                3 : "**`Вы проголосовали за вариант {}`**",
-                4 : "**`Вы отозвали голос за вариант {}`**",
-                5 : "**`Вы проголосовали за вариант {} и Ваш голос за {} был отозван`**",
-                6 : "**Победитель:**",
-                7 : "**Победители:**",
-                8 : "**Количество голосов за все варианты:**",
-                9 : "**Проголосовавшие:**",
-                10 : "{} голосов",
-                11 : "**`У вас нет прав одобрять/отклонять поллы`**",
-                12 : "{} голос",
-            }
-        }
-    
+        self.bot = bot    
 
     def init_timeout(self):
         super().__init__(timeout=self.timeout)
 
-
     def init_buttons(self):
         for i in range(self.n):
             self.add_item(custom_button(label=f"{i+1}", disabled=True, style=ButtonStyle.blurple))
-        self.add_item(custom_button_p(label="approve", disabled=False, style=ButtonStyle.green, row=(self.n + 4) // 5 + 1))
-        self.add_item(custom_button_p(label="disapprove", disabled=False, style=ButtonStyle.red, row=(self.n + 4) // 5 + 1))
-
+        self.add_item(cutom_button_with_row(label="approve", disabled=False, style=ButtonStyle.green, row=(self.n + 4) // 5 + 1))
+        self.add_item(cutom_button_with_row(label="disapprove", disabled=False, style=ButtonStyle.red, row=(self.n + 4) // 5 + 1))
 
     def init_ans(self):
         self.voters = [set() for _ in range(self.n)]
 
-    
     def check_moder(self, interaction: Interaction, base: Connection, cur: Cursor) -> bool:
         if interaction.user.guild_permissions.administrator:
             return True
@@ -99,8 +124,7 @@ class Poll(View):
             mdrls = {x[0] for x in mdrls}
             return any(role.id in mdrls for role in interaction.user.roles)
 
-
-    async def click_p(self, interaction: Interaction, label):
+    async def click_row_button(self, interaction: Interaction, label):
         g = interaction.guild
         lng = 1 if "ru" in interaction.locale else 0
 
@@ -108,29 +132,27 @@ class Poll(View):
             with closing(base.cursor()) as cur:
 
                 if not self.check_moder(interaction=interaction, base=base, cur=cur):
-                    await interaction.response.send_message(embed=Embed(description=self.text[lng][11]), ephemeral=True)
+                    await interaction.response.send_message(embed=Embed(description=poll_class_text[lng][11]), ephemeral=True)
                     return
                 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
 
         if label == "disapprove":
-
             for i in self.children:
                 i.disabled = True
             emb = interaction.message.embeds[0]
-            emb.description = f"{self.text[lng][0]}{interaction.user.mention}\n" + emb.description
+            emb.description = f"{poll_class_text[lng][0]}{interaction.user.mention}\n" + emb.description
             await interaction.message.edit(view=self, embed=emb)
             self.stop()
 
         elif label == "approve":
-
             if chnl_id:
 
                 chnl = g.get_channel(chnl_id)     
                 
                 emb = interaction.message.embeds[0]
                 o_dsc = emb.description
-                emb.description = f"{self.text[lng][1]}{interaction.user.mention}\n" + emb.description
+                emb.description = f"{poll_class_text[lng][1]}{interaction.user.mention}\n" + emb.description
                 self.children[-1].disabled = True
                 self.children[-2].disabled = True
                 await interaction.message.edit(view=self, embed=emb)
@@ -150,8 +172,7 @@ class Poll(View):
                 self.bot.current_polls += 1
 
             else:
-                await interaction.response.send_message(self.text[lng][2])
-            
+                await interaction.response.send_message(poll_class_text[lng][2])
     
     async def update_votes(self, interaction: Interaction, L: int, val: bool):
 
@@ -178,8 +199,7 @@ class Poll(View):
         emb.set_field_at(index=L-1, name=field.name, value=text2[:t2+2]+f"{cur_votes}")
         
         await interaction.message.edit(embed=emb)
-        
-
+    
     async def click(self, interaction: Interaction, label: str):
 
         if not label.isdigit():
@@ -195,11 +215,11 @@ class Poll(View):
             self.voters[L-1].remove(u_id)
 
             try:
-                await interaction.response.send_message(embed=Embed(description=self.text[lng][4].format(L)), ephemeral=True)
+                await interaction.response.send_message(embed=Embed(description=poll_class_text[lng][4].format(L)), ephemeral=True)
             except NotFound:
                 sleep(1)
                 try:
-                    await interaction.response.send_message(embed=Embed(description=self.text[lng][4].format(L)), ephemeral=True)
+                    await interaction.response.send_message(embed=Embed(description=poll_class_text[lng][4].format(L)), ephemeral=True)
                 except:
                     pass
                 
@@ -214,26 +234,25 @@ class Poll(View):
                 await self.update_votes(interaction=interaction, L=fl+1, val=0)
                 self.voters[fl].remove(u_id)
                 try:
-                    await interaction.response.send_message(embed=Embed(description=self.text[lng][5].format(L, fl+1)), ephemeral=True)
+                    await interaction.response.send_message(embed=Embed(description=poll_class_text[lng][5].format(L, fl+1)), ephemeral=True)
                 except NotFound:
                     sleep(1)
                     try:
-                        await interaction.response.send_message(embed=Embed(description=self.text[lng][5].format(L, fl+1)), ephemeral=True)
+                        await interaction.response.send_message(embed=Embed(description=poll_class_text[lng][5].format(L, fl+1)), ephemeral=True)
                     except:
                         pass 
                 return
             try:
-                await interaction.response.send_message(embed=Embed(description=self.text[lng][3].format(L)), ephemeral=True)
+                await interaction.response.send_message(embed=Embed(description=poll_class_text[lng][3].format(L)), ephemeral=True)
             except NotFound:
                 sleep(1)
                 try:
-                    await interaction.response.send_message(embed=Embed(description=self.text[lng][3].format(L)), ephemeral=True)
+                    await interaction.response.send_message(embed=Embed(description=poll_class_text[lng][3].format(L)), ephemeral=True)
                 except:
                     pass
                 
             
     async def on_timeout(self):
-        
         if not self.verified:
             self.stop()
             return
@@ -244,11 +263,11 @@ class Poll(View):
         lng = self.lng
         for i in range(self.n):
             if len(self.voters[i]) == 1:
-                dsc.append(f"{i+1}) {self.questions[i]} - {self.text[lng][12].format(len(self.voters[i]))}")
+                dsc.append(f"{i+1}) {self.questions[i]} - {poll_class_text[lng][12].format(len(self.voters[i]))}")
             else:
-                dsc.append(f"{i+1}) {self.questions[i]} - {self.text[lng][10].format(len(self.voters[i]))}")
+                dsc.append(f"{i+1}) {self.questions[i]} - {poll_class_text[lng][10].format(len(self.voters[i]))}")
             if not self.anon and len(self.voters[i]) > 0:
-                dsc.append(self.text[lng][9])
+                dsc.append(poll_class_text[lng][9])
                 for j in self.voters[i]:
                     dsc.append(f"<@{j}>")
             if len(self.voters[i]) == mx:
@@ -259,12 +278,12 @@ class Poll(View):
                 win.append(i+1)
         
         if len(win) == 1:
-            dsc[0] = f"{self.text[lng][6]}\n{win[0]}) {self.questions[win[0]-1]} - {self.text[lng][10].format(mx)}\n{self.text[lng][8]}"
+            dsc[0] = f"{poll_class_text[lng][6]}\n{win[0]}) {self.questions[win[0]-1]} - {poll_class_text[lng][10].format(mx)}\n{poll_class_text[lng][8]}"
         else:
-            dsc[0] = f"{self.text[lng][7]}\n"
+            dsc[0] = f"{poll_class_text[lng][7]}\n"
             for i in range(len(win)):
-                dsc[0] += f"{win[i]}) {self.questions[win[i]-1]} - {self.text[lng][10].format(mx)}\n"
-            dsc[0] += f"{self.text[lng][8]}"
+                dsc[0] += f"{win[i]}) {self.questions[win[i]-1]} - {poll_class_text[lng][10].format(mx)}\n"
+            dsc[0] += f"{poll_class_text[lng][8]}"
         
         emb = Embed(description="\n".join(dsc))
         
@@ -277,38 +296,9 @@ class Poll(View):
         self.stop()
 
 
-class polling(commands.Cog):
-
-
-    def __init__(self, bot: commands.Bot):
+class PollCog(Cog):
+    def __init__(self, bot: Bot):
         self.bot = bot
-        global polls_text
-        polls_text = {
-            0 : {               
-                0 : "**`Poll creation was cancelled because polls verification channel isn't configured`**",
-                1 : "**`You can't select time for the poll less than it's now`**",
-                2 : "answer",
-                3 : "Votes: 0",
-                4 : "Poll is anonymous",
-                5 : "Poll isn't anonymous",
-                6 : "Poll with multiple choice",
-                7 : "Poll with single choice",
-                8 : "\n**`Author: `**<@{}>",
-                9 : "**`You created poll and it was sent to the verification`**"
-            },
-            1 : {
-                0 : "**`Создание полла отменено, потому что канал верификации поллов не настроен`**",
-                1 : "**`Вы не можете выбрать время меньше, чем сейчас`**",
-                2 : "ответ",
-                3 : "Голосов: 0",
-                4 : "Полл анонимный",
-                5 : "Полл неанонимный",
-                6 : "Полл с несколькими вариантами выбора",
-                7 : "Полл с одним вариантом выбора",                
-                8 : "\n**`Автор: `**<@{}>",
-                9 : "**`Вы создали полл, и он был отправлен на верификацию`**"
-            }
-        }                     
     
 
     @slash_command(
@@ -617,5 +607,5 @@ class polling(commands.Cog):
         await interaction.response.send_message(embed=Embed(description=polls_text[lng][9], colour=Colour.dark_purple()), ephemeral=True)
 
 
-def setup(bot: commands.Bot):
-    bot.add_cog(polling(bot))
+def setup(bot: Bot):
+    bot.add_cog(PollCog(bot))

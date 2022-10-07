@@ -1,10 +1,11 @@
 
-from os import mkdir, path
-from sqlite3 import connect
 from contextlib import closing
+from sqlite3 import connect
+from os import mkdir, path
 
-from colorama import Fore
 from dpyConsole import console, Cog, Console
+from colorama import Fore
+
 from Variables.vars import path_to
 
 

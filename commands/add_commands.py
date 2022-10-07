@@ -1,9 +1,8 @@
-
 from sqlite3 import connect, Connection, Cursor
 from contextlib import closing
 
-from nextcord.ext import commands
 from nextcord import Embed, Colour, SlashOption, Interaction, Status, slash_command, Locale
+from nextcord.ext.commands import Bot, Cog
 
 from Variables.vars import path_to
 
@@ -174,11 +173,9 @@ months = {
 }
 
 
-class cms(commands.Cog):
-
-    def __init__(self, bot: commands.Bot):
+class AdditionalCommandsCog(Cog):
+    def __init__(self, bot: Bot):
         self.bot = bot
-
 
     def check_user(self, base: Connection, cur: Cursor, memb_id: int) -> None:
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
@@ -252,7 +249,6 @@ class cms(commands.Cog):
         }
     )
     async def server(self, interaction: Interaction):
-
         lng = 1 if "ru" in interaction.locale else 0
 
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
@@ -304,5 +300,5 @@ class cms(commands.Cog):
 
         await interaction.response.send_message(embed=emb)
     
-def setup(bot: commands.Bot):
-    bot.add_cog(cms(bot))
+def setup(bot: Bot):
+    bot.add_cog(AdditionalCommandsCog(bot))

@@ -1,7 +1,6 @@
-
+from sqlite3 import connect, Connection, Cursor
 from asyncio import sleep, TimeoutError
 from contextlib import closing
-from sqlite3 import connect, Connection, Cursor
 from random import randint
 from time import time
 
@@ -547,8 +546,7 @@ system_status = {
 }
 
 
-class c_select(Select):
-
+class CustomSelect(Select):
     def __init__(self, custom_id: str, placeholder: str, opts: list) -> None:
         options = [SelectOption(label=r[0], value=r[1]) for r in opts]
         super().__init__(custom_id=custom_id, placeholder=placeholder, options=options)
@@ -557,7 +555,7 @@ class c_select(Select):
         await self.view.click_menu(interaction, self.custom_id, self.values)        
 
 
-class c_button(Button):
+class CustomButton(Button):
     def __init__(self, style: ButtonStyle, label: str, custom_id: str, disabled: bool = False, emoji = None, row: int = None) -> None:
         super().__init__(style=style, label=label, disabled=disabled, custom_id=custom_id, emoji=emoji, row=row)
 
@@ -565,8 +563,7 @@ class c_button(Button):
         await super().view.click(interaction, self.custom_id)
 
 
-class gen_settings_view(View):
-
+class GenSettingsView(View):
     def __init__(self, t_out: int, auth_id: int, bot: Bot, lng: int, ec_status: int, rnk_status: int) -> None:
         super().__init__(timeout=t_out)
         self.bot: Bot = bot
@@ -576,13 +573,13 @@ class gen_settings_view(View):
         self.ec_status: int = ec_status
         self.rnk_status: int = rnk_status
         tzs: list[tuple[str, int]] = [(f"UTC{i}", i) for i in range(-12, 0)] + [(f"UTC+{i}", i) for i in range(0, 13)]
-        self.add_item(c_select(custom_id=f"100_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][20], opts=languages[2][lng]))
-        self.add_item(c_select(custom_id=f"101_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][21], opts=tzs))
-        self.add_item(c_button(style=ButtonStyle.green, label=None, custom_id=f"6_{auth_id}_{randint(1, 100)}", emoji="🗣️"))
-        self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id=f"7_{auth_id}_{randint(1, 100)}", emoji="⏱"))
-        self.add_item(c_button(style=ButtonStyle.gray, label=None, custom_id=f"42_{auth_id}_{randint(1, 100)}", emoji="💵"))
-        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"43_{auth_id}_{randint(1, 100)}", emoji="💰", row=2))
-        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"44_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
+        self.add_item(CustomSelect(custom_id=f"100_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][20], opts=languages[2][lng]))
+        self.add_item(CustomSelect(custom_id=f"101_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][21], opts=tzs))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"6_{auth_id}_{randint(1, 100)}", emoji="🗣️"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"7_{auth_id}_{randint(1, 100)}", emoji="⏱"))
+        self.add_item(CustomButton(style=ButtonStyle.gray, label=None, custom_id=f"42_{auth_id}_{randint(1, 100)}", emoji="💵"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"43_{auth_id}_{randint(1, 100)}", emoji="💰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"44_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
         
     async def select_lng(self, interaction: Interaction, lng: int) -> None:
         s_lng = self.lang
@@ -722,16 +719,16 @@ class gen_settings_view(View):
         return True
 
 
-class mod_roles_view(View):
+class ModRolesView(View):
     def __init__(self, t_out: int, m_rls: set, lng: int, auth_id: int, rem_dis: bool, rls: list) -> None:
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
         self.m_rls = m_rls
         self.role = None
         for i in range((len(rls)+24)//25):
-            self.add_item(c_select(custom_id=f"{200+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][2], opts=rls[i*25:min(len(rls), (i+1)*25)]))
-        self.add_item(c_button(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"8_{auth_id}_{randint(1, 100)}"))
-        self.add_item(c_button(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
+            self.add_item(CustomSelect(custom_id=f"{200+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][2], opts=rls[i*25:min(len(rls), (i+1)*25)]))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"8_{auth_id}_{randint(1, 100)}"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
     
 
     async def add_role(self, interaction: Interaction, lng: int) -> None:
@@ -820,16 +817,16 @@ class mod_roles_view(View):
         return True
 
 
-class economy_view(View):
+class EconomyView(View):
     def __init__(self, t_out: int, auth_id: int):
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
         self.channel = None
-        self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id=f"10_{auth_id}_{randint(1, 100)}", emoji="💸"))
-        self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id=f"11_{auth_id}_{randint(1, 100)}", emoji="⏰"))
-        self.add_item(c_button(style=ButtonStyle.blurple, label="", custom_id=f"12_{auth_id}_{randint(1, 100)}", emoji="💹"))
-        self.add_item(c_button(style=ButtonStyle.green, label="", custom_id=f"13_{auth_id}_{randint(1, 100)}", emoji="📙"))
-        self.add_item(c_button(style=ButtonStyle.red, label="", custom_id=f"14_{auth_id}_{randint(1, 100)}", emoji="🛠️"))        
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"10_{auth_id}_{randint(1, 100)}", emoji="💸"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"11_{auth_id}_{randint(1, 100)}", emoji="⏰"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"12_{auth_id}_{randint(1, 100)}", emoji="💹"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"13_{auth_id}_{randint(1, 100)}", emoji="📙"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"14_{auth_id}_{randint(1, 100)}", emoji="🛠️"))        
 
     async def msg_salary(self, interaction: Interaction, lng: int, ans: str) -> bool:
         if ans.isdigit() and int(ans) >= 0:
@@ -910,7 +907,7 @@ class economy_view(View):
         channels = [(c.name, c.id) for c in interaction.guild.text_channels]
         for i in range(min((len(channels) + 23) // 24, 7)):
             opts = [(settings_text[lng][12], 0)] + channels[i*24:min((i+1)*24, len(channels))]
-            self.add_item(c_select(custom_id=f"{500+i}_{self.auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=opts))
+            self.add_item(CustomSelect(custom_id=f"{500+i}_{self.auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=opts))
             
         await interaction.message.edit(view=self)
         await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), ephemeral=True)
@@ -984,7 +981,7 @@ class economy_view(View):
         rls = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
         if len(rls): rd = False
         else: rd = True
-        ec_rls_view = economy_roles_manage_view(t_out=155, lng=lng, auth_id=self.auth_id, rem_dis=rd, rls=rls, s_rls=s_rls)
+        ec_rls_view = EconomyRolesManageView(t_out=155, lng=lng, auth_id=self.auth_id, rem_dis=rd, rls=rls, s_rls=s_rls)
         await interaction.response.send_message(embed=emb, view=ec_rls_view)
         await ec_rls_view.wait()
         for c in ec_rls_view.children:
@@ -1026,17 +1023,17 @@ class economy_view(View):
         return True
 
 
-class economy_roles_manage_view(View):
+class EconomyRolesManageView(View):
     def __init__(self, t_out: int, lng: int, auth_id: int, rem_dis: bool, rls: list, s_rls: set):
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
         self.s_rls = s_rls
         self.role = None
         for i in range((len(rls)+24)//25):
-            self.add_item(c_select(custom_id=f"{800+i}", placeholder=settings_text[lng][2], opts=rls[i*25:min(len(rls), (i+1)*25)]))
-        self.add_item(c_button(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"15_{auth_id}_{randint(1, 100)}"))
-        self.add_item(c_button(style=ButtonStyle.blurple, label=ec_mr_text[lng][0], emoji="🔧", custom_id=f"16_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
-        self.add_item(c_button(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
+            self.add_item(CustomSelect(custom_id=f"{800+i}", placeholder=settings_text[lng][2], opts=rls[i*25:min(len(rls), (i+1)*25)]))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"15_{auth_id}_{randint(1, 100)}"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label=ec_mr_text[lng][0], emoji="🔧", custom_id=f"16_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
 
 
     async def click(self, interaction: Interaction, c_id: str):
@@ -1050,7 +1047,7 @@ class economy_roles_manage_view(View):
             if not self.role in self.s_rls:
                 await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
                 return
-            v_d = verify_delete(lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
+            v_d = VerifyDeleteView(lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(self.role)), view=v_d)
             
             if await v_d.wait():
@@ -1066,7 +1063,7 @@ class economy_roles_manage_view(View):
             if self.role in self.s_rls:
                 await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][9]), ephemeral=True)
                 return
-            add_mod = c_modal_add(timeout=90, lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
+            add_mod = RoleAddModal(timeout=90, lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
             await interaction.response.send_modal(modal=add_mod)
             
             await add_mod.wait()
@@ -1092,13 +1089,12 @@ class economy_roles_manage_view(View):
                         else:
                             cnt = "∞"
             
-            edit_mod = c_modal_edit(timeout=90, role=self.role, m=interaction.message, auth_id=interaction.user.id, lng=lng, p=r[1], s=r[2], s_c=r[3]//3600, r_t=r[4], in_store=cnt)
+            edit_mod = RoleEditModal(timeout=90, role=self.role, m=interaction.message, auth_id=interaction.user.id, lng=lng, p=r[1], s=r[2], s_c=r[3]//3600, r_t=r[4], in_store=cnt)
             await interaction.response.send_modal(modal=edit_mod)
             await edit_mod.wait()
             if edit_mod.changed:
                 self.role = None
             return
-
 
     async def click_menu(self, _, c_id: str, values):
         if c_id.startswith("80"):
@@ -1112,8 +1108,7 @@ class economy_roles_manage_view(View):
         return True
 
 
-class c_modal_add(Modal):
-
+class RoleAddModal(Modal):
     def __init__(self, timeout: int, lng: int, role: int, m, auth_id: int):
         super().__init__(title=settings_text[lng][3], timeout=timeout, custom_id=f"6100_{auth_id}_{randint(1, 100)}")
         self.role=role
@@ -1270,8 +1265,7 @@ class c_modal_add(Modal):
         self.stop()
 
 
-class c_modal_edit(Modal):
-
+class RoleEditModal(Modal):
     def __init__(self, timeout: int, role: int, m, lng: int, auth_id: int, p: int, s: int, s_c: int, r_t: int, in_store):
         super().__init__(title=ec_mr_text[lng][25], timeout=timeout, custom_id=f"7100_{auth_id}_{randint(1, 100)}")
         self.role=role
@@ -1489,16 +1483,15 @@ class c_modal_edit(Modal):
         base.commit()
 
 
-class verify_delete(View):
-
+class VerifyDeleteView(View):
     def __init__(self, lng: int, role: int, m, auth_id: int):
         super().__init__(timeout=30)
         self.role = role
         self.auth_id = auth_id
         self.m = m
         self.deleted = False
-        self.add_item(c_button(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_{randint(1, 100)}"))
-        self.add_item(c_button(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_{randint(1, 100)}"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_{randint(1, 100)}"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_{randint(1, 100)}"))
     
     async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
@@ -1549,8 +1542,7 @@ class verify_delete(View):
         return True
 
 
-class c_modal_mng_memb(Modal):
-
+class ManageMemberModal(Modal):
     def __init__(self, timeout: int, title: str, lng: int, memb_id: int, cur_money: int, cur_xp: int, auth_id: int):
         super().__init__(title=title, timeout=timeout, custom_id=f"8100_{auth_id}_{randint(1, 100)}")
         self.is_changed = False
@@ -1630,15 +1622,14 @@ class c_modal_mng_memb(Modal):
         self.stop()
 
 
-class mng_membs_view(View):
-
+class ManageMembersView(View):
     def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set, rls: list, cur_money: int, cur_xp: int, rem_dis: bool, g_id: int, member):
         super().__init__(timeout=timeout)
-        self.add_item(c_button(style=ButtonStyle.blurple, label=mng_membs_text[lng][0], emoji="🔧", custom_id=f"18_{auth_id}_{randint(1, 100)}"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label=mng_membs_text[lng][0], emoji="🔧", custom_id=f"18_{auth_id}_{randint(1, 100)}"))
         for i in range((len(rls)+24)//25):
-            self.add_item(c_select(custom_id=f"{300+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][2], opts=rls[i*25:min(len(rls), (i+1)*25)]))
-        self.add_item(c_button(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"19_{auth_id}_{randint(1, 100)}"))
-        self.add_item(c_button(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"20_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
+            self.add_item(CustomSelect(custom_id=f"{300+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][2], opts=rls[i*25:min(len(rls), (i+1)*25)]))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"19_{auth_id}_{randint(1, 100)}"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"20_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
         self.role = None
         self.memb_id = memb_id
         self.memb_rls = memb_rls
@@ -1729,7 +1720,7 @@ class mng_membs_view(View):
         lng = 1 if "ru" in interaction.locale else 0
 
         if c_id.startswith("18_"):
-            edit_modl = c_modal_mng_memb(timeout=90, title=mng_membs_text[lng][19], lng=lng, memb_id=self.memb_id, cur_money=self.cash, cur_xp=self.xp, auth_id=self.auth_id)
+            edit_modl = ManageMemberModal(timeout=90, title=mng_membs_text[lng][19], lng=lng, memb_id=self.memb_id, cur_money=self.cash, cur_xp=self.xp, auth_id=self.auth_id)
 
             await interaction.response.send_modal(modal=edit_modl)
             await edit_modl.wait()
@@ -1806,8 +1797,7 @@ class mng_membs_view(View):
         return True
         
 
-class c_modal_xp(Modal):
-
+class XpSettingsModal(Modal):
     def __init__(self, timeout: int, lng: int, auth_id: int, g_id: int, cur_xp: int, cur_xpb: int):
         super().__init__(title=ranking_text[lng][7], timeout=timeout, custom_id=f"9100_{auth_id}_{randint(1, 100)}")
 
@@ -1880,19 +1870,17 @@ class c_modal_xp(Modal):
         self.stop()
 
 
-class ic_view(View):
-
+class IgnoredChannelsView(View):
     def __init__(self, timeout: int, lng: int, auth_id: int, chnls: list, rem_dis: bool, g_id: int) -> None:
         super().__init__(timeout=timeout)
         l = len(chnls)
         for i in range(min((l + 23) // 24, 20)):
-            self.add_item(c_select(custom_id=f"{1100+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=[(settings_text[lng][12], 0)] + chnls[i*24:min((i+1)*24, l)]))
-        self.add_item(c_button(style=ButtonStyle.green, label=settings_text[lng][8], emoji="<:add01:999663315804500078>", custom_id=f"25_{auth_id}_{randint(1, 100)}"))
-        self.add_item(c_button(style=ButtonStyle.red, label=settings_text[lng][9], emoji="<:remove01:999663428689997844>", custom_id=f"26_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
+            self.add_item(CustomSelect(custom_id=f"{1100+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=[(settings_text[lng][12], 0)] + chnls[i*24:min((i+1)*24, l)]))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][8], emoji="<:add01:999663315804500078>", custom_id=f"25_{auth_id}_{randint(1, 100)}"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][9], emoji="<:remove01:999663428689997844>", custom_id=f"26_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
         self.chnl = None
         self.g_id = g_id
         self.auth_id = auth_id
-
 
     async def add_chnl(self, interaction: Interaction, lng: int) -> None:
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
@@ -1916,7 +1904,6 @@ class ic_view(View):
         await interaction.response.send_message(embed=Embed(description=ranking_text[lng][19].format(self.chnl)), ephemeral=True)
         self.chnl = None
     
-
     async def rem_chnl(self, interaction: Interaction, lng: int) -> None:
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
@@ -1945,7 +1932,6 @@ class ic_view(View):
         await interaction.response.send_message(embed=Embed(description=ranking_text[lng][20].format(self.chnl)), ephemeral=True)
         self.chnl = None
 
-
     async def click(self, interaction: Interaction, c_id: str) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         if not self.chnl:
@@ -1966,7 +1952,6 @@ class ic_view(View):
         if c_id.startswith("11"):
             self.chnl = int(values[0])
 
-
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
             lng = 1 if "ru" in interaction.locale else 0
@@ -1975,8 +1960,7 @@ class ic_view(View):
         return True
 
 
-class select_level_modal(Modal):
-
+class SelectLevelModal(Modal):
     def __init__(self, lng: int, auth_id: int, timeout: int) -> None:
         super().__init__(title=ranking_text[lng][24], timeout=timeout, custom_id=f"11100_{auth_id}_{randint(1, 100)}")
         self.lng = lng
@@ -2006,12 +1990,11 @@ class select_level_modal(Modal):
         self.stop()
         
 
-class lvl_roles_view(View):
-
+class LevelRolesView(View):
     def __init__(self, timeout: int, auth_id: int, g_id: int, disabled: bool):
         super().__init__(timeout=timeout)
-        self.add_item(c_button(style=ButtonStyle.green, label="🔧", custom_id=f"27_{auth_id}_{randint(1, 100)}", emoji="<:add01:999663315804500078>"))
-        self.add_item(c_button(style=ButtonStyle.red, label="", custom_id=f"28_{auth_id}_{randint(1, 100)}", emoji="<:remove01:999663428689997844>", disabled=disabled))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="🔧", custom_id=f"27_{auth_id}_{randint(1, 100)}", emoji="<:add01:999663315804500078>"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"28_{auth_id}_{randint(1, 100)}", emoji="<:remove01:999663428689997844>", disabled=disabled))
         self.auth_id: int = auth_id
         self.g_id: int = g_id
         self.role = None
@@ -2020,7 +2003,7 @@ class lvl_roles_view(View):
         if not (c_id.startswith("27_") or c_id.startswith("28_")):
             return
         lng = 1 if "ru" in interaction.locale else 0
-        lvl_modal = select_level_modal(lng=lng, auth_id=interaction.user.id, timeout=60)
+        lvl_modal = SelectLevelModal(lng=lng, auth_id=interaction.user.id, timeout=60)
         await interaction.response.send_modal(modal=lvl_modal)
         await lvl_modal.wait()
         if lvl_modal.level:
@@ -2035,7 +2018,7 @@ class lvl_roles_view(View):
                 await interaction.send(embed=Embed(description = ranking_text[lng][30]), delete_after=6)
                 return
             for i in range((len(rls) + 24) // 25):
-                self.add_item(c_select(
+                self.add_item(CustomSelect(
                     custom_id=f"{1300+i}_{self.auth_id}_{randint(1, 100)}", 
                     placeholder=settings_text[lng][2], 
                     opts=rls[i*25:min(len(rls), (i+1) * 25)]
@@ -2107,11 +2090,10 @@ class lvl_roles_view(View):
 
             await interaction.send(embed=Embed(description=ranking_text[lng][33].format(ans)), delete_after=6)
 
-
     async def click_menu(self, _, c_id: str, values):
         if c_id.startswith("13"):
             self.role = int(values[0])
-
+    
     async def interaction_check(self, interaction: Interaction) -> bool:
         if self.auth_id != interaction.user.id:
             lng = 1 if "ru" in interaction.locale else 0
@@ -2120,14 +2102,13 @@ class lvl_roles_view(View):
         return True
 
 
-class ranking_view(View):
-
+class RankingView(View):
     def __init__(self, timeout: int, auth_id: int, g_id: int, cur_xp_pm: int, cur_xpb: int) -> None:
         super().__init__(timeout=timeout)
-        self.add_item(c_button(style=ButtonStyle.green, label="", emoji="✨", custom_id=f"21_{auth_id}_{randint(1, 100)}"))
-        self.add_item(c_button(style=ButtonStyle.grey, label="", emoji="📗", custom_id=f"22_{auth_id}_{randint(1, 100)}"))
-        self.add_item(c_button(style=ButtonStyle.grey, label="", emoji="<:ignored_channels:1003673081996378133>", custom_id=f"23_{auth_id}_{randint(1, 100)}"))
-        self.add_item(c_button(style=ButtonStyle.red, label="", emoji="🥇", custom_id=f"24_{auth_id}_{randint(1, 100)}"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", emoji="✨", custom_id=f"21_{auth_id}_{randint(1, 100)}"))
+        self.add_item(CustomButton(style=ButtonStyle.grey, label="", emoji="📗", custom_id=f"22_{auth_id}_{randint(1, 100)}"))
+        self.add_item(CustomButton(style=ButtonStyle.grey, label="", emoji="<:ignored_channels:1003673081996378133>", custom_id=f"23_{auth_id}_{randint(1, 100)}"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", emoji="🥇", custom_id=f"24_{auth_id}_{randint(1, 100)}"))
         self.auth_id = auth_id
         self.cur_xp_pm = cur_xp_pm
         self.cur_xpb = cur_xpb
@@ -2135,7 +2116,7 @@ class ranking_view(View):
         self.lvl_chnl = None
     
     async def xp_change(self, lng: int, interaction: Interaction) -> None:
-        xp_m = c_modal_xp(timeout=80, lng=lng, auth_id=self.auth_id, g_id=self.g_id, cur_xp=self.cur_xp_pm, cur_xpb=self.cur_xpb)
+        xp_m = XpSettingsModal(timeout=80, lng=lng, auth_id=self.auth_id, g_id=self.g_id, cur_xp=self.cur_xp_pm, cur_xpb=self.cur_xpb)
         await interaction.response.send_modal(modal=xp_m)
         await xp_m.wait()
 
@@ -2165,7 +2146,7 @@ class ranking_view(View):
             dsc = [ranking_text[lng][18]]
         
         emb = Embed(description="\n".join(dsc))     
-        ic_v = ic_view(timeout=80, lng=lng, auth_id=self.auth_id, chnls=chnls, rem_dis=rd, g_id=self.g_id)
+        ic_v = IgnoredChannelsView(timeout=80, lng=lng, auth_id=self.auth_id, chnls=chnls, rem_dis=rd, g_id=self.g_id)
 
         await interaction.response.send_message(embed=emb, view=ic_v)
         await ic_v.wait()
@@ -2178,7 +2159,7 @@ class ranking_view(View):
         l = len(chnls)
         
         for i in range(min((l + 23) // 24, 20)):
-            self.add_item(c_select(custom_id=f"{1200+i}_{self.auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=[(settings_text[lng][12], 0)] + chnls[i*24:min((i+1)*24, l)]))
+            self.add_item(CustomSelect(custom_id=f"{1200+i}_{self.auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=[(settings_text[lng][12], 0)] + chnls[i*24:min((i+1)*24, l)]))
             
         await interaction.message.edit(view=self)
 
@@ -2230,7 +2211,7 @@ class ranking_view(View):
             dsc = [ranking_text[lng][25]]
         dsc.append(ranking_text[lng][27])
         emb = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
-        lr_v = lvl_roles_view(timeout=80, auth_id=interaction.user.id, g_id=self.g_id, disabled=rem_b)
+        lr_v = LevelRolesView(timeout=80, auth_id=interaction.user.id, g_id=self.g_id, disabled=rem_b)
         await interaction.response.send_message(embed=emb, view=lr_v)
         await lr_v.wait()
         await interaction.delete_original_message()
@@ -2258,11 +2239,11 @@ class ranking_view(View):
         return True
 
 
-class poll_v_c_view(View):
+class PollsChannelsView(View):
     def __init__(self, timeout: int, lng: int, view_id_base: int,  auth_id: int, chnls: list):
         super().__init__(timeout=timeout)
         for i in range(min((len(chnls) + 23) // 24, 20)):
-            self.add_item(c_select(
+            self.add_item(CustomSelect(
                 custom_id=f"{view_id_base+i}_{auth_id}_{randint(1, 100)}", 
                 placeholder=settings_text[lng][10], 
                 opts=[(settings_text[lng][12], 0)] + chnls[i*24:min(len(chnls), (i+1)*24)]
@@ -2283,12 +2264,11 @@ class poll_v_c_view(View):
         return True
 
 
-class poll_settings_view(View):
-    
+class PollSettingsView(View):
     def __init__(self, timeout: int, auth_id: int):
         super().__init__(timeout=timeout)
-        self.add_item(c_button(style=ButtonStyle.green, label="", custom_id=f"28_{auth_id}_{randint(1, 100)}", emoji="🔎"))
-        self.add_item(c_button(style=ButtonStyle.green, label="", custom_id=f"29_{auth_id}_{randint(1, 100)}", emoji="📰"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"28_{auth_id}_{randint(1, 100)}", emoji="🔎"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"29_{auth_id}_{randint(1, 100)}", emoji="📰"))
         self.auth_id = auth_id
     
     async def click(self, interaction: Interaction, c_id: str) -> None:
@@ -2297,8 +2277,7 @@ class poll_settings_view(View):
         chnls = [(c.name, c.id) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
 
         if c_id.startswith("28_"):
-
-            v_c = poll_v_c_view(timeout=25, lng=lng, view_id_base = 1400, auth_id=self.auth_id, chnls=chnls)
+            v_c = PollsChannelsView(timeout=25, lng=lng, view_id_base = 1400, auth_id=self.auth_id, chnls=chnls)
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=v_c)
             
             await v_c.wait()
@@ -2340,8 +2319,7 @@ class poll_settings_view(View):
 
 
         elif c_id.startswith("29_"):
-
-            v_c = poll_v_c_view(timeout=25, lng=lng, view_id_base = 1500, auth_id=self.auth_id, chnls=chnls)
+            v_c = PollsChannelsView(timeout=25, lng=lng, view_id_base = 1500, auth_id=self.auth_id, chnls=chnls)
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=v_c)
             
             await v_c.wait()
@@ -2389,17 +2367,17 @@ class poll_settings_view(View):
         return True
 
 
-class settings_view(View):
+class SettingsView(View):
     def __init__(self, t_out: int, auth_id: int, bot: Bot) -> None:
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
         self.bot = bot
-        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"0_{auth_id}_{randint(1, 100)}", emoji="⚙️"))
-        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"1_{auth_id}_{randint(1, 100)}", emoji="<:moder:1000090629897998336>"))
-        self.add_item(c_button(style=ButtonStyle.red, label=None, custom_id=f"2_{auth_id}_{randint(1, 100)}", emoji="<:user:1002245779089535006>"))
-        self.add_item(c_button(style=ButtonStyle.green, label=None, custom_id=f"3_{auth_id}_{randint(1, 100)}", emoji="💰", row=2))
-        self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id=f"4_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
-        self.add_item(c_button(style=ButtonStyle.blurple, label=None, custom_id=f"5_{auth_id}_{randint(1, 100)}", emoji="📊", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"0_{auth_id}_{randint(1, 100)}", emoji="⚙️"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"1_{auth_id}_{randint(1, 100)}", emoji="<:moder:1000090629897998336>"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"2_{auth_id}_{randint(1, 100)}", emoji="<:user:1002245779089535006>"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"3_{auth_id}_{randint(1, 100)}", emoji="💰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"4_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"5_{auth_id}_{randint(1, 100)}", emoji="📊", row=2))
     
     
     def check_ans(self, interaction: Interaction, ans: str):
@@ -2465,7 +2443,7 @@ class settings_view(View):
             dsc.append(gen_settings_text[lng][9].format(system_status[lng][rnk_status+2]))
 
             emb.description="\n".join(dsc)
-            gen_view = gen_settings_view(t_out=50, auth_id=self.auth_id, bot=self.bot, lng=lng, ec_status=ec_status, rnk_status=rnk_status)
+            gen_view = GenSettingsView(t_out=50, auth_id=self.auth_id, bot=self.bot, lng=lng, ec_status=ec_status, rnk_status=rnk_status)
             await interaction.response.send_message(embed=emb, view=gen_view)
             await gen_view.wait()
             for c in gen_view.children:
@@ -2488,7 +2466,7 @@ class settings_view(View):
 
             rls = [(r.name, r.id) for r in interaction.guild.roles if not r.is_bot_managed()]
             
-            m_rls_v = mod_roles_view(t_out=50, m_rls=m_rls, lng=lng, auth_id=self.auth_id, rem_dis=rem_dis, rls=rls)
+            m_rls_v = ModRolesView(t_out=50, m_rls=m_rls, lng=lng, auth_id=self.auth_id, rem_dis=rem_dis, rls=rls)
             await interaction.response.send_message(embed=emb, view=m_rls_v)
             await m_rls_v.wait()
             for c in m_rls_v.children:
@@ -2570,7 +2548,7 @@ class settings_view(View):
             if db_roles: db_roles = {x[0] for x in db_roles}
             roles = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable() and rl.id in db_roles]
 
-            mng_v = mng_membs_view(
+            mng_v = ManageMembersView(
                 timeout=110, 
                 lng=lng, 
                 auth_id=interaction.user.id, 
@@ -2615,7 +2593,7 @@ class settings_view(View):
             dsc.append(ec_text[lng][8])
             emb.description = "\n\n".join(dsc)
             
-            ec_v = economy_view(t_out=110, auth_id=self.auth_id)
+            ec_v = EconomyView(t_out=110, auth_id=self.auth_id)
             await interaction.response.send_message(embed=emb, view=ec_v)
             await ec_v.wait()
             for c in ec_v.children:
@@ -2640,7 +2618,7 @@ class settings_view(View):
             dsc += [ranking_text[lng][i] for i in (4, 5, 6)]
 
             emb.description = "\n\n".join(dsc)
-            rnk_v = ranking_view(timeout=90, auth_id=interaction.user.id, g_id=interaction.guild_id, cur_xp_pm=xp_p_m, cur_xpb=xp_b)
+            rnk_v = RankingView(timeout=90, auth_id=interaction.user.id, g_id=interaction.guild_id, cur_xp_pm=xp_p_m, cur_xpb=xp_b)
             
             await interaction.response.send_message(embed=emb, view=rnk_v)
 
@@ -2666,7 +2644,7 @@ class settings_view(View):
             dsc.append(poll_text[lng][2])
             dsc.append(poll_text[lng][3])
 
-            p_v = poll_settings_view(timeout=100, auth_id=self.auth_id)
+            p_v = PollSettingsView(timeout=100, auth_id=self.auth_id)
             await interaction.response.send_message(embed=Embed(description="\n\n".join(dsc)), view=p_v)
             
             await p_v.wait()
@@ -2682,8 +2660,7 @@ class settings_view(View):
         return True
 
 
-class m_cmds(Cog):
-
+class ModCommandsCog(Cog):
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
 
@@ -2703,7 +2680,7 @@ class m_cmds(Cog):
 
     async def settings(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
-        st_view = settings_view(t_out=120, auth_id=interaction.user.id, bot=self.bot)
+        st_view = SettingsView(t_out=120, auth_id=interaction.user.id, bot=self.bot)
         emb = Embed(title=settings_text[lng][0], description="\n".join(settings_text[lng][1]))
         await interaction.response.send_message(embed=emb, view=st_view)
 
@@ -2726,4 +2703,4 @@ class m_cmds(Cog):
     
 
 def setup(bot: Bot):
-    bot.add_cog(m_cmds(bot))
+    bot.add_cog(ModCommandsCog(bot))
