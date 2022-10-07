@@ -7,7 +7,7 @@ from nextcord.ext import commands as cmds
 
 from config import prefix, DEBUG_TOKEN, TOKEN, DEBUG
 
-class Bot(cmds.Bot):
+class StoreBot(cmds.Bot):
     def __init__(self) -> None:
         super().__init__(command_prefix=cmds.when_mentioned_or(prefix), case_insensitive=True, intents=Intents.all(), help_command=None)
 
@@ -16,7 +16,7 @@ class Bot(cmds.Bot):
         return
 
 if __name__ == "__main__":
-    bot = Bot()
+    bot = StoreBot()
     bot.load_extensions_from_module("Commands")
 
     if DEBUG:
