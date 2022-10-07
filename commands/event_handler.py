@@ -15,10 +15,10 @@ from config import DEBUG
 
 event_handl_text = {
     0 : {
-        0 : "**Sorry, but you don't have enough permissions to use this command**",
+        0 : "**`Sorry, but you don't have enough permissions to use this command`**",
     },
     1 : {
-        0 : "**Извините, но у Вас недостаточно прав для использования этой командыы**",
+        0 : "**`Извините, но у Вас недостаточно прав для использования этой команды`**",
     }
 }
 

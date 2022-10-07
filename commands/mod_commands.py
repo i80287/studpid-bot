@@ -223,7 +223,7 @@ ec_text = {
         5 : "📙 Log channel for economic operations:\n{}",
         7 : "> To manage setting press button with\ncorresponding emoji",
         8 : "> To see and manage roles available for\npurchase/sale in the bot press 🛠️",
-        9 : "Write amount of money gained for message (non negative integer number)",
+        9 : "**`Write amount of money gained for message (non negative integer number)`**",
         10 : "Amount of money gained from messages set to: `{}`",
         11 : "Write cooldown for `/work` command **in seconds** (integer at least 60)\nFor example, to make cooldown equalt to 240 seconds, write `240` in the chat",
         12 : "Cooldown for `/work` set to: `{}`",
@@ -248,7 +248,7 @@ ec_text = {
         5 : "📙 Канал для логов экономических операций:\n{}",
         7 : "> Для управления настройкой нажмите на кнопку с\nсоответствующим эмодзи",
         8 : "> Для просмотра и управления ролями, доступными\nдля покупки/продажи у бота, нажмите 🛠️",
-        9 : "Укажите количество денег, получаемых за сообщение\n(неотрицательное целое число)",
+        9 : "**`Укажите количество денег, получаемых за сообщение\n(неотрицательное целое число)`**",
         10 : "Количество денег, получаемых за одно сообщение, теперь равно: `{}`",
         11 : "Укажите кулдаун для команды `/work` **в секундах** (целое число не менее 60)\nНапример, чтобы поставить кулдаун 240 секунд, напишите в чат `240`",
         12 : "Кулдаун для команды `/work` теперь равен: `{}`",
@@ -1805,7 +1805,7 @@ class XpSettingsModal(Modal):
             placeholder=ranking_text[lng][9],
             default_value=f"{cur_xp}",
             min_length=1,
-            max_length=2,
+            max_length=3,
             required=True,
             custom_id=f"9101_{auth_id}_{randint(1, 100)}"
         )
@@ -2125,8 +2125,8 @@ class RankingView(View):
 
             emb = interaction.message.embeds[0]
             dsc = emb.description.split("\n\n")
-            dsc[1] = f"**`{self.cur_xp_pm}`**"
-            dsc[3] = f"**`{self.cur_xpb}`**"
+            dsc[0] = ranking_text[lng][0].format(f"**`{self.cur_xp_pm}`**")
+            dsc[1] = ranking_text[lng][1].format(f"**`{self.cur_xpb}`**")
             emb.description = "\n\n".join(dsc)
             await interaction.message.edit(embed=emb)
 
