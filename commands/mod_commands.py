@@ -609,7 +609,7 @@ class GenSettingsView(View):
     async def digit_tz(self, interaction: Interaction, lng: int) -> None:
         tz = self.tz
         if tz is None:
-            await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][25]), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][23]), ephemeral=True)
             return
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
@@ -1542,7 +1542,7 @@ class VerifyDeleteView(View):
         return True
 
 
-class ManageMemberModal(Modal):
+class ManageMemberCashXpModal(Modal):
     def __init__(self, timeout: int, title: str, lng: int, memb_id: int, cur_money: int, cur_xp: int, auth_id: int):
         super().__init__(title=title, timeout=timeout, custom_id=f"8100_{auth_id}_{randint(1, 100)}")
         self.is_changed = False
@@ -1622,7 +1622,7 @@ class ManageMemberModal(Modal):
         self.stop()
 
 
-class ManageMembersView(View):
+class ManageMemberView(View):
     def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set, rls: list, cur_money: int, cur_xp: int, rem_dis: bool, g_id: int, member):
         super().__init__(timeout=timeout)
         self.add_item(CustomButton(style=ButtonStyle.blurple, label=mng_membs_text[lng][0], emoji="🔧", custom_id=f"18_{auth_id}_{randint(1, 100)}"))
@@ -1667,13 +1667,13 @@ class ManageMembersView(View):
             embs[2] = emb3
             await interaction.message.edit(embeds=embs, view=self)
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(self.role, self.memb_id)), ephemeral=True)
-            self.role = None
         else:
             dsc.append(f"<@&{self.role}>**` - {self.role}`**")
             emb3.description = "\n".join(dsc)
             embs[2] = emb3
             await interaction.message.edit(embeds=embs)
-            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(self.role, self.memb_id)), ephemeral=True)       
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(self.role, self.memb_id)), ephemeral=True)
+        self.role = None
         
 
     async def rem_r(self, lng: int, interaction: Interaction) -> None:
@@ -1700,8 +1700,7 @@ class ManageMembersView(View):
             self.children[-1].disabled = True
             embs[2] = emb3
             await interaction.message.edit(embeds=embs, view=self)
-            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)
-            self.role = None
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)            
         else:
             i = 0
             s_role = f"{self.role}"
@@ -1714,13 +1713,13 @@ class ManageMembersView(View):
             embs[2] = emb3
             await interaction.message.edit(embeds=embs)
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)
-            
+        self.role = None
 
     async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
 
         if c_id.startswith("18_"):
-            edit_modl = ManageMemberModal(timeout=90, title=mng_membs_text[lng][19], lng=lng, memb_id=self.memb_id, cur_money=self.cash, cur_xp=self.xp, auth_id=self.auth_id)
+            edit_modl = ManageMemberCashXpModal(timeout=90, title=mng_membs_text[lng][19], lng=lng, memb_id=self.memb_id, cur_money=self.cash, cur_xp=self.xp, auth_id=self.auth_id)
 
             await interaction.response.send_modal(modal=edit_modl)
             await edit_modl.wait()
@@ -2548,7 +2547,7 @@ class SettingsView(View):
             if db_roles: db_roles = {x[0] for x in db_roles}
             roles = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable() and rl.id in db_roles]
 
-            mng_v = ManageMembersView(
+            mng_v = ManageMemberView(
                 timeout=110, 
                 lng=lng, 
                 auth_id=interaction.user.id, 
