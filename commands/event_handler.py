@@ -1,30 +1,30 @@
-from os import path, mkdir
-from contextlib import closing
 from sqlite3 import connect, Connection, Cursor
 from datetime import datetime, timedelta
-from time import time
+from contextlib import closing
+from os import path, mkdir
 from asyncio import sleep
+from time import time
 
 from nextcord import Game, Message, ChannelType, Embed, Guild, Interaction
-from nextcord.ext import commands, tasks
 from nextcord.errors import ApplicationCheckFailure
+from nextcord.ext.commands import Bot, Cog
+from nextcord.ext import tasks
 
 from Variables.vars import path_to, bot_guilds, ignored_channels
 from config import DEBUG
 
-# event_handl_text = {
-#     0 : {
-#         0 : "**Sorry, but you don't have enough permissions to use this command**",
-#     },
-#     1 : {
-#         0 : "**Извините, но у Вас недостаточно прав для использования этой командыы**",
-#     }
-# }
+event_handl_text = {
+    0 : {
+        0 : "**Sorry, but you don't have enough permissions to use this command**",
+    },
+    1 : {
+        0 : "**Извините, но у Вас недостаточно прав для использования этой командыы**",
+    }
+}
 
 
-class msg_h(commands.Cog):
-    
-    def __init__(self, bot: commands.Bot):
+class EventsHandlerCog(Cog):
+    def __init__(self, bot: Bot):
         self.bot = bot
         
         global tx
@@ -105,11 +105,11 @@ class msg_h(commands.Cog):
                     await c.send(embed=Embed(description="\n".join(greetings[lng])))
                     break
 
-    @commands.Cog.listener()
+    @Cog.listener()
     async def on_connect(self):
         self.log_event(report=["on_connect"])
     
-    @commands.Cog.listener()
+    @Cog.listener()
     async def on_ready(self):
         setattr(self.bot, "current_polls", 0)
         if not path.exists(f"{path_to}/bases/"):
@@ -132,7 +132,7 @@ class msg_h(commands.Cog):
 
         self.log_event(report=["on_ready", f"total {len(bot_guilds)} guilds"])
 
-    @commands.Cog.listener()
+    @Cog.listener()
     async def on_guild_join(self, guild: Guild):
         if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
             mkdir(f"{path_to}/bases/bases_{guild.id}/")
@@ -149,7 +149,7 @@ class msg_h(commands.Cog):
 
         await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
 
-    @commands.Cog.listener()
+    @Cog.listener()
     async def on_guild_remove(self, guild: Guild):
         g_id = guild.id
         if g_id in bot_guilds:
@@ -219,7 +219,7 @@ class msg_h(commands.Cog):
             return 0
 
 
-    @commands.Cog.listener()
+    @Cog.listener()
     async def on_message(self, message: Message):
         user = message.author
 
@@ -271,17 +271,16 @@ class msg_h(commands.Cog):
                             await user.remove_roles(role, reason=f"Member gained new level {lvl}")
 
 
-    @commands.Cog.listener()
+    @Cog.listener()
     async def on_application_command_error(self, interaction: Interaction, exception) -> None:
         if isinstance(exception, ApplicationCheckFailure):
-            if "ru" in interaction.locale:
-                await interaction.response.send_message(embed=Embed(description="**`Извините, но у Вас недостаточно прав для использования этой команды`**"), ephemeral=True)
-            else:
-                await interaction.response.send_message(embed=Embed(description="**`Sorry, but you don't have enough permissions to use this command`**"), ephemeral=True)
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=event_handl_text[lng][0]), ephemeral=True)
             return
+
         with open("error.log", "a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash_command] [{interaction.application_command.name}] [{interaction.guild_id}] [{interaction.guild.name}] [{str(exception)}]\n")
 
 
-def setup(bot: commands.Bot):
-    bot.add_cog(msg_h(bot))
+def setup(bot: Bot):
+    bot.add_cog(EventsHandlerCog(bot))

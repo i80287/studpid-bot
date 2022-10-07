@@ -1,13 +1,12 @@
-
+from datetime import datetime, timedelta, timezone
 from sqlite3 import Connection, Cursor, connect
 from contextlib import closing
-from datetime import datetime, timedelta, timezone
-from time import time
 from random import randint
+from time import time
 
-from nextcord.ext import commands
 from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Locale, SelectOption, slash_command, Role, Member
 from nextcord.ui import Button, View, Select
+from nextcord.ext.commands import Bot, Cog
 
 from config import in_row
 from Variables.vars import path_to
@@ -230,8 +229,7 @@ rating_text = {
 }
 
 
-class c_button(Button):
-
+class CustomButton(Button):
     def __init__(self, label: str, custom_id: str, style = ButtonStyle.secondary, emoji = None):
         super().__init__(style=style, label=label, custom_id=custom_id, emoji=emoji)
     
@@ -239,8 +237,7 @@ class c_button(Button):
         await self.view.click_b(interaction, self.custom_id)
 
 
-class c_select(Select):
-
+class CustomSelect(Select):
     def __init__(self, custom_id: str, placeholder: str, opts: list) -> None:
         super().__init__(custom_id=custom_id, placeholder=placeholder, options=opts)
     
@@ -248,8 +245,7 @@ class c_select(Select):
         await self.view.click_menu(interaction, self.custom_id, self.values)     
 
 
-class bet_slash_view(View):
-
+class BetView(View):
     def __init__(self, timeout: int, lng: int, auth_id: int, bet: int, currency: str):
         super().__init__(timeout=timeout)
         self.bet = bet
@@ -257,8 +253,8 @@ class bet_slash_view(View):
         self.dueler = None
         self.declined = False
         self.currency = currency
-        self.add_item(c_button(label=bet_text[lng][0], custom_id=f"36_{auth_id}_{randint(1, 100)}", style=ButtonStyle.green, emoji="💰"))
-        self.add_item(c_button(label=bet_text[lng][1], custom_id=f"37_{auth_id}_{randint(1, 100)}", style=ButtonStyle.red, emoji="❌"))
+        self.add_item(CustomButton(label=bet_text[lng][0], custom_id=f"36_{auth_id}_{randint(1, 100)}", style=ButtonStyle.green, emoji="💰"))
+        self.add_item(CustomButton(label=bet_text[lng][1], custom_id=f"37_{auth_id}_{randint(1, 100)}", style=ButtonStyle.red, emoji="❌"))
 
     async def click_b(self, interaction: Interaction, c_id: str):
         memb_id =  interaction.user.id
@@ -296,8 +292,7 @@ class bet_slash_view(View):
             self.stop()
 
 
-class store_slash_view(View):
-
+class StoreView(View):
     def __init__(self, timeout: int, db_store: list, auth_id: int, lng: int, in_row: int, currency: str, tz: int):
         super().__init__(timeout=timeout)
         self.db_store = db_store
@@ -311,10 +306,10 @@ class store_slash_view(View):
         self.lng = lng
         self.pages = max(1, (self.l + in_row - 1) // in_row)
 
-        self.add_item(c_button(label="", custom_id=f"32_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
-        self.add_item(c_button(label="", custom_id=f"33_{auth_id}_{randint(1, 100)}", emoji="◀️"))
-        self.add_item(c_button(label="", custom_id=f"34_{auth_id}_{randint(1, 100)}", emoji="▶️"))
-        self.add_item(c_button(label="", custom_id=f"35_{auth_id}_{randint(1, 100)}", emoji="⏭"))
+        self.add_item(CustomButton(label="", custom_id=f"32_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
+        self.add_item(CustomButton(label="", custom_id=f"33_{auth_id}_{randint(1, 100)}", emoji="◀️"))
+        self.add_item(CustomButton(label="", custom_id=f"34_{auth_id}_{randint(1, 100)}", emoji="▶️"))
+        self.add_item(CustomButton(label="", custom_id=f"35_{auth_id}_{randint(1, 100)}", emoji="⏭"))
 
         opts = [
             SelectOption(
@@ -330,7 +325,7 @@ class store_slash_view(View):
                 default=False
             )
         ]
-        self.add_item(c_select(custom_id=f"102_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][4], opts=opts))
+        self.add_item(CustomSelect(custom_id=f"102_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][4], opts=opts))
         opts = [
             SelectOption(
                 label=store_text[lng][8],
@@ -345,7 +340,7 @@ class store_slash_view(View):
                 default=False
             )
         ]
-        self.add_item(c_select(custom_id=f"103_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][7], opts=opts))
+        self.add_item(CustomSelect(custom_id=f"103_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][7], opts=opts))
         
 
     def sort_store(self) -> None:
@@ -500,14 +495,13 @@ class store_slash_view(View):
         return True
 
 
-class buy_slash_view(View):
-
+class BuyView(View):
     def __init__(self, timeout: int, auth_id: int, lng: int):
         super().__init__(timeout=timeout)
         self.auth_id = auth_id
         self.value = False
-        self.add_item(c_button(label=buy_approve_text[lng][0], custom_id=f"30_{auth_id}_{randint(1, 100)}", style=ButtonStyle.green, emoji="✅"))
-        self.add_item(c_button(label=buy_approve_text[lng][1], custom_id=f"31_{auth_id}_{randint(1, 100)}", style=ButtonStyle.red, emoji="❌"))
+        self.add_item(CustomButton(label=buy_approve_text[lng][0], custom_id=f"30_{auth_id}_{randint(1, 100)}", style=ButtonStyle.green, emoji="✅"))
+        self.add_item(CustomButton(label=buy_approve_text[lng][1], custom_id=f"31_{auth_id}_{randint(1, 100)}", style=ButtonStyle.red, emoji="❌"))
 
     async def click_b(self, _, c_id: str):
         if c_id.startswith("30_"):
@@ -524,8 +518,7 @@ class buy_slash_view(View):
         return True
 
 
-class rating_slash_view(View):
-
+class RatingView(View):
     def __init__(self, timeout: int, lng: int, auth_id: int, l: int, cash_list: list, xp_list: list, xp_b: int, in_row: int, ec_status: int, rnk_status: int, currency: str):
         super().__init__(timeout=timeout)
         self.xp_b = xp_b
@@ -540,10 +533,10 @@ class rating_slash_view(View):
             self.sort_value = True # True - show ranking by cash, False - by xp
         else:
             self.sort_value = False # True - show ranking by cash, False - by xp
-        self.add_item(c_button(label="", custom_id=f"38_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
-        self.add_item(c_button(label="", custom_id=f"39_{auth_id}_{randint(1, 100)}", emoji="◀️"))
-        self.add_item(c_button(label="", custom_id=f"40_{auth_id}_{randint(1, 100)}", emoji="▶️"))
-        self.add_item(c_button(label="", custom_id=f"41_{auth_id}_{randint(1, 100)}", emoji="⏭"))
+        self.add_item(CustomButton(label="", custom_id=f"38_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
+        self.add_item(CustomButton(label="", custom_id=f"39_{auth_id}_{randint(1, 100)}", emoji="◀️"))
+        self.add_item(CustomButton(label="", custom_id=f"40_{auth_id}_{randint(1, 100)}", emoji="▶️"))
+        self.add_item(CustomButton(label="", custom_id=f"41_{auth_id}_{randint(1, 100)}", emoji="⏭"))
         if ec_status and rnk_status:
             opts = [
                 SelectOption(
@@ -559,7 +552,7 @@ class rating_slash_view(View):
                     default=False
                 )
             ]
-            self.add_item(c_select(custom_id=f"104_{auth_id}_{randint(1, 100)}", placeholder=rating_text[lng][3], opts=opts))
+            self.add_item(CustomSelect(custom_id=f"104_{auth_id}_{randint(1, 100)}", placeholder=rating_text[lng][3], opts=opts))
 
     async def update_menu(self, interaction: Interaction, click: int):
         
@@ -645,10 +638,8 @@ class rating_slash_view(View):
         return True
 
 
-class slash_commands(commands.Cog):
-
-    
-    def __init__(self, bot: commands.Bot) -> None:
+class SlashCommandsCog(Cog):   
+    def __init__(self, bot: Bot) -> None:
         self.bot = bot
         self.in_row = in_row
 
@@ -723,7 +714,7 @@ class slash_commands(commands.Cog):
 
         emb = Embed(title=text_slash[lng][7], description=text_slash[lng][8].format(role.mention, cost, currency))
         
-        view = buy_slash_view(timeout=30, auth_id=memb_id, lng=lng)
+        view = BuyView(timeout=30, auth_id=memb_id, lng=lng)
         await interaction.response.send_message(embed=emb, view=view)
 
         c = await view.wait()
@@ -813,7 +804,7 @@ class slash_commands(commands.Cog):
             emb.set_footer(text=store_text[lng][3].format(1, 1))
 
         
-        myview_store = store_slash_view(timeout=60, db_store=db_store, auth_id=interaction.user.id, lng=lng, in_row=in_row, currency=currency, tz=tz)
+        myview_store = StoreView(timeout=60, db_store=db_store, auth_id=interaction.user.id, lng=lng, in_row=in_row, currency=currency, tz=tz)
 
         await interaction.response.send_message(embed=emb, view=myview_store)
         
@@ -1039,7 +1030,7 @@ class slash_commands(commands.Cog):
             await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][31].format(amount - member[1], currency), colour=Colour.red()), ephemeral=True)
             return
 
-        betview = bet_slash_view(timeout=30, lng=lng, auth_id=memb_id, bet=amount, currency=currency)
+        betview = BetView(timeout=30, lng=lng, auth_id=memb_id, bet=amount, currency=currency)
         
         emb = Embed(title=text_slash[lng][32], description=text_slash[lng][33].format(amount, currency))
         await interaction.response.send_message(embed=emb, view=betview)
@@ -1173,7 +1164,7 @@ class slash_commands(commands.Cog):
         else:
             emb.set_footer(text=rating_text[lng][2].format(1, 1))
 
-        rate_view = rating_slash_view(
+        rate_view = RatingView(
             timeout=40, 
             lng=lng, 
             auth_id=interaction.user.id, 
@@ -1352,5 +1343,5 @@ class slash_commands(commands.Cog):
         await self.leaders(interaction=interaction)
     
 
-def setup(bot: commands.Bot):
-    bot.add_cog(slash_commands(bot))
+def setup(bot: Bot):
+    bot.add_cog(SlashCommandsCog(bot))

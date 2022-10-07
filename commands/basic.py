@@ -1,15 +1,15 @@
-from os import path
-from asyncio import sleep
-from random import randint
 from sqlite3 import connect, Connection, Cursor
 from contextlib import closing
+from random import randint
+from asyncio import sleep
+from os import path
 
+from nextcord import Embed, Locale, Interaction, slash_command, TextInputStyle, Permissions, TextChannel
 from nextcord.ext.commands import command, is_owner, Bot, Context, Cog
-from nextcord import Embed, Locale, Interaction, slash_command, ButtonStyle, TextInputStyle, Permissions, TextChannel
-from nextcord.ui import Button, Modal, TextInput
+from nextcord.ui import Modal, TextInput
 
-from config import feedback_channel
 from Variables.vars import path_to
+from config import feedback_channel
 
 guide = {
     0 : {
@@ -164,15 +164,7 @@ feedback_text = {
 }
 
 
-class c_button(Button):
-    def __init__(self, label: str, style: ButtonStyle, emoji, c_id: str):
-        super().__init__(style=style, label=label, emoji=emoji, custom_id=c_id)
-    
-    async def callback(self, interaction: Interaction):
-        return await self.view.click(interaction=interaction, c_id=self.custom_id)
-
-
-class c_feedback_modal(Modal):
+class FeedbackModal(Modal):
     def __init__(self, lng: int, auth_id: int) -> None:
         super().__init__(title=feedback_text[lng][0], timeout=1200, custom_id=f"10100_{auth_id}_{randint(1, 100)}")
         self.feedback = TextInput(
@@ -207,38 +199,9 @@ class c_feedback_modal(Modal):
         self.stop()
 
 
-class mod_commands(Cog):
+class BasicComandsCog(Cog):
     def __init__(self, bot: Bot):
-        self.bot = bot
-
-        global text
-        text = {
-            0 : {
-                404 : 'Error',
-                18 : "**`This user not found on the server.`**",
-                19 : '**`Please, use correct arguments for command. More info via \n{}help_m {}`**',
-                20 : '**`This command not found`**',
-                21 : '**`This user not found`**',
-                22 : '**`Please, wait before reusing this command`**',
-                23 : "**`Sorry, but you don't have enough permissions for using this command`**",
-                24 : "**Economic moderator role is not chosen! User with administrator or manage server permissions can do it via `{}mod_role` `role_id`**",
-                40 : "**`This role not found`**",
-                41 : "**`This channel not found`**"
-            },
-            1 : {
-                404 : 'Ошибка',
-                18 : "**`На сервере не найден такой пользователь`**",
-                19 : "**`Пожалуйста, укажите верные аргументы команды. Подробнее - {}help_m {}`**",
-                20 : "**`Такая команда не найдена`**",
-                21 : "**`Такой пользователь не найден`**",
-                22 : "**`Пожалуйста, подождите перед повторным использованием команды`**",
-                23 : "**`У Ваc недостаточно прав для использования этой команды`**",
-                24 : "**Роль модератора экономики не выбрана! Пользователь с правами админитратора или управляющего сервером должен сделать это при помощи `{}mod_role` `role_id`**",
-                40 : "**`Такая роль не найдена`**",
-                41 : "**`Такой канал не найден`**"
-            }
-        }
-        
+        self.bot = bot        
 
     def mod_role_set(self, ctx: Context) -> bool:
         with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
@@ -320,7 +283,7 @@ class mod_commands(Cog):
   
     async def feedback(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
-        mdl = c_feedback_modal(lng=lng, auth_id=interaction.user.id)
+        mdl = FeedbackModal(lng=lng, auth_id=interaction.user.id)
         await interaction.response.send_modal(modal=mdl)
 
 
@@ -419,44 +382,9 @@ class mod_commands(Cog):
 
     @Cog.listener()
     async def on_command_error(self, ctx: Context, error):
-        # from nextcord.ext import commands
-        # from nextcord.ext.commands import CheckFailure
-        # from nextcord import Colour
-        # from datetime import datetime, timedelta
-
-        # lng = 1 if "ru" in ctx.guild.preferred_locale else 0
-        # emb=Embed(title=text[lng][404],colour=Colour.red())
-        # if isinstance(error, commands.MemberNotFound):
-        #     emb.description = text[lng][18]
-        #     """elif isinstance(error, commands.MissingRequiredArgument) or isinstance(error, commands.BadArgument):
-        #     try:
-        #         emb.description = text[lng][19].format(self.prefix, str(ctx.command)[1:])
-        #     except:
-        #         emb.description = text[lng][19].format(self.prefix, "name_of_the_command") """
-
-        # elif isinstance(error, commands.CommandNotFound):
-        #     return
-        #     #emb.description = text[lng][20]
-        # elif isinstance(error, commands.UserNotFound):
-        #     emb.description = text[lng][21]
-        # elif isinstance(error, commands.RoleNotFound):
-        #     emb.description = text[lng][40]
-        # elif isinstance(error, commands.ChannelNotFound):
-        #     emb.description = text[lng][41]
-        # elif isinstance(error, commands.CommandOnCooldown):
-        #     emb.description = text[lng][22]
-        # elif isinstance(error, CheckFailure):
-        #     if self.mod_role_set(ctx=ctx):
-        #         emb.description = text[lng][23]
-        #     else:
-        #         emb.description = text[lng][24]
-        # else:
-        #     #raise error
-        #     with open("error.log", "a+", encoding="utf-8") as f:
-        #         f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{ctx.guild.name}] [{str(error)}]\n")
-        #     return
-        # await ctx.reply(embed=emb, mention_author=False)
+        # officially bot doesn't support text commands anymore
         return
 
+
 def setup(bot: Bot):
-    bot.add_cog(mod_commands(bot))
+    bot.add_cog(BasicComandsCog(bot))
