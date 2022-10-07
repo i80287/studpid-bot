@@ -5,7 +5,7 @@ from sqlite3 import connect, Connection, Cursor
 from random import randint
 from time import time
 
-from nextcord import Embed, Role, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextInputStyle
+from nextcord import Embed, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextInputStyle
 from nextcord.ui import View, Button, Select, TextInput, Modal
 from nextcord.ext import application_checks
 from nextcord.ext.commands import Cog, Bot
@@ -35,6 +35,7 @@ settings_text = {
         11 : "**`Select channel`**",
         12 : "Not selected",
         13 : "```fix\nnot selected\n```",
+        14 : "**`This role not found on the server. Please try to recall the command`**"
     },
     1 : {
         0 : "Выберите раздел",
@@ -57,7 +58,8 @@ settings_text = {
         10 : "Выберите канал",
         11 : "**`Выберите канал`**",
         12 : "Не выбрано",
-        13 : "```fix\nне выбран\n```"
+        13 : "```fix\nне выбран\n```",
+        14 : "**`Эта роль не найдена на сервере. Пожалуйста, попробуйте вызвать команду снова`**"
     }
 }
 
@@ -195,9 +197,9 @@ mod_roles_text = {
         1 : "No roles selected",
         2 : "__**role - id**__",
         7 : "**`This role already in the list`**",
-        8 : "**`Role `**{}**` added to the list`**",
+        8 : "**`Role `**{}**` was added to the list`**",
         9 : "**`This role is not in the list`**",
-        10 : "**`Role `**{}**` removed from the list`**",
+        10 : "**`Role `**{}**` was removed from the list`**",
         11 : "**`Sorry, but you can't manage menu called by another user`**"
     },
     1 : {
@@ -721,7 +723,6 @@ class gen_settings_view(View):
 
 
 class mod_roles_view(View):
-
     def __init__(self, t_out: int, m_rls: set, lng: int, auth_id: int, rem_dis: bool, rls: list) -> None:
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
@@ -733,52 +734,63 @@ class mod_roles_view(View):
         self.add_item(c_button(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
     
 
-    async def add_role(self, rl: Role, interaction: Interaction, lng: int, m: Message) -> None:
-        if rl.id in self.m_rls:
+    async def add_role(self, interaction: Interaction, lng: int) -> None:
+        rl_id = self.role
+        if rl_id in self.m_rls:
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][7]), ephemeral=True)
-            return
-        
+            return       
+                
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                cur.execute("INSERT OR IGNORE INTO mod_roles(role_id) VALUES(?)", (rl.id,))
+                cur.execute("INSERT OR IGNORE INTO mod_roles(role_id) VALUES(?)", (rl_id,))
                 base.commit()
-        self.m_rls.add(rl.id)
-        emb = m.embeds[0]
+
+        self.m_rls.add(rl_id)
+        
+        emb = interaction.message.embeds[0]
         dsc = emb.description.split("\n")
-
         if len(self.m_rls) == 1:
-            for j in 0, 1:
-                if mod_roles_text[j][1] in dsc:
-                    dsc.remove(mod_roles_text[j][1])
-            dsc.append(mod_roles_text[lng][2])
+            for c in self.children:
+                if c.custom_id.startswith("9_"):
+                    c.disabled = False
+            emb.description = f"{mod_roles_text[lng][2]}\n<@&{rl_id}> - {rl_id}"
+            await interaction.message.edit(view=self, embed=emb)
+        else:
+            dsc.append(f"<@&{rl_id}> - {rl_id}")
+            emb.description = "\n".join(sorted(dsc))
+            await interaction.message.edit(embed=emb)
 
-        dsc.append(f"<@&{rl.id}> - {rl.id}")
-        emb.description = "\n".join(dsc)
-        await m.edit(embed=emb)
-        await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][8].format(rl.mention)), ephemeral=True)
+        self.role = None
+        await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][8].format(f"<@&{rl_id}>")), ephemeral=True)
     
 
-    async def rem_role(self, rl: Role, interaction: Interaction, lng: int, m: Message) -> None:
-        if not rl.id in self.m_rls:
+    async def rem_role(self, interaction: Interaction, lng: int) -> None:
+        rl_id = self.role
+        if not rl_id in self.m_rls:
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][9]), ephemeral=True)
             return
-
+        
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                cur.execute("DELETE FROM mod_roles WHERE role_id = ?", (rl.id,))
+                cur.execute("DELETE FROM mod_roles WHERE role_id = ?", (rl_id,))
                 base.commit()
-        self.m_rls.remove(rl.id)
-        emb = m.embeds[0]
+        self.m_rls.remove(rl_id)
+        emb = interaction.message.embeds[0]
 
-        if len(self.m_rls):
+        if self.m_rls:
             dsc = emb.description.split("\n")
-            dsc.remove(f"<@&{rl.id}> - {rl.id}")
-            emb.description = "\n".join(dsc)
+            dsc.remove(f"<@&{rl_id}> - {rl_id}")
+            emb.description = "\n".join(sorted(dsc))
+            await interaction.message.edit(embed=emb)
         else:
+            for c in self.children:
+                if c.custom_id.startswith("9_"):
+                    c.disabled = True
             emb.description = mod_roles_text[lng][1]
+            await interaction.message.edit(embed=emb, view=self)
 
-        await m.edit(embed=emb)
-        await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][10].format(rl.mention)), ephemeral=True)
+        self.role = None        
+        await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][10].format(f"<@&{rl_id}>")), ephemeral=True)
 
 
     async def click(self, interaction: Interaction, c_id: str):
@@ -788,30 +800,17 @@ class mod_roles_view(View):
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
             return
 
-        rl_id = self.role
-        rl = interaction.guild.get_role(rl_id)
-        if rl:
+        if interaction.guild.get_role(self.role):
             if c_id.startswith("8_"):
-                await self.add_role(rl=rl, interaction=interaction, lng=lng, m=m)
-                if len(self.m_rls) == 1:
-                    for c in self.children:
-                        if c.custom_id.startswith("9_"):
-                            c.disabled = False
-                    await m.edit(view=self)
-                self.role = None
+                await self.add_role(interaction=interaction, lng=lng)
             elif c_id.startswith("9_"):
-                await self.rem_role(rl=rl, interaction=interaction, lng=lng, m=m)
-                if len(self.m_rls) == 0:
-                    for c in self.children:
-                        if c.custom_id.startswith("9_"):
-                            c.disabled = True
-                    await m.edit(view=self)
-                self.role = None
-
+                await self.rem_role(interaction=interaction, lng=lng)
+        else:
+            interaction.response.send_message(embed=Embed(description=settings_text[lng][14]), ephemeral=True)
 
     async def click_menu(self, __, c_id: str, values):
         if c_id.startswith("20") and c_id[3] == "_":
-            self.role =  int(values[0])
+            self.role = int(values[0])
     
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
@@ -822,7 +821,6 @@ class mod_roles_view(View):
 
 
 class economy_view(View):
-
     def __init__(self, t_out: int, auth_id: int):
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
@@ -909,7 +907,6 @@ class economy_view(View):
             return True
 
     async def log_chnl(self, interaction: Interaction, lng: int) -> None:
-        
         channels = [(c.name, c.id) for c in interaction.guild.text_channels]
         for i in range(min((len(channels) + 23) // 24, 7)):
             opts = [(settings_text[lng][12], 0)] + channels[i*24:min((i+1)*24, len(channels))]
@@ -956,51 +953,50 @@ class economy_view(View):
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][21]))
         
         self.channel = None
-                    
-    
+
+    async def manage_economy_roles(self, interaction: Interaction, lng: int) -> None:
+        emb = Embed()
+        s_rls = set()
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(base.cursor()) as cur:
+                roles: list = cur.execute('SELECT * FROM server_roles').fetchall()
+                if roles:
+                    descr: list[str] = [ec_text[lng][18]]
+                    for role in roles:
+                        s_rls.add(role[0])
+                        if role[4] == 1:
+                            cnt = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role[0],)).fetchone()[0]
+                        else:
+                            cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role[0],)).fetchone()
+                            if not cnt:
+                                cnt = 0
+                            elif role[4] == 2:
+                                cnt = cnt[0]
+                            else:
+                                cnt = "∞"
+                        descr.append(f"<@&{role[0]}> - **`{role[0]}`** - **`{role[1]}`** - **`{role[2]}`** - **`{role[3]//3600}`** - **`{r_types[lng][role[4]]}`** - **`{cnt}`**")
+                else:
+                    descr: list[str] = [ec_text[lng][19]]
+
+        descr.append("\n" + ec_text[lng][20])
+        emb.description="\n".join(descr)
+        
+        rls = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
+        if len(rls): rd = False
+        else: rd = True
+        ec_rls_view = economy_roles_manage_view(t_out=155, lng=lng, auth_id=self.auth_id, rem_dis=rd, rls=rls, s_rls=s_rls)
+        await interaction.response.send_message(embed=emb, view=ec_rls_view)
+        await ec_rls_view.wait()
+        for c in ec_rls_view.children:
+            c.disabled = True
+        await interaction.edit_original_message(view=ec_rls_view)
+
     async def click(self, interaction: Interaction, c_id: str) -> None:
         lng = 1 if "ru" in interaction.locale else 0
         if c_id.startswith("13"):
             await self.log_chnl(interaction=interaction, lng=lng)
         elif c_id.startswith("14"):
-            emb = Embed()
-            s_rls = set()
-            with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
-                with closing(base.cursor()) as cur:
-                    roles = cur.execute('SELECT * FROM server_roles').fetchall()
-
-                    if len(roles):
-                        descr = [ec_text[lng][18]]
-                        for role in roles:
-                            s_rls.add(role[0])
-                            if role[4] == 1:
-                                cnt = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role[0],)).fetchone()[0]
-                            else:
-                                cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role[0],)).fetchone()
-                                if not cnt:
-                                    cnt = 0
-                                elif role[4] == 2:
-                                    cnt = cnt[0]
-                                else:
-                                    cnt = "∞"
-                            descr.append(f"<@&{role[0]}> - **`{role[0]}`** - **`{role[1]}`** - **`{role[2]}`** - **`{role[3]//3600}`** - **`{r_types[lng][role[4]]}`** - **`{cnt}`**")
-                    else:
-                        descr = [ec_text[lng][19]]
-
-
-            descr.append("\n" + ec_text[lng][20])
-            emb.description="\n".join(descr)
-            
-            rls = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
-            if len(rls): rd = False
-            else: rd = True
-            ec_rls_view = economy_roles_manage_view(t_out=105, lng=lng, auth_id=self.auth_id, rem_dis=rd, rls=rls, s_rls=s_rls)
-            await interaction.response.send_message(embed=emb, view=ec_rls_view)
-            await ec_rls_view.wait()
-            for c in ec_rls_view.children:
-                c.disabled = True
-            await interaction.edit_original_message(view=ec_rls_view)
-
+            await self.manage_economy_roles(interaction=interaction, lng=lng)
         elif c_id[:2] in {"10", "11", "12"}:
             await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (int(c_id[:2]) - 10) * 2]), ephemeral=True)
             flag = True
@@ -1014,12 +1010,11 @@ class economy_view(View):
                     if c_id.startswith("10"): flag = await self.msg_salary(interaction=interaction, lng=lng, ans=ans)
                     elif c_id.startswith("11"): flag = await self.work_cldwn(interaction=interaction, lng=lng, ans=ans)
                     elif c_id.startswith("12"): flag = await self.work_salary(interaction=interaction, lng=lng, ans=ans)
-                try:
-                    await user_ans.delete()
-                except:
-                    pass
+                # try to delete user's ans
+                try: await user_ans.delete()
+                except: pass
 
-    async def click_menu(self, __, c_id: str, values) -> None:
+    async def click_menu(self, _, c_id: str, values) -> None:
         if c_id.startswith("50"):
             self.channel = int(values[0])
 
@@ -1032,7 +1027,6 @@ class economy_view(View):
 
 
 class economy_roles_manage_view(View):
-
     def __init__(self, t_out: int, lng: int, auth_id: int, rem_dis: bool, rls: list, s_rls: set):
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
@@ -2228,7 +2222,7 @@ class ranking_view(View):
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 lvl_rls = sorted(cur.execute("SELECT * FROM rank_roles").fetchall(), key=lambda tup: tup[0])
-        if len(lvl_rls):
+        if lvl_rls:
             dsc = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]
             rem_b = False
         else:
@@ -2396,7 +2390,6 @@ class poll_settings_view(View):
 
 
 class settings_view(View):
-    
     def __init__(self, t_out: int, auth_id: int, bot: Bot) -> None:
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
@@ -2629,8 +2622,7 @@ class settings_view(View):
                 c.disabled = True
             await interaction.edit_original_message(view=ec_v)
 
-        elif custom_id.startswith("4_"):
-            
+        elif custom_id.startswith("4_"):   
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     xp_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg'").fetchone()[0]
@@ -2692,10 +2684,8 @@ class settings_view(View):
 
 class m_cmds(Cog):
 
-
     def __init__(self, bot: Bot) -> None:
         self.bot = bot
-
 
     def mod_check(interaction: Interaction) -> bool:
         u = interaction.user
@@ -2713,11 +2703,8 @@ class m_cmds(Cog):
 
     async def settings(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
-        dsc = []
-        for i in settings_text[lng][1]:
-            dsc.append(i)
         st_view = settings_view(t_out=120, auth_id=interaction.user.id, bot=self.bot)
-        emb = Embed(title=settings_text[lng][0], description="\n".join(dsc))
+        emb = Embed(title=settings_text[lng][0], description="\n".join(settings_text[lng][1]))
         await interaction.response.send_message(embed=emb, view=st_view)
 
         await st_view.wait()

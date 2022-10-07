@@ -365,8 +365,8 @@ class mod_commands(Cog):
     @command(name="load")
     @is_owner()
     async def _load(self, ctx: Context, extension):
-        if path.exists(f"{path_to}/commands/{extension}.py"):
-            self.bot.load_extension(f"commands.{extension}")
+        if path.exists(f"{path_to}/Commands/{extension}.py"):
+            self.bot.load_extension(f"Commands.{extension}")
             await sleep(1)
             await self.bot.sync_all_application_commands()
             await sleep(1)
@@ -378,8 +378,8 @@ class mod_commands(Cog):
     @command(name="unload")
     @is_owner()
     async def _unload(self, ctx: Context, extension):
-        if path.exists(f"{path_to}/commands/{extension}.py"):
-            self.bot.unload_extension(f"commands.{extension}")
+        if path.exists(f"{path_to}/Commands/{extension}.py"):
+            self.bot.unload_extension(f"Commands.{extension}")
             await sleep(1)
             await self.bot.sync_all_application_commands()
             await sleep(1)
@@ -391,9 +391,10 @@ class mod_commands(Cog):
     @command(name="reload")
     @is_owner()
     async def _reload(self, ctx: Context, extension):
-        if path.exists(f"{path_to}/commands/{extension}.py"):
-            self.bot.unload_extension(f"commands.{extension}")
-            self.bot.load_extension(f"commands.{extension}")
+        if path.exists(f"{path_to}/Commands/{extension}.py"):
+            await ctx.reply(embed=Embed(description="Started reloading"), mention_author=False, delete_after=5)
+            self.bot.unload_extension(f"Commands.{extension}")
+            self.bot.load_extension(f"Commands.{extension}")
             await sleep(1)
             await self.bot.sync_all_application_commands()
             await sleep(1)
@@ -418,8 +419,6 @@ class mod_commands(Cog):
 
     @Cog.listener()
     async def on_command_error(self, ctx: Context, error):
-        return
-        
         # from nextcord.ext import commands
         # from nextcord.ext.commands import CheckFailure
         # from nextcord import Colour
@@ -457,6 +456,7 @@ class mod_commands(Cog):
         #         f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [{ctx.guild.id}] [{ctx.guild.name}] [{str(error)}]\n")
         #     return
         # await ctx.reply(embed=emb, mention_author=False)
+        return
 
 def setup(bot: Bot):
     bot.add_cog(mod_commands(bot))
