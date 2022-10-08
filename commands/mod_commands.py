@@ -1377,8 +1377,8 @@ class RoleEditModal(Modal):
             rep.append(ec_mr_text[lng][22])
         if (ans_c // 100000) % 2 == 1:
             rep.append(ec_mr_text[lng][29])
-
-        if len(rep):
+        
+        if rep:
             await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
             self.stop()
             return
@@ -1420,7 +1420,6 @@ class RoleEditModal(Modal):
         self.stop()
     
     def update_type_and_store(self, base: Connection, cur: Cursor, price: int, salary: int, salary_c: int, r_type: int, r:int, l: int) -> None:
-
         t = int(time())
         cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
         base.commit()
@@ -1464,20 +1463,17 @@ class RoleEditModal(Modal):
         base.commit()   
 
     def update_salary(self, base: Connection, cur: Cursor, r: int, salary: int, salary_c: int) -> None:
-        if salary == 0:
+        if not salary:
             cur.execute("DELETE FROM salary_roles WHERE role_id = ?", (r,))
             base.commit()
             return
-        if cur.execute("SELECT role_id FROM salary_roles WHERE role_id = ?", (r,)).fetchone() == None:
+        if not cur.execute("SELECT role_id FROM salary_roles WHERE role_id = ?", (r,)).fetchone():
             ids = set()
-            s_r = f"{r}"
-            for req in cur.execute("SELECT * FROM users").fetchall():
-                if s_r in req[2]:
-                    ids.add(f"{r[0]}")
-            if len(ids):
-                membs = "#".join(ids)
-            else:
-                membs = ""
+            string_role_id = f"{r}"
+            for req in cur.execute("SELECT memb_id, owned_roles FROM users").fetchall():
+                if string_role_id in req[1]:
+                    ids.add(f"{req[0]}")
+            membs = "".join(f"#{memb_id}" for memb_id in ids) if ids else ""
             cur.execute("INSERT INTO salary_roles(role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, ?)", (r, membs, salary, salary_c, 0))
             base.commit()
             return
