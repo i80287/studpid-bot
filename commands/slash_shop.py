@@ -739,7 +739,12 @@ class SlashCommandsCog(Cog):
                         cur.execute('UPDATE store SET quantity = quantity - 1 WHERE role_id = ?', (r_id,))
                     else:
                         cur.execute("DELETE FROM store WHERE role_id = ?", (r_id,))
-                    
+
+                if store[4]:
+                    role_members = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (r_id,)).fetchone()
+                    if role_members:
+                        cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (role_members[0] + f"#{memb_id}", r_id))
+
                 base.commit()
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
 
@@ -855,9 +860,6 @@ class SlashCommandsCog(Cog):
                 if r_type == 1:
                     cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", 
                             (r_id, 1, r_price, time_now, r_sal, r_sal_c, 1))
-                    membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (r_id,)).fetchone()
-                    if membs and membs[0]:
-                        cur.execute("UPDATE money_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"#{memb_id}", ""), r_id))
 
                 elif r_type == 2:                   
                     if db_store:
@@ -870,10 +872,16 @@ class SlashCommandsCog(Cog):
                     if db_store:
                         cur.execute("UPDATE store SET last_date = ? WHERE role_id = ?", (time_now, r_id))
                     else:
-                        cur.execute('INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)', 
+                        cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", 
                         (r_id, -404, r_price, time_now, r_sal, r_sal_c, 3))
 
                 base.commit()
+                
+                if r_sal:
+                    role_members = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (r_id,)).fetchone()
+                    if role_members:
+                        cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (role_members[0].replace(f"#{memb_id}", ""), r_id))
+                        base.commit()
                 
                 chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
                 currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
