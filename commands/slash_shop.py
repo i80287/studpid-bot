@@ -914,6 +914,7 @@ class SlashCommandsCog(Cog):
                 rnk_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
                 if ec_status:
                     membs_cash: list[int, int] = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+                    db_roles: set = set(role[0] for role in cur.execute("SELECT role_id FROM server_roles").fetchall())
                 if rnk_status:
                     membs_xp: list[int, int] = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
 
@@ -968,11 +969,34 @@ class SlashCommandsCog(Cog):
 
         if ec_status:
             emb3 = Embed()
-            if member[2] != "":
-                dsc = [code_blocks[lng*5]] + [f"<@&{r}>" for r in member[2].split("#") if r != ""]
-            else:
-                dsc = [profile_text[lng][6]]
-            emb3.description = "\n".join(dsc)
+            onserver_roles = interaction.user.roles
+            onserver_roles.remove(interaction.guild.default_role)
+            memb_server_db_roles = set(role.id for role in onserver_roles) & db_roles
+            memb_roles = {int(role_id) for role_id in member[2].split("#") if role_id} if member[2] else set()
+
+            emb3.description = "\n".join([code_blocks[lng*5]] + [f"<@&{r}>" for r in memb_server_db_roles]) if memb_server_db_roles else profile_text[lng][6]
+            
+            # in case role(s) was(were) removed from user manually, we should update database
+            if memb_roles != memb_server_db_roles:
+                with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                    with closing(base.cursor()) as cur:
+                        cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", ("".join(f"#{role_id}" for role_id in memb_server_db_roles), memb_id))
+                        base.commit()
+                        # roles to remove from db
+                        for role_id in memb_roles.difference(memb_server_db_roles):
+                            if cur.execute("SELECT salary FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()[0]:
+                                membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (role_id,)).fetchone()
+                                if membs:
+                                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"#{memb_id}", ""), role_id))
+                                    base.commit()
+                        # roles to add in db
+                        for role_id in memb_server_db_roles.difference(memb_roles):
+                            if cur.execute("SELECT salary FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()[0]:
+                                membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (role_id,)).fetchone()
+                                if membs and str(memb_id) not in membs[0]:
+                                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0] + f"#{memb_id}", role_id))
+                                base.commit()
+            
             embs.append(emb3)
 
         await interaction.response.send_message(embeds=embs)
