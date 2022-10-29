@@ -1,0 +1,16 @@
+bases
+for tests
+additional_files
+
+*.toml
+*.cfg
+setup.py
+__init__.py
+*.egg-info
+config.py
+*.log
+*.todo
+
+.vs
+venv
+__pycache__
