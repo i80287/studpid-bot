@@ -1,7 +1,3 @@
-"""activate_this = '/home/bot/python/bin/activate_this.py'
-with open(activate_this) as f:
-    exec(f.read(), {'__file__': activate_this})"""
-
 from nextcord import Intents
 from nextcord.ext.commands import Bot, when_mentioned_or
 

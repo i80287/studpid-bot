@@ -8,8 +8,8 @@ from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Local
 from nextcord.ui import Button, View, Select
 from nextcord.ext.commands import Bot, Cog
 
-from config import in_row
 from Variables.vars import path_to
+from config import in_row
 
 common_text = {
     0 : {
