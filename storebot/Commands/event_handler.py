@@ -235,12 +235,13 @@ class EventsHandlerCog(Cog):
         if user.bot or message.channel.type is ChannelType.private:
             return
         
-        if message.guild.id not in ignored_channels:
-            ignored_channels[message.guild.id] = set()
-        elif message.channel.id in ignored_channels[message.guild.id]:
+        g_id = message.guild.id
+        if g_id not in ignored_channels:
+            ignored_channels[g_id] = set()
+        elif message.channel.id in ignored_channels[g_id]:
             return
 
-        with closing(connect(f"{path_to}/bases/bases_{message.guild.id}/{message.guild.id}.db")) as base:
+        with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:                    
                 xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border';").fetchone()[0]
                 xp_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';").fetchone()[0]

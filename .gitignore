@@ -12,5 +12,6 @@ config.py
 *.todo
 
 .vs
+.vscode
 venv
 __pycache__
