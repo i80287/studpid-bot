@@ -56,7 +56,7 @@ class EventsHandlerCog(Cog):
         self.salary_roles.start()
         self._backup.start()
         
-    def correct_db(self, guild: Guild) -> None:
+    def correct_db(self, guild: Guild):
         with closing(connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 cur.executescript("""
@@ -92,11 +92,11 @@ class EventsHandlerCog(Cog):
         bot_guilds.add(guild.id)
         self.log_event(report=["correct_db func", str(guild.id), str(guild.name)])
 
-    def log_event(self, filename: str = "common_logs", report: list[str] = [""]) -> None:
+    def log_event(self, filename: str = "common_logs", report: list[str] = [""]):
         with open(file=filename+".log", mode="a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] {' '.join([f'[{s}]' for s in report])}\n")
 
-    async def send_first_message(self, guild: Guild, lng: int) -> None:
+    async def send_first_message(self, guild: Guild, lng: int):
         if guild.system_channel.permissions_for(guild.me).send_messages:
             await guild.system_channel.send(embed=Embed(description="\n".join(greetings[lng])))
         else:
@@ -272,7 +272,7 @@ class EventsHandlerCog(Cog):
 
 
     @Cog.listener()
-    async def on_application_command_error(self, interaction: Interaction, exception) -> None:
+    async def on_application_command_error(self, interaction: Interaction, exception):
         if isinstance(exception, ApplicationCheckFailure):
             lng = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=event_handl_text[lng][0]), ephemeral=True)

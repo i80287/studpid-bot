@@ -177,7 +177,7 @@ class AdditionalCommandsCog(Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
 
-    def check_user(self, base: Connection, cur: Cursor, memb_id: int) -> None:
+    def check_user(self, base: Connection, cur: Cursor, memb_id: int):
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
         if not member:
             cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))

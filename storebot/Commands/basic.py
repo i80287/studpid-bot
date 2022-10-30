@@ -165,7 +165,7 @@ feedback_text = {
 
 
 class FeedbackModal(Modal):
-    def __init__(self, lng: int, auth_id: int) -> None:
+    def __init__(self, lng: int, auth_id: int):
         super().__init__(title=feedback_text[lng][0], timeout=1200, custom_id=f"10100_{auth_id}_{randint(1, 100)}")
         self.feedback = TextInput(
             label=feedback_text[lng][0],
@@ -178,7 +178,7 @@ class FeedbackModal(Modal):
         self.add_item(self.feedback)
         
     
-    async def callback(self, interaction: Interaction) -> None:    
+    async def callback(self, interaction: Interaction):    
 
         dsc = (
             f"`Guild: {interaction.guild.name} - {interaction.guild_id}`",
