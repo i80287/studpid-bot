@@ -142,7 +142,15 @@ class EventsHandlerCog(Cog):
         except:
             lng = 0
         
-        await self.send_first_message(guild=guild, lng=lng)
+        if guild.me:
+            await self.send_first_message(guild=guild, lng=lng)
+        else:
+            g = self.bot.get_guild(guild.id)
+            if g.me:
+                await self.send_first_message(guild=g, lng=lng)
+            else:
+                with open("error.log", "a+", encoding="utf-8") as f:
+                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [FATAL] [ERROR] [send_first_message] [{[m.id for m in guild]}] [{[memb.id for memb in g]}] [{guild.me}] [{g.me}]\n")
     
         self.log_event(filename="guild", report=["guild_join", str(guild.id), str(guild.name)])
         self.log_event(report=["guild_join", str(guild.id), str(guild.name)])
@@ -243,7 +251,7 @@ class EventsHandlerCog(Cog):
                 if lvl:
                     chnl = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
                     
-                    if chnl != 0:
+                    if chnl:
                         ch = message.guild.get_channel(chnl)
                         if ch:
                             lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
