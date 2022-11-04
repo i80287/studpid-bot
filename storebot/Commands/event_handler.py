@@ -56,7 +56,7 @@ class EventsHandlerCog(Cog):
         self.salary_roles.start()
         self._backup.start()
         
-    def correct_db(self, guild: Guild) -> None:
+    def correct_db(self, guild: Guild):
         with closing(connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 cur.executescript("""
@@ -92,11 +92,11 @@ class EventsHandlerCog(Cog):
         bot_guilds.add(guild.id)
         self.log_event(report=["correct_db func", str(guild.id), str(guild.name)])
 
-    def log_event(self, filename: str = "common_logs", report: list[str] = [""]) -> None:
+    def log_event(self, filename: str = "common_logs", report: list[str] = [""]):
         with open(file=filename+".log", mode="a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] {' '.join([f'[{s}]' for s in report])}\n")
 
-    async def send_first_message(self, guild: Guild, lng: int) -> None:
+    async def send_first_message(self, guild: Guild, lng: int):
         if guild.system_channel.permissions_for(guild.me).send_messages:
             await guild.system_channel.send(embed=Embed(description="\n".join(greetings[lng])))
         else:
@@ -142,7 +142,15 @@ class EventsHandlerCog(Cog):
         except:
             lng = 0
         
-        await self.send_first_message(guild=guild, lng=lng)
+        if guild.me:
+            await self.send_first_message(guild=guild, lng=lng)
+        else:
+            g = self.bot.get_guild(guild.id)
+            if g.me:
+                await self.send_first_message(guild=g, lng=lng)
+            else:
+                with open("error.log", "a+", encoding="utf-8") as f:
+                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [FATAL] [ERROR] [send_first_message] [{[m.id for m in guild]}] [{[memb.id for memb in g]}] [{guild.me}] [{g.me}]\n")
     
         self.log_event(filename="guild", report=["guild_join", str(guild.id), str(guild.name)])
         self.log_event(report=["guild_join", str(guild.id), str(guild.name)])
@@ -227,12 +235,13 @@ class EventsHandlerCog(Cog):
         if user.bot or message.channel.type is ChannelType.private:
             return
         
-        if message.guild.id not in ignored_channels:
-            ignored_channels[message.guild.id] = set()
-        elif message.channel.id in ignored_channels[message.guild.id]:
+        g_id = message.guild.id
+        if g_id not in ignored_channels:
+            ignored_channels[g_id] = set()
+        elif message.channel.id in ignored_channels[g_id]:
             return
 
-        with closing(connect(f"{path_to}/bases/bases_{message.guild.id}/{message.guild.id}.db")) as base:
+        with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:                    
                 xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border';").fetchone()[0]
                 xp_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';").fetchone()[0]
@@ -243,7 +252,7 @@ class EventsHandlerCog(Cog):
                 if lvl:
                     chnl = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
                     
-                    if chnl != 0:
+                    if chnl:
                         ch = message.guild.get_channel(chnl)
                         if ch:
                             lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
@@ -272,7 +281,7 @@ class EventsHandlerCog(Cog):
 
 
     @Cog.listener()
-    async def on_application_command_error(self, interaction: Interaction, exception) -> None:
+    async def on_application_command_error(self, interaction: Interaction, exception):
         if isinstance(exception, ApplicationCheckFailure):
             lng = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=event_handl_text[lng][0]), ephemeral=True)

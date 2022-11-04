@@ -233,12 +233,12 @@ class CustomButton(Button):
     def __init__(self, label: str, custom_id: str, style = ButtonStyle.secondary, emoji = None):
         super().__init__(style=style, label=label, custom_id=custom_id, emoji=emoji)
     
-    async def callback(self, interaction: Interaction) -> None:
+    async def callback(self, interaction: Interaction):
         await self.view.click_b(interaction, self.custom_id)
 
 
 class CustomSelect(Select):
-    def __init__(self, custom_id: str, placeholder: str, opts: list) -> None:
+    def __init__(self, custom_id: str, placeholder: str, opts: list):
         super().__init__(custom_id=custom_id, placeholder=placeholder, options=opts)
     
     async def callback(self, interaction: Interaction):
@@ -343,7 +343,7 @@ class StoreView(View):
         self.add_item(CustomSelect(custom_id=f"103_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][7], opts=opts))
         
 
-    def sort_store(self) -> None:
+    def sort_store(self):
         
         sort_by = self.sort_by
 
@@ -394,7 +394,7 @@ class StoreView(View):
             self.db_store = store
 
 
-    async def update_menu(self, interaction: Interaction, click: int) -> None:
+    async def update_menu(self, interaction: Interaction, click: int):
         text = interaction.message.embeds[0].footer.text
 
         if not self.lng:
@@ -448,7 +448,7 @@ class StoreView(View):
                 await interaction.response.edit_message(embed=emb)
 
 
-    async def click_b(self, interaction: Interaction, c_id: str) -> None:
+    async def click_b(self, interaction: Interaction, c_id: str):
         click = 0
         if c_id.startswith("32_"):
             click = 1
@@ -462,7 +462,7 @@ class StoreView(View):
         await self.update_menu(interaction=interaction, click=click)
 
 
-    async def click_menu(self, interaction: Interaction, c_id: str, value) -> None:
+    async def click_menu(self, interaction: Interaction, c_id: str, value):
 
         if c_id.startswith("102_"):
             if int(value[0]):
@@ -603,7 +603,7 @@ class RatingView(View):
         else:
             await interaction.response.edit_message(embed=emb)
 
-    async def click_b(self, interaction: Interaction, c_id: str) -> None:
+    async def click_b(self, interaction: Interaction, c_id: str):
         
         if c_id.startswith("38_"):
             click = 1
@@ -616,7 +616,7 @@ class RatingView(View):
 
         await self.update_menu(interaction=interaction, click=click)
         
-    async def click_menu(self, interaction: Interaction, c_id: str, value) -> None:  
+    async def click_menu(self, interaction: Interaction, c_id: str, value):  
 
         if c_id.startswith("104_"):
             if int(value[0]):
@@ -639,7 +639,7 @@ class RatingView(View):
 
 
 class SlashCommandsCog(Cog):   
-    def __init__(self, bot: Bot) -> None:
+    def __init__(self, bot: Bot):
         self.bot = bot
         self.in_row = in_row
 
@@ -678,7 +678,7 @@ class SlashCommandsCog(Cog):
         return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
     
 
-    async def buy(self, interaction: Interaction, role: Role) -> None:
+    async def buy(self, interaction: Interaction, role: Role):
         lng = 1 if "ru" in interaction.locale else 0
         
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
@@ -764,7 +764,7 @@ class SlashCommandsCog(Cog):
             except: pass
 
 
-    async def store(self, interaction: Interaction) -> None:
+    async def store(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
@@ -819,7 +819,7 @@ class SlashCommandsCog(Cog):
         await interaction.edit_original_message(view=myview_store)               
 
 
-    async def sell(self, interaction: Interaction, role: Role) -> None:
+    async def sell(self, interaction: Interaction, role: Role):
         lng = 1 if "ru" in interaction.locale else 0
         r_id = role.id
         
@@ -901,7 +901,7 @@ class SlashCommandsCog(Cog):
             except: pass
     
     
-    async def profile(self, interaction: Interaction) -> None:
+    async def profile(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
         memb_id = interaction.user.id
         embs: list[Embed] = []
@@ -1002,7 +1002,7 @@ class SlashCommandsCog(Cog):
         await interaction.response.send_message(embeds=embs)
     
 
-    async def work(self, interaction: Interaction) -> None:
+    async def work(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
@@ -1045,7 +1045,7 @@ class SlashCommandsCog(Cog):
             except: pass
     
 
-    async def bet(self, interaction: Interaction, amount: int) -> None:
+    async def bet(self, interaction: Interaction, amount: int):
         lng = 1 if "ru" in interaction.locale else 0
         memb_id = interaction.user.id
 
@@ -1113,7 +1113,7 @@ class SlashCommandsCog(Cog):
             except: pass
     
 
-    async def transfer(self, interaction: Interaction, value: int, target: Member) -> None:
+    async def transfer(self, interaction: Interaction, value: int, target: Member):
         memb_id = interaction.user.id
         t_id = target.id
         lng = 1 if "ru" in interaction.locale else 0
@@ -1149,7 +1149,7 @@ class SlashCommandsCog(Cog):
             except: pass
 
     
-    async def leaders(self, interaction: Interaction) -> None:
+    async def leaders(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
@@ -1239,7 +1239,7 @@ class SlashCommandsCog(Cog):
             },
             required=True
         )
-    ) -> None:
+    ):
         await self.buy(interaction=interaction, role=role)
                     
     
@@ -1250,7 +1250,7 @@ class SlashCommandsCog(Cog):
             Locale.ru : "Открывает меню магазина"
         }
     )
-    async def store_e(self, interaction: Interaction) -> None:
+    async def store_e(self, interaction: Interaction):
         await self.store(interaction=interaction)
      
 
@@ -1275,7 +1275,7 @@ class SlashCommandsCog(Cog):
             },
             required=True
         )
-    ) -> None:
+    ):
         await self.sell(interaction=interaction, role=role)
 
 
@@ -1286,7 +1286,7 @@ class SlashCommandsCog(Cog):
             Locale.ru: "Показывает меню Вашего профиля"
         }
     )
-    async def profile_e(self, interaction: Interaction) -> None:
+    async def profile_e(self, interaction: Interaction):
         await self.profile(interaction=interaction)
 
 
@@ -1297,7 +1297,7 @@ class SlashCommandsCog(Cog):
             Locale.ru: "Позволяет заработать деньги"
         }
     )
-    async def work_e(self, interaction: Interaction) -> None:
+    async def work_e(self, interaction: Interaction):
         await self.work(interaction=interaction)
     
 
@@ -1323,7 +1323,7 @@ class SlashCommandsCog(Cog):
             required=True, 
             min_value=1
         )
-    ) -> None: 
+    ): 
         await self.bet(interaction=interaction, amount=amount)
 
     
@@ -1360,7 +1360,7 @@ class SlashCommandsCog(Cog):
             },
             required=True
         )
-    ) -> None:
+    ):
         await self.transfer(interaction=interaction, value=value, target=target)
 
     
@@ -1371,7 +1371,7 @@ class SlashCommandsCog(Cog):
             Locale.ru: "Показывет топ пользователей по балансу"
         }
     )
-    async def leaders_e(self, interaction: Interaction) -> None:
+    async def leaders_e(self, interaction: Interaction):
         await self.leaders(interaction=interaction)
     
 
