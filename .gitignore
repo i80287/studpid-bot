@@ -13,5 +13,6 @@ config.py
 
 .vs
 .vscode
+.venv
 venv
 __pycache__
