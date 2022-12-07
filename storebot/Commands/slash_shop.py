@@ -408,9 +408,9 @@ class StoreView(View):
         
         db_store = self.db_store
 
-        if click in (1, 2) and page <= 1:
+        if click in {1, 2} and page <= 1:
             return
-        elif click in (3, 4) and page >= self.pages:
+        elif click in {3, 4} and page >= self.pages:
             return
 
         if click == 1:
@@ -555,8 +555,6 @@ class RatingView(View):
             self.add_item(CustomSelect(custom_id=f"104_{auth_id}_{randint(1, 100)}", placeholder=rating_text[lng][3], opts=opts))
 
     async def update_menu(self, interaction: Interaction, click: int):
-        
-        
         # page_text = interaction.message.embeds[0].footer.text
         # if not self.lng:
         #     t1 = page_text.find("Pa")
@@ -569,9 +567,9 @@ class RatingView(View):
 
         page = int(interaction.message.embeds[0].footer.text.split(" ")[1])
         
-        if click in (1, 2) and page <= 1:
+        if click in {1, 2} and page <= 1:
             return
-        elif click in (3, 4) and page >= self.pages:
+        elif click in {3, 4} and page >= self.pages:
             return
         
         if click == 1:
@@ -776,7 +774,7 @@ class SlashCommandsCog(Cog):
                 currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
         
         db_l = len(db_store)
-        l = db_l // 2
+        l = db_l >> 1
         while l:
             for i in range(l, db_l):
                 moving_item = db_store[i]
@@ -784,7 +782,7 @@ class SlashCommandsCog(Cog):
                     db_store[i] = db_store[i - l]
                     i -= l
                     db_store[i] = moving_item
-            l //= 2
+            l >> 1
 
         store_list = []
         tzinfo = timezone(timedelta(hours=tz))
@@ -930,7 +928,7 @@ class SlashCommandsCog(Cog):
         if ec_status:
             # cnt_cash is a place in the rating sorded by cash
             cash = member[1]
-            if membs_cash[l//2][1] < cash:
+            if membs_cash[l>>1][1] < cash:
                 cnt_cash = 1
                 while cnt_cash < l and memb_id != membs_cash[cnt_cash-1][0]:
                     cnt_cash += 1
@@ -948,7 +946,7 @@ class SlashCommandsCog(Cog):
         if rnk_status:
             # cnt_cash is a place in the rating sorded by xp
             xp = member[4]
-            if membs_xp[l//2][1] < xp:
+            if membs_xp[l>>1][1] < xp:
                 cnt_xp = 1
                 while cnt_xp < l and memb_id != membs_xp[cnt_xp-1][0]:
                     cnt_xp += 1
@@ -1171,22 +1169,17 @@ class SlashCommandsCog(Cog):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
             return
 
-        # I know about `l = len(membs_cash) if ec_status else len(membs_xp)` but it calls len() twice
-
-        if ec_status:
-            l = len(membs_cash)
-        else:
-            l = len(membs_xp)
-        counter = 1
-        
+        l = len(membs_cash) if ec_status else len(membs_xp)
+        end = min(in_row, l)
+        counter = 1        
         if ec_status:
             emb = Embed(title=rating_text[lng][0], colour=Colour.dark_gray())
-            for r in membs_cash[0:min(in_row, l)]:
+            for r in membs_cash[0:end]:
                 emb.add_field(name=rating_text[lng][3].format(counter), value=f"<@{r[0]}>\n{r[1]} {currency}", inline=False)
                 counter += 1 
         else:
             emb = Embed(title=rating_text[lng][1], colour=Colour.dark_gray())
-            for r in membs_xp[0:min(in_row, l)]:
+            for r in membs_xp[0:end]:
                 level = (r[1] - 1) // xp_b + 1
                 emb.add_field(name=rating_text[lng][3].format(counter), value=f"<@{r[0]}>\n{rating_text[lng][4].format(level)}", inline=False)
                 counter += 1
