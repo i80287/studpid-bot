@@ -1074,25 +1074,35 @@ class EconomyRolesManageView(View):
                 self.role = None
 
         elif c_id.startswith("16_"):
-            if not self.role in self.s_rls:
+            role_id: int = self.role
+            if role_id not in self.s_rls:
                 await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][8]), ephemeral=True)
                 return
+            
+            role_type: int
+            role_in_store_count: int
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    r = cur.execute("SELECT * FROM server_roles WHERE role_id = ?", (self.role,)).fetchone()
-                    role_type: int = r[4]
-                    if role_type == 1:
-                        cnt = cur.execute("SELECT count() FROM store WHERE role_id = ?", (r[0],)).fetchone()[0]
-                    elif role_type == 2:
-                        cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (r[0],)).fetchone()
-                        if not cnt:
-                            cnt = 0
-                        else:
-                            cnt = cnt[0]
+                    req = cur.execute("SELECT * FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()
+                    role_type = req[4]
+                    if role_type != 2:
+                        role_in_store_count = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,)).fetchone()[0]
                     else:
-                        cnt = 0
+                        quantity = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,)).fetchone()                        
+                        role_in_store_count = quantity[0] if quantity else 0
             
-            edit_mod = RoleEditModal(timeout=90, role=self.role, m=interaction.message, auth_id=interaction.user.id, lng=lng, p=r[1], s=r[2], s_c=r[3]//3600, r_t=r[4], in_store=cnt)
+            edit_mod = RoleEditModal(
+                timeout=90, 
+                role=role_id, 
+                m=interaction.message, 
+                auth_id=interaction.user.id, 
+                lng=lng, 
+                p=req[1], 
+                s=req[2], 
+                s_c=req[3]//3600, 
+                r_t=role_type, 
+                in_store=role_in_store_count
+            )
             await interaction.response.send_modal(modal=edit_mod)
             await edit_mod.wait()
             if edit_mod.changed:
@@ -1389,7 +1399,7 @@ class RoleEditModal(Modal):
                 if salary != self.s or salary_c != self.s_c * 3600:
                     self.update_salary(base=base, cur=cur, r=r, salary=salary, salary_c=salary_c)
         
-        if r_type == 3:
+        if r_type == 3 and l:
             l = "∞"
 
         emb = self.m.embeds[0]
