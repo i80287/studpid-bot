@@ -291,7 +291,7 @@ ec_mr_text = {
         19 : "Salary and cooldown must be two positive integer numbers separated by space, for example: `100` `24`",
         20 : "Salary should be positive integer number",
         21 : "Cooldown should be positive integer number, cooldown is time in hours. For example: `24` sets cooldown to 24 hours",
-        22 : "Type of displaying of the role should be one of three numbers: 1, 2 or 3",
+        22 : "Type of displaying of the role should be one of three numbers: `1`, `2` or `3`",
         23 : "You chose different types of displaying for the role",
         24 : "You added role <@&{}> with price **`{}`**, salary **`{}`**, cooldown for it **`{}`**, type **`{}`**",
         25 : "Editing the role",
@@ -324,7 +324,7 @@ ec_mr_text = {
         19 : "Заработок и кулдаун должны быть двумя положительными целыми числами, разделёнными пробелом, например, `100` `24`",
         20 : "Заработок должен быть целым положительным числом",
         21 : "Кулдаун должен быть целым положительным числом, кулдаун - время в часах. Например, `24` сделать кулдаун равным 24 часам",
-        22 : "В качестве типа отображения роли надо указать одно из трёх чисел: 1, 2 или 3",
+        22 : "В качестве типа отображения роли надо указать одно из трёх чисел: `1`, `2` или `3`",
         23 : "Вы выбрали несколько разных типов отображения для роли",
         24 : "Вы добавили роль <@&{}> с ценой **`{}`**, доходом **`{}`**, его кулдауном **`{}`**, типом **`{}`**",
         25 : "Редактирование роли",
@@ -1074,24 +1074,35 @@ class EconomyRolesManageView(View):
                 self.role = None
 
         elif c_id.startswith("16_"):
-            if not self.role in self.s_rls:
+            role_id: int = self.role
+            if role_id not in self.s_rls:
                 await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][8]), ephemeral=True)
                 return
+            
+            role_type: int
+            role_in_store_count: int
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    r = cur.execute("SELECT * FROM server_roles WHERE role_id = ?", (self.role,)).fetchone()
-                    if r[4] == 1:
-                        cnt = cur.execute("SELECT count() FROM store WHERE role_id = ?", (r[0],)).fetchone()[0]
+                    req = cur.execute("SELECT * FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()
+                    role_type = req[4]
+                    if role_type != 2:
+                        role_in_store_count = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,)).fetchone()[0]
                     else:
-                        cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (r[0],)).fetchone()
-                        if not cnt:
-                            cnt = 0
-                        elif r[4] == 2:
-                            cnt = cnt[0]
-                        else:
-                            cnt = "∞"
+                        quantity = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,)).fetchone()                        
+                        role_in_store_count = quantity[0] if quantity else 0
             
-            edit_mod = RoleEditModal(timeout=90, role=self.role, m=interaction.message, auth_id=interaction.user.id, lng=lng, p=r[1], s=r[2], s_c=r[3]//3600, r_t=r[4], in_store=cnt)
+            edit_mod = RoleEditModal(
+                timeout=90, 
+                role=role_id, 
+                m=interaction.message, 
+                auth_id=interaction.user.id, 
+                lng=lng, 
+                p=req[1], 
+                s=req[2], 
+                s_c=req[3]//3600, 
+                r_t=role_type, 
+                in_store=role_in_store_count
+            )
             await interaction.response.send_modal(modal=edit_mod)
             await edit_mod.wait()
             if edit_mod.changed:
@@ -1126,7 +1137,7 @@ class RoleAddModal(Modal):
         )
         self.salary = TextInput(
             label=ec_mr_text[lng][12],
-            min_length=1,
+            min_length=0,
             max_length=9,
             style=TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][13],
@@ -1168,73 +1179,63 @@ class RoleAddModal(Modal):
         self.r_t = set()
 
 
-    def check_ans(self) -> int:
-        ans = 0
+    def check_role_type(self, r_type):
+        if r_type and r_type.isdigit() and int(r_type) in {1, 2, 3}:
+            self.r_t.add(int(r_type))
 
-        if not self.price.value.isdigit():
-            ans += 1
-        elif int(self.price.value) <= 0:
-            ans += 1
+    def check_ans(self) -> int:
+        ans: int = 0b000000
+
+        price = self.price.value
+        if not price or not price.isdigit() or int(price) <= 0:
+            ans |= 0b000001
         
-        if self.salary.value:
-            s_ans = self.salary.value.split()
+        cooldown_salary = self.salary.value
+        if cooldown_salary:
+            s_ans = cooldown_salary.split()
             if len(s_ans) != 2:
-                ans += 10
+                ans |= 0b000010
             else:
                 s, s_c = s_ans[0], s_ans[1]
-                if not s.isdigit():
-                    ans += 100
-                elif int(s) <= 0:
-                    ans += 100
+                if not s.isdigit() or int(s) <= 0:
+                    ans |= 0b000100
 
-                if not s_c.isdigit():
-                    ans += 1000
-                elif int(s_c) <= 0:
-                    ans += 1000
+                if not s_c.isdigit() or int(s_c) <= 0:
+                    ans |= 0b001000
         
-        if self.r_type1.value:
-            if self.r_type1.value.isdigit() and int(self.r_type1.value) in {1, 2, 3}:
-                self.r_t.add(int(self.r_type1.value))
-        
-        if self.r_type2.value:
-            if self.r_type2.value.isdigit() and int(self.r_type2.value) in {1, 2, 3}:
-                self.r_t.add(int(self.r_type2.value))
-        
-        if self.r_type3.value:
-            if self.r_type3.value.isdigit() and int(self.r_type3.value) in {1, 2, 3}:
-                self.r_t.add(int(self.r_type3.value))
-        
-        if len(self.r_t) == 0:
-            ans += 10000
-        elif len(self.r_t) > 1:
-            ans += 100000
+        self.check_role_type(self.r_type1.value)
+        self.check_role_type(self.r_type2.value)
+        self.check_role_type(self.r_type3.value)
+        if not self.r_t:
+            ans |= 0b010000
+        elif len(self.r_t) != 1:
+            ans |= 0b100000
 
         return ans
 
-
     async def callback(self, interaction: Interaction):
-        lng = 1 if "ru" in interaction.locale else 0
-        ans_c = self.check_ans()
-        rep = []
-        if ans_c % 2 == 1:
-            rep.append(ec_mr_text[lng][18])
-        if (ans_c // 10) % 2 == 1:
-            rep.append(ec_mr_text[lng][19])
-        if (ans_c // 100) % 2 == 1:
-            rep.append(ec_mr_text[lng][20])
-        if (ans_c // 1000) % 2 == 1:
-            rep.append(ec_mr_text[lng][21])
-        if (ans_c // 10000) % 2 == 1:
-            rep.append(ec_mr_text[lng][22])
-        if (ans_c // 100000) % 2 == 1:
-            rep.append(ec_mr_text[lng][23])
-
-        if len(rep):
+        lng: int = 1 if "ru" in interaction.locale else 0
+        ans_c: int = self.check_ans()
+        if ans_c:
+            rep = []
+            if ans_c & 0b000001:
+                rep.append(ec_mr_text[lng][18])
+            if ans_c & 0b000010:
+                rep.append(ec_mr_text[lng][19])
+            if ans_c & 0b000100:
+                rep.append(ec_mr_text[lng][20])
+            if ans_c & 0b001000:
+                rep.append(ec_mr_text[lng][21])
+            if ans_c & 0b010000:
+                rep.append(ec_mr_text[lng][22])
+            if ans_c & 0b100000:
+                rep.append(ec_mr_text[lng][23])
+            
             await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
             self.stop()
             return
 
-        price = int(self.price.value)
+        price: int = int(self.price.value)
         if self.salary.value:
             s_ans = self.salary.value.split()
             salary = int(s_ans[0])
@@ -1268,7 +1269,7 @@ class RoleAddModal(Modal):
 
 
 class RoleEditModal(Modal):
-    def __init__(self, timeout: int, role: int, m, lng: int, auth_id: int, p: int, s: int, s_c: int, r_t: int, in_store):
+    def __init__(self, timeout: int, role: int, m, lng: int, auth_id: int, p: int, s: int, s_c: int, r_t: int, in_store: int):
         super().__init__(title=ec_mr_text[lng][25], timeout=timeout, custom_id=f"7100_{auth_id}_{randint(1, 100)}")
         self.role=role
         self.m = m
@@ -1292,7 +1293,7 @@ class RoleEditModal(Modal):
             def_s = f"{s} {s_c}"
         self.salary = TextInput(
             label=ec_mr_text[lng][12],
-            min_length=1,
+            min_length=0,
             max_length=9,
             style=TextInputStyle.paragraph,
             placeholder=ec_mr_text[lng][13],
@@ -1326,60 +1327,54 @@ class RoleEditModal(Modal):
         self.add_item(self.in_st)
 
     def check_ans(self) -> int:
-        ans = 0
+        ans: int = 0b000000
 
-        if not self.price.value.isdigit():
-            ans += 1
-        elif int(self.price.value) <= 0:
-            ans += 1
+        price = self.price.value
+        if not price or not price.isdigit() or int(price) <= 0:
+            ans |= 0b000001
         
-        if self.salary.value:
-            s_ans = self.salary.value.split()
+        cooldown_salary = self.salary.value
+        if cooldown_salary:
+            s_ans = cooldown_salary.split()
             if len(s_ans) != 2:
-                ans += 10
+                ans |= 0b000010
             else:
                 s, s_c = s_ans[0], s_ans[1]
-                if not s.isdigit():
-                    ans += 100
-                elif int(s) <= 0:
-                    ans += 100
-
-                if not s_c.isdigit():
-                    ans += 1000
-                elif int(s_c) <= 0:
-                    ans += 1000
+                if not s.isdigit() or int(s) <= 0:
+                    ans |= 0b000100
+                if not s_c.isdigit() or int(s_c) <= 0:
+                    ans |= 0b001000
         
-        if not self.r_type_inp.value.isdigit():
-            ans += 10000
-        elif not 1 <= int(self.r_type_inp.value) <= 3:
-            ans += 10000
+        role_type = self.r_type_inp.value
+        if not role_type or not role_type.isdigit() or not int(role_type) in {1, 2, 3}:
+            ans |= 0b010000
 
-        if not self.in_st.value.isdigit():
-            ans += 100000
-        elif int(self.in_st.value) < 0:
-            ans += 100000
+        in_store_amount = self.in_st.value
+        if not in_store_amount or not in_store_amount.isdigit() or int(in_store_amount) < 0:
+            ans |= 0b100000
 
         return ans
 
     async def callback(self, interaction: Interaction):
-        lng = 1 if "ru" in interaction.locale else 0
-        ans_c = self.check_ans()
-        rep = []
-        if ans_c % 2 == 1:
-            rep.append(ec_mr_text[lng][18])
-        if (ans_c // 10) % 2 == 1:
-            rep.append(ec_mr_text[lng][19])
-        if (ans_c // 100) % 2 == 1:
-            rep.append(ec_mr_text[lng][20])
-        if (ans_c // 1000) % 2 == 1:
-            rep.append(ec_mr_text[lng][21])
-        if (ans_c // 10000) % 2 == 1:
-            rep.append(ec_mr_text[lng][22])
-        if (ans_c // 100000) % 2 == 1:
-            rep.append(ec_mr_text[lng][29])
+        lng: int = 1 if "ru" in interaction.locale else 0
+        ans_c: int = self.check_ans()
         
-        if rep:
-            await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
+        if ans_c:
+            rep: list = []
+            if ans_c & 0b000001:
+                rep.append(ec_mr_text[lng][18])
+            if ans_c & 0b000010:
+                rep.append(ec_mr_text[lng][19])
+            if ans_c & 0b000100:
+                rep.append(ec_mr_text[lng][20])
+            if ans_c & 0b001000:
+                rep.append(ec_mr_text[lng][21])
+            if ans_c & 0b010000:
+                rep.append(ec_mr_text[lng][22])
+            if ans_c & 0b100000:
+                rep.append(ec_mr_text[lng][29])
+            
+            await interaction.response.send_message(embed=Embed(description='\n'.join(rep)), ephemeral=True)
             self.stop()
             return
 
@@ -1404,7 +1399,7 @@ class RoleEditModal(Modal):
                 if salary != self.s or salary_c != self.s_c * 3600:
                     self.update_salary(base=base, cur=cur, r=r, salary=salary, salary_c=salary_c)
         
-        if r_type == 3:
+        if r_type == 3 and l:
             l = "∞"
 
         emb = self.m.embeds[0]
