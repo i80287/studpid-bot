@@ -1414,46 +1414,58 @@ class RoleEditModal(Modal):
         await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][30].format(r, price, salary, salary_c // 3600, r_types[lng][r_type], l)), ephemeral=True)
         self.stop()
     
-    def update_type_and_store(self, base: Connection, cur: Cursor, price: int, salary: int, salary_c: int, r_type: int, r:int, l: int):
-        t = int(time())
+    def update_type_and_store(self, base: Connection, cur: Cursor, price: int, salary: int, salary_c: int, r_type: int, r: int, l: int):
         cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
         base.commit()
-        if l == 0:
+        if not l:
             return
-
+        t = int(time())
         if r_type == 3:
-            cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, -404, price, t, salary, salary_c, 3))
+            free_number = self.peek_role_free_number(cur)
+            cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                        (free_number, r, -404, price, t, salary, salary_c, 3))
         elif r_type == 2:
-            cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, l, price, t, salary, salary_c, 2))
+            free_number = self.peek_role_free_number(cur)
+            cur.execute("INSERT INTO store (role_number, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                        (free_number, r, l, price, t, salary, salary_c, 2))
         elif r_type == 1:
-            for _ in range(l):
-                cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, 1, price, t, salary, salary_c, 1))
+            free_numbers = self.peek_role_free_numbers(cur, l)
+            inserting_roles = ((free_number, r, 1, price, t, salary, salary_c, 1) for free_number in free_numbers)
+            cur.executemany("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", inserting_roles)
         base.commit()
         
     def update_store(self, base: Connection, cur: Cursor, r: int, price: int, salary: int, salary_c: int, r_type: int, l: int, l_prev: int):
-        if l == 0:
+        if not l:
             cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
             base.commit()
             return
         t = int(time())
         
         if r_type == 2:
-            if l_prev == 0:
-                cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, l, price, t, salary, salary_c, 2))
+            if not l_prev:
+                free_number = self.peek_role_free_number(cur)
+                cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                            (free_number, r, l, price, t, salary, salary_c, 2))
             else:
                 cur.execute("UPDATE store SET quantity = ?, price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (l, price, t, salary, salary_c, r))
         
         elif r_type == 1:
-            if l_prev < l:
-                cur.executemany("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", [(r, 1, price, t, salary, salary_c, 1) for _ in range(l-l_prev)])
-            elif l_prev > l:
-                sort_rls = sorted(cur.execute("SELECT rowid, last_date FROM store WHERE role_id = ?", (r,)).fetchall(), key=lambda tup: tup[1])
-                cur.execute(f"DELETE FROM store WHERE rowid IN {tuple({x[0] for x in sort_rls[:l_prev-l]})}")
-            else:
+            roles_amount_change = l - l_prev
+            if roles_amount_change > 0:
+                free_numbers = self.peek_role_free_numbers(cur, roles_amount_change)
+                inserting_roles = ((free_number, r, 1, price, t, salary, salary_c, 1) for free_number in free_numbers)
+                cur.executemany("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                                inserting_roles)
+            elif not roles_amount_change:
                 cur.execute("UPDATE store SET price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (price, t, salary, salary_c, r))
+            else:
+                sorted_rls_to_delete = cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r,)).fetchall()[:-roles_amount_change]
+                cur.execute(f"DELETE FROM store WHERE rowid IN {tuple({x[0] for x in sorted_rls_to_delete})}")
 
-        elif r_type == 3 and l_prev == 0:
-            cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", (r, -404, price, t, salary, salary_c, 3))
+        elif r_type == 3 and not l_prev:
+            free_number = self.peek_role_free_number(cur)
+            cur.execute("INSERT INTO store(role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                        (free_number, r, -404, price, t, salary, salary_c, 3))
 
         base.commit()   
 
@@ -1474,6 +1486,36 @@ class RoleEditModal(Modal):
             return
         cur.execute("UPDATE salary_roles SET salary = ?, salary_cooldown = ? WHERE role_id = ?", (salary, salary_c, r))
         base.commit()
+
+    @staticmethod
+    def peek_role_free_number(cur: Cursor) -> int:
+        req = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
+        if req:
+            role_numbers = [int(r_n[0]) for r_n in req]
+            if role_numbers[0] != 1:
+                return 1
+            for i in range(len(role_numbers) - 1):
+                if role_numbers[i+1] - role_numbers[i] != 1:
+                    return role_numbers[i] + 1
+            return len(role_numbers) + 1
+        else:
+            return 1
+    
+
+    @staticmethod
+    def peek_role_free_numbers(cur: Cursor, amount_of_numbers: int) -> list[int]:
+        req = cur.execute("SELECT role_number FROM store").fetchall()
+        if req:
+            role_numbers = {r_n[0] for r_n in req}
+            after_last_number =  max(role_numbers) + 1
+            free_numbers = set(range(1, after_last_number)).difference(role_numbers)
+            lack_numbers_len = amount_of_numbers - len(free_numbers)
+            if lack_numbers_len <= 0:
+                return list(free_numbers)[:amount_of_numbers]            
+            free_numbers.update(range(after_last_number, after_last_number + lack_numbers_len))
+            return list(free_numbers)
+        else:
+            return list(range(1, amount_of_numbers + 1))
 
 
 class VerifyDeleteView(View):

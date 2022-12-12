@@ -37,7 +37,7 @@ text_slash = {
         8 : "**`Are you sure that you want to buy`** {}?\n{} {} will be debited from your balance",
         9 : "**`Purchase has expired`**",
         10 : "Purchase completed",
-        11 : "**`If your DM are open, then purchase confirmation will be message you`**",
+        11 : "**`If your DM are open, then purchase confirmation will be messaged you`**",
         12 : "You successfully bought role `{}` on the server `{}` for `{}` {}",
         13 : "Role purchase",
         14 : "{} bought role {} for {} {}",
@@ -45,7 +45,7 @@ text_slash = {
         16 : "**`You can't sell the role that you don't have`**",
         17 : "**`You can't sell that role because it isn't in the list of roles available for purchase/sale on the server`**",
         18 : "The sale is completed",
-        19 : "**`You sold role `**{}**` for {}`** {}\n**`If your DM are open, then confirmation of sale will be message you`**",
+        19 : "**`You sold role `**{}**` for {}`** {}\n**`If your DM are open, then confirmation of sale will be messaged you`**",
         20 : "Confirmation of sale",
         21 : "**`You sold role {} for {}`** {}",
         22 : "Role sale",
@@ -132,8 +132,8 @@ buy_approve_text = {
 
 store_text = {
     0 : {
-        0 : "**•** <@&{}>\n`Price` - `{}` {}\n`Left` - `1`\n`Listed for sale:`\n*{}*\n",
-        1 : "**•** <@&{}>\n`Price` - `{}` {}\n`Left` - `{}`\n`Last listed for sale:`\n*{}*\n",
+        0 : "{} **•** <@&{}>\n`Price` - `{}` {}\n`Left` - `1`\n`Listed for sale:`\n*{}*\n",
+        1 : "{} **•** <@&{}>\n`Price` - `{}` {}\n`Left` - `{}`\n`Last listed for sale:`\n*{}*\n",
         2 : "`Average passive salary per week` - `{}` {}\n",
         3 : "Page {} from {}",
         4 : "Sort by...",
@@ -146,8 +146,8 @@ store_text = {
 
     },
     1 : {
-        0 : "**•** <@&{}>\n`Цена` - `{}` {}\n`Осталось` - `1`\n`Выставленa на продажу:`\n*{}*\n",
-        1 : "**•** <@&{}>\n`Цена` - `{}` {}\n`Осталось` - `{}`\n`Последний раз выставленa на продажу:`\n*{}*\n",
+        0 : "{} **•** <@&{}>\n`Цена` - `{}` {}\n`Осталось` - `1`\n`Выставленa на продажу:`\n*{}*\n",
+        1 : "{} **•** <@&{}>\n`Цена` - `{}` {}\n`Осталось` - `{}`\n`Последний раз выставленa на продажу:`\n*{}*\n",
         2 : "`Средний пассивный доход за неделю` - `{}` {}\n",
         3 : "Страница {} из {}",
         4 : "Сортировать по...",
@@ -344,25 +344,23 @@ class StoreView(View):
         
 
     def sort_store(self):
-        
         sort_by = self.sort_by
-
         if self.reversed:
             if sort_by:
                 # Reversed sort by price, from higher to lower. 
                 # If prices are equal sort by date from higher to lower (latest is higher, early date is lower)
-                # tup[2] - price of the role, tup[3] - last date of adding role to the store
-                self.db_store.sort(key=lambda tup: (tup[2], tup[3]), reverse=True)
+                # tup[3] - price of the role, tup[4] - last date of adding role to the store
+                self.db_store.sort(key=lambda tup: (tup[3], tup[4]), reverse=True)
             else:
                 # Reversed sort by date from lower to higher (early date is lower, goes first) 
                 # If dates are equal then item with lower price goes first
-                # tup[2] - price of the role, tup[3] - last date of adding role to the store. If dates are equal
-                self.db_store.sort(key=lambda tup: (tup[3], tup[2]), reverse=False)
+                # tup[3] - price of the role, tup[4] - last date of adding role to the store. If dates are equal
+                self.db_store.sort(key=lambda tup: (tup[4], tup[3]), reverse=False)
             return
         
         # If sort is not reversed
         store = self.db_store
-        l = self.l // 2
+        l = self.l >> 1
 
         if sort_by:
             # Sort by price from lower to higher 
@@ -372,11 +370,11 @@ class StoreView(View):
             while l:
                 for i in range(l, self.l):
                     moving_item = store[i]
-                    while i >= l and (store[i-l][2] > store[i][2] or (store[i-l][2] == store[i][2] and store[i-l][3] < store[i][3])):
+                    while i >= l and (store[i-l][3] > store[i][3] or (store[i-l][3] == store[i][3] and store[i-l][4] < store[i][4])):
                         store[i] = store[i - l]
                         i -= l
                         store[i] = moving_item
-                l //= 2
+                l >>= 1
             self.db_store = store
         else:
             # Sort by date from higher to lower (latest is higher, early date is lower)
@@ -386,11 +384,11 @@ class StoreView(View):
             while l:
                 for i in range(l, self.l):
                     moving_item = store[i]
-                    while i >= l and (store[i-l][3] < store[i][3] or (store[i-l][3] == store[i][3] and store[i-l][2] > store[i][2])):
+                    while i >= l and (store[i-l][4] < store[i][4] or (store[i-l][4] == store[i][4] and store[i-l][3] > store[i][3])):
                         store[i] = store[i - l]
                         i -= l
                         store[i] = moving_item
-                l //= 2
+                l >>= 1
             self.db_store = store
 
 
@@ -405,8 +403,6 @@ class StoreView(View):
             t1 = text.find('Ст')
             t2 = text.find('из', t1)
             page = int(text[t1+9:t2-1])
-        
-        db_store = self.db_store
 
         if click in {1, 2} and page <= 1:
             return
@@ -424,24 +420,22 @@ class StoreView(View):
 
         store_list = []
         tzinfo = timezone(timedelta(hours=self.tz))
-
-        for r, q, p, d, s, s_t, tp in db_store[(page - 1) * self.in_row:min(page * self.in_row, self.l)]:
+        for role_number, r, q, p, d, s, s_t, tp in self.db_store[(page - 1) * self.in_row:min(page * self.in_row, self.l)]:
             date = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
+            role_info = ""
             if tp == 1:
-                r_inf = store_text[self.lng][0].format(r, p, self.currency, date)
+                role_info = store_text[self.lng][0].format(role_number, r, p, self.currency, date)
             elif tp == 2:
-                r_inf = store_text[self.lng][1].format(r, p, self.currency, q, date)
+                role_info = store_text[self.lng][1].format(role_number, r, p, self.currency, q, date)
             elif tp == 3:
-                r_inf = store_text[self.lng][1].format(r, p, self.currency, "∞", date)
-            if s:
-                r_inf += store_text[self.lng][2].format(s * 604800 // s_t, self.currency)
-            store_list.append(r_inf)
+                role_info = store_text[self.lng][1].format(role_number, r, p, self.currency, "∞", date)
+            if role_info:
+                if s: role_info += store_text[self.lng][2].format(s * 604800 // s_t, self.currency)
+                store_list.append(role_info)
         
         if store_list:
-
             emb = Embed(title=store_text[self.lng][10], colour=Colour.dark_gray(), description='\n'.join(store_list))
             emb.set_footer(text=store_text[self.lng][3].format(page, self.pages))
-
             if click == 0:
                 await interaction.response.edit_message(embed=emb, view=self)
             else:
@@ -463,7 +457,6 @@ class StoreView(View):
 
 
     async def click_menu(self, interaction: Interaction, c_id: str, value):
-
         if c_id.startswith("102_"):
             if int(value[0]):
                 self.sort_by = False
@@ -641,6 +634,19 @@ class SlashCommandsCog(Cog):
         self.bot = bot
         self.in_row = in_row
 
+    @staticmethod
+    def peek_role_free_number(cur: Cursor) -> int:
+        req = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
+        if req:
+            role_numbers = [int(r_n[0]) for r_n in req]
+            if role_numbers[0] != 1:
+                return 1
+            for i in range(len(role_numbers) - 1):
+                if role_numbers[i+1] - role_numbers[i] != 1:
+                    return role_numbers[i] + 1
+            return len(role_numbers) + 1
+        else:
+            return 1
     
     async def can_role(self, interaction: Interaction, role: Role, lng: int) -> bool:
         #if not interaction.permissions.manage_roles:
@@ -684,14 +690,14 @@ class SlashCommandsCog(Cog):
 
         member_buyer = interaction.user
         memb_id = member_buyer.id
-        r_id = role.id    
+        r_id = role.id
 
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
                     await interaction.response.send_message(embed=Embed(description=common_text[lng][2]), ephemeral=True)
                     return
-                store = cur.execute('SELECT * FROM store WHERE role_id = ?', (r_id,)).fetchone()
+                store = cur.execute("SELECT * FROM store WHERE role_id = ?", (r_id,)).fetchone()
                 if not store:
                     await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], description=text_slash[lng][5], colour=Colour.red()))
                     return
@@ -704,7 +710,7 @@ class SlashCommandsCog(Cog):
             return
 
         buyer_cash = buyer[1]
-        cost = store[2]
+        cost = store[3]
 
         if buyer_cash < cost:
             await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][6].format(cost - buyer_cash, currency)), delete_after=10)
@@ -720,25 +726,25 @@ class SlashCommandsCog(Cog):
             await interaction.delete_original_message()
             return          
 
-        role_type = store[6]
+        role_type = store[7]
         await member_buyer.add_roles(role)                                                
 
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:   
                 server_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                cur.execute('UPDATE users SET money = money - ?, owned_roles = ? WHERE memb_id = ?', (cost, buyer[2]+f"#{r_id}" , memb_id))
+                cur.execute("UPDATE users SET money = money - ?, owned_roles = ? WHERE memb_id = ?", (cost, buyer[2]+f"#{r_id}" , memb_id))
                 base.commit()
                 
                 if role_type == 1:
-                    rowid_to_delete = sorted(cur.execute("SELECT rowid, last_date FROM store WHERE role_id = ?", (r_id,)).fetchall(), key=lambda tup: tup[1])[0][0]
+                    rowid_to_delete = cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r_id,)).fetchall()[0][0]
                     cur.execute("DELETE FROM store WHERE rowid = ?", (rowid_to_delete,))                        
                 elif role_type == 2:
-                    if store[1] > 1:
-                        cur.execute('UPDATE store SET quantity = quantity - 1 WHERE role_id = ?', (r_id,))
+                    if store[2] > 1:
+                        cur.execute("UPDATE store SET quantity = quantity - 1 WHERE role_id = ?", (r_id,))
                     else:
                         cur.execute("DELETE FROM store WHERE role_id = ?", (r_id,))
 
-                if store[4]:
+                if store[5]:
                     role_members = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (r_id,)).fetchone()
                     if role_members:
                         cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (role_members[0] + f"#{memb_id}", r_id))
@@ -770,7 +776,7 @@ class SlashCommandsCog(Cog):
                     await interaction.response.send_message(embed=Embed(description=common_text[lng][2]), ephemeral=True)
                     return
                 tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
-                db_store: list[tuple[int, int, int, int, int, int, int]] = cur.execute('SELECT * FROM store').fetchall()
+                db_store: list[tuple[int, int, int, int, int, int, int, int]] = cur.execute("SELECT * FROM store").fetchall()
                 currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
         
         db_l = len(db_store)
@@ -778,26 +784,26 @@ class SlashCommandsCog(Cog):
         while l:
             for i in range(l, db_l):
                 moving_item = db_store[i]
-                while i >= l and (db_store[i-l][2] > db_store[i][2] or (db_store[i-l][2] == db_store[i][2] and db_store[i-l][3] < db_store[i][3])):
+                while i >= l and (db_store[i-l][3] > db_store[i][3] or (db_store[i-l][3] == db_store[i][3] and db_store[i-l][4] < db_store[i][4])):
                     db_store[i] = db_store[i - l]
                     i -= l
                     db_store[i] = moving_item
-            l >> 1
+            l >>= 1
 
         store_list = []
         tzinfo = timezone(timedelta(hours=tz))
-        
-        for r, q, p, d, s, s_t, tp in db_store[:min(in_row, db_l)]:
+        for role_number, r, q, p, d, s, s_t, tp in db_store[:min(in_row, db_l)]:
             date = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
+            role_info = ""
             if tp == 1:
-                r_inf = store_text[lng][0].format(r, p, currency, date)
+                role_info = store_text[lng][0].format(role_number, r, p, currency, date)
             elif tp == 2:
-                r_inf = store_text[lng][1].format(r, p, currency, q, date)
+                role_info = store_text[lng][1].format(role_number, r, p, currency, q, date)
             elif tp == 3:
-                r_inf = store_text[lng][1].format(r, p, currency, "∞", date)
-            if s:
-                r_inf += store_text[lng][2].format(s * 604800 // s_t, currency)
-            store_list.append(r_inf)               
+                role_info = store_text[lng][1].format(role_number, r, p, currency, "∞", date)
+            if role_info:
+                if s: role_info += store_text[lng][2].format(s * 604800 // s_t, currency)
+                store_list.append(role_info)               
 
         emb = Embed(title=text_slash[lng][15], colour=Colour.dark_gray(), description='\n'.join(store_list))        
 
@@ -849,29 +855,32 @@ class SlashCommandsCog(Cog):
 
                 await interaction.user.remove_roles(role)
                 
-                cur.execute('UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?', (owned_roles.replace(f"#{r_id}", ""), r_price, memb_id))
+                cur.execute("UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?", (owned_roles.replace(f"#{r_id}", ""), r_price, memb_id))
                 base.commit()
 
-                db_store = cur.execute('SELECT count() FROM store WHERE role_id = ?', (r_id,)).fetchone()      
                 time_now = int(time())
-
                 if r_type == 1:
-                    cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", 
-                            (r_id, 1, r_price, time_now, r_sal, r_sal_c, 1))
+                    role_free_number = self.peek_role_free_number(cur)
+                    cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                                (role_free_number, r_id, 1, r_price, time_now, r_sal, r_sal_c, 1))
 
-                elif r_type == 2:                   
+                elif r_type == 2:
+                    db_store = cur.execute("SELECT count() FROM store WHERE role_id = ?", (r_id,)).fetchone()                     
                     if db_store:
                         cur.execute("UPDATE store SET quantity = quantity + ?, last_date = ? WHERE role_id = ?", (1, time_now, r_id))      
                     else:
-                        cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", 
-                            (r_id, 1, r_price, time_now, r_sal, r_sal_c, 2))
+                        role_free_number = self.peek_role_free_number(cur)
+                        cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                                    (role_free_number, r_id, 1, r_price, time_now, r_sal, r_sal_c, 2))
 
                 elif r_type == 3:
+                    db_store = cur.execute("SELECT count() FROM store WHERE role_id = ?", (r_id,)).fetchone()      
                     if db_store:
                         cur.execute("UPDATE store SET last_date = ? WHERE role_id = ?", (time_now, r_id))
                     else:
-                        cur.execute("INSERT INTO store(role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?, ?, ?)", 
-                        (r_id, -404, r_price, time_now, r_sal, r_sal_c, 3))
+                        role_free_number = self.peek_role_free_number(cur)
+                        cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
+                                    (role_free_number, r_id, -404, r_price, time_now, r_sal, r_sal_c, 3))
 
                 base.commit()
                 

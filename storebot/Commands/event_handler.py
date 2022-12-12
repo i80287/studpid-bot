@@ -57,12 +57,58 @@ class EventsHandlerCog(Cog):
         self._backup.start()
         
     def correct_db(self, guild: Guild):
-        with closing(connect(f'{path_to}/bases/bases_{guild.id}/{guild.id}.db')) as base:
+        with closing(connect(f"{path_to}/bases/bases_{guild.id}/{guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
+                # Fixing legacy.
+                TABLE_NAME: str = "store"
+                columns_count = len(cur.execute(f"PRAGMA table_info({TABLE_NAME})").fetchall())
+                if columns_count != 8:
+                    roles = cur.execute(f"SELECT * FROM {TABLE_NAME} ORDER BY last_date DESC").fetchall()
+
+                    store_backup = connect(f"{path_to}/bases/bases_{guild.id}/{TABLE_NAME}_backup.db")
+                    store_cur = store_backup.cursor()
+                    store_cur.executescript(f"""
+                    DROP TABLE IF EXISTS {TABLE_NAME};
+                    CREATE TABLE {TABLE_NAME} (role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, salary INTEGER, salary_cooldown INTEGER, type INTEGER);
+                    """)
+                    store_backup.executemany("""INSERT INTO 
+                    store (role_id, quantity, price, last_date, salary, salary_cooldown, type) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    """, roles)
+                    store_backup.commit()
+                    store_backup.close()
+                    
+                    cur.executescript(f"""
+                        DROP TABLE IF EXISTS {TABLE_NAME};
+                        CREATE TABLE {TABLE_NAME} (role_number INTEGER PRIMARY KEY, 
+                            role_id INTEGER NOT NULL DEFAULT 0, 
+                            quantity INTEGER NOT NULL DEFAULT 0, 
+                            price INTEGER NOT NULL DEFAULT 0, 
+                            last_date INTEGER NOT NULL DEFAULT 0, 
+                            salary INTEGER NOT NULL DEFAULT 0, 
+                            salary_cooldown INTEGER NOT NULL DEFAULT 0, 
+                            type INTEGER NOT NULL DEFAULT 0
+                        );
+                    """)
+                    new_roles = [(i + 1, *r) for i, r in enumerate(roles)]
+                    cur.executemany(f"""INSERT INTO 
+                    {TABLE_NAME} (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) 
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                    """, new_roles)
+                    base.commit()
+
                 cur.executescript("""
                     CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER, xp INTEGER);
                     CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, salary INTEGER, salary_cooldown INTEGER, type INTEGER);
-                    CREATE TABLE IF NOT EXISTS store(role_id INTEGER, quantity INTEGER, price INTEGER, last_date INTEGER, salary INTEGER, salary_cooldown INTEGER, type INTEGER);
+                    CREATE TABLE IF NOT EXISTS store (role_number INTEGER PRIMARY KEY, 
+                        role_id INTEGER NOT NULL DEFAULT 0, 
+                        quantity INTEGER NOT NULL DEFAULT 0, 
+                        price INTEGER NOT NULL DEFAULT 0, 
+                        last_date INTEGER NOT NULL DEFAULT 0, 
+                        salary INTEGER NOT NULL DEFAULT 0, 
+                        salary_cooldown INTEGER NOT NULL DEFAULT 0, 
+                        type INTEGER NOT NULL DEFAULT 0
+                    );
                     CREATE TABLE IF NOT EXISTS salary_roles(role_id INTEGER PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, salary_cooldown INTEGER, last_time INTEGER);
                     CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER);
                     CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER);
@@ -72,18 +118,16 @@ class EventsHandlerCog(Cog):
                 base.commit()
                 
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()
-                if not lng:
-                    lng = 1 if "ru" in guild.preferred_locale else 0
-                else:
-                    lng = lng[0]
+                if lng: lng = lng[0]
+                else: lng = 1 if "ru" in guild.preferred_locale else 0
                     
-                r = [
+                r = (
                     ('lang', lng), ('tz', 0), 
                     ('xp_border', 100), ('xp_per_msg', 1), ('mn_per_msg', 1), 
                     ('w_cd', 14400), ('sal_l', 1), ('sal_r', 250),
                     ('lvl_c', 0), ('log_c', 0), ('poll_v_c', 0), ('poll_c', 0),
                     ('economy_enabled', 1), ('ranking_enabled', 1), ('currency', ":coin:")
-                ]
+                )
                 cur.executemany("INSERT OR IGNORE INTO server_info(settings, value) VALUES(?, ?)", r)
                 base.commit()
 
@@ -176,18 +220,11 @@ class EventsHandlerCog(Cog):
                     if r:
                         t_n = int(time())
                         for role, members, salary, t, last_time in r:
-                            flag: bool = False
-
-                            if not last_time:
-                                flag = True
-                            elif t_n - last_time >= t:
-                                flag = True
-
-                            if flag:
+                            if not last_time or t_n - last_time >= t:
                                 cur.execute("UPDATE salary_roles SET last_time = ? WHERE role_id = ?", (t_n, role))
                                 base.commit()
                                 for member in members.split("#"):
-                                    if member != "":
+                                    if member:
                                         cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, int(member)))
                                         base.commit()
             await sleep(0.5)
@@ -275,7 +312,7 @@ class EventsHandlerCog(Cog):
                             await user.add_roles(role, reason=f"Member gained new level {lvl}")
 
                         i = lvls.index(lvl)
-                        if i != 0 and lvl_rls[lvls[i-1]] in memb_rls:                                
+                        if i and lvl_rls[lvls[i-1]] in memb_rls:                                
                             role = user.guild.get_role(lvl_rls[lvls[i-1]])
                             await user.remove_roles(role, reason=f"Member gained new level {lvl}")
 
