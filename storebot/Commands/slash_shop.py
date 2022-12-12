@@ -69,7 +69,10 @@ text_slash = {
         40 : "Transaction completed", #title
         41 : "**`You successfully transfered {}`** {} **`to`** {}",
         42 : "Transaction",
-        43 : "{} transfered {} {} to {}"
+        43 : "{} transfered {} {} to {}",
+        44 : "**`Store role number can not be less than 1`**",
+        45 : "**`There is no role with such number in the store`**",
+        46 : "**`Role is not found on the server. May be it was deleted`**",
     },
     1 : {
         0 : "Ошибка", #title
@@ -115,7 +118,10 @@ text_slash = {
         40 : "Перевод совершён",
         41 : "**`Вы успешно перевели {}`** {} **`пользователю`** {}",
         42 : "Транзакция",
-        43 : "{} передал {} {} пользователю {}"
+        43 : "{} передал {} {} пользователю {}",
+        44 : "**`Номер роли в магазине не может быть меньше 1`**",
+        45 : "**`Роли с таким номером нет в магазине`**",
+        46 : "**`Роль не найдена на сервере. Возможно, она была удалена`**",
     }
 }
 
@@ -648,7 +654,8 @@ class SlashCommandsCog(Cog):
         else:
             return 1
     
-    async def can_role(self, interaction: Interaction, role: Role, lng: int) -> bool:
+    @staticmethod
+    async def can_role(interaction: Interaction, role: Role, lng: int) -> bool:
         #if not interaction.permissions.manage_roles:
         if not interaction.guild.me.guild_permissions.manage_roles:
             await interaction.response.send_message(embed=Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][1]), ephemeral=True)
@@ -1243,7 +1250,59 @@ class SlashCommandsCog(Cog):
         )
     ):
         await self.buy(interaction=interaction, role=role)
-                    
+
+    @slash_command(
+        name="buy_by_number", 
+        description="Makes a role purchase from the store by role number in the store",
+        description_localizations={
+            Locale.ru : "Совершает покупку роли из магазина по номеру роли в магазине"
+        }
+    )
+    async def buy_by_number(
+        self, 
+        interaction: Interaction, 
+        role_number: int = SlashOption(
+            name="number",
+            name_localizations={
+                Locale.ru: "номер"
+            },
+            description="Number of the role that you want to buy", 
+            description_localizations={
+                Locale.ru: "Номер роли, которую Вы хотите купить"
+            },
+            required=True
+        )
+    ):
+        if role_number < 1:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(
+                embed=Embed(colour=Colour.red(), 
+                description=text_slash[lng][44]),
+                ephemeral=True
+            )
+            return
+        role = None
+        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                role_id_tuple = cur.execute("SELECT role_id FROM store WHERE role_number = ?", (role_number, )).fetchone()
+                if not role_id_tuple:
+                    lng = 1 if "ru" in interaction.locale else 0
+                    await interaction.response.send_message(
+                        embed=Embed(colour=Colour.red(), 
+                        description=text_slash[lng][45]),
+                        ephemeral=True
+                    )
+                    return
+                role = interaction.guild.get_role(role_id_tuple[0])
+        if role:
+            await self.buy(interaction=interaction, role=role)
+        else:
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(
+                embed=Embed(colour=Colour.red(), 
+                description=text_slash[lng][46]),
+                ephemeral=True
+            )
     
     @slash_command(
         name="store",
