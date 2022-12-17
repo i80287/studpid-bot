@@ -285,38 +285,38 @@ class EventsHandlerCog(Cog):
                 xp_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';").fetchone()[0]
                 mn_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]
                 
-                lvl = self.check_user(base=base, cur=cur, memb_id=user.id, xp_b=xp_b, mn_m=mn_p_m, xp_m=xp_p_m)
+                new_level = self.check_user(base=base, cur=cur, memb_id=user.id, xp_b=xp_b, mn_m=mn_p_m, xp_m=xp_p_m)
 
-                if lvl:
+                if new_level:
                     chnl = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
                     
                     if chnl:
                         ch = message.guild.get_channel(chnl)
                         if ch:
                             lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
-                            emb = Embed(title=tx[lng][0], description=tx[lng][1].format(user.mention, lvl))
+                            emb = Embed(title=tx[lng][0], description=tx[lng][1].format(user.mention, new_level))
                             await ch.send(embed=emb)
 
-                    lvl_rls = sorted(cur.execute("SELECT * FROM rank_roles").fetchall(), key=lambda tup: tup[0])
-                    
+                    lvl_rls: list = cur.execute("SELECT * FROM rank_roles ORDER BY level").fetchall()
                     if not lvl_rls:
                         return
 
-                    lvl_rls = {k: v for k, v in lvl_rls}
-                    lvls = [k for k in lvl_rls.keys()]
+                    lvl_rls: dict[int, int] = {k: v for k, v in lvl_rls}
+                    if new_level in lvl_rls:
+                        memb_roles = {role.id for role in user.roles}
 
-                    if lvl in lvl_rls:
-                        memb_rls = {role.id for role in user.roles}
+                        new_level_role_id = lvl_rls[new_level]
+                        if new_level_role_id not in memb_roles:
+                            role = user.guild.get_role(new_level_role_id)
+                            if role:
+                                await user.add_roles(role, reason=f"Member gained new level {new_level}")
 
-                        if not lvl_rls[lvl] in memb_rls:
-                            role = user.guild.get_role(lvl_rls[lvl])
-                            await user.add_roles(role, reason=f"Member gained new level {lvl}")
-
-                        i = lvls.index(lvl)
-                        if i and lvl_rls[lvls[i-1]] in memb_rls:                                
-                            role = user.guild.get_role(lvl_rls[lvls[i-1]])
-                            await user.remove_roles(role, reason=f"Member gained new level {lvl}")
-
+                        levels = list(lvl_rls.keys())
+                        i = levels.index(new_level)
+                        if i and lvl_rls[levels[i-1]] in memb_roles:                                
+                            role = user.guild.get_role(lvl_rls[levels[i-1]])
+                            if role:
+                                await user.remove_roles(role, reason=f"Member gained new level {new_level}")
 
     @Cog.listener()
     async def on_application_command_error(self, interaction: Interaction, exception):
