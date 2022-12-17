@@ -872,7 +872,7 @@ class SlashCommandsCog(Cog):
                                 (role_free_number, r_id, 1, r_price, time_now, r_sal, r_sal_c, 1))
 
                 elif r_type == 2:
-                    db_store = cur.execute("SELECT count() FROM store WHERE role_id = ?", (r_id,)).fetchone()                     
+                    db_store = cur.execute("SELECT count() FROM store WHERE role_id = ?", (r_id,)).fetchone()[0]                 
                     if db_store:
                         cur.execute("UPDATE store SET quantity = quantity + ?, last_date = ? WHERE role_id = ?", (1, time_now, r_id))      
                     else:
@@ -881,7 +881,7 @@ class SlashCommandsCog(Cog):
                                     (role_free_number, r_id, 1, r_price, time_now, r_sal, r_sal_c, 2))
 
                 elif r_type == 3:
-                    db_store = cur.execute("SELECT count() FROM store WHERE role_id = ?", (r_id,)).fetchone()      
+                    db_store = cur.execute("SELECT count() FROM store WHERE role_id = ?", (r_id,)).fetchone()[0] 
                     if db_store:
                         cur.execute("UPDATE store SET last_date = ? WHERE role_id = ?", (time_now, r_id))
                     else:

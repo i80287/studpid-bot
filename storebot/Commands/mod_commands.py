@@ -1460,7 +1460,8 @@ class RoleEditModal(Modal):
                 cur.execute("UPDATE store SET price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (price, t, salary, salary_c, r))
             else:
                 sorted_rls_to_delete = cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r,)).fetchall()[:-roles_amount_change]
-                cur.execute(f"DELETE FROM store WHERE rowid IN {tuple({x[0] for x in sorted_rls_to_delete})}")
+                rows = ", ".join({str(x[0]) for x in sorted_rls_to_delete})
+                cur.execute(f"DELETE FROM store WHERE rowid IN ({rows})")
 
         elif r_type == 3 and not l_prev:
             free_number = self.peek_role_free_number(cur)
