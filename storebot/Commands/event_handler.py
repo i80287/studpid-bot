@@ -258,9 +258,10 @@ class EventsHandlerCog(Cog):
         else:
             cur.execute('UPDATE users SET money = money + ?, xp = xp + ? WHERE memb_id = ?', (mn_m, xp_m, memb_id))
             base.commit()
-            n_l = (member[4] + xp_m - 1) // xp_b
-            if (member[4] - 1) // xp_b != n_l:
-                return n_l
+            old_level = (member[4] - 1) // xp_b + 1
+            new_level = (member[4] + xp_m - 1) // xp_b + 1
+            if old_level != new_level:
+                return new_level
             return 0
 
 
