@@ -299,25 +299,25 @@ class BetView(View):
 
 
 class StoreView(View):
-    def __init__(self, timeout: int, db_store: list, auth_id: int, lng: int, in_row: int, currency: str, tz: int):
+    def __init__(self, timeout: int, db_store: list[tuple[int, int, int, int, int, int, int, int]], auth_id: int, lng: int, in_row: int, currency: str, tz: int):
         super().__init__(timeout=timeout)
-        self.db_store = db_store
-        self.l = len(db_store)
-        self.auth_id = auth_id
-        self.in_row = in_row
-        self.currency = currency
-        self.tz = tz # time zone of the guild
-        self.sort_by = True # True - sort by price, False - sort by date (time)
-        self.reversed = False # возрастание / убывание при сортировке, False - возрастание
-        self.lng = lng
-        self.pages = max(1, (self.l + in_row - 1) // in_row)
+        self.db_store: list[tuple[int, int, int, int, int, int, int, int]] = db_store
+        self.l: int = len(db_store)
+        self.auth_id: int = auth_id
+        self.in_row: int = in_row
+        self.currency: str = currency
+        self.tz: int = tz # time zone of the guild
+        self.sort_by_price: bool = True # True - sort by price, False - sort by date (time)
+        self.sort_reversed: bool = False # возрастание / убывание при сортировке, False - возрастание
+        self.lng: int = lng
+        self.pages: int = max(1, (self.l + in_row - 1) // in_row)
 
         self.add_item(CustomButton(label="", custom_id=f"32_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
         self.add_item(CustomButton(label="", custom_id=f"33_{auth_id}_{randint(1, 100)}", emoji="◀️"))
         self.add_item(CustomButton(label="", custom_id=f"34_{auth_id}_{randint(1, 100)}", emoji="▶️"))
         self.add_item(CustomButton(label="", custom_id=f"35_{auth_id}_{randint(1, 100)}", emoji="⏭"))
 
-        opts = [
+        sort_by_what_options = [
             SelectOption(
                 label=store_text[lng][5],
                 value=0,
@@ -331,8 +331,8 @@ class StoreView(View):
                 default=False
             )
         ]
-        self.add_item(CustomSelect(custom_id=f"102_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][4], opts=opts))
-        opts = [
+        self.add_item(CustomSelect(custom_id=f"102_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][4], opts=sort_by_what_options))
+        sort_how_options = [
             SelectOption(
                 label=store_text[lng][8],
                 value=0,
@@ -346,13 +346,12 @@ class StoreView(View):
                 default=False
             )
         ]
-        self.add_item(CustomSelect(custom_id=f"103_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][7], opts=opts))
+        self.add_item(CustomSelect(custom_id=f"103_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][7], opts=sort_how_options))
         
 
     def sort_store(self):
-        sort_by = self.sort_by
-        if self.reversed:
-            if sort_by:
+        if self.sort_reversed:
+            if self.sort_by_price:
                 # Reversed sort by price, from higher to lower. 
                 # If prices are equal sort by date from higher to lower (latest is higher, early date is lower)
                 # tup[3] - price of the role, tup[4] - last date of adding role to the store
@@ -360,43 +359,22 @@ class StoreView(View):
             else:
                 # Reversed sort by date from lower to higher (early date is lower, goes first) 
                 # If dates are equal then item with lower price goes first
-                # tup[3] - price of the role, tup[4] - last date of adding role to the store. If dates are equal
+                # tup[3] - price of the role, tup[4] - last date of adding role to the store.
                 self.db_store.sort(key=lambda tup: (tup[4], tup[3]), reverse=False)
             return
-        
         # If sort is not reversed
-        store = self.db_store
-        l = self.l >> 1
-
-        if sort_by:
+        if self.sort_by_price:
             # Sort by price from lower to higher 
             # If prices are equal sort by date from higher to lower (latest is higher, early date is lower)
-            
-            # Shell sort
-            while l:
-                for i in range(l, self.l):
-                    moving_item = store[i]
-                    while i >= l and (store[i-l][3] > store[i][3] or (store[i-l][3] == store[i][3] and store[i-l][4] < store[i][4])):
-                        store[i] = store[i - l]
-                        i -= l
-                        store[i] = moving_item
-                l >>= 1
-            self.db_store = store
+            # tup[3] - price of the role, tup[4] - last date of adding role to the store.
+            self.db_store.sort(key=lambda tup: tup[4], reverse=True)
+            self.db_store.sort(key=lambda tup: tup[3], reverse=False)
         else:
             # Sort by date from higher to lower (latest is higher, early date is lower)
             # If dates are equal then item with lower price goes first
-            
-            # Shell sort
-            while l:
-                for i in range(l, self.l):
-                    moving_item = store[i]
-                    while i >= l and (store[i-l][4] < store[i][4] or (store[i-l][4] == store[i][4] and store[i-l][3] > store[i][3])):
-                        store[i] = store[i - l]
-                        i -= l
-                        store[i] = moving_item
-                l >>= 1
-            self.db_store = store
-
+            # tup[3] - price of the role, tup[4] - last date of adding role to the store.
+            self.db_store.sort(key=lambda tup: tup[3], reverse=False)
+            self.db_store.sort(key=lambda tup: tup[4], reverse=True)
 
     async def update_menu(self, interaction: Interaction, click: int):
         text = interaction.message.embeds[0].footer.text
@@ -424,11 +402,11 @@ class StoreView(View):
         elif click == 4:
             page = self.pages
 
-        store_list = []
+        store_list: list[str] = []
         tzinfo = timezone(timedelta(hours=self.tz))
         for role_number, r, q, p, d, s, s_t, tp in self.db_store[(page - 1) * self.in_row:min(page * self.in_row, self.l)]:
             date = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
-            role_info = ""
+            role_info = None
             if tp == 1:
                 role_info = store_text[self.lng][0].format(role_number, r, p, self.currency, date)
             elif tp == 2:
@@ -462,24 +440,24 @@ class StoreView(View):
         await self.update_menu(interaction=interaction, click=click)
 
 
-    async def click_menu(self, interaction: Interaction, c_id: str, value):
+    async def click_menu(self, interaction: Interaction, c_id: str, values: list[str]):
         if c_id.startswith("102_"):
-            if int(value[0]):
-                self.sort_by = False
+            if values[0].isdigit() and int(values[0]):
+                self.sort_by_price = False
                 self.children[4].options[0].default=False
                 self.children[4].options[1].default=True
             else:
-                self.sort_by = True
+                self.sort_by_price = True
                 self.children[4].options[0].default=True
                 self.children[4].options[1].default=False
 
         elif c_id.startswith("103_"):
-            if int(value[0]):
-                self.reversed = True
+            if values[0].isdigit() and int(values[0]):
+                self.sort_reversed = True
                 self.children[5].options[0].default=False
                 self.children[5].options[1].default=True
             else:
-                self.reversed = False
+                self.sort_reversed = False
                 self.children[5].options[0].default=True
                 self.children[5].options[1].default=False
         
@@ -613,10 +591,9 @@ class RatingView(View):
 
         await self.update_menu(interaction=interaction, click=click)
         
-    async def click_menu(self, interaction: Interaction, c_id: str, value):  
-
+    async def click_menu(self, interaction: Interaction, c_id: str, values: list[str]):
         if c_id.startswith("104_"):
-            if int(value[0]):
+            if values[0].isdigit() and int(values[0]):
                 self.sort_value = False
                 self.children[4].options[0].default=False
                 self.children[4].options[1].default=True
