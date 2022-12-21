@@ -2702,7 +2702,7 @@ class ModCommandsCog(Cog):
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 m_rls = cur.execute("SELECT * FROM mod_roles").fetchall()
-                if m_rls != None and m_rls != []:
+                if m_rls:
                     m_rls = {x[0] for x in m_rls}
                     return any(role.id in m_rls for role in u.roles)
                 return False
