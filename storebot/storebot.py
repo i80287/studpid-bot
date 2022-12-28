@@ -18,7 +18,7 @@ class StoreBot(Bot):
 
 if __name__ == "__main__":
     bot = StoreBot()
-    bot.load_extensions_from_module("Commands", ignore=["Commands.parse_tools"])
+    bot.load_extensions_from_module("Commands")
 
     if DEBUG:
         from colorama import Fore
