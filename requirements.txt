@@ -1,3 +1,0 @@
-emoji
-nextcord>=2.2
-nextcord[speed]
