@@ -59,6 +59,25 @@ class EventsHandlerCog(Cog):
     def correct_db(self, guild: Guild):
         with closing(connect(f"{path_to}/bases/bases_{guild.id}/{guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
+                cur.executescript("""
+                    CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER, xp INTEGER);
+                    CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, salary INTEGER, salary_cooldown INTEGER, type INTEGER);
+                    CREATE TABLE IF NOT EXISTS store (role_number INTEGER PRIMARY KEY, 
+                        role_id INTEGER NOT NULL DEFAULT 0, 
+                        quantity INTEGER NOT NULL DEFAULT 0, 
+                        price INTEGER NOT NULL DEFAULT 0, 
+                        last_date INTEGER NOT NULL DEFAULT 0, 
+                        salary INTEGER NOT NULL DEFAULT 0, 
+                        salary_cooldown INTEGER NOT NULL DEFAULT 0, 
+                        type INTEGER NOT NULL DEFAULT 0
+                    );
+                    CREATE TABLE IF NOT EXISTS salary_roles(role_id INTEGER PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, salary_cooldown INTEGER, last_time INTEGER);
+                    CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER);
+                    CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER);
+                    CREATE TABLE IF NOT EXISTS ic(chnl_id INTEGER PRIMARY KEY);
+                    CREATE TABLE IF NOT EXISTS mod_roles(role_id INTEGER PRIMARY KEY);
+                """)
+                
                 # Fixing legacy.
                 TABLE_NAME: str = "store"
                 columns_count = len(cur.execute(f"PRAGMA table_info({TABLE_NAME})").fetchall())
@@ -97,24 +116,6 @@ class EventsHandlerCog(Cog):
                     """, new_roles)
                     base.commit()
 
-                cur.executescript("""
-                    CREATE TABLE IF NOT EXISTS users(memb_id INTEGER PRIMARY KEY, money INTEGER, owned_roles TEXT, work_date INTEGER, xp INTEGER);
-                    CREATE TABLE IF NOT EXISTS server_roles(role_id INTEGER PRIMARY KEY, price INTEGER, salary INTEGER, salary_cooldown INTEGER, type INTEGER);
-                    CREATE TABLE IF NOT EXISTS store (role_number INTEGER PRIMARY KEY, 
-                        role_id INTEGER NOT NULL DEFAULT 0, 
-                        quantity INTEGER NOT NULL DEFAULT 0, 
-                        price INTEGER NOT NULL DEFAULT 0, 
-                        last_date INTEGER NOT NULL DEFAULT 0, 
-                        salary INTEGER NOT NULL DEFAULT 0, 
-                        salary_cooldown INTEGER NOT NULL DEFAULT 0, 
-                        type INTEGER NOT NULL DEFAULT 0
-                    );
-                    CREATE TABLE IF NOT EXISTS salary_roles(role_id INTEGER PRIMARY KEY, members TEXT, salary INTEGER NOT NULL, salary_cooldown INTEGER, last_time INTEGER);
-                    CREATE TABLE IF NOT EXISTS server_info(settings TEXT PRIMARY KEY, value INTEGER);
-                    CREATE TABLE IF NOT EXISTS rank_roles(level INTEGER PRIMARY KEY, role_id INTEGER);
-                    CREATE TABLE IF NOT EXISTS ic(chnl_id INTEGER PRIMARY KEY);
-                    CREATE TABLE IF NOT EXISTS mod_roles(role_id INTEGER PRIMARY KEY);
-                """)
                 base.commit()
                 
                 lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()
@@ -301,7 +302,7 @@ class EventsHandlerCog(Cog):
                     if not lvl_rls:
                         return
 
-                    lvl_rls: dict[int, int] = {k: v for k, v in lvl_rls}
+                    lvl_rls: dict[int, int] = {k: v for k, v in lvl_rls}                
                     if new_level in lvl_rls:
                         memb_roles = {role.id for role in user.roles}
                         new_level_role_id = lvl_rls[new_level]
