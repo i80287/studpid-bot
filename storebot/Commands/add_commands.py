@@ -1,5 +1,6 @@
 from sqlite3 import connect, Connection, Cursor
 from contextlib import closing
+from datetime import datetime
 
 from nextcord import Embed, Emoji, Colour, SlashOption, Interaction, Status, slash_command, Locale
 from nextcord.ext.commands import Bot, Cog
@@ -232,9 +233,14 @@ class AdditionalCommandsCog(Cog):
         elif isinstance(emoji, Emoji):
             emoji_url = emoji.url + "?quality=lossless"
             emoji_str = emoji.__str__()
+            created_at: str = emoji.created_at.strftime("%d/%m/%Y, %H:%M:%S")
             emb = Embed(
                 title=text_slash[lng][11], 
-                description=f"**`Emoji:`** {emoji_str}\n**`Raw string:`** \{emoji_str}\n**`Emoji id:`** {emoji.id}\n**`URL:`** {emoji_url}"
+                description=f"**`Emoji:`** {emoji_str}\n\
+                            **`Raw string:`** \{emoji_str}\n\
+                            **`Emoji id:`** {emoji.id}\n\
+                            **`Created at:`** {created_at}\n\
+                            **`URL:`** {emoji_url}"
             )
             emb.set_image(url=emoji_url)
             await interaction.response.send_message(embed=emb)
