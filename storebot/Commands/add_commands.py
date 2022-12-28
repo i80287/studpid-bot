@@ -1,9 +1,10 @@
 from sqlite3 import connect, Connection, Cursor
 from contextlib import closing
 
-from nextcord import Embed, Colour, SlashOption, Interaction, Status, slash_command, Locale
+from nextcord import Embed, Emoji, Colour, SlashOption, Interaction, Status, slash_command, Locale
 from nextcord.ext.commands import Bot, Cog
 
+from Commands.parse_tools import ParseTools
 from Variables.vars import path_to
 
 text_slash = {
@@ -20,7 +21,7 @@ text_slash = {
         9 : "Experience",
         10 : "Place in the rating",
         11 : "Emoji",
-        12 : "**`Please, select emoji from this server in correct format`**",
+        12 : "**`Please, select emoji from any discord server in correct format`**",
         13 : "Information about the server",
         14 : "Server's id - ",
         15 : "**`Sorry, but you can't mute yourself`**",
@@ -56,7 +57,8 @@ text_slash = {
         42 : "**`This role not found`**",
         43 : "**`This channel not found`**",
         44 : "**`Please, wait before reusing this command`**",
-        50 : "**`Sorry, but you don't have enough permissions to use this command`**"
+        50 : "**`Sorry, but you don't have enough permissions to use this command`**",
+        51 : "**`Default Discord emoji: `**{}",
     },
     1 : {
         0 : "Ошибка",
@@ -71,7 +73,7 @@ text_slash = {
         9 : "Опыт",
         10 : "Место в рейтинге",
         11 : "Эмодзи",
-        12 : "**`Пожалуйста, укажите эмодзи с данного сервера в правильном формате`**",
+        12 : "**`Пожалуйста, укажите эмодзи с дискорд сервера в правильном формате`**",
         13 : "Информация о сервере",
         14 : "Id сервера - ",
         15 : "**`Извините, но Вы не можете замьютить самого себя`**",
@@ -107,7 +109,8 @@ text_slash = {
         42 : "**`Такая роль не найдена`**",
         43 : "**`Такой канал не найден`**",
         44 : "**`Пожалуйста, подождите перед повторным использованием команды`**",
-        50 : "**`Извините, но у Вас недостаточно прав для использования этой команды`**"
+        50 : "**`Извините, но у Вас недостаточно прав для использования этой команды`**",
+        51 : "**`Дефолтное эмодзи Дискорда: `**{}"
     }           
 }        
         
@@ -175,9 +178,10 @@ months = {
 
 class AdditionalCommandsCog(Cog):
     def __init__(self, bot: Bot):
-        self.bot = bot
+        self.bot: Bot = bot
 
-    def check_user(self, base: Connection, cur: Cursor, memb_id: int):
+    @staticmethod
+    def check_user(base: Connection, cur: Cursor, memb_id: int):
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
         if not member:
             cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
@@ -207,39 +211,36 @@ class AdditionalCommandsCog(Cog):
     async def emoji(
         self, 
         interaction: Interaction, 
-        emoji: str = SlashOption(
-            name="emoji", 
-            description="Select emoji from the server", 
+        emoji_str: str = SlashOption(
+            name="emoji",
+            description="Select emoji or it's id from any discord server", 
             description_localizations={
-                Locale.ru: "Выберите эмодзи c сервера"
+                Locale.ru: "Выберите эмодзи или его id c любого дискорд сервера"
             },
             required=True
         )
     ):
         lng = 1 if "ru" in interaction.locale else 0
-
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                self.check_user(base=base, cur=cur, memb_id=interaction.user.id)
+                AdditionalCommandsCog.check_user(base=base, cur=cur, memb_id=interaction.user.id)
         
-        emoji = ":" + emoji + ">" # in case emoji id is provided
-        t1 = emoji.rfind(":")
-        t2 = emoji.find(">")
-
-        if emoji[t1+1:t2].isdigit() and int(emoji[t1+1:t2]) in {e.id for e in interaction.guild.emojis}:
-
-            emoji = await interaction.guild.fetch_emoji(int(emoji[t1+1:t2]))
-            
-            url = emoji.url
-            emb = Embed(title=text_slash[lng][11], description=f"**`URL: `**{url}?quality=lossless\nId: {emoji.id}")
-            emb.set_image(url=url+"?quality=lossless")
-            await interaction.response.send_message(embed=emb)
-
-        else:
-
+        emoji = ParseTools.parse_emoji(self.bot, emoji_str)        
+        if emoji is None:
             emb = Embed(title=text_slash[lng][0], colour=Colour.red(), description=text_slash[lng][12])
+            await interaction.response.send_message(embed=emb, ephemeral=True)
+        elif isinstance(emoji, Emoji):
+            emoji_url = emoji.url + "?quality=lossless"
+            emoji_str = emoji.__str__()
+            emb = Embed(
+                title=text_slash[lng][11], 
+                description=f"**`Emoji:`** {emoji_str}\n**`Raw string:`** \{emoji_str}\n**`Emoji id:`** {emoji.id}\n**`URL:`** {emoji_url}"
+            )
+            emb.set_image(url=emoji_url)
             await interaction.response.send_message(embed=emb)
-        
+        else:
+            emb = Embed(description=text_slash[lng][51].format(emoji))
+            await interaction.response.send_message(embed=emb)
     
     @slash_command(
         name="server",
@@ -253,7 +254,7 @@ class AdditionalCommandsCog(Cog):
 
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                self.check_user(base=base, cur=cur, memb_id=interaction.user.id)
+                AdditionalCommandsCog.check_user(base=base, cur=cur, memb_id=interaction.user.id)
 
         emb = Embed(title=text_slash[lng][13], colour=Colour.dark_purple())
         guild = interaction.guild

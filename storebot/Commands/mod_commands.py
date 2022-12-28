@@ -4,11 +4,12 @@ from contextlib import closing
 from random import randint
 from time import time
 
-from nextcord import Embed, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextInputStyle
+from nextcord import Embed, Emoji, Locale, Interaction, slash_command, ButtonStyle, Message, SelectOption, TextInputStyle
 from nextcord.ui import View, Button, Select, TextInput, Modal
 from nextcord.ext import application_checks
 from nextcord.ext.commands import Cog, Bot
 
+from Commands.parse_tools import ParseTools
 from Variables.vars import path_to, ignored_channels
 
 settings_text = {
@@ -83,7 +84,7 @@ gen_settings_text = {
         26 : "**`This language is already selected as language for new level announcements`**",
         27 : "**You {} economy system**",
         28 : "**You {} leveling system**",
-        29 : "**If emoji is `default discord emoji` (not from any server), print it's `name without ':'`. Otherwise print `emoji or it's id`**",
+        29 : "**Print `emoji` or it's `id`. In order to select emoji that you can't use, you can print it's `id`**",
         30 : "**`New money emoji is `**{}"
     },
     1 : {
@@ -106,7 +107,7 @@ gen_settings_text = {
         26 : "**`Этот язык уже выбран в качестве языка для оповещений о новом уровне`**",
         27 : "**Вы {} экономическую систему**",
         28 : "**Вы {} уровневую систему**",
-        29 : "**Если эмодзи является `стандартным эмодзи дискорда` (не с сервера), напишите `имя эмодзи без ':'`. Инача напишите `эмодзи или его id`**",
+        29 : "**Напишите `эмодзи` или его `id`. Если надо указать эмодзи, которое Вы не можете использовать, Вы можете указать `id`**",
         30 : "**`Новое эмодзи валюты сервера: `**{}"
     }
 }
@@ -617,8 +618,7 @@ class GenSettingsView(View):
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (tz,))
                 base.commit()
-        if tz >= 0: tz = f"+{tz}"
-        else: tz = f"{tz}"
+        tz =  f"+{tz}" if tz >= 0 else str(tz)
 
         emb = interaction.message.embeds[0]
         dsc = emb.description.split("\n")
@@ -629,16 +629,6 @@ class GenSettingsView(View):
         await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][24].format(tz)), ephemeral=True)
         self.tz = None
 
-    def parse_emoji(self, ans: str) -> str:
-        if ans.isdigit():
-            emj = self.bot.get_emoji(int(ans))
-            if emj:
-                return emj.__str__()
-        t1 = ans.rfind(":")
-        if t1 != -1 and ans[t1+1:ans.find(">")].isdigit():
-            return ans
-        return f":{ans}:"
-        
     async def change_currency(self, interaction: Interaction, lng: int):
         await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][29]), ephemeral=True)
         try:
@@ -646,11 +636,20 @@ class GenSettingsView(View):
         except TimeoutError:
             return
         else:
-            emoji_str: str = self.parse_emoji(user_ans.content)
+            user_ans_content: str = user_ans.content
+            emoji = ParseTools.parse_emoji(self.bot, user_ans_content)
+            if emoji is None:
+                emoji_str = user_ans_content
+            elif isinstance(emoji, Emoji):
+                emoji_str = emoji.__str__()
+            else:
+                emoji_str = emoji
+
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'currency'", (emoji_str,))
                     base.commit()
+
             emb = interaction.message.embeds[0]
             dsc = emb.description.split("\n")
             dsc[2] = gen_settings_text[lng][2].format(emoji_str)
