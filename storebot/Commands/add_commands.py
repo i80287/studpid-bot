@@ -22,7 +22,7 @@ text_slash = {
         9 : "Experience",
         10 : "Place in the rating",
         11 : "Emoji",
-        12 : "**`Please, select emoji from any discord server in correct format`**",
+        12 : "**`Please, select emoji from any discord server where the bot is added`**",
         13 : "Information about the server",
         14 : "Server's id - ",
         15 : "**`Sorry, but you can't mute yourself`**",
@@ -74,7 +74,7 @@ text_slash = {
         9 : "Опыт",
         10 : "Место в рейтинге",
         11 : "Эмодзи",
-        12 : "**`Пожалуйста, укажите эмодзи с дискорд сервера в правильном формате`**",
+        12 : "**`Пожалуйста, укажите эмодзи с дискорд сервера, на котором есть бот`**",
         13 : "Информация о сервере",
         14 : "Id сервера - ",
         15 : "**`Извините, но Вы не можете замьютить самого себя`**",
@@ -214,9 +214,9 @@ class AdditionalCommandsCog(Cog):
         interaction: Interaction, 
         emoji_str: str = SlashOption(
             name="emoji",
-            description="Select emoji or it's id from any discord server", 
+            description="Select emoji or it's id from any discord server, where bot is added", 
             description_localizations={
-                Locale.ru: "Выберите эмодзи или его id c любого дискорд сервера"
+                Locale.ru: "Выберите эмодзи или его id c любого дискорд сервера, где есть бот"
             },
             required=True
         )
@@ -282,23 +282,23 @@ class AdditionalCommandsCog(Cog):
         time = f"{ca.strftime('%Y-%m-%d %H:%M:%S')}\n{months[lng][ca.month-1].format(ca.day)}, {ca.year}"
         
         vls = [len(guild.humans), len(guild.bots), len(guild.text_channels), len(guild.voice_channels), len(guild.emojis), len(guild.stickers),
-        time, guild.verification_level, guild.filesize_limit / 1024 / 1024, f"`{len(guild.premium_subscribers)}` - `{guild.premium_tier}{text_slash[lng][6]}`"]
+        time, guild.verification_level, guild.filesize_limit >> 20, f"`{len(guild.premium_subscribers)}` - `{guild.premium_tier}{text_slash[lng][6]}`"]
 
         if guild.icon != None:
             emb.set_thumbnail(url=guild.icon.url)
         lc_s = sm[lng]
 
-        for i in [0]:
+        for i in (0,):
             emb.add_field(name=lc_s[i * 4], value=f"{emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\
             \n{emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`")
 
         emb.add_field(name=lc_s[12], value=f"{emojis[9]}`{lc_s[13]}` - `{onl}`\n{emojis[10]}`{lc_s[14]}` - `{idl}`\n{emojis[11]}`{lc_s[15]}` - `{dnd}`\n{emojis[12]}`{lc_s[16]}` - `{ofl}`")
 
-        for i in [1, 2]:
+        for i in (1, 2):
             emb.add_field(name=lc_s[i * 4], value=f"{emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\
             \n{emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`")
         
-        for i in range(17, 19):
+        for i in (17, 18):
             emb.add_field(name=lc_s[i], value=f"`{vls[i - 11]}`")
 
         emb.add_field(name=lc_s[19], value=f"`{vls[8]} mb`")
