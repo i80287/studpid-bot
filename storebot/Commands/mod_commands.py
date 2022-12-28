@@ -9,7 +9,7 @@ from nextcord.ui import View, Button, Select, TextInput, Modal
 from nextcord.ext import application_checks
 from nextcord.ext.commands import Cog, Bot
 
-from Commands.parse_tools import ParseTools
+from Tools.parse_tools import ParseTools
 from Variables.vars import path_to, ignored_channels
 
 settings_text = {
