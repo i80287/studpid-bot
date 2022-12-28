@@ -10,18 +10,18 @@ class ParseTools:
         
     @classmethod
     def parse_emoji(cls, bot: Bot, string: str) -> Emoji | str | None:
-        if string.isdigit() and (emoji := bot.get_emoji(int(string))):
-            return emoji
-        
+        if string.isdigit():
+            emoji = bot.get_emoji(int(string))
+            if emoji:
+                return emoji
+
         finds: list = findall(cls.custom_emoji_pattern, string)
-        if finds and (emoji := bot.get_emoji(int(finds[0]))):            
-            return emoji
+        if finds:
+            emoji = bot.get_emoji(int(finds[0]))
+            if emoji:
+                return emoji
         
-        finds: list = findall(cls.default_emoji_pattern, string)
+        finds: list = findall(cls.default_emoji_pattern, demojize(string))
         if not finds:
-            return None
-        for sub_str in finds:
-            if demojized := demojize(sub_str):
-                return demojized
-        
-        return None
+            return None        
+        return finds[0]
