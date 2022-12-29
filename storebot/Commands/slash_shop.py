@@ -413,8 +413,7 @@ class StoreView(View):
 
         store_list: list[str] = []
         tzinfo = timezone(timedelta(hours=self.tz))
-        for role_number, r, q, p, d, s, s_t, tp in self.db_store[
-                                                   (page - 1) * self.in_row:min(page * self.in_row, self.l)]:
+        for role_number, r, q, p, d, s, s_t, tp in self.db_store[(page - 1) * self.in_row:min(page * self.in_row, self.l)]:
             date = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
             role_info = None
             if tp == 1:
@@ -748,9 +747,7 @@ class SlashCommandsCog(Cog):
 
                 if role_type == 1:
                     rowid_to_delete = \
-                        cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r_id,)).fetchall()[
-                            0][
-                            0]
+                        cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r_id,)).fetchall()[0][0]
                     cur.execute("DELETE FROM store WHERE rowid = ?", (rowid_to_delete,))
                 elif role_type == 2:
                     if store[2] > 1:
@@ -975,11 +972,8 @@ class SlashCommandsCog(Cog):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
             return
 
-        if ec_status:
-            l: int = len(membs_cash)
-        else:
-            l: int = len(membs_xp)
-
+        
+        l: int = len(membs_cash) if ec_status else len(membs_xp)
         if ec_status:
             # cnt_cash is a place in the rating sorted by cash
             cash = member[1]
@@ -1042,8 +1036,7 @@ class SlashCommandsCog(Cog):
                         base.commit()
                         # roles to remove from db
                         for role_id in memb_roles.difference(memb_server_db_roles):
-                            if cur.execute("SELECT salary FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()[
-                                0]:
+                            if cur.execute("SELECT salary FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()[0]:
                                 membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?",
                                                     (role_id,)).fetchone()
                                 if membs:
@@ -1052,8 +1045,7 @@ class SlashCommandsCog(Cog):
                                     base.commit()
                         # roles to add in db
                         for role_id in memb_server_db_roles.difference(memb_roles):
-                            if cur.execute("SELECT salary FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()[
-                                0]:
+                            if cur.execute("SELECT salary FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()[0]:
                                 membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?",
                                                     (role_id,)).fetchone()
                                 if membs and str(memb_id) not in membs[0]:
