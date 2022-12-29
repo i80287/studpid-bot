@@ -142,13 +142,16 @@ class EventsHandlerCog(Cog):
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] {' '.join([f'[{s}]' for s in report])}\n")
 
     async def send_first_message(self, guild: Guild, lng: int):
+        channel_to_send_greet = None
         if guild.system_channel.permissions_for(guild.me).send_messages:
-            await guild.system_channel.send(embed=Embed(description="\n".join(greetings[lng])))
+            channel_to_send_greet = guild.system_channel
         else:
-            for c in guild.text_channels:
-                if c.permissions_for(guild.me).send_messages:
-                    await c.send(embed=Embed(description="\n".join(greetings[lng])))
+            for channel in guild.text_channels:
+                if channel.permissions_for(guild.me).send_messages:
+                    channel_to_send_greet = channel
                     break
+        if channel_to_send_greet:
+            await channel_to_send_greet.send(embed=Embed(description="\n".join(greetings[lng])))
 
     @Cog.listener()
     async def on_connect(self):
@@ -182,10 +185,8 @@ class EventsHandlerCog(Cog):
         if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
             mkdir(f"{path_to}/bases/bases_{guild.id}/")
         self.correct_db(guild=guild)
-        try:
-            lng = 1 if "ru" in guild.preferred_locale else 0
-        except:
-            lng = 0
+        guild_locale = guild.preferred_locale
+        lng: int = 1 if guild_locale and "ru" in guild_locale else 0
         
         if guild.me:
             await self.send_first_message(guild=guild, lng=lng)
