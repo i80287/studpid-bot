@@ -325,12 +325,10 @@ class BasicComandsCog(Cog):
     @command(aliases=["statistic", "statistics"])
     @is_owner()
     async def _statistic(self, ctx: Context):
-        description: list[str] = ["```guild - id - member_count```"]
-        for guild in self.bot.guilds:
-            description.append(f"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}")
-        description.append(f"\n**`Total guilds: {len(self.bot.guilds)}`**")
-        description.append(f"\n**`Currently active polls: {self.bot.current_polls}`**")
-
+        description: list[str] = \
+            ["```guild - id - member_count```"] + \
+            [f"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}" for guild in self.bot.guilds] + \
+            [f"\n**`Total guilds: {len(self.bot.guilds)}`**", f"\n**`Currently active polls: {self.bot.current_polls}`**"]
         emb = Embed(description='\n'.join(description))
         await ctx.reply(embed=emb, mention_author=False, delete_after=15)
 
