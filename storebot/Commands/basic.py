@@ -215,60 +215,6 @@ class BasicComandsCog(Cog):
     def __init__(self, bot: Bot):
         self.bot = bot        
 
-    def mod_role_set(self, ctx: Context) -> bool:
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
-            with closing(base.cursor()) as cur:
-                return cur.execute("SELECT count() FROM mod_roles").fetchone()[0] > 0
-
-
-    def mod_check(ctx: Context) -> bool:
-        u = ctx.author
-        if u.guild_permissions.administrator or u.guild_permissions.manage_guild:
-            return True
-
-        with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
-            with closing(base.cursor()) as cur:
-                m_rls = cur.execute("SELECT * FROM mod_roles").fetchall()
-                if m_rls:
-                    m_rls = {x[0] for x in m_rls}
-                    return any(role.id in m_rls for role in u.roles)
-                return False
-
-    
-    def mod_check_intr(interaction) -> bool:
-        u = interaction.user
-        if u.guild_permissions.administrator or u.guild_permissions.manage_guild:
-            return True
-
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
-            with closing(base.cursor()) as cur:
-                m_rls = cur.execute("SELECT * FROM mod_roles").fetchall()
-                if m_rls:
-                    m_rls = {x[0] for x in m_rls}
-                    return any(role.id in m_rls for role in u.roles)
-                return False
-
-
-    def check(self, base: Connection, cur: Cursor, memb_id: int):
-        member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
-        if member is None:
-            cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
-            base.commit()
-        else:
-            if member[1] is None or member[1] < 0:
-                cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
-                base.commit()
-            if member[2] is None:
-                cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
-                base.commit()
-            if member[3] is None:
-                cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
-                base.commit()
-            if member[4] is None:
-                cur.execute('UPDATE users SET xp = ? WHERE memb_id = ?', (0, memb_id))
-                base.commit()
-        return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
-
     async def guide(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
         emb = Embed(title=guide[lng][0])
