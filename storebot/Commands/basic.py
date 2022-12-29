@@ -224,7 +224,6 @@ class BasicComandsCog(Cog):
 
     async def help(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
-
         emb1 = Embed(title=text_help_view[lng][0], description=text_help_view[lng][4])
         emb2 = Embed(description=text_help_view[lng][5])
         emb3 = Embed(description=text_help_view[lng][6])
@@ -326,15 +325,14 @@ class BasicComandsCog(Cog):
     @command(aliases=["statistic", "statistics"])
     @is_owner()
     async def _statistic(self, ctx: Context):
-        emb = Embed(description="```guild - id - member_count```")
-        k = 0
-        for g in self.bot.guilds:
-            k += 1
-            emb.description += f"\n{g.name}-{'{' + f'{g.id}' + '}'}-{g.member_count}"
         
-        emb.description += f"\n\n**`Total guilds: {k}`**"
-        emb.description += f"\n\n**`Currently active polls: {self.bot.current_polls}`**"
+        description: list[str] = ["```guild - id - member_count```"]
+        for guild in self.bot.guilds:
+            description.append(f"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}")
+        description.append(f"\n**`Total guilds: {len(self.bot.guilds)}`**")
+        description.append(f"\n**`Currently active polls: {self.bot.current_polls}`**")
 
+        emb = Embed(description='\n'.join(description))
         await ctx.reply(embed=emb, mention_author=False, delete_after=15)
 
     @Cog.listener()
