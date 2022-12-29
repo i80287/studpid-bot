@@ -141,7 +141,8 @@ class EventsHandlerCog(Cog):
         with open(file=filename+".log", mode="a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] {' '.join([f'[{s}]' for s in report])}\n")
 
-    async def send_first_message(self, guild: Guild, lng: int):
+    @staticmethod
+    async def send_first_message(guild: Guild, lng: int):
         channel_to_send_greet = None
         if guild.system_channel.permissions_for(guild.me).send_messages:
             channel_to_send_greet = guild.system_channel
