@@ -108,68 +108,27 @@ text_help_view = {
     }
 }
 
-u_ec_cmds = {
-    0 : [
-        ("`/store`", "Show store"), ("`/buy`", "Make a role purchase"),
-        ("`/sell`", "Sell the role"), ("`/leaders`", "Show top members by balance/xp"),
-    ],
-    1 : [
-        ("`/store`", "Открывает меню магазина"), ("`/buy`", "Совершает покупку роли"), 
-        ("`/sell`", "Совершает продажу роли"), ("`/leaders`", "Показывет топ пользователей по балансу/опыту")
-    ],
-}
-u_pers_cmds = {
-    0 : [
-        ("`/profile`", "Show your profile"), ("`/work`", "Start working, so you get salary"),
-        ("`/transfer`", "Transfer money to another member"), ("`/duel`", "Make a bet"),
-    ],
-    1 : [
-        ("`/profile`", "Показывает меню Вашего профиля"), ("`/work`", "Начинает работу, за которую Вы полчите заработок"),
-        ("`/transfer`", "Совершает перевод валюты другому пользователю"), ("`/duel`", "Делает ставку"),
-    ]
-}
-u_other_cmds = {
-    0 : [
-        ("`/poll`", "Make a poll"), ("`/server`", "Show information about the server"),
-        ("`/emoji`", "Show emoji's png and url")
-    ],
-    1 : [
-        ("`/poll`", "Создаёт полл (опрос)"), ("`/server`", "Показывает информацию о сервере"),
-        ("`/emoji`", "Показывает png и url эмодзи")
-    ]
-}
-
-m_cmds = {
-    0 : [
-        ("`/guide`", "Show guide about bot's system"), ("`/settings`", "Call bot's settings menu")
-    ],
-    1 : [
-        ("`/guide`", "Показывает гайд о системе бота"), ("`/settings`", "Вызывает меню настроек бота")
-    ]
-}
-
-feedback_text = {
-    0 : {
-        0 : "Feedback",
-        1 : "What problems did you get while using the bot? What new would you want to see in bot's functional?",
-        2 : "**`Thanks a lot for your feedback!\nIt was delivered to the bot's support server`**",
-        3 : "**`We're so sorry, but during the creation of feedback something went wrong. You can get help on the support server`**"        
-    },
-    1 : {
-        0 : "Отзыв",
-        1 : "Какие проблемы возникли у Вас при использовании бота? Чтобы бы Вы хотели добавить?",
-        2 : "**`Спасибо большое за Ваш отзыв! Он был доставлен на сервер поддержки`**",
-        3 : "**`Извнините, при создании фидбэка что-то пошло не так. Вы можете получить помощь/оставить отзыв на сервере поддержки`**"
+class FeedbackModal(Modal):    
+    feedback_text: dict[int, dict[int, str]] = {
+        0 : {
+            0 : "Feedback",
+            1 : "What problems did you get while using the bot? What new would you want to see in bot's functional?",
+            2 : "**`Thanks a lot for your feedback!\nIt was delivered to the bot's support server`**",
+            3 : "**`We're so sorry, but during the creation of feedback something went wrong. You can get help on the support server`**"        
+        },
+        1 : {
+            0 : "Отзыв",
+            1 : "Какие проблемы возникли у Вас при использовании бота? Чтобы бы Вы хотели добавить?",
+            2 : "**`Спасибо большое за Ваш отзыв! Он был доставлен на сервер поддержки`**",
+            3 : "**`Извнините, при создании фидбэка что-то пошло не так. Вы можете получить помощь/оставить отзыв на сервере поддержки`**"
+        }
     }
-}
 
-
-class FeedbackModal(Modal):
     def __init__(self, lng: int, auth_id: int):
-        super().__init__(title=feedback_text[lng][0], timeout=1200, custom_id=f"10100_{auth_id}_{randint(1, 100)}")
+        super().__init__(title=self.feedback_text[lng][0], timeout=1200, custom_id=f"10100_{auth_id}_{randint(1, 100)}")
         self.feedback = TextInput(
-            label=feedback_text[lng][0],
-            placeholder=feedback_text[lng][1],
+            label=self.feedback_text[lng][0],
+            placeholder=self.feedback_text[lng][1],
             custom_id=f"10101_{auth_id}_{randint(1, 100)}",
             required=True,
             style=TextInputStyle.paragraph,
@@ -192,14 +151,67 @@ class FeedbackModal(Modal):
         if chnl:
             await chnl.send(embed=Embed(description="\n".join(dsc)))
         else:
-            await interaction.response.send_message(embed=Embed(description=feedback_text[lng][3]), content="https://discord.gg/4kxkPStDaG", ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=self.feedback_text[lng][3]), content="https://discord.gg/4kxkPStDaG", ephemeral=True)
             return
         
-        await interaction.response.send_message(embed=Embed(description=feedback_text[lng][2]), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=self.feedback_text[lng][2]), ephemeral=True)
         self.stop()
 
 
 class BasicComandsCog(Cog):
+    u_ec_cmds: dict[int, list[tuple[str, str]]] = {
+        0 : [
+            ("`/store`", "Show store"), 
+            ("`/buy`", "Make a role purchase"), 
+            ("`/buy_by_number`", "Make a role purchase. Role is selected by number in the store"),
+            ("`/sell`", "Sell the role"), 
+            ("`/leaders`", "Show top members by balance/xp"),
+        ],
+        1 : [
+            ("`/store`", "Открывает меню магазина"), 
+            ("`/buy`", "Совершает покупку роли"),
+            ("`/buy_by_number`", "Совершает покупку роли. Роль выбирается по номеру из магазина."),
+            ("`/sell`", "Совершает продажу роли"), 
+            ("`/leaders`", "Показывет топ пользователей по балансу/опыту"),
+        ],
+    }
+    u_pers_cmds: dict[int, list[tuple[str, str]]] = {
+        0 : [
+            ("`/profile`", "Show your profile"), 
+            ("`/work`", "Start working, so you get salary"),
+            ("`/transfer`", "Transfer money to another member"), 
+            ("`/duel`", "Make a bet"),
+        ],
+        1 : [
+            ("`/profile`", "Показывает меню Вашего профиля"), 
+            ("`/work`", "Начинает работу, за которую Вы полчите заработок"),
+            ("`/transfer`", "Совершает перевод валюты другому пользователю"), 
+            ("`/duel`", "Делает ставку"),
+        ]
+    }
+    u_other_cmds: dict[int, list[tuple[str, str]]] = {
+        0 : [
+            ("`/poll`", "Make a poll"), 
+            ("`/server`", "Show information about the server"),
+            ("`/emoji`", "Show information about the emoji"),
+        ],
+        1 : [
+            ("`/poll`", "Создаёт полл (опрос)"), 
+            ("`/server`", "Показывает информацию о сервере"),
+            ("`/emoji`", "Показывает информацию о эмодзи"),
+        ]
+    }
+    m_cmds: dict[int, list[tuple[str, str]]] = {
+        0 : [
+            ("`/guide`", "Show guide about bot's system"), 
+            ("`/settings`", "Call bot's settings menu"),
+        ],
+        1 : [
+            ("`/guide`", "Показывает гайд о системе бота"), 
+            ("`/settings`", "Вызывает меню настроек бота"),
+        ]
+    }
+    
     def __init__(self, bot: Bot):
         self.bot = bot        
 
@@ -207,7 +219,7 @@ class BasicComandsCog(Cog):
         with closing(connect(f'{path_to}/bases/bases_{ctx.guild.id}/{ctx.guild.id}.db')) as base:
             with closing(base.cursor()) as cur:
                 return cur.execute("SELECT count() FROM mod_roles").fetchone()[0] > 0
-    
+
 
     def mod_check(ctx: Context) -> bool:
         u = ctx.author
@@ -271,13 +283,13 @@ class BasicComandsCog(Cog):
         emb2 = Embed(description=text_help_view[lng][5])
         emb3 = Embed(description=text_help_view[lng][6])
         emb4 = Embed(title=text_help_view[lng][1])
-        for n, v in u_ec_cmds[lng]:
+        for n, v in self.u_ec_cmds[lng]:
             emb1.add_field(name=n, value=v, inline=False)
-        for n, v in u_pers_cmds[lng]:
+        for n, v in self.u_pers_cmds[lng]:
             emb2.add_field(name=n, value=v, inline=False)
-        for n, v in u_other_cmds[lng]:
+        for n, v in self.u_other_cmds[lng]:
             emb3.add_field(name=n, value=v, inline=False)
-        for n, v in m_cmds[lng]:
+        for n, v in self.m_cmds[lng]:
             emb4.add_field(name=n, value=v, inline=False)
         await interaction.response.send_message(embeds=[emb1, emb2, emb3, emb4])
   
@@ -285,7 +297,6 @@ class BasicComandsCog(Cog):
         lng = 1 if "ru" in interaction.locale else 0
         mdl = FeedbackModal(lng=lng, auth_id=interaction.user.id)
         await interaction.response.send_modal(modal=mdl)
-
 
     @slash_command(
         name="guide",
