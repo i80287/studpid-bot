@@ -325,7 +325,6 @@ class BasicComandsCog(Cog):
     @command(aliases=["statistic", "statistics"])
     @is_owner()
     async def _statistic(self, ctx: Context):
-        
         description: list[str] = ["```guild - id - member_count```"]
         for guild in self.bot.guilds:
             description.append(f"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}")
