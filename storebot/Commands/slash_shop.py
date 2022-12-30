@@ -663,9 +663,10 @@ class SlashCommandsCog(Cog):
 
     @staticmethod
     def check_user(base: Connection, cur: Cursor, memb_id: int) -> tuple[int, int, str, int, int]:
-        member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
+        member: tuple[int, int, str, int, int] = \
+            cur.execute("SELECT memb_id, money, owned_roles, work_date, xp FROM users WHERE memb_id = ?", (memb_id,)).fetchone()
         if not member:
-            cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)',
+            cur.execute("INSERT INTO users (memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)",
                         (memb_id, 0, "", 0, 0))
             base.commit()
             return (memb_id, 0, "", 0, 0)
@@ -673,16 +674,20 @@ class SlashCommandsCog(Cog):
             if member[1] is None or member[1] < 0:
                 cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
+                member[1] = 0
             if member[2] is None:
                 cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
                 base.commit()
+                member[2] = ""
             if member[3] is None:
                 cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
+                member[3] = 0
             if member[4] is None:
                 cur.execute('UPDATE users SET xp = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
-        return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
+                member[4] = 0
+        return member
 
     async def buy(self, interaction: Interaction, role: Role):
         lng = 1 if "ru" in interaction.locale else 0
@@ -705,7 +710,7 @@ class SlashCommandsCog(Cog):
                     await interaction.response.send_message(
                         embed=Embed(title=text_slash[lng][0], description=text_slash[lng][5], colour=Colour.red()))
                     return
-                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 buyer = self.check_user(base=base, cur=cur, memb_id=memb_id)
 
         # if r_id in {int(x) for x in buyer[2].split("#") if x != ""}:
@@ -797,7 +802,7 @@ class SlashCommandsCog(Cog):
                 tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
                 db_store: list[tuple[int, int, int, int, int, int, int, int]] = cur.execute(
                     "SELECT * FROM store").fetchall()
-                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
 
         db_l = len(db_store)
         l = db_l >> 1
@@ -921,28 +926,35 @@ class SlashCommandsCog(Cog):
                                     (role_members[0].replace(f"#{memb_id}", ""), r_id))
                         base.commit()
 
-                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
-                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 server_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
-        emb = Embed(title=text_slash[lng][18],
-                    description=text_slash[lng][19].format(f"<@&{r_id}>", role_info[1], currency), colour=Colour.gold())
+        emb = Embed(
+            title=text_slash[lng][18],
+            description=text_slash[lng][19].format(f"<@&{r_id}>", role_info[1], currency),
+            colour=Colour.gold()
+        )
         await interaction.response.send_message(embed=emb)
 
         try:
-            await interaction.user.send(embed=Embed(title=text_slash[lng][20],
-                                                    description=text_slash[lng][21].format(role.name, r_price,
-                                                                                           currency),
-                                                    colour=Colour.green()))
+            await interaction.user.send(
+                embed=Embed(
+                    title=text_slash[lng][20],
+                    description=text_slash[lng][21].format(role.name, r_price,currency),
+                    colour=Colour.green()
+                )
+            )
         finally:
             pass
         if chnl_id:
             try:
-                await interaction.guild.get_channel(chnl_id).send(embed=Embed(
-                    title=text_slash[server_lng][22],
-                    description=text_slash[server_lng][23].format(f"<@{memb_id}>", f"<@&{r_id}>", role_info[1],
-                                                                  currency)
-                ))
+                await interaction.guild.get_channel(chnl_id).send(
+                    embed=Embed(
+                        title=text_slash[server_lng][22],
+                        description=text_slash[server_lng][23].format(f"<@{memb_id}>", f"<@&{r_id}>", role_info[1], currency)
+                    )
+                )
             finally:
                 return
 
@@ -1089,13 +1101,17 @@ class SlashCommandsCog(Cog):
                             (salary, int(time()), memb_id))
                 base.commit()
 
-                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
-                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 server_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
         await interaction.response.send_message(
-            embed=Embed(title=text_slash[lng][27], description=text_slash[lng][28].format(salary, currency),
-                        colour=Colour.gold()))
+            embed=Embed(
+                title=text_slash[lng][27],
+                description=text_slash[lng][28].format(salary, currency),
+                colour=Colour.gold()
+            )
+        )
 
         if chnl_id:
             try:
@@ -1117,14 +1133,18 @@ class SlashCommandsCog(Cog):
                                                             ephemeral=True)
                     return
                 member = self.check_user(base=base, cur=cur, memb_id=memb_id)
-                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 server_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
         if amount > member[1]:
-            await interaction.response.send_message(embed=Embed(title=text_slash[lng][0],
-                                                                description=text_slash[lng][31].format(
-                                                                    amount - member[1], currency), colour=Colour.red()),
-                                                    ephemeral=True)
+            await interaction.response.send_message(
+                embed=Embed(
+                    title=text_slash[lng][0],
+                    description=text_slash[lng][31].format(amount - member[1], currency), 
+                    colour=Colour.red()
+                ),
+                ephemeral=True
+            )
             return
 
         bet_view = BetView(timeout=30, lng=lng, auth_id=memb_id, bet=amount, currency=currency)
@@ -1190,10 +1210,13 @@ class SlashCommandsCog(Cog):
                     return
                 act = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 self.check_user(base=base, cur=cur, memb_id=t_id)
-                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 if value > act[1]:
-                    emb = Embed(title=text_slash[lng][0],
-                                description=text_slash[lng][39].format(value - act[1], currency), colour=Colour.red())
+                    emb = Embed(
+                        title=text_slash[lng][0],
+                        description=text_slash[lng][39].format(value - act[1], currency),
+                        colour=Colour.red()
+                    )
                     await interaction.response.send_message(embed=emb)
                     return
 
@@ -1238,7 +1261,7 @@ class SlashCommandsCog(Cog):
                 else:
                     membs_xp = []
                 xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
-                currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
 
         if not (ec_status or rnk_status):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)

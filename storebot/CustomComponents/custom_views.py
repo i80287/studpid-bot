@@ -531,7 +531,7 @@ class GenSettingsView(View):
             return
         else:
             user_ans_content: str = user_ans.content
-            emoji = ParseTools.parse_emoji(self.bot, user_ans_content)
+            emoji: Emoji | str | None = ParseTools.parse_emoji(self.bot, user_ans_content)
             if emoji is None:
                 emoji_str = user_ans_content
             elif isinstance(emoji, Emoji):
@@ -541,7 +541,7 @@ class GenSettingsView(View):
 
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'currency'", (emoji_str,))
+                    cur.execute("UPDATE server_info SET str_value = ? WHERE settings = 'currency'", (emoji_str,))
                     base.commit()
 
             emb = interaction.message.embeds[0]
@@ -1081,7 +1081,7 @@ class SettingsView(View):
                 with closing(base.cursor()) as cur:
                     s_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                     tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
-                    currency: str = cur.execute("SELECT value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                    currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                     ec_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
                     rnk_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
                     
