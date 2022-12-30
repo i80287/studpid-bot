@@ -13,50 +13,48 @@ from nextcord.ext import tasks
 from Variables.vars import path_to, bot_guilds, ignored_channels
 from config import DEBUG
 
-event_handl_text = {
-    0 : {
-        0 : "**`Sorry, but you don't have enough permissions to use this command`**",
-    },
-    1 : {
-        0 : "**`Извините, но у Вас недостаточно прав для использования этой команды`**",
-    }
-}
-
 
 class EventsHandlerCog(Cog):
+    event_handl_text: dict[int, dict[int, str]] = {
+        0: {
+            0: "**`Sorry, but you don't have enough permissions to use this command`**",
+        },
+        1: {
+            0: "**`Извините, но у Вас недостаточно прав для использования этой команды`**",
+        },
+    }
+    greetings: dict[int, list[str]] = {
+        0: [
+            "Thanks for adding bot!",
+            "Use **`/guide`** to see guide about bot's system",
+            "**`/settings`** to manage bot",
+            "and **`/help`** to see available commands",
+        ],
+        1: [
+            "Благодарим за добавление бота!",
+            "Используйте **`/guide`** для просмотра гайда о системе бота",
+            "**`/settings`** для управления ботом",
+            "и **`/help`** для просмотра доступных команд",
+        ]
+    }
+    new_level_text: dict[int, dict[int, str]] = {
+        0: {
+            0: "New level!",
+            1: "{}, you raised level to **{}**!",
+        },
+        1: {
+            0: "Новый уровень!",
+            1: "{}, Вы подняли уровень до **{}**!",
+        }
+    }
+
     def __init__(self, bot: Bot):
-        self.bot = bot
-        
-        global tx
-        tx = {
-            0 : {
-                0 : "New level!",
-                1 : "{}, you raised level to **{}**!"
-            },
-            1 : {
-                0 : "Новый уровень!",
-                1 : "{}, Вы подняли уровень до **{}**!"
-            }
-        }
-        global greetings
-        greetings = {
-            0 : [
-                "Thanks for adding bot!",
-                "Use **`/guide`** to see guide about bot's system",
-                "**`/settings`** to manage bot",
-                "and **`/help`** to see available commands"
-            ],
-            1 : [
-                "Благодарим за добавление бота!",
-                "Используйте **`/guide`** для просмотра гайда о системе бота",
-                "**`/settings`** для управления ботом",
-                "и **`/help`** для просмотра доступных команд"
-            ]
-        }
+        self.bot: Bot = bot
         self.salary_roles.start()
         self._backup.start()
         
-    def correct_db(self, guild: Guild):
+    @classmethod
+    def correct_db(cls, guild: Guild):
         with closing(connect(f"{path_to}/bases/bases_{guild.id}/{guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.executescript("""
@@ -135,14 +133,15 @@ class EventsHandlerCog(Cog):
                 ignored_channels[guild.id] = {r[0] for r in cur.execute("SELECT chnl_id FROM ic").fetchall()}
 
         bot_guilds.add(guild.id)
-        self.log_event(report=["correct_db func", str(guild.id), str(guild.name)])
+        cls.log_event(report=["correct_db func", str(guild.id), str(guild.name)])
 
-    def log_event(self, filename: str = "common_logs", report: list[str] = [""]):
+    @staticmethod
+    def log_event(filename: str = "common_logs", report: list[str] = [""]):
         with open(file=filename+".log", mode="a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] {' '.join([f'[{s}]' for s in report])}\n")
 
-    @staticmethod
-    async def send_first_message(guild: Guild, lng: int):
+    @classmethod
+    async def send_first_message(cls, guild: Guild, lng: int):
         channel_to_send_greet = None
         if guild.system_channel.permissions_for(guild.me).send_messages:
             channel_to_send_greet = guild.system_channel
@@ -152,7 +151,7 @@ class EventsHandlerCog(Cog):
                     channel_to_send_greet = channel
                     break
         if channel_to_send_greet:
-            await channel_to_send_greet.send(embed=Embed(description="\n".join(greetings[lng])))
+            await channel_to_send_greet.send(embed=Embed(description="\n".join(cls.greetings[lng])))
 
     @Cog.listener()
     async def on_connect(self):
@@ -252,7 +251,8 @@ class EventsHandlerCog(Cog):
         await self.bot.wait_until_ready()
 
 
-    def check_user(self, base: Connection, cur: Cursor, memb_id: int, xp_b: int, mn_m: int, xp_m: int) -> int:
+    @staticmethod
+    def check_user(base: Connection, cur: Cursor, memb_id: int, xp_b: int, mn_m: int, xp_m: int) -> int:
         member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
         if not member:
             cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, mn_m, "", 0, xp_m))
@@ -297,7 +297,7 @@ class EventsHandlerCog(Cog):
                         ch = message.guild.get_channel(chnl)
                         if ch:
                             lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
-                            emb = Embed(title=tx[lng][0], description=tx[lng][1].format(user.mention, new_level))
+                            emb = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(user.mention, new_level))
                             await ch.send(embed=emb)
 
                     lvl_rls: list = cur.execute("SELECT * FROM rank_roles ORDER BY level").fetchall()
@@ -325,7 +325,7 @@ class EventsHandlerCog(Cog):
     async def on_application_command_error(self, interaction: Interaction, exception):
         if isinstance(exception, ApplicationCheckFailure):
             lng = 1 if "ru" in interaction.locale else 0
-            await interaction.response.send_message(embed=Embed(description=event_handl_text[lng][0]), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=self.event_handl_text[lng][0]), ephemeral=True)
             return
 
         with open("error.log", "a+", encoding="utf-8") as f:
