@@ -315,7 +315,7 @@ class EventsHandlerCog(Cog):
                                     await user.add_roles(role, reason=f"Member gained new level {new_level}")
                                 finally: 
                                     pass
-                        levels = list(lvl_rls.keys())
+                        levels: list[int] = sorted(lvl_rls.keys())
                         i = levels.index(new_level)
                         if i and lvl_rls[levels[i-1]] in memb_roles:                                
                             role = user.guild.get_role(lvl_rls[levels[i-1]])
