@@ -196,7 +196,7 @@ class EventsHandlerCog(Cog):
                 await self.send_first_message(guild=g, lng=lng)
             else:
                 with open("error.log", "a+", encoding="utf-8") as f:
-                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [FATAL] [ERROR] [send_first_message] [{[m.id for m in guild]}] [{[memb.id for memb in g]}] [{guild.me}] [{g.me}]\n")
+                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [FATAL] [ERROR] [send_first_message] [{guild.me}] [{g.me}]\n")
     
         self.log_event(filename="guild", report=["guild_join", str(guild.id), str(guild.name)])
         self.log_event(report=["guild_join", str(guild.id), str(guild.name)])
