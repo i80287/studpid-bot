@@ -310,7 +310,7 @@ class PollCog(Cog):
             Locale.ru: "создаёт новый опрос (полл)"
         } 
     )
-    async def poll_e(
+    async def poll(
         self, 
         interaction: Interaction,
         question: str = SlashOption(
