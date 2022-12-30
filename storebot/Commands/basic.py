@@ -2,7 +2,7 @@ from random import randint
 from asyncio import sleep
 from os import path
 
-from nextcord import Embed, Locale, Interaction, slash_command, TextInputStyle, Permissions, TextChannel
+from nextcord import Embed, Locale, Interaction, Game, Status, slash_command, TextInputStyle, Permissions, TextChannel
 from nextcord.ext.commands import command, is_owner, Bot, Context, Cog
 from nextcord.ui import Modal, TextInput
 
@@ -10,7 +10,7 @@ from Variables.vars import path_to
 from config import feedback_channel
 
 
-class FeedbackModal(Modal):    
+class FeedbackModal(Modal):
     feedback_text: dict[int, dict[int, str]] = {
         0 : {
             0 : "Feedback",
@@ -304,6 +304,15 @@ class BasicComandsCog(Cog):
             [f"\n**`Total guilds: {len(self.bot.guilds)}`**", f"\n**`Currently active polls: {self.bot.current_polls}`**"]
         emb = Embed(description='\n'.join(description))
         await ctx.reply(embed=emb, mention_author=False, delete_after=15)
+
+    @command(name="update_status")
+    @is_owner()
+    async def update_status(self, ctx: Context, *text):
+        if text == "default":
+            await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"), status=Status.online)
+        else:
+            await self.bot.change_presence(activity=Game(' '.join(text)), status=Status.dnd)
+        await ctx.reply(embed=Embed(description=f"**`Changed status to {' '.join(text)}`**"), mention_author=False)
 
     @Cog.listener()
     async def on_command_error(self, ctx: Context, error):
