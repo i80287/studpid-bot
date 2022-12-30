@@ -311,15 +311,19 @@ class EventsHandlerCog(Cog):
                         if new_level_role_id not in memb_roles:
                             role = user.guild.get_role(new_level_role_id)
                             if role:
-                                try: await user.add_roles(role, reason=f"Member gained new level {new_level}")
-                                except: pass
+                                try: 
+                                    await user.add_roles(role, reason=f"Member gained new level {new_level}")
+                                finally: 
+                                    pass
                         levels = list(lvl_rls.keys())
                         i = levels.index(new_level)
                         if i and lvl_rls[levels[i-1]] in memb_roles:                                
                             role = user.guild.get_role(lvl_rls[levels[i-1]])
                             if role:
-                                try: await user.remove_roles(role, reason=f"Member gained new level {new_level}")
-                                except: pass
+                                try: 
+                                    await user.remove_roles(role, reason=f"Member gained new level {new_level}")
+                                finally: 
+                                    pass
 
     @Cog.listener()
     async def on_application_command_error(self, interaction: Interaction, exception):
