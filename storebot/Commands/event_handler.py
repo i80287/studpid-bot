@@ -291,14 +291,14 @@ class EventsHandlerCog(Cog):
                 new_level = self.check_user(base=base, cur=cur, memb_id=user.id, xp_b=xp_b, mn_m=mn_p_m, xp_m=xp_p_m)
 
                 if new_level:
-                    chnl = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
+                    channel_id = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
                     
-                    if chnl:
-                        ch = message.guild.get_channel(chnl)
-                        if ch:
-                            lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
+                    if channel_id:
+                        channel = message.guild.get_channel(channel_id)
+                        if channel:
+                            lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
                             emb = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(user.mention, new_level))
-                            await ch.send(embed=emb)
+                            await channel.send(embed=emb)
 
                     lvl_rls: list = cur.execute("SELECT * FROM rank_roles ORDER BY level").fetchall()
                     if not lvl_rls:
