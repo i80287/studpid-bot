@@ -210,12 +210,12 @@ class RoleAddModal(Modal):
         self.add_item(self.r_type1)
         self.add_item(self.r_type2)
         self.add_item(self.r_type3)
-        self.r_t = set()
+        self.r_t: set[int] = set()
 
 
     def check_role_type(self, r_type):
-        if r_type and r_type.isdigit() and int(r_type) in {1, 2, 3}:
-            self.r_t.add(int(r_type))
+        if r_type and r_type.isdigit() and (int_r_type := int(r_type)) in {1, 2, 3}:
+            self.r_t.add(int_r_type)
 
     def check_ans(self) -> int:
         ans: int = 0b000000
@@ -272,11 +272,12 @@ class RoleAddModal(Modal):
         price: int = int(self.price.value)
         if self.salary.value:
             s_ans = self.salary.value.split()
-            salary = int(s_ans[0])
-            salary_c = int(s_ans[1]) * 3600
+            salary: int = int(s_ans[0])
+            salary_c: int = int(s_ans[1]) * 3600
         else:
             salary = salary_c = 0
-        r_type = int(list(self.r_t)[0])
+        
+        r_type: int = self.r_t.pop()
 
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
