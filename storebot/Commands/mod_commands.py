@@ -9,33 +9,32 @@ from Variables.vars import path_to
 from CustomComponents.custom_views import SettingsView
 
 
-settings_text = {
-    0 : {
-        0 : "Choose section",
-        1: [
-            "⚙️ general settings",
-            "<:moder:1000090629897998336> manage moders' roles",
-            "<:user:1002245779089535006> manage members",
-            "💰 economy",
-            "📈 ranking",
-            "📊 polls"
-        ],
-    },
-    1 : {
-        0 : "Выберите раздел",
-        1 : [
-            "⚙️ основные настройки",
-            "<:moder:1000090629897998336> настройка ролей модераторов",
-            "<:user:1002245779089535006> управление пользователями",
-            "💰 экономика",
-            "📈 ранговая система",
-            "📊 поллы"
-        ],
-    }
-}
-
-
 class ModCommandsCog(Cog):
+    settings_text = {
+        0 : {
+            0 : "Choose section",
+            1: [
+                "⚙️ general settings",
+                "<:moder:1000090629897998336> manage moders' roles",
+                "<:user:1002245779089535006> manage members",
+                "💰 economy",
+                "📈 ranking",
+                "📊 polls"
+            ],
+        },
+        1 : {
+            0 : "Выберите раздел",
+            1 : [
+                "⚙️ основные настройки",
+                "<:moder:1000090629897998336> настройка ролей модераторов",
+                "<:user:1002245779089535006> управление пользователями",
+                "💰 экономика",
+                "📈 ранговая система",
+                "📊 поллы"
+            ],
+        }
+    }
+
     def __init__(self, bot: Bot):
         self.bot = bot
 
@@ -55,7 +54,7 @@ class ModCommandsCog(Cog):
     async def settings(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
         st_view = SettingsView(t_out=120, auth_id=interaction.user.id, bot=self.bot)
-        emb = Embed(title=settings_text[lng][0], description="\n".join(settings_text[lng][1]))
+        emb = Embed(title=self.settings_text[lng][0], description="\n".join(self.settings_text[lng][1]))
         await interaction.response.send_message(embed=emb, view=st_view)
 
         await st_view.wait()
