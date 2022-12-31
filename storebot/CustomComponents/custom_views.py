@@ -907,7 +907,7 @@ class EconomyView(View):
             flag = True
             while flag:
                 try:
-                    user_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == self.auth_id and m.channel.id == interaction.channel_id, timeout=40)
+                    user_ans: Message = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == self.auth_id and m.channel.id == interaction.channel_id, timeout=40)
                 except TimeoutError:
                     flag = False
                 else:
