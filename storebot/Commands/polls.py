@@ -117,9 +117,7 @@ class Poll(View):
             self.stop()
 
         elif label == "approve":
-            if chnl_id:
-                chnl = g.get_channel(chnl_id)     
-                
+            if chnl_id and (chnl := g.get_channel(chnl_id)):
                 emb = interaction.message.embeds[0]
                 o_dsc = emb.description
                 emb.description = f"{self.poll_class_text[lng][1]}{interaction.user.mention}\n" + emb.description
