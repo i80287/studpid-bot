@@ -96,6 +96,7 @@ class ConsoleCog(Cog):
                     ('economy_enabled', 1, ""),
                     ('ranking_enabled', 1, ""),
                     ('currency', 0, ":coin:"),
+                    ("sale_price_perc", 100, ""),
                 )
                 cur.executemany("INSERT OR IGNORE INTO server_info (settings, value, str_value) VALUES(?, ?, ?)", settings_params)
                 base.commit()

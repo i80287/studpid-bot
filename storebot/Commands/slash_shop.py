@@ -670,23 +670,10 @@ class SlashCommandsCog(Cog):
                         (memb_id, 0, "", 0, 0))
             base.commit()
             return (memb_id, 0, "", 0, 0)
-        else:
-            if member[1] is None or member[1] < 0:
-                cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
-                base.commit()
-                member[1] = 0
-            if member[2] is None:
-                cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
-                base.commit()
-                member[2] = ""
-            if member[3] is None:
-                cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
-                base.commit()
-                member[3] = 0
-            if member[4] is None:
-                cur.execute('UPDATE users SET xp = ? WHERE memb_id = ?', (0, memb_id))
-                base.commit()
-                member[4] = 0
+        elif member[1] < 0:
+            cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
+            base.commit()
+            member[1] = 0
         return member
 
     async def buy(self, interaction: Interaction, role: Role):
@@ -851,42 +838,45 @@ class SlashCommandsCog(Cog):
 
     async def sell(self, interaction: Interaction, role: Role):
         lng = 1 if "ru" in interaction.locale else 0
-        r_id = role.id
-
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
+        r_id = role.id
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
                     await interaction.response.send_message(embed=Embed(description=common_text[lng][2]),
                                                             ephemeral=True)
                     return
-                role_info = cur.execute('SELECT * FROM server_roles WHERE role_id = ?', (r_id,)).fetchone()
+                role_info: tuple[int, int, int, int, int] = \
+                    cur.execute("SELECT role_id, price, salary, salary_cooldown, type FROM server_roles WHERE role_id = ?", (r_id,)).fetchone()
                 if not role_info:
                     await interaction.response.send_message(
                         embed=Embed(title=text_slash[lng][0], description=text_slash[lng][17], colour=Colour.red()))
                     return
 
                 memb_id = interaction.user.id
-                user = self.check_user(base=base, cur=cur, memb_id=memb_id)
+                user: tuple[int, int, str, int, int] = self.check_user(base=base, cur=cur, memb_id=memb_id)
                 owned_roles = user[2]
 
-                # if not r_id in {int(x) for x in owned_roles.split("#") if x != ""}:
+                # if not r_id in {int(x) for x in owned_roles.split("#") if x}:
                 if str(r_id) not in owned_roles:
                     await interaction.response.send_message(
                         embed=Embed(colour=Colour.red(), title=text_slash[lng][0], description=text_slash[lng][16]),
                         ephemeral=True)
                     return
 
-                r_price = role_info[1]
-                r_sal = role_info[2]
-                r_sal_c = role_info[3]
-                r_type = role_info[4]
+                r_price: int = role_info[1]
+                r_sal: int = role_info[2]
+                r_sal_c: int = role_info[3]
+                r_type: int = role_info[4]
+
+                sale_price_percent: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sale_price_perc'").fetchone()[0]
+                sale_price = r_price if sale_price_percent == 100 \
+                    else r_price * sale_price_percent // 100
 
                 await interaction.user.remove_roles(role)
-
                 cur.execute("UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?",
-                            (owned_roles.replace(f"#{r_id}", ""), r_price, memb_id))
+                            (owned_roles.replace(f"#{r_id}", ""), sale_price, memb_id))
                 base.commit()
 
                 time_now = int(time())
@@ -932,7 +922,7 @@ class SlashCommandsCog(Cog):
 
         emb = Embed(
             title=text_slash[lng][18],
-            description=text_slash[lng][19].format(f"<@&{r_id}>", role_info[1], currency),
+            description=text_slash[lng][19].format(f"<@&{r_id}>", sale_price, currency),
             colour=Colour.gold()
         )
         await interaction.response.send_message(embed=emb)
@@ -941,7 +931,7 @@ class SlashCommandsCog(Cog):
             await interaction.user.send(
                 embed=Embed(
                     title=text_slash[lng][20],
-                    description=text_slash[lng][21].format(role.name, r_price,currency),
+                    description=text_slash[lng][21].format(role.name, sale_price,currency),
                     colour=Colour.green()
                 )
             )
@@ -952,7 +942,7 @@ class SlashCommandsCog(Cog):
                 await interaction.guild.get_channel(chnl_id).send(
                     embed=Embed(
                         title=text_slash[server_lng][22],
-                        description=text_slash[server_lng][23].format(f"<@{memb_id}>", f"<@&{r_id}>", role_info[1], currency)
+                        description=text_slash[server_lng][23].format(f"<@{memb_id}>", f"<@&{r_id}>", sale_price, currency)
                     )
                 )
             finally:

@@ -11,8 +11,9 @@ from Tools.parse_tools import ParseTools
 from Variables.vars import path_to, ignored_channels
 from CustomComponents.custom_button import CustomButton
 from CustomComponents.custom_select import CustomSelect
-from CustomComponents.custom_modals import RoleAddModal, RoleEditModal, \
+from CustomModals.custom_modals import RoleAddModal, RoleEditModal, \
     XpSettingsModal, SelectLevelModal, ManageMemberCashXpModal
+from CustomModals.sale_role_price import SalePriceModal
 
 
 languages = {
@@ -204,7 +205,8 @@ ec_text = {
         18 : "__**role - role id - price - salary - cooldown for salary - type - how much in the store**__",
         19 : "No roles were added",
         20 : "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
-        21 : "**`You reseted log channel`**"
+        21 : "**`You reseted log channel`**",
+        22: "🛍️ Sale price of the role, from the purchase price: **`{}`** %",
     },
     1 : {
         0 : "Настройки экономики",
@@ -230,7 +232,8 @@ ec_text = {
         18 : "__**роль - id роли - цена - заработок - кулдаун заработка - тип - сколько в магазине**__",
         19 : "Не добавлено ни одной роли",
         20 : "`Если роль не отображается ни в одном меню снизу, значит, бот не может управлять ею`",
-        21 : "**`Вы сбросили канал логов`**"
+        21 : "**`Вы сбросили канал логов`**",
+        22: "🛍️ Цена роли при продаже, от цены покупки: **`{}`** %",
     }
 }
 
@@ -726,13 +729,15 @@ class EconomyView(View):
         }
     }
 
-    def __init__(self, t_out: int, auth_id: int):
+    def __init__(self, t_out: int, auth_id: int, sale_price_percent: int):
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
-        self.channel = None
+        self.channel: int = None
+        self.sale_price_percent: int = sale_price_percent
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"10_{auth_id}_{randint(1, 100)}", emoji="💸"))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"11_{auth_id}_{randint(1, 100)}", emoji="⏰"))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"12_{auth_id}_{randint(1, 100)}", emoji="💹"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"45_{auth_id}_{randint(1, 100)}", emoji="🛍️"))
         self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"13_{auth_id}_{randint(1, 100)}", emoji="📙"))
         self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"14_{auth_id}_{randint(1, 100)}", emoji="🛠️"))        
 
@@ -846,9 +851,9 @@ class EconomyView(View):
         emb = interaction.message.embeds[0]
         dsc = emb.description.split("\n\n")
         if self.channel != 0:
-            dsc[3] = ec_text[lng][5].format(f"<#{self.channel}>")
+            dsc[4] = ec_text[lng][5].format(f"<#{self.channel}>")
         else:
-            dsc[3] = ec_text[lng][5].format(settings_text[lng][13])
+            dsc[4] = ec_text[lng][5].format(settings_text[lng][13])
         emb.description = "\n\n".join(dsc)
         await interaction.message.edit(embed=emb, view=self)
 
@@ -860,7 +865,6 @@ class EconomyView(View):
         self.channel = None
 
     async def manage_economy_roles(self, interaction: Interaction, lng: int):
-        emb = Embed()
         server_roles_ids: set[int] = set()
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
@@ -884,7 +888,7 @@ class EconomyView(View):
                     descr: list[str] = [ec_text[lng][19]]
 
         descr.append('\n' + ec_text[lng][20])
-        emb.description='\n'.join(descr)
+        emb = Embed(description='\n'.join(descr))
         
         assignable_roles: list[tuple[str, int]] = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
         remove_role_button_is_disabled = False if assignable_roles else True
@@ -902,14 +906,35 @@ class EconomyView(View):
             c.disabled = True
         await interaction.edit_original_message(view=ec_rls_view)
 
+    async def change_sale_role_price(self, interaction: Interaction, lng: int):
+        sale_price_modal = SalePriceModal(
+            timeout=40, 
+            lng=lng, 
+            auth_id=self.auth_id, 
+            current_sale_role_percent=self.sale_price_percent
+        )
+        await interaction.response.send_modal(sale_price_modal)
+
+        await sale_price_modal.wait()
+        if (new_sale_percent := sale_price_modal.new_sale_role_percent) is not None:
+            self.sale_price_percent = new_sale_percent
+            emb: Embed = interaction.message.embeds[0]
+            descript_lines: list[str] = emb.description.split("\n\n")
+            descript_lines[3] = ec_text[lng][22].format(new_sale_percent)
+            emb.description = "\n\n".join(descript_lines)
+            await interaction.message.edit(embed=emb)
+
     async def click(self, interaction: Interaction, c_id: str):
         lng = 1 if "ru" in interaction.locale else 0
-        if c_id.startswith("13"):
+        int_custom_id = int(c_id[:2])
+        if int_custom_id == 13:
             await self.log_chnl(interaction=interaction, lng=lng)
-        elif c_id.startswith("14"):
+        elif int_custom_id == 14:
             await self.manage_economy_roles(interaction=interaction, lng=lng)
-        elif (custom_id_int := int(c_id[:2])) in {10, 11, 12}:
-            await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (custom_id_int - 10) * 2]), ephemeral=True)
+        elif int_custom_id == 45:
+            await self.change_sale_role_price(interaction=interaction, lng=lng)
+        elif int_custom_id in {10, 11, 12}:
+            await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (int_custom_id - 10) * 2]), ephemeral=True)
             flag = True
             while flag:
                 try:
@@ -918,12 +943,17 @@ class EconomyView(View):
                     flag = False
                 else:
                     ans: str = user_ans.content
-                    if c_id.startswith("10"): flag = await self.msg_salary(interaction=interaction, lng=lng, ans=ans)
-                    elif c_id.startswith("11"): flag = await self.work_cldwn(interaction=interaction, lng=lng, ans=ans)
-                    elif c_id.startswith("12"): flag = await self.work_salary(interaction=interaction, lng=lng, ans=ans)
+                    if int_custom_id == 10: 
+                        flag = await self.msg_salary(interaction=interaction, lng=lng, ans=ans)
+                    elif int_custom_id == 11: 
+                        flag = await self.work_cldwn(interaction=interaction, lng=lng, ans=ans)
+                    elif int_custom_id == 12: 
+                        flag = await self.work_salary(interaction=interaction, lng=lng, ans=ans)
                 # try to delete user's ans
-                try: await user_ans.delete()
-                except: pass
+                try: 
+                    await user_ans.delete()
+                finally: 
+                    pass
 
     async def click_menu(self, _, c_id: str, values):
         if c_id.startswith("50"):
@@ -977,7 +1007,7 @@ class EconomyRolesManageView(View):
             if self.role in self.s_rls:
                 await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][9]), ephemeral=True)
                 return
-            add_mod = RoleAddModal(timeout=90, lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
+            add_mod = RoleAddModal(timeout=90, lng=lng, role=self.role, message=interaction.message, auth_id=interaction.user.id)
             await interaction.response.send_modal(modal=add_mod)
             
             await add_mod.wait()
@@ -1006,7 +1036,7 @@ class EconomyRolesManageView(View):
             edit_mod = RoleEditModal(
                 timeout=90, 
                 role=role_id, 
-                m=interaction.message, 
+                message=interaction.message, 
                 auth_id=interaction.user.id, 
                 lng=lng, 
                 p=req[1], 
@@ -1045,14 +1075,14 @@ class SettingsView(View):
         self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"4_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"5_{auth_id}_{randint(1, 100)}", emoji="📊", row=2))
     
-    def check_ans(self, interaction: Interaction, ans: str):
+    @staticmethod
+    def check_ans(interaction: Interaction, ans: str):
         if ans == "cancel":
             return None, 1
         if ans.startswith("<@") and len(ans) >= 4:
             ans = ans[2:-1]
         if ans.isdigit():
-            ans = int(ans)
-            memb = interaction.guild.get_member(ans)
+            memb = interaction.guild.get_member(int(ans))
             if memb is None:
                 return None, 0
             return memb, 2
@@ -1098,8 +1128,7 @@ class SettingsView(View):
                     currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                     ec_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
                     rnk_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
-                    
-            emb = Embed()
+
             dsc = [gen_settings_text[lng][0].format(languages[lng][s_lng])]
             if tz >= 0:
                 dsc.append(gen_settings_text[lng][1].format(f"+{tz}"))
@@ -1112,10 +1141,9 @@ class SettingsView(View):
                 dsc.append(gen_settings_text[lng][i])
             dsc.append(gen_settings_text[lng][8].format(system_status[lng][ec_status+2]))
             dsc.append(gen_settings_text[lng][9].format(system_status[lng][rnk_status+2]))
-
-            emb.description="\n".join(dsc)
+            
             gen_view = GenSettingsView(t_out=50, auth_id=self.auth_id, bot=self.bot, lng=lng, ec_status=ec_status, rnk_status=rnk_status)
-            await interaction.response.send_message(embed=emb, view=gen_view)
+            await interaction.response.send_message(embed=Embed(description="\n".join(dsc)), view=gen_view)
             await gen_view.wait()
             for c in gen_view.children:
                 c.disabled = True
@@ -1155,8 +1183,10 @@ class SettingsView(View):
                     flag = 1
                 else:
                     ans: str = m_ans.content
-                    try: await m_ans.delete()
-                    except: pass
+                    try: 
+                        await m_ans.delete()
+                    finally: 
+                        pass
                     memb, flag = self.check_ans(interaction=interaction, ans=ans)
                     if flag == 1:
                         await interaction.delete_original_message()
@@ -1243,19 +1273,20 @@ class SettingsView(View):
         elif custom_id.startswith("3_"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
-                    money_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg'").fetchone()[0]
-                    w_cd = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd'").fetchone()[0]
-                    sal_l = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l'").fetchone()[0]
-                    sal_r = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r'").fetchone()[0]
-                    e_l_c = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+                    money_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg'").fetchone()[0]
+                    w_cd: int = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd'").fetchone()[0]
+                    sal_l: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l'").fetchone()[0]
+                    sal_r: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r'").fetchone()[0]
+                    e_l_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+                    sale_price_percent: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sale_price_perc'").fetchone()[0]
             emb = Embed(title=ec_text[lng][0])
-            dsc = []
-            dsc.append(ec_text[lng][1].format(money_p_m))
+            dsc: list[str] = [ec_text[lng][1].format(money_p_m)]
             dsc.append(ec_text[lng][2].format(w_cd))
             if sal_l == sal_r:
                 dsc.append(ec_text[lng][3].format(sal_l))
             else:
                 dsc.append(ec_text[lng][3].format(ec_text[lng][4].format(sal_l, sal_r)))
+            dsc.append(ec_text[lng][22].format(sale_price_percent))
             if e_l_c == 0:
                 dsc.append(ec_text[lng][5].format(settings_text[lng][13]))
             else:
@@ -1264,7 +1295,11 @@ class SettingsView(View):
             dsc.append(ec_text[lng][8])
             emb.description = "\n\n".join(dsc)
             
-            ec_v = EconomyView(t_out=110, auth_id=self.auth_id)
+            ec_v = EconomyView(
+                t_out=110, 
+                auth_id=self.auth_id,
+                sale_price_percent=sale_price_percent,
+            )
             await interaction.response.send_message(embed=emb, view=ec_v)
             await ec_v.wait()
             for c in ec_v.children:

@@ -3,65 +3,10 @@ from contextlib import closing
 from random import randint
 from time import time
 
-from nextcord import Embed, Interaction, TextInputStyle
+from nextcord import Embed, Message, Interaction, TextInputStyle
 from nextcord.ui import TextInput, Modal
 
 from Variables.vars import path_to
-
-
-ec_text = {
-    0 : {
-        0 : "Economy settings",
-        1 : "💸 Money gained for message:\n**`{}`**",
-        2 : "⏰ Cooldown for `/work`:\n**`{} seconds`**",
-        3 : "💹 Salary from `/work`:\n**{}**",
-        4 : "random integer from `{}` to `{}`",
-        5 : "📙 Log channel for economic operations:\n{}",
-        7 : "> To manage setting press button with\ncorresponding emoji",
-        8 : "> To see and manage roles available for\npurchase/sale in the bot press 🛠️",
-        9 : "**`Write amount of money gained for message (non negative integer number)`**",
-        10 : "Amount of money gained from messages set to: `{}`",
-        11 : "Write cooldown for `/work` command **in seconds** (integer at least 60)\nFor example, to make cooldown equalt to 240 seconds, write `240` in the chat",
-        12 : "Cooldown for `/work` set to: `{}`",
-        13 : "Write salary from `/work`:\nTwo non-negative numbers, second at least as much as first\nSalary will be random integer \
-            between them\nIf you want salary to constant write one number\nFor example, if you write `1` `100` then salary \
-            will be random integer from `1` to `100`\nIf you write `10`, then salary will always be `10`",
-        14 : "**`Now salary is `**{}",
-        15 : "Select channel",
-        16 : "**`You chose channel `**{}",
-        17 : "**`Timeout expired`**",
-        18 : "__**role - role id - price - salary - cooldown for salary - type - how much in the store**__",
-        19 : "No roles were added",
-        20 : "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
-        21 : "**`You reseted log channel`**"
-    },
-    1 : {
-        0 : "Настройки экономики",
-        1 : "💸 Количество денег, получаемых за сообщение:\n**`{}`**",
-        2 : "⏰ Кулдаун для команды `/work`:\n**`{} секунд`**",
-        3 : "💹 Доход от команды `/work`:\n**{}**",
-        4 : "рандомное целое число от `{}` до `{}`",
-        5 : "📙 Канал для логов экономических операций:\n{}",
-        7 : "> Для управления настройкой нажмите на кнопку с\nсоответствующим эмодзи",
-        8 : "> Для просмотра и управления ролями, доступными\nдля покупки/продажи у бота, нажмите 🛠️",
-        9 : "**`Укажите количество денег, получаемых за сообщение\n(неотрицательное целое число)`**",
-        10 : "Количество денег, получаемых за одно сообщение, теперь равно: `{}`",
-        11 : "Укажите кулдаун для команды `/work` **в секундах** (целое число не менее 60)\nНапример, чтобы поставить кулдаун 240 секунд, напишите в чат `240`",
-        12 : "Кулдаун для команды `/work` теперь равен: `{}`",
-        13 : "Укажите заработок от команды `/work`:\nДва неотрицательных числа, второе не менее первого\nЗаработок будет \
-            рандомным целым числом между ними\nЕсли Вы хотите сделать заработок постоянным, укажите одно число\nНапример, \
-            если Вы укажите `1` `100`, то заработок будет рандомным целым числом от `1` до `100`\nЕсли Вы укажите `10`, то \
-            заработок всегда будет равен `10`",
-        14 : "**`Теперь заработок: `**{}",
-        15 : "Выберите канал",
-        16 : "**`Вы выбрали канал `**{}",
-        17 : "**`Время ожидания вышло`**",
-        18 : "__**роль - id роли - цена - заработок - кулдаун заработка - тип - сколько в магазине**__",
-        19 : "Не добавлено ни одной роли",
-        20 : "`Если роль не отображается ни в одном меню снизу, значит, бот не может управлять ею`",
-        21 : "**`Вы сбросили канал логов`**"
-    }
-}
 
 ec_mr_text = { 
     0 : {
@@ -145,9 +90,85 @@ r_types = {
     }
 }
 
+ranking_text = {
+    0 : {
+        0 : "✨ Xp gained per message:\n**`{}`**",
+        1 : "✨ Amount of xp between adjacent levels:\n**`{}`**",
+        2 : "📗 Channel for the notification about new levels:\n{}",
+        4 : "> To manage setting press button with corresponding emoji\n",
+        5 : "> Press :mute: to manage channels where members can't get xp\n",
+        6 : "> Press 🥇 to manage roles given for levels",
+        7 : "Managing xp settings",
+        8 : "Xp per message",
+        9 : "Amount of xp gained by every member from one message, non-negative integer number",
+        10 : "Amount of xp between adjected levels",
+        11 : "Amount of xp members need to gain to get next level, positive integer number",
+        12 : "**`Xp gained per message should be non-negative integer number`**",
+        13 : "**`Amount of xp between adjected levels should be positive integer number`**",
+        14 : "**`You changed amount of xp gained from one message, now it's {}`**",
+        15 : "**`You changed amount of xp needed to get next level, now it's {}`**",
+        16 : "**`You hasn't changed anything`**",
+        17 : "__**channel**__ - __**id**__",
+        18 : "**`No channels were selected`**",
+        19 : "**`You added channel `**<#{}>",
+        20 : "**`You removed channel `**<#{}>",
+        21 : "**`You hasn't selected the channel yet`**",
+        22 : "**`This channel is already added`**",
+        23 : "**`This channel hasn't been added yet`**",
+        24 : "level",
+        25 : "**`No roles matched for levels`**",
+        26 : "Roles for level",
+        27 : "**`Press `**<:add01:999663315804500078>🔧**`to add / change role for the level`**\n**`Press `**<:remove01:999663428689997844>**` to remove role for the level`**",
+        28 : "Write the level: positive integer from 1 to 100",
+        29 : "**`Select role for level {}`**",
+        30 : "**`Bot can't give any role on the server`**",
+        31 : "**`From now role given for the level {} is `**<@&{}>",
+        32 : "**`Timeout has expired`**",
+        33 : "**`You removed role for level {}`**",
+        34 : "**`No roles matches level {}`**",
+        35 : "Write the level: **`positive integer from 1 to 100`**",
+    },
+    1 : {
+        0 : "✨ Опыт, получаемый за одно сообщение:\n**`{}`**",
+        1 : "✨ Количество опыта между соседними уровнями:\n**`{}`**",
+        2 : "📗 Канал для оповещений о получении нового уровня:\n{}",
+        4 : "> Для управления настройкой нажмите на кнопку с соответствующим эмодзи\n",
+        5 : "> Нажмите :mute: для управления каналами, в которых пользователи не могут получать опыт\n",
+        6 : "> Нажмите 🥇 для управления ролями, выдаваемыми за уровни",
+        7 : "Управление настройками опыта",
+        8 : "Опыт за сообщение",
+        9 : "Количество опыта, получаемого пользователем за одно сообщение, целое неотрицательное число",
+        10 : "Количество опыта между уровнями",
+        11 : "Количество опыта,необходимого участникам для получения следующего уровня, целове положительное число",
+        12 : "**`Опыт, получаемый участником за одно сообщение, должен быть целым неотрицательным числом`**",
+        13 : "**`Количество опыта, который необходимо набрать участникам для получения следующего уровня, должно быть целым положительным числом`**",
+        14 : "**`Вы изменили количество опыта, получаемого участником за одно сообщение, теперь оно равно {}`**",
+        15 : "**`Вы изменили количество опыта, необходимого участнику для получения следующего уровня, теперь оно равно {}`**",
+        16 : "**`Вы ничего не изменили`**",
+        17 : "__**канал**__ - __**id**__",
+        18 : "**`Не выбрано ни одного канала`**",
+        19 : "**`Вы добавили канал `**<#{}>",
+        20 : "**`Вы убрали канал `**<#{}>",
+        21 : "**`Вы не выбрали канал`**",
+        22 : "**`Этот канал уже добавлен`**",
+        23 : "**`Этот канал ещё не был добавлен`**",
+        24 : "уровень",
+        25 : "**`Роли за уровни не назначены`**",
+        26 : "Роли за уровни",
+        27 : "**`Нажмите `**<:add01:999663315804500078>🔧**`, чтобы добавить / изменить роль за уровень`**\n**`Нажмите `**<:remove01:999663428689997844>**`, чтобы убрать роль за уровень`**",
+        28 : "Напишите номер уровня: положительное целое число от 1 до 100",
+        29 : "**`Выберите роль для уровня {}`**",
+        30 : "**`Бот не может выдать ни одной роли на сервере`**",
+        31 : "**`Теперь за уровень {} выдаётся роль `**<@&{}>",
+        32 : "**`Время истекло`**",
+        33 : "**`Вы убрали роль за уровень {}`**",
+        34 : "**`Уровню {} не соответствует ни одна роль`**",
+        35 : "Напишите номер уровня: **`положительное целое число от 1 до 100`**",
+    }
+}
 
 class RoleAddModal(Modal):
-    rl_add_modal_text = {
+    rl_add_modal_text: dict[int, dict[int, str]] = {
         0 : {
             0: "Adding role",
         },
@@ -155,11 +176,21 @@ class RoleAddModal(Modal):
             0: "Добавление роли",
         },
     }
+    partial_ec_text: dict[int, dict[int, str]] = {
+        0 : {
+            18 : "__**role - role id - price - salary - cooldown for salary - type - how much in the store**__",
+            20 : "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
+        },
+        1 : {
+            18 : "__**роль - id роли - цена - заработок - кулдаун заработка - тип - сколько в магазине**__",
+            20 : "`Если роль не отображается ни в одном меню снизу, значит, бот не может управлять ею`",
+        }
+    }
 
-    def __init__(self, timeout: int, lng: int, role: int, m, auth_id: int):
+    def __init__(self, timeout: int, lng: int, role: int, message: Message, auth_id: int):
         super().__init__(title=self.rl_add_modal_text[lng][0], timeout=timeout, custom_id=f"6100_{auth_id}_{randint(1, 100)}")
         self.role=role
-        self.m = m
+        self.m: Message = message
         self.added = False
         self.price = TextInput(
             label=ec_mr_text[lng][10],
@@ -288,13 +319,12 @@ class RoleAddModal(Modal):
                     base.commit()
 
         emb = self.m.embeds[0]
-        dsc = emb.description.split("\n")
+        dsc: list[str] = emb.description.split("\n")
         rls = dsc[1:-2]
-        dsc = [ec_text[lng][18]]
-        for r in rls:
-            dsc.append(r)
+        dsc = [self.partial_ec_text[lng][18]]
+        dsc.extend(r for r in rls)
         dsc.append(f"<@&{self.role}> - **`{self.role}`** - **`{price}`** - **`{salary}`** - **`{salary_c//3600}`** - **`{r_types[lng][r_type]}`** - **`0`**")
-        dsc.append("\n" + ec_text[lng][20])
+        dsc.append("\n" + self.partial_ec_text[lng][20])
         emb.description = "\n".join(dsc)
         await self.m.edit(embed=emb)
 
@@ -304,10 +334,10 @@ class RoleAddModal(Modal):
 
 
 class RoleEditModal(Modal):
-    def __init__(self, timeout: int, role: int, m, lng: int, auth_id: int, p: int, s: int, s_c: int, r_t: int, in_store: int):
+    def __init__(self, timeout: int, role: int, message: Message, lng: int, auth_id: int, p: int, s: int, s_c: int, r_t: int, in_store: int):
         super().__init__(title=ec_mr_text[lng][25], timeout=timeout, custom_id=f"7100_{auth_id}_{randint(1, 100)}")
         self.role=role
-        self.m = m
+        self.m = message
         self.added = False
         self.prev_r_t = r_t
         self.s = s
@@ -683,88 +713,11 @@ class ManageMemberCashXpModal(Modal):
 
 
 class XpSettingsModal(Modal):
-    ranking_text = {
-        0 : {
-            0 : "✨ Xp gained per message:\n**`{}`**",
-            1 : "✨ Amount of xp between adjacent levels:\n**`{}`**",
-            2 : "📗 Channel for the notification about new levels:\n{}",
-            4 : "> To manage setting press button with corresponding emoji\n",
-            5 : "> Press :mute: to manage channels where members can't get xp\n",
-            6 : "> Press 🥇 to manage roles given for levels",
-            7 : "Managing xp settings",
-            8 : "Xp per message",
-            9 : "Amount of xp gained by every member from one message, non-negative integer number",
-            10 : "Amount of xp between adjected levels",
-            11 : "Amount of xp members need to gain to get next level, positive integer number",
-            12 : "**`Xp gained per message should be non-negative integer number`**",
-            13 : "**`Amount of xp between adjected levels should be positive integer number`**",
-            14 : "**`You changed amount of xp gained from one message, now it's {}`**",
-            15 : "**`You changed amount of xp needed to get next level, now it's {}`**",
-            16 : "**`You hasn't changed anything`**",
-            17 : "__**channel**__ - __**id**__",
-            18 : "**`No channels were selected`**",
-            19 : "**`You added channel `**<#{}>",
-            20 : "**`You removed channel `**<#{}>",
-            21 : "**`You hasn't selected the channel yet`**",
-            22 : "**`This channel is already added`**",
-            23 : "**`This channel hasn't been added yet`**",
-            24 : "level",
-            25 : "**`No roles matched for levels`**",
-            26 : "Roles for level",
-            27 : "**`Press `**<:add01:999663315804500078>🔧**`to add / change role for the level`**\n**`Press `**<:remove01:999663428689997844>**` to remove role for the level`**",
-            28 : "Write the level: positive integer from 1 to 100",
-            29 : "**`Select role for level {}`**",
-            30 : "**`Bot can't give any role on the server`**",
-            31 : "**`From now role given for the level {} is `**<@&{}>",
-            32 : "**`Timeout has expired`**",
-            33 : "**`You removed role for level {}`**",
-            34 : "**`No roles matches level {}`**",
-            35 : "Write the level: **`positive integer from 1 to 100`**",
-        },
-        1 : {
-            0 : "✨ Опыт, получаемый за одно сообщение:\n**`{}`**",
-            1 : "✨ Количество опыта между соседними уровнями:\n**`{}`**",
-            2 : "📗 Канал для оповещений о получении нового уровня:\n{}",
-            4 : "> Для управления настройкой нажмите на кнопку с соответствующим эмодзи\n",
-            5 : "> Нажмите :mute: для управления каналами, в которых пользователи не могут получать опыт\n",
-            6 : "> Нажмите 🥇 для управления ролями, выдаваемыми за уровни",
-            7 : "Управление настройками опыта",
-            8 : "Опыт за сообщение",
-            9 : "Количество опыта, получаемого пользователем за одно сообщение, целое неотрицательное число",
-            10 : "Количество опыта между уровнями",
-            11 : "Количество опыта,необходимого участникам для получения следующего уровня, целове положительное число",
-            12 : "**`Опыт, получаемый участником за одно сообщение, должен быть целым неотрицательным числом`**",
-            13 : "**`Количество опыта, который необходимо набрать участникам для получения следующего уровня, должно быть целым положительным числом`**",
-            14 : "**`Вы изменили количество опыта, получаемого участником за одно сообщение, теперь оно равно {}`**",
-            15 : "**`Вы изменили количество опыта, необходимого участнику для получения следующего уровня, теперь оно равно {}`**",
-            16 : "**`Вы ничего не изменили`**",
-            17 : "__**канал**__ - __**id**__",
-            18 : "**`Не выбрано ни одного канала`**",
-            19 : "**`Вы добавили канал `**<#{}>",
-            20 : "**`Вы убрали канал `**<#{}>",
-            21 : "**`Вы не выбрали канал`**",
-            22 : "**`Этот канал уже добавлен`**",
-            23 : "**`Этот канал ещё не был добавлен`**",
-            24 : "уровень",
-            25 : "**`Роли за уровни не назначены`**",
-            26 : "Роли за уровни",
-            27 : "**`Нажмите `**<:add01:999663315804500078>🔧**`, чтобы добавить / изменить роль за уровень`**\n**`Нажмите `**<:remove01:999663428689997844>**`, чтобы убрать роль за уровень`**",
-            28 : "Напишите номер уровня: положительное целое число от 1 до 100",
-            29 : "**`Выберите роль для уровня {}`**",
-            30 : "**`Бот не может выдать ни одной роли на сервере`**",
-            31 : "**`Теперь за уровень {} выдаётся роль `**<@&{}>",
-            32 : "**`Время истекло`**",
-            33 : "**`Вы убрали роль за уровень {}`**",
-            34 : "**`Уровню {} не соответствует ни одна роль`**",
-            35 : "Напишите номер уровня: **`положительное целое число от 1 до 100`**",
-        }
-    }
-
     def __init__(self, timeout: int, lng: int, auth_id: int, g_id: int, cur_xp: int, cur_xpb: int):
-        super().__init__(title=self.ranking_text[lng][7], timeout=timeout, custom_id=f"9100_{auth_id}_{randint(1, 100)}")
+        super().__init__(title=ranking_text[lng][7], timeout=timeout, custom_id=f"9100_{auth_id}_{randint(1, 100)}")
         self.xp = TextInput(
-            label=self.ranking_text[lng][8],
-            placeholder=self.ranking_text[lng][9],
+            label=ranking_text[lng][8],
+            placeholder=ranking_text[lng][9],
             default_value=f"{cur_xp}",
             min_length=1,
             max_length=3,
@@ -772,8 +725,8 @@ class XpSettingsModal(Modal):
             custom_id=f"9101_{auth_id}_{randint(1, 100)}"
         )
         self.xp_b = TextInput(
-            label=self.ranking_text[lng][10],
-            placeholder=self.ranking_text[lng][11],
+            label=ranking_text[lng][10],
+            placeholder=ranking_text[lng][11],
             default_value=f"{cur_xpb}",
             min_length=1,
             max_length=5,
@@ -789,20 +742,20 @@ class XpSettingsModal(Modal):
         self.changed: bool = False
 
     def check_ans(self):
-        ans = 1 if not(self.xp.value and self.xp.value.isdigit() and int(self.xp.value) >= 0) else 0
+        ans = 0b01 if not(self.xp.value and self.xp.value.isdigit() and int(self.xp.value) >= 0) else 0b00
         if not(self.xp_b.value and self.xp_b.value.isdigit() and int(self.xp_b.value) >= 1):
-            ans += 10
+            ans |= 0b10
         return ans
 
     async def callback(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
-        ans = self.check_ans()
-        rep = []
-        if ans % 2 == 1:
-            rep.append(self.ranking_text[lng][12])
-        if ans // 10 == 1:
-            rep.append(self.ranking_text[lng][13])
-        if len(rep):
+        ans: int = self.check_ans()
+        if ans:
+            rep = []
+            if ans & 0b01:
+                rep.append(ranking_text[lng][12])
+            if ans & 0b10:
+                rep.append(ranking_text[lng][13])
             await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
             self.stop()
             return
@@ -816,45 +769,45 @@ class XpSettingsModal(Modal):
                 with closing(base.cursor()) as cur:
                     if self.old_xp != xp:
                         cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_per_msg'", (xp,))
-                        rep.append(self.ranking_text[lng][14].format(xp))
+                        rep.append(ranking_text[lng][14].format(xp))
                         self.old_xp = xp
                     if self.old_xpb != xpb:
                         cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_border'", (xpb,))
-                        rep.append(self.ranking_text[lng][15].format(xpb))
+                        rep.append(ranking_text[lng][15].format(xpb))
                         self.old_xpb = xpb
                     base.commit()
             await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
             self.changed = True
         else:
-            await interaction.response.send_message(embed=Embed(description=self.ranking_text[lng][16]), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=ranking_text[lng][16]), ephemeral=True)
         self.stop()
 
 
 class SelectLevelModal(Modal):
     def __init__(self, lng: int, auth_id: int, timeout: int):
-        super().__init__(title=self.ranking_text[lng][24], timeout=timeout, custom_id=f"11100_{auth_id}_{randint(1, 100)}")
+        super().__init__(title=ranking_text[lng][24], timeout=timeout, custom_id=f"11100_{auth_id}_{randint(1, 100)}")
         self.lng = lng
         self.level = None
         self.level_selection = TextInput(
-            label=self.ranking_text[lng][24],
+            label=ranking_text[lng][24],
             style=TextInputStyle.short,
             custom_id=f"11101_{auth_id}_{randint(1, 100)}",
             min_length=1,
             max_length=3,
             required=True,
-            placeholder=self.ranking_text[lng][28]
+            placeholder=ranking_text[lng][28]
         )
         self.add_item(self.level_selection)
     
-    def check_level(self, value: str):
-        if value.isdigit() and (0 < int(value) < 101):
-            return int(value)
+    def check_level(self, value: str) -> int | None:
+        if value and value.isdigit() and (0 < (level := int(value)) < 101):
+            return level
         return None
 
     async def callback(self, interaction: Interaction):
-        ans = self.check_level(self.level_selection.value)
+        ans: int = self.check_level(self.level_selection.value)
         if not ans:
-            await interaction.response.send_message(embed=Embed(description=self.ranking_text[self.lng][35]), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=ranking_text[self.lng][35]), ephemeral=True)
             return
         self.level = ans
         self.stop()
