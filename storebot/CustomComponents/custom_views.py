@@ -1059,25 +1059,33 @@ class SettingsView(View):
         else:
             return None, 0
 
-    def check_memb(self, base: Connection, cur: Cursor, memb_id: int):
-        member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
+    @staticmethod
+    def check_memb(base: Connection, cur: Cursor, memb_id: int) -> tuple[int, int, str, int, int]:
+        member: tuple[int, int, str, int, int] = \
+            cur.execute("SELECT memb_id, money, owned_roles, work_date, xp FROM users WHERE memb_id = ?", (memb_id,)).fetchone()
         if not member:
-            cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
+            cur.execute("INSERT INTO users (memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)",
+                        (memb_id, 0, "", 0, 0))
             base.commit()
+            return (memb_id, 0, "", 0, 0)
         else:
             if member[1] is None or member[1] < 0:
                 cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
+                member[1] = 0
             if member[2] is None:
                 cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
                 base.commit()
+                member[2] = ""
             if member[3] is None:
                 cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
+                member[3] = 0
             if member[4] is None:
                 cur.execute('UPDATE users SET xp = ? WHERE memb_id = ?', (0, memb_id))
                 base.commit()
-        return cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
+                member[4] = 0
+        return member
 
     async def click(self, interaction: Interaction, custom_id: str):
         lng = 1 if "ru" in interaction.locale else 0
