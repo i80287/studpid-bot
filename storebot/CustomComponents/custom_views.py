@@ -737,10 +737,10 @@ class EconomyView(View):
         self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"14_{auth_id}_{randint(1, 100)}", emoji="🛠️"))        
 
     async def msg_salary(self, interaction: Interaction, lng: int, ans: str) -> bool:
-        if ans.isdigit() and int(ans) >= 0:
+        if ans.isdigit() and (money_per_message := int(ans)) >= 0:
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (int(ans),))
+                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (money_per_message,))
                     base.commit()
             
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][10].format(ans)))
@@ -756,10 +756,10 @@ class EconomyView(View):
             return True
 
     async def work_cldwn(self, interaction: Interaction, lng: int, ans: str) -> bool:
-        if ans.isdigit() and int(ans) >= 60:
+        if ans.isdigit() and (work_command_cooldown := int(ans)) >= 60:
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'w_cd'", (int(ans),))
+                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'w_cd'", (work_command_cooldown,))
                     base.commit()
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][12].format(ans)))
             
@@ -861,14 +861,14 @@ class EconomyView(View):
 
     async def manage_economy_roles(self, interaction: Interaction, lng: int):
         emb = Embed()
-        s_rls = set()
+        server_roles_ids: set[int] = set()
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                roles: list = cur.execute('SELECT * FROM server_roles').fetchall()
+                roles: list[tuple[int, int, int, int, int]] = cur.execute("SELECT role_id, price, salary, salary_cooldown, type FROM server_roles").fetchall()
                 if roles:
                     descr: list[str] = [ec_text[lng][18]]
                     for role in roles:
-                        s_rls.add(role[0])
+                        server_roles_ids.add(role[0])
                         if role[4] == 1:
                             cnt = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role[0],)).fetchone()[0]
                         else:
@@ -883,13 +883,19 @@ class EconomyView(View):
                 else:
                     descr: list[str] = [ec_text[lng][19]]
 
-        descr.append("\n" + ec_text[lng][20])
-        emb.description="\n".join(descr)
+        descr.append('\n' + ec_text[lng][20])
+        emb.description='\n'.join(descr)
         
-        rls = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
-        if len(rls): rd = False
-        else: rd = True
-        ec_rls_view = EconomyRolesManageView(t_out=155, lng=lng, auth_id=self.auth_id, rem_dis=rd, rls=rls, s_rls=s_rls)
+        assignable_roles: list[tuple[str, int]] = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
+        remove_role_button_is_disabled = False if assignable_roles else True
+        ec_rls_view = EconomyRolesManageView(
+            t_out=155,
+            lng=lng,
+            auth_id=self.auth_id,
+            rem_dis=remove_role_button_is_disabled,
+            rls=assignable_roles,
+            s_rls=server_roles_ids
+        )
         await interaction.response.send_message(embed=emb, view=ec_rls_view)
         await ec_rls_view.wait()
         for c in ec_rls_view.children:
@@ -902,8 +908,8 @@ class EconomyView(View):
             await self.log_chnl(interaction=interaction, lng=lng)
         elif c_id.startswith("14"):
             await self.manage_economy_roles(interaction=interaction, lng=lng)
-        elif c_id[:2] in {"10", "11", "12"}:
-            await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (int(c_id[:2]) - 10) * 2]), ephemeral=True)
+        elif (custom_id_int := int(c_id[:2])) in {10, 11, 12}:
+            await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (custom_id_int - 10) * 2]), ephemeral=True)
             flag = True
             while flag:
                 try:
