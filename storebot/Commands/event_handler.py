@@ -58,14 +58,14 @@ class EventsHandlerCog(Cog):
         with closing(connect(f"{path_to}/bases/bases_{guild.id}/{guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.executescript("""\
-                CREATE TABLE IF NOT EXISTS users(
+                CREATE TABLE IF NOT EXISTS users (
                     memb_id INTEGER PRIMARY KEY, 
                     money INTEGER NOT NULL DEFAULT 0, 
                     owned_roles TEXT NOT NULL DEFAULT '', 
                     work_date INTEGER NOT NULL DEFAULT 0, 
                     xp INTEGER NOT NULL DEFAULT 0
                 );
-                CREATE TABLE IF NOT EXISTS server_roles(
+                CREATE TABLE IF NOT EXISTS server_roles (
                     role_id INTEGER PRIMARY KEY, 
                     price INTEGER NOT NULL DEFAULT 0, 
                     salary INTEGER NOT NULL DEFAULT 0, 
@@ -82,26 +82,26 @@ class EventsHandlerCog(Cog):
                     salary_cooldown INTEGER NOT NULL DEFAULT 0, 
                     type INTEGER NOT NULL DEFAULT 0
                 );
-                CREATE TABLE IF NOT EXISTS salary_roles(
+                CREATE TABLE IF NOT EXISTS salary_roles (
                     role_id INTEGER PRIMARY KEY, 
                     members TEXT NOT NULL DEFAULT '', 
                     salary INTEGER NOT NULL DEFAULT 0, 
                     salary_cooldown INTEGER NOT NULL DEFAULT 0, 
                     last_time INTEGER NOT NULL DEFAULT 0
                 );
-                CREATE TABLE IF NOT EXISTS server_info(
+                CREATE TABLE IF NOT EXISTS server_info (
                     settings TEXT PRIMARY KEY, 
                     value INTEGER NOT NULL DEFAULT 0,
                     str_value TEXT NOT NULL DEFAULT ''
                 );
-                CREATE TABLE IF NOT EXISTS rank_roles(
+                CREATE TABLE IF NOT EXISTS rank_roles (
                     level INTEGER PRIMARY KEY, 
                     role_id INTEGER NOT NULL DEFAULT 0
                 );
-                CREATE TABLE IF NOT EXISTS ic(
+                CREATE TABLE IF NOT EXISTS ic (
                     chnl_id INTEGER PRIMARY KEY
                 );
-                CREATE TABLE IF NOT EXISTS mod_roles(
+                CREATE TABLE IF NOT EXISTS mod_roles (
                     role_id INTEGER PRIMARY KEY
                 );""")
                 base.commit()
