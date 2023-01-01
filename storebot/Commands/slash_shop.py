@@ -948,6 +948,40 @@ class SlashCommandsCog(Cog):
             finally:
                 return
 
+    async def sell_to(self, interaction: Interaction, role: Role, price: int, target: Member):
+        lng = 1 if "ru" in interaction.locale else 0
+        if not await self.can_role(interaction=interaction, role=role, lng=lng):
+            return
+        r_id = role.id
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(base.cursor()) as cur:
+                if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
+                    await interaction.response.send_message(
+                        embed=Embed(description=common_text[lng][2]),
+                        ephemeral=True
+                    )
+                    return
+                role_info: tuple[int, int, int, int, int] = \
+                    cur.execute("SELECT role_id, price, salary, salary_cooldown, type FROM server_roles WHERE role_id = ?",
+                                (r_id,)).fetchone()
+                if not role_info:
+                    await interaction.response.send_message(
+                        embed=Embed(
+                            title=text_slash[lng][0],
+                            description=text_slash[lng][17], colour=Colour.red()
+                        )
+                    )
+                    return
+
+                memb_id = interaction.user.id
+                user: tuple[int, int, str, int, int] = self.check_user(base=base, cur=cur, memb_id=memb_id)
+                owned_roles_ids: set[int] = {int(x) for x in user[2].split("#") if x}
+                if r_id not in owned_roles_ids:
+                    await interaction.response.send_message(
+                        embed=Embed(colour=Colour.red(), title=text_slash[lng][0], description=text_slash[lng][16]),
+                        ephemeral=True)
+                    return
+
     async def profile(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
         memb_id = interaction.user.id
@@ -1093,7 +1127,7 @@ class SlashCommandsCog(Cog):
 
                 chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
-                server_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                server_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
         await interaction.response.send_message(
             embed=Embed(
