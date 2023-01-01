@@ -202,7 +202,7 @@ ec_text = {
         15 : "Select channel",
         16 : "**`You chose channel `**{}",
         17 : "**`Timeout expired`**",
-        18 : "__**role - role id - price - salary - cooldown for salary - type - how much in the store**__",
+        18 : "__**role - role id - price - salary - cooldown for salary in hours - type - how much in the store**__",
         19 : "No roles were added",
         20 : "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
         21 : "**`You reseted log channel`**",
@@ -229,7 +229,7 @@ ec_text = {
         15 : "Выберите канал",
         16 : "**`Вы выбрали канал `**{}",
         17 : "**`Время ожидания вышло`**",
-        18 : "__**роль - id роли - цена - заработок - кулдаун заработка - тип - сколько в магазине**__",
+        18 : "__**роль - id роли - цена - заработок - кулдаун заработка в часах - тип - сколько в магазине**__",
         19 : "Не добавлено ни одной роли",
         20 : "`Если роль не отображается ни в одном меню снизу, значит, бот не может управлять ею`",
         21 : "**`Вы сбросили канал логов`**",
@@ -249,27 +249,6 @@ ec_mr_text = {
         7 : "**`You can't remove role that is not in the list`**",
         8 : "**`You can't edit role that is not in the list`**",
         9 : "**`This role is already in the list`**",
-        10 : "Role's price",
-        11 : "Write positive integer number as price of the role",
-        12 : "Role's salary and cooldown for it (optional)",
-        13 : "If role should bring money to its owners write salary and cooldown in hours (split numbers by space)",
-        14 : "The same roles will be displayed in the store",
-        15 : "Print 1 if the same roles will be separated (nonstacking) (each answer can be written in any window)",
-        16 : "Print 2 if the same roles will be countable (can run out in the store) and stacking as one item",
-        17 : "Print 3 if the same roles will be uncountable (can't run out in the store) and stacking as one item",
-        18 : "Price must be positive integer number",
-        19 : "Salary and cooldown must be two positive integer numbers separated by space, for example: `100` `24`",
-        20 : "Salary should be positive integer number",
-        21 : "Cooldown should be positive integer number, cooldown is time in hours. For example: `24` sets cooldown to 24 hours",
-        22 : "Type of displaying of the role should be one of three numbers: `1`, `2` or `3`",
-        23 : "You chose different types of displaying for the role",
-        24 : "You added role <@&{}> with price **`{}`**, salary **`{}`**, cooldown for it **`{}`**, type **`{}`**",
-        25 : "Editing the role",
-        26 : "Print 1 if separated,nonstacking\n2 if countable,stacking\n3 if uncountable (can't run out),stacking",
-        27 : "How much roles must be in the store",
-        28 : "Print integer non-negative number. For uncountable roles print any non-negative number",
-        29 : "Amount of the roles in the store must be non-negative integer number",
-        30 : "You edited role <@&{}>. Now it's price is **`{}`**, salary is **`{}`**, cooldown for it is **`{}`**, role's type is **`{}`**, amount of roles in the store - **`{}`**",
     },
     1 : {
         0 : "Редактировать роль",
@@ -282,27 +261,6 @@ ec_mr_text = {
         7 : "**`Вы не можете убрать роль, которая не неходится в списке`**",
         8 : "**`Вы не можете редактировать роль, которая не неходится в списке`**",
         9 : "**`Эта роль уже находится в списке`**",
-        10 : "Цена роли",
-        11 : "Укажите целое положительное число",
-        12 : "Доход роли и кулдаун для него (необязательно)",
-        13 : "Если надо, чтобы роль приносила деньги,укажите доход и его кулдаун в часах(разделите числа пробелом)",
-        14 : "Одинаковые роли будут отображаться в магазине",
-        15 : "Напишите 1, если одинаковые роли будут отображаться отдельно (ответ можно написать в любом поле)",
-        16 : "Напишите 2, если одинаковые роли будут стакающимеся и исчисляемыми (могут закончиться в магазине)",
-        17 : "Напишите 3, если одинаковые роли будут стакающимеся и бесконечными (не могут закончиться в магазине)",
-        18 : "В качестве цены роли надо указать целое положительное число",
-        19 : "Заработок и кулдаун должны быть двумя положительными целыми числами, разделёнными пробелом, например, `100` `24`",
-        20 : "Заработок должен быть целым положительным числом",
-        21 : "Кулдаун должен быть целым положительным числом, кулдаун - время в часах. Например, `24` сделать кулдаун равным 24 часам",
-        22 : "В качестве типа отображения роли надо указать одно из трёх чисел: `1`, `2` или `3`",
-        23 : "Вы выбрали несколько разных типов отображения для роли",
-        24 : "Вы добавили роль <@&{}> с ценой **`{}`**, доходом **`{}`**, его кулдауном **`{}`**, типом **`{}`**",
-        25 : "Редактирование роли",
-        26 : "Напишите 1,если раздельно,нестакаются\n2,если стакающися,исчисляемые\n3,если стакающиеся,бесконечные",
-        27 : "Сколько ролей должно быть в магазине",
-        28 : "Напишите целое неотрицательное число.Для бесконечных ролей можно указать любое неотрицательное число",
-        29 : "Количество ролей в магазине должно быть целым неотрицательным числом",
-        30 : "Вы отредактировали роль <@&{}>. Теперь её цена - **`{}`**, доход - **`{}`**, его кулдаун - **`{}`**, тип роли - **`{}`**, количество в магазине - **`{}`**",
     }
 }
 
@@ -1025,7 +983,10 @@ class EconomyRolesManageView(View):
             role_in_store_count: int
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    req = cur.execute("SELECT * FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()
+                    req: tuple[int, int, int, int, int] = cur.execute(
+                        "SELECT role_id, price, salary, salary_cooldown, type FROM server_roles WHERE role_id = ?", 
+                        (role_id,)
+                    ).fetchone()
                     role_type = req[4]
                     if role_type != 2:
                         role_in_store_count = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,)).fetchone()[0]
@@ -1034,15 +995,15 @@ class EconomyRolesManageView(View):
                         role_in_store_count = quantity[0] if quantity else 0
             
             edit_mod = RoleEditModal(
-                timeout=90, 
-                role=role_id, 
-                message=interaction.message, 
-                auth_id=interaction.user.id, 
-                lng=lng, 
-                p=req[1], 
-                s=req[2], 
-                s_c=req[3]//3600, 
-                r_t=role_type, 
+                timeout=90,
+                role=role_id,
+                message=interaction.message,
+                lng=lng,
+                auth_id=interaction.user.id,
+                price=req[1],
+                salary=req[2],
+                salary_cooldown=req[3],
+                r_t=role_type,
                 in_store=role_in_store_count
             )
             await interaction.response.send_modal(modal=edit_mod)
@@ -1098,23 +1059,10 @@ class SettingsView(View):
                         (memb_id, 0, "", 0, 0))
             base.commit()
             return (memb_id, 0, "", 0, 0)
-        else:
-            if member[1] is None or member[1] < 0:
-                cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
-                base.commit()
-                member[1] = 0
-            if member[2] is None:
-                cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
-                base.commit()
-                member[2] = ""
-            if member[3] is None:
-                cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
-                base.commit()
-                member[3] = 0
-            if member[4] is None:
-                cur.execute('UPDATE users SET xp = ? WHERE memb_id = ?', (0, memb_id))
-                base.commit()
-                member[4] = 0
+        elif member[1] < 0:
+            cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
+            base.commit()
+            member[1] = 0
         return member
 
     async def click(self, interaction: Interaction, custom_id: str):
@@ -1137,8 +1085,7 @@ class SettingsView(View):
             dsc.append(gen_settings_text[lng][2].format(currency))
             dsc.append(gen_settings_text[lng][3].format(system_status[lng][ec_status]))
             dsc.append(gen_settings_text[lng][4].format(system_status[lng][rnk_status]))
-            for i in (5, 6, 7):
-                dsc.append(gen_settings_text[lng][i])
+            dsc.extend(gen_settings_text[lng][i] for i in (5, 6, 7))
             dsc.append(gen_settings_text[lng][8].format(system_status[lng][ec_status+2]))
             dsc.append(gen_settings_text[lng][9].format(system_status[lng][rnk_status+2]))
             
@@ -1239,8 +1186,9 @@ class SettingsView(View):
             emb2.add_field(name=mng_membs_text[lng][4], value=code_blocks[2].format(cnt_xp), inline=True)
 
             emb3 = Embed()
-            if memb_info[2] != "":
-                dsc = [code_blocks[lng*5]] + [f"<@&{r}>**` - {r}`**" for r in memb_info[2].split("#") if r != ""]
+            member_roles_ids: set[int] = {int(r) for r in memb_info[2].split("#") if r.isdigit()}
+            if member_roles_ids:
+                dsc = [code_blocks[lng*5]] + [f"<@&{r}>**` - {r}`**" for r in member_roles_ids]
             else:
                 dsc = [mng_membs_text[lng][6]]
             emb3.description = "\n".join(dsc)
@@ -1254,7 +1202,7 @@ class SettingsView(View):
                 lng=lng, 
                 auth_id=interaction.user.id, 
                 memb_id=memb_id, 
-                memb_rls={int(r) for r in memb_info[2].split("#") if r != ""}, 
+                memb_rls=member_roles_ids, 
                 rls=roles,
                 cur_money=cash,
                 cur_xp=xp,

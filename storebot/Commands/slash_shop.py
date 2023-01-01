@@ -593,12 +593,11 @@ class RatingView(View):
             await interaction.response.edit_message(embed=emb)
 
     async def click_b(self, interaction: Interaction, c_id: str):
-
         if c_id.startswith("38_"):
             click = 1
         elif c_id.startswith("39_"):
             click = 2
-        elif c_id.startswith("39_"):
+        elif c_id.startswith("40_"):
             click = 3
         else:
             click = 4
