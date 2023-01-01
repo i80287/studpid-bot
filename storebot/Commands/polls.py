@@ -65,10 +65,10 @@ class Poll(View):
     def __init__(self, bot: Bot):
         self.thesis: str = ""
         self.n: int = 12
-        self.questions: list = []
+        self.questions: list[str] = []
         self.timeout: int = 0
-        self.m_v: Message = None
-        self.timestamp = None
+        self.poll_final_message: Message = None
+        self.timestamp: datetime = None
         self.verified: bool = False
         self.anon: bool = True
         self.mult: bool = True
@@ -90,12 +90,11 @@ class Poll(View):
     def check_moder(self, interaction: Interaction, base: Connection, cur: Cursor) -> bool:
         if interaction.user.guild_permissions.administrator:
             return True
-        mdrls = cur.execute("SELECT * FROM mod_roles").fetchall()
-        if not mdrls:
-            return False
-        else:
-            mdrls = {x[0] for x in mdrls}
+        mdrls: list[tuple[int]] = cur.execute("SELECT * FROM mod_roles").fetchall()
+        if mdrls:
+            mdrls: set[int] = {x[0] for x in mdrls}
             return any(role.id in mdrls for role in interaction.user.roles)
+        return False        
 
     async def click_row_button(self, interaction: Interaction, label):
         g = interaction.guild
@@ -134,7 +133,7 @@ class Poll(View):
                         i += 1
 
                 emb.description = o_dsc
-                self.m_v = await chnl.send(view=self, embed=emb)
+                self.poll_final_message = await chnl.send(view=self, embed=emb)
                 
                 self.verified = True
                 self.bot.current_polls += 1
@@ -143,7 +142,6 @@ class Poll(View):
                 await interaction.response.send_message(self.poll_class_text[lng][2])
     
     async def update_votes(self, interaction: Interaction, L: int, val: bool):
-
         emb = interaction.message.embeds[0]
         field = emb.fields[L-1]
 
@@ -169,7 +167,6 @@ class Poll(View):
         await interaction.message.edit(embed=emb)
     
     async def click(self, interaction: Interaction, label: str):
-
         if not label.isdigit():
             return
 
@@ -178,7 +175,6 @@ class Poll(View):
         lng = 1 if "ru" in interaction.locale else 0
 
         if u_id in self.voters[L-1]:
-
             await self.update_votes(interaction=interaction, L=L, val=0)
             self.voters[L-1].remove(u_id)
 
@@ -218,7 +214,6 @@ class Poll(View):
                     await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][3].format(L)), ephemeral=True)
                 except:
                     pass
-                
             
     async def on_timeout(self):
         if not self.verified:
@@ -262,7 +257,7 @@ class Poll(View):
         
         for c in self.children:
             c.disabled = True
-        await self.m_v.edit(view=self, embed=emb)
+        await self.poll_final_message.edit(view=self, embed=emb)
         
         self.bot.current_polls -= 1
 
@@ -574,13 +569,7 @@ class PollCog(Cog):
         else:
             poll.mult = False
 
-        emb = Embed()
-        for i in range(poll.n):
-            emb.add_field(name=f"{i+1} {self.polls_text[lng][2]}", value=f"{poll.questions[i]}\n{self.polls_text[lng][3]}")
-        emb.timestamp=poll.timestamp
-        emb.set_author(name=self.polls_text[lng][3])
-
-        poll_description: list[str] = [f"**{poll.thesis}**"]
+        poll_description: list[str] = [f"**{question}**"]
         if poll.anon:
             poll_description.append(f"**`{self.polls_text[lng][4]}`**")
         else: 
@@ -590,14 +579,17 @@ class PollCog(Cog):
         else:
             poll_description.append(f"**`{self.polls_text[lng][7]}`**")
         poll_description.append(self.polls_text[lng][8].format(interaction.user.id))
-        emb.description = '\n'.join(poll_description)
+        
+        emb = Embed(description='\n'.join(poll_description), timestamp=poll.timestamp)
+        for i, i_question in enumerate(poll.questions):
+            emb.add_field(name=f"{i+1} {self.polls_text[lng][2]}", value=f"{i_question}\n{self.polls_text[lng][3]}")
+        emb.set_author(name=self.polls_text[lng][3])
 
         poll.lng = lng
         poll.init_timeout()
         poll.init_buttons()
         poll.init_ans()
-        m: Message = await chnl.send(view=poll, embed=emb)
-        poll.m = m
+        await chnl.send(view=poll, embed=emb)
         await interaction.response.send_message(embed=Embed(description=self.polls_text[lng][9], colour=Colour.dark_purple()), ephemeral=True)
 
 
