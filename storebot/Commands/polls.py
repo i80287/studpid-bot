@@ -160,9 +160,9 @@ class Poll(View):
             cur_votes = max(0, cur_votes - 1)
             total_votes = max(0, total_votes - 1)
         
-        emb.remove_author()
-        emb.set_author(name=text1[:t1+2]+f"{total_votes}")    
-        emb.set_field_at(index=L-1, name=field.name, value=text2[:t2+2]+f"{cur_votes}")
+        emb.remove_author()\
+            .set_author(name=text1[:t1+2]+f"{total_votes}")\
+            .set_field_at(index=L-1, name=field.name, value=text2[:t2+2]+f"{cur_votes}")
         
         await interaction.message.edit(embed=emb)
     
@@ -175,7 +175,7 @@ class Poll(View):
         lng = 1 if "ru" in interaction.locale else 0
 
         if u_id in self.voters[L-1]:
-            await self.update_votes(interaction=interaction, L=L, val=0)
+            await self.update_votes(interaction=interaction, L=L, val=False)
             self.voters[L-1].remove(u_id)
 
             try:
@@ -192,27 +192,27 @@ class Poll(View):
             for x in range(self.n):
                 if u_id in self.voters[x]:
                     fl = x
-            await self.update_votes(interaction=interaction, L=L, val=1)
+            await self.update_votes(interaction=interaction, L=L, val=True)
             self.voters[L-1].add(u_id)
             if fl != -1 and not self.mult:
-                await self.update_votes(interaction=interaction, L=fl+1, val=0)
+                await self.update_votes(interaction=interaction, L=fl+1, val=False)
                 self.voters[fl].remove(u_id)
                 try:
                     await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][5].format(L, fl+1)), ephemeral=True)
                 except NotFound:
-                    sleep(1)
+                    await sleep(1.0)
                     try:
                         await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][5].format(L, fl+1)), ephemeral=True)
-                    except:
-                        pass 
+                    finally:
+                        pass
                 return
             try:
                 await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][3].format(L)), ephemeral=True)
             except NotFound:
-                sleep(1)
+                await sleep(1.0)
                 try:
                     await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][3].format(L)), ephemeral=True)
-                except:
+                finally:
                     pass
             
     async def on_timeout(self):
