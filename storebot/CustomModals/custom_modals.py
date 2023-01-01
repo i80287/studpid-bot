@@ -479,27 +479,29 @@ class RoleEditModal(Modal):
         await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][30].format(r, price, salary, salary_c // 3600, r_types[lng][r_type], l)), ephemeral=True)
         self.stop()
     
-    def update_type_and_store(self, base: Connection, cur: Cursor, price: int, salary: int, salary_c: int, r_type: int, r: int, l: int):
+    @classmethod
+    def update_type_and_store(cls, base: Connection, cur: Cursor, price: int, salary: int, salary_c: int, r_type: int, r: int, l: int):
         cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
         base.commit()
         if not l:
             return
         t = int(time())
         if r_type == 3:
-            free_number = self.peek_role_free_number(cur)
+            free_number = cls.peek_role_free_number(cur)
             cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                         (free_number, r, -404, price, t, salary, salary_c, 3))
         elif r_type == 2:
-            free_number = self.peek_role_free_number(cur)
+            free_number = cls.peek_role_free_number(cur)
             cur.execute("INSERT INTO store (role_number, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                         (free_number, r, l, price, t, salary, salary_c, 2))
         elif r_type == 1:
-            free_numbers = self.peek_role_free_numbers(cur, l)
+            free_numbers = cls.peek_role_free_numbers(cur, l)
             inserting_roles = ((free_number, r, 1, price, t, salary, salary_c, 1) for free_number in free_numbers)
             cur.executemany("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", inserting_roles)
         base.commit()
-        
-    def update_store(self, base: Connection, cur: Cursor, r: int, price: int, salary: int, salary_c: int, r_type: int, l: int, l_prev: int):
+    
+    @classmethod
+    def update_store(cls, base: Connection, cur: Cursor, r: int, price: int, salary: int, salary_c: int, r_type: int, l: int, l_prev: int):
         if not l:
             cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
             base.commit()
@@ -508,7 +510,7 @@ class RoleEditModal(Modal):
         
         if r_type == 2:
             if not l_prev:
-                free_number = self.peek_role_free_number(cur)
+                free_number = cls.peek_role_free_number(cur)
                 cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                             (free_number, r, l, price, t, salary, salary_c, 2))
             else:
@@ -517,7 +519,7 @@ class RoleEditModal(Modal):
         elif r_type == 1:
             roles_amount_change = l - l_prev
             if roles_amount_change > 0:
-                free_numbers = self.peek_role_free_numbers(cur, roles_amount_change)
+                free_numbers = cls.peek_role_free_numbers(cur, roles_amount_change)
                 inserting_roles = ((free_number, r, 1, price, t, salary, salary_c, 1) for free_number in free_numbers)
                 cur.executemany("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                                 inserting_roles)
@@ -529,13 +531,14 @@ class RoleEditModal(Modal):
                 cur.execute(f"DELETE FROM store WHERE rowid IN ({rows})")
 
         elif r_type == 3 and not l_prev:
-            free_number = self.peek_role_free_number(cur)
+            free_number = cls.peek_role_free_number(cur)
             cur.execute("INSERT INTO store(role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                         (free_number, r, -404, price, t, salary, salary_c, 3))
 
         base.commit()   
 
-    def update_salary(self, base: Connection, cur: Cursor, r: int, salary: int, salary_c: int):
+    @staticmethod
+    def update_salary(base: Connection, cur: Cursor, r: int, salary: int, salary_c: int):
         if not salary:
             cur.execute("DELETE FROM salary_roles WHERE role_id = ?", (r,))
             base.commit()
