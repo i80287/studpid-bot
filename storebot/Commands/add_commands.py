@@ -200,9 +200,9 @@ class AdditionalCommandsCog(Cog):
     
     @slash_command(
         name="emoji", 
-        description="Fetchs emoji's png and url",
+        description="Fetchs emoji's info",
         description_localizations={
-            Locale.ru: "Показывает png и url эмодзи"
+            Locale.ru: "Показывает информацию о эмодзи"
         }
     )
     async def emoji(
