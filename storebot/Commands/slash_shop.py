@@ -1077,7 +1077,7 @@ class SlashCommandsCog(Cog):
                     await interaction.response.send_message(
                         embed=Embed(
                             title=text_slash[lng][0],
-                            description=self.sell_to_text[lng][1].format(role_id),
+                            description=self.sell_to_text[lng][1].format(str_role_id),
                             colour=Colour.red()
                         ),
                         ephemeral=True
@@ -1085,11 +1085,11 @@ class SlashCommandsCog(Cog):
                     return
                 
                 target_db_info: tuple[int, int, str, int, int, int] = check_db_member(base=base, cur=cur, memb_id=target_id)
-                if str(role_id) in target_db_info[2]:
+                if str_role_id in target_db_info[2]:
                     await interaction.response.send_message(
                         embed=Embed(
                             title=text_slash[lng][0],
-                            description=self.sell_to_text[lng][2].format(target_id, role_id),
+                            description=self.sell_to_text[lng][2].format(target_id, str_role_id),
                             colour=Colour.red()
                         ),
                         ephemeral=True
@@ -1106,7 +1106,7 @@ class SlashCommandsCog(Cog):
         await interaction.response.send_message(
             embed=Embed(
                 title=self.sell_to_text[lng][3],
-                description=self.sell_to_text[lng][4].format(role_id, target_id, price, currency),
+                description=self.sell_to_text[lng][4].format(str_role_id, target_id, price, currency),
                 colour=Colour.green()
             ),
             ephemeral=True
