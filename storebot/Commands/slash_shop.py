@@ -173,32 +173,6 @@ store_text: dict[int, dict[int, str]] = {
     }
 }
 
-profile_text: dict[int, dict[int, str]] = {
-    0: {
-        1: "Cash",
-        2: "Xp",
-        3: "Level",
-        4: "Place in the rating",
-        5: "**`Information about member:`**\n<@{}>",
-        6: "**`You don't have any roles from the bot's store`**"
-    },
-    1: {
-        1: "Кэш",
-        2: "Опыт",
-        3: "Уровень",
-        4: "Место в рейтинге",
-        5: "**`Информация о пользователе:`**\n<@{}>",
-        6: "**`У Вас нет ролей из магазина бота`**"
-    }
-}
-
-code_blocks: dict[int, str] = {
-    0: "```\nMember's personal roles\n```",
-    5: "```\nЛичные роли пользователя\n```",
-    1: "```fix\n{}\n```",
-    2: "```c\n{}\n```",
-}
-
 bet_text: dict[int, dict[int, str]] = {
     0: {
         0: "Make a counter bet",
@@ -664,6 +638,44 @@ class SlashCommandsCog(Cog):
             4: "**`Вы сделали запрос о продаже роли`** <@&{}> **`пользователю`** <@{}> **`за {}`** {}"
         }
     }
+    profile_text: dict[int, dict[int, str]] = {
+        0: {
+            1: "Cash",
+            2: "Xp",
+            3: "Level",
+            4: "Place in the rating",
+            5: "**`Information about member:`**\n<@{}>",
+            6: "**`You don't have any roles from the bot's store`**",
+            7: "**`Request id: {} role:`** <@&{}> **`price: {}`** {} **`target:`** <@{}>",
+            8: "**`Request id: {} role:`** <@&{}> **`price: {}`** {} **`seller:`** <@{}>",
+        },
+        1: {
+            1: "Кэш",
+            2: "Опыт",
+            3: "Уровень",
+            4: "Место в рейтинге",
+            5: "**`Информация о пользователе:`**\n<@{}>",
+            6: "**`У Вас нет ролей из магазина бота`**",
+            7: "**`Роль:`** <@&{}> **`цена: {}`** {} **`кому:`** <@{}>",
+            8: "**`Роль:`** <@&{}> **`цена: {}`** {} **`продавец:`** <@{}>",
+        }
+    }
+    code_blocks: dict[int, dict[int, str]] = {
+        0: {
+            0: "```\nMember's personal roles\n```",
+            1: "```fix\nRole sale requests made by you\n```",
+            2: "```yaml\nRole purchase requests made for you\n```",
+        },
+        1: {
+            0: "```\nЛичные роли пользователя\n```",
+            1: "```fix\n`Запросы продажи роли, сделанные вами\n```",
+            2: "```yaml\nЗапросы покупки роли, сделанные вам\n```",
+        },
+        2: {
+            1: "```fix\n{}\n```",
+            2: "```c\n{}\n```",
+        }       
+    }
 
     def __init__(self, bot: Bot) -> None:
         self.bot: Bot = bot
@@ -1119,6 +1131,7 @@ class SlashCommandsCog(Cog):
             with closing(base.cursor()) as cur:
                 member: tuple[int, int, str, int, int, int] = check_db_member(base=base, cur=cur, memb_id=memb_id)
                 xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 ec_status: int = \
                     cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
                 rnk_status: int = \
@@ -1135,6 +1148,14 @@ class SlashCommandsCog(Cog):
                         cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall()
                 else:
                     membs_xp: list[tuple[int, int]] = []
+                sale_role_requests: list[tuple[int, int, int, int]] = cur.execute(
+                    "SELECT request_id, target_id, role_id, price FROM sale_requests WHERE seller_id = ?",
+                    (memb_id,)
+                ).fetchall()
+                buy_role_requests: list[tuple[int, int, int, int]] = cur.execute(
+                    "SELECT request_id, seller_id, role_id, price FROM sale_requests WHERE target_id = ?",
+                    (memb_id,)
+                ).fetchall()                
 
         if not (ec_status or rnk_status):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
@@ -1154,10 +1175,9 @@ class SlashCommandsCog(Cog):
                 while cnt_cash > 1 and memb_id != membs_cash[cnt_cash - 1][0]:
                     cnt_cash -= 1
 
-            emb1: Embed = Embed()
-            emb1.description = profile_text[lng][5].format(memb_id, memb_id)
-            emb1.add_field(name=profile_text[lng][1], value=code_blocks[1].format(cash), inline=True)
-            emb1.add_field(name=profile_text[lng][4], value=code_blocks[1].format(cnt_cash), inline=True)
+            emb1: Embed = Embed(description=self.profile_text[lng][5].format(memb_id, memb_id))
+            emb1.add_field(name=self.profile_text[lng][1], value=self.code_blocks[2][1].format(cash), inline=True)
+            emb1.add_field(name=self.profile_text[lng][4], value=self.code_blocks[2][1].format(cnt_cash), inline=True)
             embs.append(emb1)
 
         if rnk_status:
@@ -1176,23 +1196,23 @@ class SlashCommandsCog(Cog):
 
             emb2: Embed = Embed()
             if not len(embs):
-                emb2.description = profile_text[lng][5].format(memb_id, memb_id)
-            emb2.add_field(name=profile_text[lng][2], value=code_blocks[2].format(f"{xp}/{level * xp_b + 1}"),
+                emb2.description = self.profile_text[lng][5].format(memb_id, memb_id)
+            emb2.add_field(name=self.profile_text[lng][2], value=self.code_blocks[2][2].format(f"{xp}/{level * xp_b + 1}"),
                            inline=True)
-            emb2.add_field(name=profile_text[lng][3], value=code_blocks[2].format(level), inline=True)
-            emb2.add_field(name=profile_text[lng][4], value=code_blocks[2].format(cnt_xp), inline=True)
+            emb2.add_field(name=self.profile_text[lng][3], value=self.code_blocks[2][2].format(level), inline=True)
+            emb2.add_field(name=self.profile_text[lng][4], value=self.code_blocks[2][2].format(cnt_xp), inline=True)
             embs.append(emb2)
 
         if ec_status:
-            emb3: Embed = Embed()
             on_server_roles: list[Role] = interaction.user.roles
             on_server_roles.remove(interaction.guild.default_role)
             memb_server_db_roles: set[int] | set = set(role.id for role in on_server_roles) & db_roles
             memb_roles: set[int] | set = {int(role_id) for role_id in member[2].split("#") if role_id} if member[2] else set()
 
-            emb3.description = '\n'.join(
-                [code_blocks[lng * 5]] + [f"<@&{r}>" for r in memb_server_db_roles]
-            ) if memb_server_db_roles else profile_text[lng][6]
+            embed_3_description: str = '\n'.join(
+                [self.code_blocks[lng][0]] + [f"<@&{r}>" for r in memb_server_db_roles]
+            ) if memb_server_db_roles else self.profile_text[lng][6]
+            emb3: Embed = Embed(description=embed_3_description)
 
             # in case role(s) was(were) removed from user manually, we should update database
             if memb_roles != memb_server_db_roles:
@@ -1234,6 +1254,20 @@ class SlashCommandsCog(Cog):
                                 base.commit()
 
             embs.append(emb3)
+
+        if sale_role_requests:
+            embed_4_description: str = self.code_blocks[lng][1] + \
+                '\n'.join(self.profile_text[lng][7].format(request_id, role_id, price, currency, target_id) \
+                    for request_id, target_id, role_id, price in sale_role_requests
+                )
+            embs.append(Embed(description=embed_4_description))
+
+        if buy_role_requests:
+            embed_5_description: str = self.code_blocks[lng][2] + \
+                '\n'.join(self.profile_text[lng][8].format(request_id, role_id, price, currency, seller_id) \
+                    for request_id, seller_id, role_id, price in buy_role_requests
+                )
+            embs.append(Embed(description=embed_5_description))
 
         await interaction.response.send_message(embeds=embs)
 
