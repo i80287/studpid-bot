@@ -43,3 +43,31 @@ def check_member(guild_id: int, memb_id: int) -> tuple[int, int, str, int, int, 
             )
             base.commit()
             return (memb_id, 0, "", 0, 0, 0)
+
+
+def peek_role_free_number(cur: Cursor) -> int:
+    req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
+    if req:
+        role_numbers: list[int] = [int(r_n[0]) for r_n in req]
+        if role_numbers[0] != 1:
+            return 1
+        for i in range(len(role_numbers) - 1):
+            if role_numbers[i+1] - role_numbers[i] != 1:
+                return role_numbers[i] + 1
+        return len(role_numbers) + 1
+    else:
+        return 1
+
+def peek_role_free_numbers(cur: Cursor, amount_of_numbers: int) -> list[int]:
+    req: list[tuple[int]] = cur.execute("SELECT role_number FROM store").fetchall()
+    if req:
+        role_numbers: set[int] = {r_n[0] for r_n in req}
+        after_last_number: int =  max(role_numbers) + 1
+        free_numbers: set[int] = set(range(1, after_last_number)).difference(role_numbers)
+        lack_numbers_len: int = amount_of_numbers - len(free_numbers)
+        if lack_numbers_len <= 0:
+            return list(free_numbers)[:amount_of_numbers]            
+        free_numbers.update(range(after_last_number, after_last_number + lack_numbers_len))
+        return list(free_numbers)
+    else:
+        return list(range(1, amount_of_numbers + 1))

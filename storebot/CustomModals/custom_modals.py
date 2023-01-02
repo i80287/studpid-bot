@@ -7,6 +7,7 @@ from time import time
 from nextcord import Embed, Message, Interaction, TextInputStyle
 from nextcord.ui import TextInput, Modal
 
+from Tools.db_commands import peek_role_free_number, peek_role_free_numbers
 from Variables.vars import path_to
 
 r_types: dict[int, dict[int, str]] = {
@@ -494,14 +495,12 @@ class RoleEditModal(ManageRoleModalBase):
                 if salary != self.prev_salary or salary_c != self.prev_salary_cooldown:
                     self.update_salary(base=base, cur=cur, r=r, salary=salary, salary_c=salary_c)
         
-        if r_type == 3 and l:
-            l = "∞"
-        
-        dsc = self.m.content.split('\n')
-        str_role_id = str(r)
+        amount_in_store: str = str(l) if r_type != 3 or not l else "∞"
+        dsc: list[str] = self.m.content.split('\n')
+        str_role_id: str = str(r)
         for i in range(1, len(dsc)-1):
             if str_role_id in dsc[i]:
-                dsc[i] = f"<@&{r}> - **`{r}`** - **`{price}`** - **`{salary}`** - **`{salary_c // 3600}`** - **`{r_types[lng][r_type]}`** - **`{l}`** - **`{new_additional_salary}`**"
+                dsc[i] = f"<@&{r}> - **`{r}`** - **`{price}`** - **`{salary}`** - **`{salary_c // 3600}`** - **`{r_types[lng][r_type]}`** - **`{amount_in_store}`** - **`{new_additional_salary}`**"
                 break
         await self.m.edit(content='\n'.join(dsc))
         self.changed = True
@@ -514,7 +513,7 @@ class RoleEditModal(ManageRoleModalBase):
                     salary, 
                     salary_c // 3600, 
                     r_types[lng][r_type], 
-                    l, 
+                    amount_in_store, 
                     new_additional_salary
                 )
             ), 
@@ -522,23 +521,23 @@ class RoleEditModal(ManageRoleModalBase):
         )
         self.stop()
     
-    @classmethod
-    def update_type_and_store(cls, base: Connection, cur: Cursor, price: int, salary: int, salary_c: int, r_type: int, r: int, l: int):
+    @staticmethod
+    def update_type_and_store(base: Connection, cur: Cursor, price: int, salary: int, salary_c: int, r_type: int, r: int, l: int) -> None:
         cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
         base.commit()
         if not l:
             return
-        t = int(time())
+        t: int = int(time())
         if r_type == 3:
-            free_number = cls.peek_role_free_number(cur)
+            free_number: int = peek_role_free_number(cur)
             cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                         (free_number, r, -404, price, t, salary, salary_c, 3))
         elif r_type == 2:
-            free_number = cls.peek_role_free_number(cur)
+            free_number: int = peek_role_free_number(cur)
             cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                         (free_number, r, l, price, t, salary, salary_c, 2))
         elif r_type == 1:
-            free_numbers = cls.peek_role_free_numbers(cur, l)
+            free_numbers: list[int] = peek_role_free_numbers(cur, l)
             inserting_roles = ((free_number, r, 1, price, t, salary, salary_c, 1) for free_number in free_numbers)
             cur.executemany(
                 "INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -546,91 +545,61 @@ class RoleEditModal(ManageRoleModalBase):
             )
         base.commit()
     
-    @classmethod
-    def update_store(cls, base: Connection, cur: Cursor, r: int, price: int, salary: int, salary_c: int, r_type: int, l: int, l_prev: int):
+    @staticmethod
+    def update_store(base: Connection, cur: Cursor, r: int, price: int, salary: int, salary_c: int, r_type: int, l: int, l_prev: int) -> None:
         if not l:
             cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
             base.commit()
             return
-        t = int(time())
+        t: int = int(time())
         
         if r_type == 2:
             if not l_prev:
-                free_number = cls.peek_role_free_number(cur)
+                free_number: int = peek_role_free_number(cur)
                 cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                             (free_number, r, l, price, t, salary, salary_c, 2))
             else:
                 cur.execute("UPDATE store SET quantity = ?, price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (l, price, t, salary, salary_c, r))
         
         elif r_type == 1:
-            roles_amount_change = l - l_prev
+            roles_amount_change: int = l - l_prev
             if roles_amount_change > 0:
-                free_numbers = cls.peek_role_free_numbers(cur, roles_amount_change)
+                free_numbers: list[int] = peek_role_free_numbers(cur, roles_amount_change)
                 inserting_roles = ((free_number, r, 1, price, t, salary, salary_c, 1) for free_number in free_numbers)
                 cur.executemany("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                                 inserting_roles)
             elif not roles_amount_change:
                 cur.execute("UPDATE store SET price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (price, t, salary, salary_c, r))
             else:
-                sorted_rls_to_delete = cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r,)).fetchall()[:-roles_amount_change]
-                rows = ", ".join({str(x[0]) for x in sorted_rls_to_delete})
+                sorted_rls_to_delete: list[tuple[int]] = cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r,)).fetchall()[:-roles_amount_change]
+                rows: str = ", ".join({str(x[0]) for x in sorted_rls_to_delete})
                 cur.execute(f"DELETE FROM store WHERE rowid IN ({rows})")
 
         elif r_type == 3 and not l_prev:
-            free_number = cls.peek_role_free_number(cur)
+            free_number: int = peek_role_free_number(cur)
             cur.execute("INSERT INTO store(role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                         (free_number, r, -404, price, t, salary, salary_c, 3))
 
         base.commit()   
 
     @staticmethod
-    def update_salary(base: Connection, cur: Cursor, r: int, salary: int, salary_c: int):
+    def update_salary(base: Connection, cur: Cursor, r: int, salary: int, salary_c: int) -> None:
         if not salary:
             cur.execute("DELETE FROM salary_roles WHERE role_id = ?", (r,))
             base.commit()
             return
         if not cur.execute("SELECT role_id FROM salary_roles WHERE role_id = ?", (r,)).fetchone():
-            ids = set()
-            string_role_id = f"{r}"
+            ids: set[str] = set()
+            string_role_id: str = f"{r}"
             for req in cur.execute("SELECT memb_id, owned_roles FROM users").fetchall():
                 if string_role_id in req[1]:
                     ids.add(f"{req[0]}")
-            membs = "".join(f"#{memb_id}" for memb_id in ids) if ids else ""
+            membs: str = "".join(f"#{memb_id}" for memb_id in ids) if ids else ""
             cur.execute("INSERT INTO salary_roles(role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, ?)", (r, membs, salary, salary_c, 0))
             base.commit()
             return
         cur.execute("UPDATE salary_roles SET salary = ?, salary_cooldown = ? WHERE role_id = ?", (salary, salary_c, r))
         base.commit()
-
-    @staticmethod
-    def peek_role_free_number(cur: Cursor) -> int:
-        req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
-        if req:
-            role_numbers = [int(r_n[0]) for r_n in req]
-            if role_numbers[0] != 1:
-                return 1
-            for i in range(len(role_numbers) - 1):
-                if role_numbers[i+1] - role_numbers[i] != 1:
-                    return role_numbers[i] + 1
-            return len(role_numbers) + 1
-        else:
-            return 1
-    
-
-    @staticmethod
-    def peek_role_free_numbers(cur: Cursor, amount_of_numbers: int) -> list[int]:
-        req: list[tuple[int]] = cur.execute("SELECT role_number FROM store").fetchall()
-        if req:
-            role_numbers: set[int] = {r_n[0] for r_n in req}
-            after_last_number: int =  max(role_numbers) + 1
-            free_numbers: set[int] = set(range(1, after_last_number)).difference(role_numbers)
-            lack_numbers_len: int = amount_of_numbers - len(free_numbers)
-            if lack_numbers_len <= 0:
-                return list(free_numbers)[:amount_of_numbers]            
-            free_numbers.update(range(after_last_number, after_last_number + lack_numbers_len))
-            return list(free_numbers)
-        else:
-            return list(range(1, amount_of_numbers + 1))
 
 
 class ManageMemberCashXpModal(Modal):
