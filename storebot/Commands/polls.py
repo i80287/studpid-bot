@@ -203,7 +203,7 @@ class Poll(View):
                     await sleep(1.0)
                     try:
                         await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][5].format(L, fl+1)), ephemeral=True)
-                    finally:
+                    except:
                         pass
                 return
             try:
@@ -212,7 +212,7 @@ class Poll(View):
                 await sleep(1.0)
                 try:
                     await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][3].format(L)), ephemeral=True)
-                finally:
+                except:
                     pass
             
     async def on_timeout(self):

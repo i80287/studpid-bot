@@ -316,7 +316,7 @@ class EventsHandlerCog(Cog):
                             if role:
                                 try: 
                                     await user.add_roles(role, reason=f"Member gained new level {new_level}")
-                                finally: 
+                                except: 
                                     pass
                         levels: list[int] = sorted(lvl_rls.keys())
                         i = levels.index(new_level)
@@ -325,7 +325,7 @@ class EventsHandlerCog(Cog):
                             if role:
                                 try: 
                                     await user.remove_roles(role, reason=f"Member gained new level {new_level}")
-                                finally: 
+                                except: 
                                     pass
 
     @Cog.listener()

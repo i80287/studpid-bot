@@ -4,10 +4,11 @@ from contextlib import closing
 from random import randint
 from time import time
 
-from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction, Locale, SelectOption, slash_command, Role, \
-    Member
+from nextcord import Embed, Colour, ButtonStyle, SlashOption,\
+    Interaction, Locale, SelectOption, slash_command, Role, Member
 from nextcord.ui import Button, View, Select
 from nextcord.ext.commands import Bot, Cog
+from nextcord.abc import GuildChannel
 
 from Variables.vars import path_to
 from config import in_row
@@ -755,29 +756,33 @@ class SlashCommandsCog(Cog):
                                     (role_members[0] + f"#{memb_id}", r_id))
 
                 base.commit()
-                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+                chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
 
         emb.title = text_slash[lng][10]
         emb.description = text_slash[lng][11]
         await interaction.edit_original_message(embed=emb, view=None)
 
         try:
-            await member_buyer.send(embed=Embed(title=text_slash[lng][7],
-                                                description=text_slash[lng][12].format(role.name,
-                                                                                       interaction.guild.name, cost,
-                                                                                       currency),
-                                                colour=Colour.green()))
-        finally:
+            await member_buyer.send(
+                embed=Embed(
+                    title=text_slash[lng][7],
+                    description=text_slash[lng][12].format(role.name,interaction.guild.name, cost,currency),
+                    colour=Colour.green()
+                )
+            )
+        except:
             pass
 
         if chnl_id:
-            try:
-                await interaction.guild.get_channel(chnl_id).send(embed=Embed(
-                    title=text_slash[server_lng][13],
-                    description=text_slash[server_lng][14].format(f"<@{memb_id}>", f"<@&{r_id}>", cost, currency)
-                ))
-            finally:
-                return
+            guild_log_channel: GuildChannel | None = await interaction.guild.get_channel(chnl_id)
+            if guild_log_channel:
+                try:
+                    await guild_log_channel.send(embed=Embed(
+                        title=text_slash[server_lng][13],
+                        description=text_slash[server_lng][14].format(f"<@{memb_id}>", f"<@&{r_id}>", cost, currency)
+                    ))
+                except:
+                    return
 
     async def store(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0
@@ -921,15 +926,17 @@ class SlashCommandsCog(Cog):
                 base.commit()
 
                 if r_sal:
-                    role_members = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (r_id,)).fetchone()
+                    role_members: tuple[str] | tuple = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (r_id,)).fetchone()
                     if role_members:
-                        cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?",
-                                    (role_members[0].replace(f"#{memb_id}", ""), r_id))
+                        cur.execute(
+                            "UPDATE salary_roles SET members = ? WHERE role_id = ?",
+                            (role_members[0].replace(f"#{memb_id}", ""), r_id)
+                        )
                         base.commit()
 
                 chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
-                server_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                server_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
         emb = Embed(
             title=text_slash[lng][18],
@@ -946,18 +953,18 @@ class SlashCommandsCog(Cog):
                     colour=Colour.green()
                 )
             )
-        finally:
+        except:
             pass
         if chnl_id:
-            try:
-                await interaction.guild.get_channel(chnl_id).send(
-                    embed=Embed(
+            guild_log_channel: GuildChannel | None = await interaction.guild.get_channel(chnl_id)
+            if guild_log_channel:
+                try:
+                    await guild_log_channel.send(embed=Embed(
                         title=text_slash[server_lng][22],
                         description=text_slash[server_lng][23].format(f"<@{memb_id}>", f"<@&{r_id}>", sale_price, currency)
-                    )
-                )
-            finally:
-                return
+                    ))
+                except:
+                    return
 
     # async def sell_to(self, interaction: Interaction, role: Role, price: int, target: Member):
     #     lng = 1 if "ru" in interaction.locale else 0
@@ -1171,13 +1178,15 @@ class SlashCommandsCog(Cog):
         )
 
         if chnl_id:
-            try:
-                await interaction.guild.get_channel(chnl_id).send(embed=Embed(
-                    title=text_slash[server_lng][29],
-                    description=text_slash[server_lng][30].format(f"<@{memb_id}>", salary, currency)
-                ))
-            finally:
-                return
+            guild_log_channel: GuildChannel | None = await interaction.guild.get_channel(chnl_id)
+            if guild_log_channel:
+                try:
+                    await guild_log_channel.send(embed=Embed(
+                        title=text_slash[server_lng][29],
+                        description=text_slash[server_lng][30].format(f"<@{memb_id}>", salary, currency)
+                    ))
+                except:
+                    return
 
     async def bet(self, interaction: Interaction, amount: int):
         lng = 1 if "ru" in interaction.locale else 0
@@ -1243,17 +1252,19 @@ class SlashCommandsCog(Cog):
                 base.commit()
                 cur.execute('UPDATE users SET money = money + ? WHERE memb_id = ?', (amount, winner_id))
                 base.commit()
-                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+                chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
 
         await interaction.edit_original_message(embed=emb, view=bet_view)
         if chnl_id:
-            try:
-                await interaction.guild.get_channel(chnl_id).send(embed=Embed(
-                    title=text_slash[server_lng][37],
-                    description=text_slash[server_lng][38].format(winner_id, amount, currency, loser_id)
-                ))
-            finally:
-                return
+            guild_log_channel: GuildChannel | None = await interaction.guild.get_channel(chnl_id)
+            if guild_log_channel:
+                try:
+                    await guild_log_channel.send(embed=Embed(
+                        title=text_slash[server_lng][37],
+                        description=text_slash[server_lng][38].format(winner_id, amount, currency, loser_id)
+                    ))
+                except:
+                    return
 
     async def transfer(self, interaction: Interaction, value: int, target: Member):
         memb_id = interaction.user.id
@@ -1282,20 +1293,25 @@ class SlashCommandsCog(Cog):
                 cur.execute('UPDATE users SET money = money + ? WHERE memb_id = ?', (value, t_id))
                 base.commit()
 
-                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
-                server_lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+                server_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
-        emb = Embed(title=text_slash[lng][40], description=text_slash[lng][41].format(value, currency, f"<@{t_id}>"),
-                    colour=Colour.green())
+        emb = Embed(
+            title=text_slash[lng][40],
+            description=text_slash[lng][41].format(value, currency, f"<@{t_id}>"),
+            colour=Colour.green()
+        )
         await interaction.response.send_message(embed=emb)
         if chnl_id:
-            try:
-                await interaction.guild.get_channel(chnl_id).send(embed=Embed(
-                    title=text_slash[server_lng][42],
-                    description=text_slash[server_lng][43].format(f"<@{memb_id}>", value, currency, f"<@{t_id}>")
-                ))
-            finally:
-                return
+            guild_log_channel: GuildChannel | None = await interaction.guild.get_channel(chnl_id)
+            if guild_log_channel:
+                try:
+                    await guild_log_channel.send(embed=Embed(
+                        title=text_slash[server_lng][42],
+                        description=text_slash[server_lng][43].format(f"<@{memb_id}>", value, currency, f"<@{t_id}>")
+                    ))
+                except:
+                    return
 
     async def leaders(self, interaction: Interaction):
         lng = 1 if "ru" in interaction.locale else 0

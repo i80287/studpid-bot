@@ -914,7 +914,7 @@ class EconomyView(View):
                     # try to delete user's ans
                     try:
                         await user_ans.delete()
-                    finally: 
+                    except:
                         pass
 
     async def click_menu(self, _, c_id: str, values):
