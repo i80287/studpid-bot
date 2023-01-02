@@ -266,12 +266,18 @@ class BetView(View):
         self.dueler: int | None = None
         self.declined: bool = False
         self.currency: str = currency
-        self.add_item(
-            CustomButton(label=bet_text[lng][0], custom_id=f"36_{auth_id}_{randint(1, 100)}", style=ButtonStyle.green,
-                         emoji="💰"))
-        self.add_item(
-            CustomButton(label=bet_text[lng][1], custom_id=f"37_{auth_id}_{randint(1, 100)}", style=ButtonStyle.red,
-                         emoji="❌"))
+        self.add_item(CustomButton(
+            label=bet_text[lng][0],
+            custom_id=f"36_{auth_id}_{randint(1, 100)}",
+            style=ButtonStyle.green,
+            emoji="💰"
+        ))
+        self.add_item(CustomButton(
+            label=bet_text[lng][1],
+            custom_id=f"37_{auth_id}_{randint(1, 100)}",
+            style=ButtonStyle.red,
+            emoji="❌"
+        ))
 
     async def click_b(self, interaction: Interaction, c_id: str) -> None:
         memb_id: int = interaction.user.id
@@ -333,13 +339,13 @@ class StoreView(View):
         sort_by_what_options: list[SelectOption] = [
             SelectOption(
                 label=store_text[lng][5],
-                value=0,
+                value="0",
                 emoji="💰",
                 default=True
             ),
             SelectOption(
                 label=store_text[lng][6],
-                value=1,
+                value="1",
                 emoji="📅",
                 default=False
             )
@@ -352,13 +358,13 @@ class StoreView(View):
         sort_how_options: list[SelectOption] = [
             SelectOption(
                 label=store_text[lng][8],
-                value=0,
+                value="0",
                 emoji="↗️",
                 default=True
             ),
             SelectOption(
                 label=store_text[lng][9],
-                value=1,
+                value="1",
                 emoji="↘️",
                 default=False
             )
