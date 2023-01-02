@@ -527,8 +527,8 @@ class BuyView(View):
 
 
 class RatingView(View):
-    def __init__(self, timeout: int, lng: int, auth_id: int, l: int, cash_list: list[tuple[int, int]], xp_list: list[tuple[int, int]], xp_b: int,
-                 in_row: int, ec_status: int, rnk_status: int, currency: str) -> None:
+    def __init__(self, timeout: int, lng: int, auth_id: int, l: int, cash_list: list[tuple[int, int]], 
+                 xp_list: list[tuple[int, int]], xp_b: int, in_row: int, ec_status: int, rnk_status: int, currency: str) -> None:
         super().__init__(timeout=timeout)
         self.xp_b: int = xp_b
         self.cash_list: list[tuple[int, int]] = cash_list
