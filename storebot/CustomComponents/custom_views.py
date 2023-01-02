@@ -1962,7 +1962,6 @@ class VerifyDeleteView(View):
             self.stop()
         elif c_id.startswith("1000_"):
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][4]), ephemeral=True)
-            
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.executescript(f"""\
@@ -1974,23 +1973,24 @@ class VerifyDeleteView(View):
                         if f"{self.role}" in r[2]:
                             cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (r[2].replace(f"#{self.role}", ""), r[0]))
                             base.commit()
-                            
-            await interaction.edit_original_message(embed=Embed(description=ec_mr_text[lng][5].format(self.role)))
-            await interaction.message.delete()
-            emb: Embed = self.m.embeds[0]
-            dsc: list[str] = emb.description.split("\n")
+            
+            try:
+                await interaction.edit_original_message(embed=Embed(description=ec_mr_text[lng][5].format(self.role)))
+            except:
+                pass
+            if interaction.message:
+                await interaction.message.delete()
+
+            dsc: list[str] = self.m.content.split("\n")
             i: int = 0
             while i < len(dsc):
                 if f"{self.role}" in dsc[i]:
                     del dsc[i]
                 else:
                     i += 1
-
             if len(dsc) == 3:
                 dsc[0] = ec_text[lng][19]
-
-            emb.description = "\n".join(dsc)
-            await self.m.edit(embed=emb)
+            await self.m.edit(content='\n'.join(dsc))
             self.deleted = True
             self.stop()
     
