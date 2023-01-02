@@ -44,7 +44,6 @@ def check_member(guild_id: int, memb_id: int) -> tuple[int, int, str, int, int, 
             base.commit()
             return (memb_id, 0, "", 0, 0, 0)
 
-
 def peek_role_free_number(cur: Cursor) -> int:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
     if req:

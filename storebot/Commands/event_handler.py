@@ -68,6 +68,13 @@ class EventsHandlerCog(Cog):
                     xp INTEGER NOT NULL DEFAULT 0,
                     pending_requests INTEGER NOT NULL DEFAULT 0
                 );
+                CREATE TABLE IF NOT EXISTS sale_requests (
+                    request_id INTEGER PRIMARY KEY,
+                    seller_id INTEGER NOT NULL DEFAULT 0,
+                    target_id INTEGER NOT NULL DEFAULT 0,
+                    role_id INTEGER NOT NULL DEFAULT 0,
+                    price INTEGER NOT NULL DEFAULT 0
+                );
                 CREATE TABLE IF NOT EXISTS server_roles (
                     role_id INTEGER PRIMARY KEY,
                     price INTEGER NOT NULL DEFAULT 0,

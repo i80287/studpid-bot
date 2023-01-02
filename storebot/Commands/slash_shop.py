@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta, timezone
-from sqlite3 import Connection, Cursor, connect
+from sqlite3 import connect
 from contextlib import closing
 from random import randint
 from typing import Literal
@@ -11,7 +11,7 @@ from nextcord.ui import Button, View, Select
 from nextcord.ext.commands import Bot, Cog
 from nextcord.abc import GuildChannel
 
-from Tools.db_commands import check_db_member
+from Tools.db_commands import check_db_member, peek_role_free_number
 from Variables.vars import path_to
 from config import in_row
 
@@ -78,6 +78,7 @@ text_slash: dict[int, dict[int, str]] = {
         45: "**`There is no role with such number in the store`**",
         46: "**`Role is not found on the server. May be it was deleted`**",
         47: "**`You gained {}`** {} **`from the /work command and {}`** {} **`additionally from your roles`**",
+        48: "**`You are already selling role`** {}"
     },
     1: {
         0: "Ошибка",  # title
@@ -646,20 +647,6 @@ class SlashCommandsCog(Cog):
         self.in_row: int = in_row
 
     @staticmethod
-    def peek_role_free_number(cur: Cursor) -> int:
-        req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
-        if req:
-            role_numbers: list[int] = [int(r_n[0]) for r_n in req]
-            if role_numbers[0] != 1:
-                return 1
-            for role_number_cur, role_number_next in zip(role_numbers, role_numbers[1:]):
-                if role_number_next - role_number_cur != 1:
-                    return role_number_cur + 1
-            return len(role_numbers) + 1
-        else:
-            return 1
-
-    @staticmethod
     async def can_role(interaction: Interaction, role: Role, lng: int) -> bool:
         # if not interaction.permissions.manage_roles:
         if not interaction.guild.me.guild_permissions.manage_roles:
@@ -887,11 +874,17 @@ class SlashCommandsCog(Cog):
                         ephemeral=True
                     )
                     return
-                role_info: tuple[int, int, int, int, int] = \
+                role_info: tuple[int, int, int, int, int] | None = \
                     cur.execute("SELECT role_id, price, salary, salary_cooldown, type FROM server_roles WHERE role_id = ?", (r_id,)).fetchone()
                 if not role_info:
                     await interaction.response.send_message(
-                        embed=Embed(title=text_slash[lng][0], description=text_slash[lng][17], colour=Colour.red()))
+                        embed=Embed(
+                            title=text_slash[lng][0],
+                            description=text_slash[lng][17],
+                            colour=Colour.red()
+                        ),
+                        ephemeral=True
+                    )
                     return
 
                 memb_id: int = interaction.user.id
@@ -925,7 +918,7 @@ class SlashCommandsCog(Cog):
 
                 time_now: int = int(time())
                 if r_type == 1:
-                    role_free_number: int = self.peek_role_free_number(cur)
+                    role_free_number: int = peek_role_free_number(cur=cur)
                     cur.execute(
                         "INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                         (role_free_number, r_id, 1, r_price, time_now, r_sal, r_sal_c, 1)
@@ -938,7 +931,7 @@ class SlashCommandsCog(Cog):
                             (1, time_now, r_id)
                         )
                     else:
-                        role_free_number = self.peek_role_free_number(cur)
+                        role_free_number: int = peek_role_free_number(cur=cur)
                         cur.execute(
                             "INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                             (role_free_number, r_id, 1, r_price, time_now, r_sal, r_sal_c, 2)
@@ -949,7 +942,7 @@ class SlashCommandsCog(Cog):
                     if in_store_amount:
                         cur.execute("UPDATE store SET last_date = ? WHERE role_id = ?", (time_now, r_id))
                     else:
-                        role_free_number = self.peek_role_free_number(cur)
+                        role_free_number: int = peek_role_free_number(cur=cur)
                         cur.execute(
                             "INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                             (role_free_number, r_id, -404, r_price, time_now, r_sal, r_sal_c, 3)
