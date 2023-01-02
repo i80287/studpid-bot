@@ -1,17 +1,20 @@
-from sqlite3 import connect, Connection, Cursor
 from asyncio import sleep, TimeoutError
 from contextlib import closing
+from sqlite3 import connect
+from typing import Literal
 from random import randint
 
-from nextcord import Embed, Emoji, Interaction, ButtonStyle, Message
+from nextcord import Embed, Emoji, Interaction,\
+    ButtonStyle, Message, Member
 from nextcord.ui import View
 from nextcord.ext.commands import Bot
 
+from Tools.db_commands import check_db_member
 from Tools.parse_tools import parse_emoji
 from Variables.vars import path_to, ignored_channels
 from CustomComponents.custom_button import CustomButton
 from CustomComponents.custom_select import CustomSelect
-from CustomModals.custom_modals import RoleAddModal, RoleEditModal, \
+from CustomModals.custom_modals import RoleAddModal, RoleEditModal,\
     XpSettingsModal, SelectLevelModal, ManageMemberCashXpModal
 from CustomModals.sale_role_price import SalePriceModal
 
@@ -39,7 +42,7 @@ languages = {
     "русский" : 1
 }
 
-system_status = {
+system_status: dict[int, dict[int, str]] = {
     0 : {
         0 : "`disabled`",
         1 : "`enabled`",
@@ -109,7 +112,7 @@ settings_text = {
     }
 }
 
-gen_settings_text = {
+gen_settings_text: dict[int, dict[int, str]] = {
     0 : {
         0 : "🗣️ language for new level announcements: {}",
         1 : "⏱ time zone: UTC{}",
@@ -158,7 +161,7 @@ gen_settings_text = {
     }
 }
 
-mod_roles_text = {
+mod_roles_text: dict[int, dict[int, str]] = {
     0 : {
         0 : "Current mod roles",
         1 : "No roles selected",
@@ -181,7 +184,7 @@ mod_roles_text = {
     }
 }
 
-ec_text = {
+ec_text: dict[int, dict[int, str]] = {
     0 : {
         0 : "Economy settings",
         1 : "💸 Money gained for message:\n**`{}`**",
@@ -237,7 +240,7 @@ ec_text = {
     }
 }
 
-ec_mr_text = { 
+ec_mr_text: dict[int, dict[int, str]] = { 
     0 : {
         0 : "Edit role",
         1 : "Yes",
@@ -264,7 +267,7 @@ ec_mr_text = {
     }
 }
 
-mng_membs_text = {
+mng_membs_text: dict[int, dict[int, str]] = {
     0 : {
         0 : "Change cash/xp",
         1 : "Cash",
@@ -312,7 +315,7 @@ mng_membs_text = {
     }
 }
 
-poll_text = {
+poll_text: dict[int, dict[int, str]] = {
     0 : {
         0 : "🔎 Polls verification channel:\n{}",
         1 : "📰 Channel for publishing polls:\n{}",
@@ -336,7 +339,7 @@ poll_text = {
     }
 }
 
-ranking_text = {
+ranking_text: dict[int, dict[int, str]] = {
     0 : {
         0 : "✨ Xp gained per message:\n**`{}`**",
         1 : "✨ Amount of xp between adjacent levels:\n**`{}`**",
@@ -413,7 +416,7 @@ ranking_text = {
     }
 }
 
-code_blocks = {
+code_blocks: dict[int, str] = {
     0 : "```\nOwned roles\n```",
     5 : "```\nЛичные роли\n```",
     1 : "```fix\n{}\n```",
@@ -422,7 +425,7 @@ code_blocks = {
 
 
 class GenSettingsView(View):
-    def __init__(self, t_out: int, auth_id: int, bot: Bot, lng: int, ec_status: int, rnk_status: int):
+    def __init__(self, t_out: int, auth_id: int, bot: Bot, lng: int, ec_status: int, rnk_status: int) -> None:
         super().__init__(timeout=t_out)
         self.bot: Bot = bot
         self.auth_id: int = auth_id
@@ -549,7 +552,7 @@ class GenSettingsView(View):
         await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][28].format(system_status[lng][self.rnk_status+4])), ephemeral=True)
 
     async def click(self, interaction: Interaction, c_id: str):
-        lng = 1 if "ru" in interaction.locale else 0        
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0        
         if c_id.startswith("6_"):
             await self.select_lng(interaction=interaction, lng=lng)
         elif c_id.startswith("7_"):
@@ -569,7 +572,7 @@ class GenSettingsView(View):
     
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
@@ -646,8 +649,8 @@ class ModRolesView(View):
         await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][10].format(f"<@&{rl_id}>")), ephemeral=True)
 
 
-    async def click(self, interaction: Interaction, c_id: str):
-        lng = 1 if "ru" in interaction.locale else 0
+    async def click(self, interaction: Interaction, c_id: str) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         m = interaction.message
         if self.role is None:
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
@@ -659,7 +662,10 @@ class ModRolesView(View):
             elif c_id.startswith("9_"):
                 await self.rem_role(interaction=interaction, lng=lng)
         else:
-            interaction.response.send_message(embed=Embed(description=settings_text[lng][14]), ephemeral=True)
+            await interaction.response.send_message(
+                embed=Embed(description=settings_text[lng][14]),
+                ephemeral=True
+            )
 
     async def click_menu(self, __, c_id: str, values):
         if c_id.startswith("20") and c_id[3] == "_":
@@ -667,7 +673,7 @@ class ModRolesView(View):
     
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
@@ -887,7 +893,7 @@ class EconomyView(View):
             await interaction.message.edit(embed=emb)
 
     async def click(self, interaction: Interaction, c_id: str):
-        lng = 1 if "ru" in interaction.locale else 0
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         int_custom_id = int(c_id[:2])
         if int_custom_id == 13:
             await self.log_chnl(interaction=interaction, lng=lng)
@@ -923,7 +929,7 @@ class EconomyView(View):
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
@@ -932,7 +938,7 @@ class EconomyView(View):
 class EconomyRolesManageView(View):
     def __init__(self, t_out: int, lng: int, auth_id: int, rem_dis: bool, rls: list, s_rls: set):
         super().__init__(timeout=t_out)
-        self.auth_id = auth_id
+        self.auth_id: int = auth_id
         self.s_rls = s_rls
         self.role = None
         for i in range((len(rls)+24)//25):
@@ -943,7 +949,7 @@ class EconomyRolesManageView(View):
 
 
     async def click(self, interaction: Interaction, c_id: str):
-        lng = 1 if "ru" in interaction.locale else 0
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
 
         if self.role is None:
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
@@ -1021,7 +1027,7 @@ class EconomyRolesManageView(View):
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
@@ -1046,30 +1052,15 @@ class SettingsView(View):
         if ans.startswith("<@") and len(ans) >= 4:
             ans = ans[2:-1]
         if ans.isdigit():
-            memb = interaction.guild.get_member(int(ans))
+            memb: Member | None = interaction.guild.get_member(int(ans))
             if memb is None:
                 return None, 0
             return memb, 2
         else:
             return None, 0
 
-    @staticmethod
-    def check_memb(base: Connection, cur: Cursor, memb_id: int) -> tuple[int, int, str, int, int]:
-        member: tuple[int, int, str, int, int] = \
-            cur.execute("SELECT memb_id, money, owned_roles, work_date, xp FROM users WHERE memb_id = ?", (memb_id,)).fetchone()
-        if not member:
-            cur.execute("INSERT INTO users (memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)",
-                        (memb_id, 0, "", 0, 0))
-            base.commit()
-            return (memb_id, 0, "", 0, 0)
-        elif member[1] < 0:
-            cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
-            base.commit()
-            member[1] = 0
-        return member
-
     async def click(self, interaction: Interaction, custom_id: str):
-        lng = 1 if "ru" in interaction.locale else 0
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         
         if custom_id.startswith("0_"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
@@ -1124,7 +1115,8 @@ class SettingsView(View):
 
         elif custom_id.startswith("2_"):
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][7]))
-            flag = 0
+            flag: int = 0
+            memb: Member | None = None
             while not flag:
                 try:
                     m_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == interaction.user.id and m.channel.id == interaction.channel_id, timeout=30)
@@ -1139,65 +1131,68 @@ class SettingsView(View):
                         pass
                     memb, flag = self.check_ans(interaction=interaction, ans=ans)
                     if flag == 1:
-                        await interaction.delete_original_message()
+                        try:
+                            await interaction.delete_original_message()
+                        except:
+                            pass
             if flag != 2:
                 return
             
-            memb_id = memb.id
+            memb_id: int = memb.id
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
-                    memb_info = self.check_memb(base=base, cur=cur, memb_id=memb_id)
-                    xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
-                    membs_cash = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
-                    membs_xp = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
+                    memb_info: tuple[int, int, str, int, int, int] = check_db_member(base=base, cur=cur, memb_id=memb_id)
+                    xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                    membs_cash: list[tuple[int, int]] = cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall()
+                    membs_xp: list[tuple[int, int]] = cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall()
                     db_roles: list[tuple[int]] = cur.execute("SELECT role_id FROM server_roles").fetchall()
 
-            l = len(membs_cash)     
+            l: int = len(membs_cash)     
 
             # cnt_cash is a place in the rating sorded by cash
-            cash = memb_info[1]
+            cash: int = memb_info[1]
             if membs_cash[l >> 1][1] < cash:
-                cnt_cash = 1
+                cnt_cash: int = 1
                 while cnt_cash < l and memb_id != membs_cash[cnt_cash-1][0]:
                     cnt_cash += 1
             else:
-                cnt_cash = l
+                cnt_cash: int = l
                 while cnt_cash > 1 and memb_id != membs_cash[cnt_cash-1][0]:
                     cnt_cash -= 1
 
-            emb1 = Embed()
+            emb1: Embed = Embed()
             emb1.description = mng_membs_text[lng][5].format(memb_id, memb_id)
             emb1.add_field(name=mng_membs_text[lng][1], value=code_blocks[1].format(cash), inline=True)
             emb1.add_field(name=mng_membs_text[lng][4], value=code_blocks[1].format(cnt_cash), inline=True)
 
             # cnt_cash is a place in the rating sorded by xp
-            xp = memb_info[4]
+            xp: int = memb_info[4]
             if membs_xp[l >> 1][1] < xp:
-                cnt_xp = 1
+                cnt_xp: int = 1
                 while cnt_xp < l and memb_id != membs_xp[cnt_xp-1][0]:
                     cnt_xp += 1
             else:
-                cnt_xp = l
+                cnt_xp: int = l
                 while cnt_xp > 1 and memb_id != membs_xp[cnt_xp-1][0]:
                     cnt_xp -= 1
 
-            level = (xp + xp_b - 1) // xp_b
+            level: int = (xp + xp_b - 1) // xp_b
             
-            emb2 = Embed()
+            emb2: Embed = Embed()
             emb2.add_field(name=mng_membs_text[lng][2], value=code_blocks[2].format(f"{xp}/{level * xp_b + 1}"), inline=True)
             emb2.add_field(name=mng_membs_text[lng][3], value=code_blocks[2].format(level), inline=True)
             emb2.add_field(name=mng_membs_text[lng][4], value=code_blocks[2].format(cnt_xp), inline=True)
 
-            emb3 = Embed()
+            emb3: Embed = Embed()
             member_roles_ids: set[int] = {int(r) for r in memb_info[2].split("#") if r.isdigit()}
             if member_roles_ids:
                 dsc = [code_blocks[lng*5]] + [f"<@&{r}>**` - {r}`**" for r in member_roles_ids]
             else:
                 dsc = [mng_membs_text[lng][6]]
             emb3.description = "\n".join(dsc)
-            rem_dis = True if len(dsc) == 1 else False
+            rem_dis: bool = True if len(dsc) == 1 else False
 
-            if db_roles: 
+            if db_roles:
                 db_roles_set: set[int] = {x[0] for x in db_roles}
                 roles: list[tuple[str, int]] = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable() and rl.id in db_roles_set]
                 del db_roles_set
@@ -1205,7 +1200,7 @@ class SettingsView(View):
                 roles: list[tuple[str, int]] = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable()]
                 del db_roles
             
-            mng_v = ManageMemberView(
+            mng_v: ManageMemberView = ManageMemberView(
                 timeout=110, 
                 lng=lng, 
                 auth_id=interaction.user.id, 
@@ -1235,7 +1230,7 @@ class SettingsView(View):
                     sal_r: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r'").fetchone()[0]
                     e_l_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
                     sale_price_percent: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sale_price_perc'").fetchone()[0]
-            emb = Embed(title=ec_text[lng][0])
+            emb: Embed = Embed(title=ec_text[lng][0])
             dsc: list[str] = [ec_text[lng][1].format(money_p_m)]
             dsc.append(ec_text[lng][2].format(w_cd))
             if sal_l == sal_r:
@@ -1251,7 +1246,7 @@ class SettingsView(View):
             dsc.append(ec_text[lng][8])
             emb.description = "\n\n".join(dsc)
             
-            ec_v = EconomyView(
+            ec_v: EconomyView = EconomyView(
                 t_out=110, 
                 auth_id=self.auth_id,
                 sale_price_percent=sale_price_percent,
@@ -1265,9 +1260,9 @@ class SettingsView(View):
         elif custom_id.startswith("4_"):   
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
-                    xp_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg'").fetchone()[0]
-                    xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
-                    lvl_c_a = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c'").fetchone()[0]
+                    xp_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg'").fetchone()[0]
+                    xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                    lvl_c_a: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c'").fetchone()[0]
 
             emb = Embed()
             dsc = [ranking_text[lng][0].format(xp_p_m)]
@@ -1280,7 +1275,7 @@ class SettingsView(View):
             dsc += [ranking_text[lng][i] for i in (4, 5, 6)]
 
             emb.description = "\n\n".join(dsc)
-            rnk_v = RankingView(timeout=90, auth_id=interaction.user.id, g_id=interaction.guild_id, cur_xp_pm=xp_p_m, cur_xpb=xp_b)
+            rnk_v: RankingView = RankingView(timeout=90, auth_id=interaction.user.id, g_id=interaction.guild_id, cur_xp_pm=xp_p_m, cur_xpb=xp_b)
             
             await interaction.response.send_message(embed=emb, view=rnk_v)
 
@@ -1292,8 +1287,8 @@ class SettingsView(View):
         elif custom_id.startswith("5_"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
-                    p_v_c = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
-                    p_c = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
+                    p_v_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
+                    p_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
             
             if p_v_c:
                 dsc = [poll_text[lng][0].format(f"<#{p_v_c}>")]
@@ -1306,7 +1301,7 @@ class SettingsView(View):
             dsc.append(poll_text[lng][2])
             dsc.append(poll_text[lng][3])
 
-            p_v = PollSettingsView(timeout=100, auth_id=self.auth_id)
+            p_v: PollSettingsView = PollSettingsView(timeout=100, auth_id=self.auth_id)
             await interaction.response.send_message(embed=Embed(description="\n\n".join(dsc)), view=p_v)
             
             await p_v.wait()
@@ -1316,55 +1311,50 @@ class SettingsView(View):
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
 
 
 class PollSettingsView(View):
-    def __init__(self, timeout: int, auth_id: int):
+    def __init__(self, timeout: int, auth_id: int) -> None:
         super().__init__(timeout=timeout)
         self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"28_{auth_id}_{randint(1, 100)}", emoji="🔎"))
         self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"29_{auth_id}_{randint(1, 100)}", emoji="📰"))
         self.auth_id = auth_id
     
-    async def click(self, interaction: Interaction, c_id: str):
-        lng = 1 if "ru" in interaction.locale else 0
-        me = interaction.guild.me
-        chnls = [(c.name, c.id) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
+    async def click(self, interaction: Interaction, c_id: str) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        me: Member = interaction.guild.me
+        chnls: list[tuple[str, int]] = [(c.name, c.id) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
 
         if c_id.startswith("28_"):
-            v_c = PollsChannelsView(timeout=25, lng=lng, view_id_base = 1400, auth_id=self.auth_id, chnls=chnls)
+            v_c: PollsChannelsView = PollsChannelsView(timeout=25, lng=lng, view_id_base = 1400, auth_id=self.auth_id, chnls=chnls)
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=v_c)
             
             await v_c.wait()
             await interaction.delete_original_message()
             if v_c.c is None:
                 return
-
+            
+            emb: Embed = interaction.message.embeds[0]
+            dsc: list[str] = emb.description.split("\n\n")
             if v_c.c:
                 with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                     with closing(base.cursor()) as cur:
                         cur.execute("UPDATE server_info SET value = ? WHERE settings = 'poll_v_c'", (v_c.c,))
-                        base.commit()
-                
-                emb = interaction.message.embeds[0]
-                dsc = emb.description.split("\n\n")
+                        base.commit()                
                 dsc[0] = poll_text[lng][0].format(f"<#{v_c.c}>")
                 emb.description = "\n\n".join(dsc)
                 await interaction.message.edit(embed=emb)
 
-                await interaction.send(embed=Embed(description=poll_text[lng][4].format(v_c.c)), ephemeral=True)
-                           
+                await interaction.send(embed=Embed(description=poll_text[lng][4].format(v_c.c)), ephemeral=True)         
             else:
                 with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                     with closing(base.cursor()) as cur:
                         cur.execute("UPDATE server_info SET value = 0 WHERE settings = 'poll_v_c'")
                         base.commit()
-
-                emb = interaction.message.embeds[0]
-                dsc = emb.description.split("\n\n")
                 dsc[0] = poll_text[lng][0].format(settings_text[lng][13])
                 emb.description = "\n\n".join(dsc)
                 await interaction.message.edit(embed=emb)
@@ -1380,14 +1370,13 @@ class PollSettingsView(View):
             if v_c.c is None:
                 return
 
+            emb: Embed = interaction.message.embeds[0]
+            dsc: list[str] = emb.description.split("\n\n")
             if v_c.c:
                 with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                     with closing(base.cursor()) as cur:
                         cur.execute("UPDATE server_info SET value = ? WHERE settings = 'poll_c'", (v_c.c,))
-                        base.commit()
-                
-                emb = interaction.message.embeds[0]
-                dsc = emb.description.split("\n\n")
+                        base.commit()                
                 dsc[1] = poll_text[lng][1].format(f"<#{v_c.c}>")
                 emb.description = "\n\n".join(dsc)
                 await interaction.message.edit(embed=emb)
@@ -1399,9 +1388,6 @@ class PollSettingsView(View):
                     with closing(base.cursor()) as cur:
                         cur.execute("UPDATE server_info SET value = 0 WHERE settings = 'poll_c'")
                         base.commit()
-
-                emb = interaction.message.embeds[0]
-                dsc = emb.description.split("\n\n")
                 dsc[1] = poll_text[lng][1].format(settings_text[lng][13])
                 emb.description = "\n\n".join(dsc)
                 await interaction.message.edit(embed=emb)
@@ -1410,67 +1396,67 @@ class PollSettingsView(View):
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
 
 
 class RankingView(View):
-    def __init__(self, timeout: int, auth_id: int, g_id: int, cur_xp_pm: int, cur_xpb: int):
+    def __init__(self, timeout: int, auth_id: int, g_id: int, cur_xp_pm: int, cur_xpb: int) -> None:
         super().__init__(timeout=timeout)
         self.add_item(CustomButton(style=ButtonStyle.green, label="", emoji="✨", custom_id=f"21_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.grey, label="", emoji="📗", custom_id=f"22_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.grey, label="", emoji="<:ignored_channels:1003673081996378133>", custom_id=f"23_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.red, label="", emoji="🥇", custom_id=f"24_{auth_id}_{randint(1, 100)}"))
-        self.auth_id = auth_id
-        self.cur_xp_pm = cur_xp_pm
-        self.cur_xpb = cur_xpb
-        self.g_id = g_id
-        self.lvl_chnl = None
+        self.auth_id: int = auth_id
+        self.cur_xp_pm: int = cur_xp_pm
+        self.cur_xpb: int = cur_xpb
+        self.g_id: int = g_id
+        self.lvl_chnl: int | None = None
     
-    async def xp_change(self, lng: int, interaction: Interaction):
-        xp_m = XpSettingsModal(timeout=80, lng=lng, auth_id=self.auth_id, g_id=self.g_id, cur_xp=self.cur_xp_pm, cur_xpb=self.cur_xpb)
+    async def xp_change(self, lng: int, interaction: Interaction) -> None:
+        xp_m: XpSettingsModal = XpSettingsModal(timeout=80, lng=lng, auth_id=self.auth_id, g_id=self.g_id, cur_xp=self.cur_xp_pm, cur_xpb=self.cur_xpb)
         await interaction.response.send_modal(modal=xp_m)
         await xp_m.wait()
 
         if xp_m.changed:
-            self.cur_xp_pm = xp_m.old_xp
-            self.cur_xpb = xp_m.old_xpb
+            self.cur_xp_pm = xp_m.new_xp
+            self.cur_xpb = xp_m.new_xp_b
 
-            emb = interaction.message.embeds[0]
-            dsc = emb.description.split("\n\n")
+            emb: Embed = interaction.message.embeds[0]
+            dsc: list[str] = emb.description.split("\n\n")
             dsc[0] = ranking_text[lng][0].format(self.cur_xp_pm)
             dsc[1] = ranking_text[lng][1].format(self.cur_xpb)
             emb.description = "\n\n".join(dsc)
             await interaction.message.edit(embed=emb)
 
-    async def ic(self, lng: int, interaction: Interaction):
-        chnls = [(c.name, c.id) for c in interaction.guild.text_channels]
+    async def ic(self, lng: int, interaction: Interaction) -> None:
+        chnls: list[tuple[str, int]] = [(c.name, c.id) for c in interaction.guild.text_channels]
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                db_chnls = cur.execute("SELECT chnl_id FROM ic").fetchall()
-        if len(db_chnls):
+                db_chnls: list[tuple[int]] = cur.execute("SELECT chnl_id FROM ic").fetchall()
+        if db_chnls:
             ignored_channels[self.g_id] = {r[0] for r in db_chnls}
-            dsc = [ranking_text[lng][17]] + [f"<#{r}>**` - {r}`**" for r in ignored_channels[self.g_id]]
-            rd = False
+            dsc: list[str] = [ranking_text[lng][17]] + [f"<#{r}>**` - {r}`**" for r in ignored_channels[self.g_id]]
+            rd: bool = False
         else:
             ignored_channels[self.g_id] = set()
-            rd = True
+            rd: bool = True
             dsc = [ranking_text[lng][18]]
         
-        emb = Embed(description="\n".join(dsc))     
-        ic_v = IgnoredChannelsView(timeout=80, lng=lng, auth_id=self.auth_id, chnls=chnls, rem_dis=rd, g_id=self.g_id)
+        emb: Embed = Embed(description="\n".join(dsc))     
+        ic_v: IgnoredChannelsView = IgnoredChannelsView(timeout=80, lng=lng, auth_id=self.auth_id, chnls=chnls, rem_dis=rd, g_id=self.g_id)
 
         await interaction.response.send_message(embed=emb, view=ic_v)
         await ic_v.wait()
         await interaction.delete_original_message()
 
-    async def level_channel(self, lng: int, interaction: Interaction):
+    async def level_channel(self, lng: int, interaction: Interaction) -> None:
         
-        me = interaction.guild.me
-        chnls = [(c.name, c.id) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
-        l = len(chnls)
+        me: Member = interaction.guild.me
+        chnls: list[tuple[str, int]] = [(c.name, c.id) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
+        l: int = len(chnls)
         
         for i in range(min((l + 23) // 24, 20)):
             self.add_item(CustomSelect(custom_id=f"{1200+i}_{self.auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=[(settings_text[lng][12], 0)] + chnls[i*24:min((i+1)*24, l)]))
@@ -1479,12 +1465,12 @@ class RankingView(View):
 
         await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), ephemeral=True)
 
-        cnt = 0
+        cnt: int = 0
         while self.lvl_chnl is None and cnt < 30:
             cnt += 1
             await sleep(1)
 
-        i = 0
+        i: int = 0
         while i < len(self.children):
             if self.children[i].custom_id.startswith("12"):
                 self.remove_item(self.children[i])
@@ -1501,8 +1487,8 @@ class RankingView(View):
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lvl_c'", (self.lvl_chnl,))
                 base.commit()
         
-        emb = interaction.message.embeds[0]
-        dsc = emb.description.split("\n\n")
+        emb: Embed = interaction.message.embeds[0]
+        dsc: list[str] = emb.description.split("\n\n")
         if self.lvl_chnl:
             dsc[2] = ranking_text[lng][2].format(f"<#{self.lvl_chnl}>")
         else:
@@ -1513,25 +1499,25 @@ class RankingView(View):
 
         await interaction.message.edit(embed=emb, view=self)
             
-    async def lvl_roles(self, lng: int, interaction: Interaction):
+    async def lvl_roles(self, lng: int, interaction: Interaction) -> None:
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                lvl_rls = sorted(cur.execute("SELECT * FROM rank_roles").fetchall(), key=lambda tup: tup[0])
+                lvl_rls: list[tuple[int, int]] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level ASC").fetchall()
         if lvl_rls:
-            dsc = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]
-            rem_b = False
+            dsc: list[str] = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]
+            rem_b: bool = False
         else:
-            rem_b = True
-            dsc = [ranking_text[lng][25]]
+            dsc: list[str] = [ranking_text[lng][25]]
+            rem_b: bool = True
         dsc.append(ranking_text[lng][27])
-        emb = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
-        lr_v = LevelRolesView(timeout=80, auth_id=interaction.user.id, g_id=self.g_id, disabled=rem_b)
+        emb: Embed = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
+        lr_v: LevelRolesView = LevelRolesView(timeout=80, auth_id=interaction.user.id, g_id=self.g_id, disabled=rem_b)
         await interaction.response.send_message(embed=emb, view=lr_v)
         await lr_v.wait()
         await interaction.delete_original_message()
 
-    async def click(self, interaction: Interaction, c_id: str):
-        lng = 1 if "ru" in interaction.locale else 0
+    async def click(self, interaction: Interaction, c_id: str) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         if c_id.startswith("21_"):
             await self.xp_change(lng=lng, interaction=interaction)
         elif c_id.startswith("22_"):
@@ -1541,20 +1527,20 @@ class RankingView(View):
         elif c_id.startswith("24_"):
             await self.lvl_roles(lng=lng, interaction=interaction)
     
-    async def click_menu(self, _, c_id: str, values):
+    async def click_menu(self, _, c_id: str, values) -> None:
         if c_id.startswith("12"):
             self.lvl_chnl = int(values[0])
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
 
 
 class PollsChannelsView(View):
-    def __init__(self, timeout: int, lng: int, view_id_base: int,  auth_id: int, chnls: list):
+    def __init__(self, timeout: int, lng: int, view_id_base: int,  auth_id: int, chnls: list) -> None:
         super().__init__(timeout=timeout)
         for i in range(min((len(chnls) + 23) // 24, 20)):
             self.add_item(CustomSelect(
@@ -1562,38 +1548,38 @@ class PollsChannelsView(View):
                 placeholder=settings_text[lng][10], 
                 opts=[(settings_text[lng][12], 0)] + chnls[i*24:min(len(chnls), (i+1)*24)]
             ))
-        self.auth_id = auth_id
-        self.c = None
+        self.auth_id: int = auth_id
+        self.c: int | None = None
         
-    async def click_menu(self, _, c_id: str, values):
+    async def click_menu(self, _, c_id: str, values) -> None:
         if c_id.startswith("14") or c_id.startswith("15"):
             self.c = int(values[0])
             self.stop()
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
 
 
 class LevelRolesView(View):
-    def __init__(self, timeout: int, auth_id: int, g_id: int, disabled: bool):
+    def __init__(self, timeout: int, auth_id: int, g_id: int, disabled: bool) -> None:
         super().__init__(timeout=timeout)
         self.add_item(CustomButton(style=ButtonStyle.green, label="🔧", custom_id=f"27_{auth_id}_{randint(1, 100)}", emoji="<:add01:999663315804500078>"))
         self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"28_{auth_id}_{randint(1, 100)}", emoji="<:remove01:999663428689997844>", disabled=disabled))
         self.auth_id: int = auth_id
         self.g_id: int = g_id
-        self.role = None
+        self.role: int | None = None
     
-    async def click(self, interaction: Interaction, c_id: str):
-        lng = 1 if "ru" in interaction.locale else 0
-        lvl_modal = SelectLevelModal(lng=lng, auth_id=interaction.user.id, timeout=60)
+    async def click(self, interaction: Interaction, c_id: str) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        lvl_modal: SelectLevelModal = SelectLevelModal(lng=lng, auth_id=interaction.user.id, timeout=60)
         await interaction.response.send_modal(modal=lvl_modal)
         await lvl_modal.wait()
         if lvl_modal.level:
-            ans = lvl_modal.level
+            ans: int = lvl_modal.level
         else:
             return
         
@@ -1611,11 +1597,12 @@ class LevelRolesView(View):
             await interaction.message.edit(view=self)
             await interaction.send(embed=Embed(description = ranking_text[lng][29].format(ans)), ephemeral=True)
 
-            cnt = 0
+            cnt: int = 0
             while self.role is None and cnt < 25:
                 cnt += 1
                 await sleep(1)
             if self.role is None:
+                i: int = 0
                 while i < len(self.children):
                     if self.children[i].custom_id.startswith("13"):
                         self.remove_item(self.children[i])
@@ -1632,7 +1619,7 @@ class LevelRolesView(View):
                     else:
                         cur.execute("UPDATE rank_roles SET role_id = ? WHERE level = ?", (self.role, ans))
                     base.commit()
-                    lvl_rls = sorted(cur.execute("SELECT * FROM rank_roles").fetchall(), key=lambda tup: tup[0])
+                    lvl_rls: list[tuple[int, int]] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level ASC").fetchall()
 
             i = 0
             while i < len(self.children):
@@ -1641,9 +1628,9 @@ class LevelRolesView(View):
                 else:
                     i += 1
             
-            dsc = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]  
+            dsc: list[str] = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]  
             dsc.append(ranking_text[lng][27])
-            emb = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
+            emb: Embed = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
             
             if self.children[1].disabled:
                 self.children[1].disabled = False
@@ -1658,17 +1645,17 @@ class LevelRolesView(View):
                     if cur.execute("SELECT count() FROM rank_roles WHERE level = ?", (ans,)).fetchone()[0]:
                         cur.execute("DELETE FROM rank_roles WHERE level = ?", (ans,))
                         base.commit()
-                        lvl_rls = sorted(cur.execute("SELECT * FROM rank_roles").fetchall(), key=lambda tup: tup[0])
+                        lvl_rls: list[tuple[int, int]] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level ASC").fetchall()
                     else:
                         await interaction.send(embed=Embed(description=ranking_text[lng][34].format(ans)), ephemeral=True)
                         return
 
             if lvl_rls:
                 dsc = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]
-                fl = False
+                fl: bool = False
             else:
                 self.children[1].disabled = True
-                fl = True
+                fl: bool = True
                 dsc = [ranking_text[lng][25]]
 
             dsc.append(ranking_text[lng][27])
@@ -1681,39 +1668,39 @@ class LevelRolesView(View):
 
             await interaction.send(embed=Embed(description=ranking_text[lng][33].format(ans)), ephemeral=True)
 
-    async def click_menu(self, _, c_id: str, values):
+    async def click_menu(self, _, c_id: str, values) -> None:
         if c_id.startswith("13"):
             self.role = int(values[0])
     
     async def interaction_check(self, interaction: Interaction) -> bool:
         if self.auth_id != interaction.user.id:
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
 
 
 class IgnoredChannelsView(View):
-    def __init__(self, timeout: int, lng: int, auth_id: int, chnls: list, rem_dis: bool, g_id: int):
+    def __init__(self, timeout: int, lng: int, auth_id: int, chnls: list, rem_dis: bool, g_id: int) -> None:
         super().__init__(timeout=timeout)
-        l = len(chnls)
+        l: int = len(chnls)
         for i in range(min((l + 23) // 24, 20)):
             self.add_item(CustomSelect(custom_id=f"{1100+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=[(settings_text[lng][12], 0)] + chnls[i*24:min((i+1)*24, l)]))
         self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][8], emoji="<:add01:999663315804500078>", custom_id=f"25_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][9], emoji="<:remove01:999663428689997844>", custom_id=f"26_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
-        self.chnl = None
-        self.g_id = g_id
-        self.auth_id = auth_id
+        self.chnl: int | None = None
+        self.g_id: int = g_id
+        self.auth_id: int = auth_id
 
-    async def add_chnl(self, interaction: Interaction, lng: int):
+    async def add_chnl(self, interaction: Interaction, lng: int) -> None:
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("INSERT OR IGNORE INTO ic(chnl_id) VALUES(?)", (self.chnl,))
                 base.commit()
         ignored_channels[self.g_id].add(self.chnl)
 
-        emb = interaction.message.embeds[0]
-        dsc = emb.description.split("\n")
+        emb: Embed = interaction.message.embeds[0]
+        dsc: list[str] = emb.description.split("\n")
 
         if len(dsc) == 1:
             dsc = [ranking_text[lng][17], f"<#{self.chnl}>**` - {self.chnl}`**"]
@@ -1727,23 +1714,23 @@ class IgnoredChannelsView(View):
         await interaction.response.send_message(embed=Embed(description=ranking_text[lng][19].format(self.chnl)), ephemeral=True)
         self.chnl = None
     
-    async def rem_chnl(self, interaction: Interaction, lng: int):
+    async def rem_chnl(self, interaction: Interaction, lng: int) -> None:
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("DELETE FROM ic WHERE chnl_id = ?", (self.chnl,))
                 base.commit()
         ignored_channels[self.g_id].remove(self.chnl)
 
-        emb = interaction.message.embeds[0]
-        dsc = emb.description.split("\n")
+        emb: Embed = interaction.message.embeds[0]
+        dsc: list[str] = emb.description.split("\n")
         if len(dsc) <= 2:
             dsc = [ranking_text[lng][18]]
             self.children[-1].disabled = True
             emb.description = "\n".join(dsc)
             await interaction.message.edit(embed=emb, view=self)
         else:
-            s_c = f"{self.chnl}"
-            i = 0
+            s_c: str = f"{self.chnl}"
+            i: int = 0
             while i < len(dsc):
                 if s_c in dsc[i]:
                     dsc.pop(i)
@@ -1755,8 +1742,8 @@ class IgnoredChannelsView(View):
         await interaction.response.send_message(embed=Embed(description=ranking_text[lng][20].format(self.chnl)), ephemeral=True)
         self.chnl = None
 
-    async def click(self, interaction: Interaction, c_id: str):
-        lng = 1 if "ru" in interaction.locale else 0
+    async def click(self, interaction: Interaction, c_id: str) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         if not self.chnl:
             await interaction.response.send_message(embed=Embed(description=ranking_text[lng][21]), ephemeral=True)
             return
@@ -1771,36 +1758,37 @@ class IgnoredChannelsView(View):
                 return
             await self.rem_chnl(interaction=interaction, lng=lng)           
 
-    async def click_menu(self, _, c_id: str, values):
+    async def click_menu(self, _, c_id: str, values) -> None:
         if c_id.startswith("11"):
             self.chnl = int(values[0])
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
 
 
 class ManageMemberView(View):
-    def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set, rls: list, cur_money: int, cur_xp: int, rem_dis: bool, g_id: int, member):
+    def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set[int],\
+                rls: list[tuple[str, int]], cur_money: int, cur_xp: int, rem_dis: bool, g_id: int, member: Member) -> None:
         super().__init__(timeout=timeout)
         self.add_item(CustomButton(style=ButtonStyle.blurple, label=mng_membs_text[lng][0], emoji="🔧", custom_id=f"18_{auth_id}_{randint(1, 100)}"))
         for i in range((len(rls)+24)//25):
             self.add_item(CustomSelect(custom_id=f"{300+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][2], opts=rls[i*25:min(len(rls), (i+1)*25)]))
         self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"19_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"20_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
-        self.role = None
-        self.memb_id = memb_id
-        self.memb_rls = memb_rls
-        self.cash = cur_money
-        self.xp = cur_xp
-        self.g_id = g_id
-        self.auth_id = auth_id
-        self.member=member
+        self.role: int | None = None
+        self.memb_id: int = memb_id
+        self.memb_rls: set[int] = memb_rls
+        self.cash: int = cur_money
+        self.xp: int = cur_xp
+        self.g_id: int = g_id
+        self.auth_id: int = auth_id
+        self.member: Member=member
 
-    async def add_r(self, lng: int, interaction: Interaction):
+    async def add_r(self, lng: int, interaction: Interaction) -> None:
         if self.role in self.memb_rls:
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][7]), ephemeral=True)
             return
@@ -1808,19 +1796,18 @@ class ManageMemberView(View):
 
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                m_rls = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
+                m_rls: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
                 cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls + f"#{self.role}", self.memb_id))
-                membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
+                membs: tuple[str] | None = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
                 if membs:
                     cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0] + f"#{self.memb_id}", self.role))
                 base.commit()
 
         await self.member.add_roles(interaction.guild.get_role(self.role))
 
-        embs = interaction.message.embeds
-        emb3 = embs[2]
-        dsc = emb3.description.split("\n")
-        
+        embs: list[Embed] = interaction.message.embeds
+        emb3: Embed = embs[2]
+        dsc: list[str] = emb3.description.split("\n")
         if len(dsc) == 1:
             dsc = [code_blocks[lng*5], f"<@&{self.role}>**` - {self.role}`**"]
             self.children[-1].disabled = False
@@ -1837,7 +1824,7 @@ class ManageMemberView(View):
         self.role = None
         
 
-    async def rem_r(self, lng: int, interaction: Interaction):
+    async def rem_r(self, lng: int, interaction: Interaction) -> None:
         if not self.role in self.memb_rls:
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][9]), ephemeral=True)
             return
@@ -1845,17 +1832,17 @@ class ManageMemberView(View):
 
         with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                m_rls = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
+                m_rls: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
                 cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls.replace(f"#{self.role}", ""), self.memb_id))
-                membs = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
+                membs: tuple[str] | None = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
                 if membs:
                     cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"#{self.memb_id}", ""), self.role))
                 base.commit()
         await self.member.remove_roles(interaction.guild.get_role(self.role))
         
-        embs = interaction.message.embeds
-        emb3 = embs[2]
-        dsc = emb3.description.split("\n")
+        embs: list[Embed] = interaction.message.embeds
+        emb3: Embed = embs[2]
+        dsc: list[str] = emb3.description.split("\n")
         if len(dsc) <= 4:
             emb3.description = mng_membs_text[lng][6]
             self.children[-1].disabled = True
@@ -1863,8 +1850,8 @@ class ManageMemberView(View):
             await interaction.message.edit(embeds=embs, view=self)
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)            
         else:
-            i = 0
-            s_role = f"{self.role}"
+            i: int = 0
+            s_role: str = f"{self.role}"
             while i < len(dsc):
                 if s_role in dsc[i]:
                     dsc.pop(i)
@@ -1876,39 +1863,41 @@ class ManageMemberView(View):
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)
         self.role = None
 
-    async def click(self, interaction: Interaction, c_id: str):
-        lng = 1 if "ru" in interaction.locale else 0
+    async def click(self, interaction: Interaction, c_id: str) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
 
         if c_id.startswith("18_"):
-            edit_modl = ManageMemberCashXpModal(timeout=90, title=mng_membs_text[lng][19], lng=lng, memb_id=self.memb_id, cur_money=self.cash, cur_xp=self.xp, auth_id=self.auth_id)
+            edit_modl: ManageMemberCashXpModal = ManageMemberCashXpModal(timeout=90, title=mng_membs_text[lng][19], lng=lng, memb_id=self.memb_id, cur_money=self.cash, cur_xp=self.xp, auth_id=self.auth_id)
 
             await interaction.response.send_modal(modal=edit_modl)
             await edit_modl.wait()
             
             if edit_modl.is_changed:
-                
-                embs = interaction.message.embeds
-
+                l: int = 0
+                embs: list[Embed] = interaction.message.embeds
                 with closing(connect(f'{path_to}/bases/bases_{self.g_id}/{self.g_id}.db')) as base:
                     with closing(base.cursor()) as cur:
-                        xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                        xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
                         if self.cash != edit_modl.new_cash:
-                            membs_cash = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
-                            l = len(membs_cash)
+                            membs_cash: list[tuple[int, int]] = cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall()
+                            l: int = len(membs_cash)
+                        else:
+                            membs_cash: list[tuple[int, int]] = []
                         if self.xp != edit_modl.new_xp:
-                            membs_xp = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
-                            l = len(membs_xp)
-                
+                            membs_xp: list[tuple[int, int]] = cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall()
+                            l: int = len(membs_xp)
+                        else:
+                            membs_xp: list[tuple[int, int]] = []
                 
                 if self.cash != edit_modl.new_cash:
                     self.cash = edit_modl.new_cash
                     
                     if membs_cash[l >> 1][1] < self.cash:
-                        cnt_cash = 1
+                        cnt_cash: int = 1
                         while cnt_cash < l and self.memb_id != membs_cash[cnt_cash-1][0]:
                             cnt_cash += 1
                     else:
-                        cnt_cash = l
+                        cnt_cash: int = l
                         while cnt_cash > 1 and self.memb_id != membs_cash[cnt_cash-1][0]:
                             cnt_cash -= 1
 
@@ -1917,17 +1906,15 @@ class ManageMemberView(View):
 
                 if self.xp != edit_modl.new_xp:
                     self.xp = edit_modl.new_xp
-
                     if membs_xp[l >> 1][1] < self.xp:
-                        cnt_xp = 1
+                        cnt_xp: int = 1
                         while cnt_xp < l and self.memb_id != membs_xp[cnt_xp-1][0]:
                             cnt_xp += 1
                     else:
-                        cnt_xp = l
+                        cnt_xp: int = l
                         while cnt_xp > 1 and self.memb_id != membs_xp[cnt_xp-1][0]:
                             cnt_xp -= 1
-
-                    level = (self.xp + xp_b - 1) // xp_b
+                    level: int = (self.xp + xp_b - 1) // xp_b
 
                     embs[1].set_field_at(index=0, name=mng_membs_text[lng][2], value=code_blocks[2].format(f"{self.xp}/{level * xp_b + 1}"))
                     embs[1].set_field_at(index=1, name=mng_membs_text[lng][3], value=code_blocks[2].format(level))
@@ -1945,30 +1932,30 @@ class ManageMemberView(View):
         elif c_id.startswith("20_"):
             await self.rem_r(lng=lng, interaction=interaction)
 
-    async def click_menu(self, __, c_id: str, values):
+    async def click_menu(self, __, c_id: str, values) -> None:
         if c_id.startswith("30") and c_id[3] == "_":
             self.role = int(values[0])
     
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
 
 
 class VerifyDeleteView(View):
-    def __init__(self, lng: int, role: int, m: Message, auth_id: int):
+    def __init__(self, lng: int, role: int, m: Message, auth_id: int) -> None:
         super().__init__(timeout=30)
         self.role: int = role
         self.auth_id: int = auth_id
         self.m: Message = m
-        self.deleted = False
+        self.deleted: bool = False
         self.add_item(CustomButton(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_{randint(1, 100)}"))
     
-    async def click(self, interaction: Interaction, c_id: str):
-        lng = 1 if "ru" in interaction.locale else 0
+    async def click(self, interaction: Interaction, c_id: str) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         if c_id.startswith("1001_"):
             await interaction.message.delete()
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][3].format(self.role)), ephemeral=True)
@@ -1990,9 +1977,9 @@ class VerifyDeleteView(View):
                             
             await interaction.edit_original_message(embed=Embed(description=ec_mr_text[lng][5].format(self.role)))
             await interaction.message.delete()
-            emb = self.m.embeds[0]
-            dsc = emb.description.split("\n")
-            i = 0
+            emb: Embed = self.m.embeds[0]
+            dsc: list[str] = emb.description.split("\n")
+            i: int = 0
             while i < len(dsc):
                 if f"{self.role}" in dsc[i]:
                     del dsc[i]
@@ -2009,7 +1996,7 @@ class VerifyDeleteView(View):
     
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True

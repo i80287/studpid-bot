@@ -1,3 +1,4 @@
+from typing import Literal
 from sqlite3 import connect
 from contextlib import closing
 
@@ -35,8 +36,8 @@ class ModCommandsCog(Cog):
         }
     }
 
-    def __init__(self, bot: Bot):
-        self.bot = bot
+    def __init__(self, bot: Bot) -> None:
+        self.bot: Bot = bot
 
     @staticmethod
     def mod_check(interaction: Interaction) -> bool:
@@ -52,10 +53,10 @@ class ModCommandsCog(Cog):
                     return any(role.id in m_rls for role in u.roles)
                 return False
 
-    async def settings(self, interaction: Interaction):
-        lng = 1 if "ru" in interaction.locale else 0
-        st_view = SettingsView(t_out=120, auth_id=interaction.user.id, bot=self.bot)
-        emb = Embed(title=self.settings_text[lng][0], description="\n".join(self.settings_text[lng][1]))
+    async def settings(self, interaction: Interaction) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
+        st_view: SettingsView = SettingsView(t_out=120, auth_id=interaction.user.id, bot=self.bot)
+        emb: Embed = Embed(title=self.settings_text[lng][0], description="\n".join(self.settings_text[lng][1]))
         await interaction.response.send_message(embed=emb, view=st_view)
 
         await st_view.wait()
@@ -72,9 +73,9 @@ class ModCommandsCog(Cog):
         }
     )
     @application_checks.check(mod_check)
-    async def settings_e(self, interaction: Interaction):
+    async def settings_e(self, interaction: Interaction) -> None:
         await self.settings(interaction=interaction)
     
 
-def setup(bot: Bot):
+def setup(bot: Bot) -> None:
     bot.add_cog(ModCommandsCog(bot))

@@ -1,6 +1,7 @@
 from sqlite3 import connect, Connection, Cursor
 from contextlib import closing
 from datetime import datetime
+from typing import Literal
 from asyncio import sleep
 from time import time
 
@@ -98,7 +99,7 @@ class Poll(View):
 
     async def click_row_button(self, interaction: Interaction, label):
         g = interaction.guild
-        lng = 1 if "ru" in interaction.locale else 0
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
 
         with closing(connect(f"{path_to}/bases/bases_{g.id}/{g.id}.db")) as base:
             with closing(base.cursor()) as cur:
@@ -141,17 +142,17 @@ class Poll(View):
             else:
                 await interaction.response.send_message(self.poll_class_text[lng][2])
     
-    async def update_votes(self, interaction: Interaction, L: int, val: bool):
-        emb = interaction.message.embeds[0]
+    async def update_votes(self, interaction: Interaction, L: int, val: bool) -> None:
+        emb: Embed = interaction.message.embeds[0]
         field = emb.fields[L-1]
 
-        text1 = emb.author.name
-        t1 = text1.rfind(": ")
-        total_votes = int(text1[t1+2:])
+        text1: str = emb.author.name
+        t1: int = text1.rfind(": ")
+        total_votes: int = int(text1[t1+2:])
 
-        text2 = field.value
-        t2 = text2.rfind(": ")
-        cur_votes = int(text2[t2+2:])
+        text2: str = field.value
+        t2: int = text2.rfind(": ")
+        cur_votes: int = int(text2[t2+2:])
 
         if val:
             cur_votes += 1
@@ -166,13 +167,13 @@ class Poll(View):
         
         await interaction.message.edit(embed=emb)
     
-    async def click(self, interaction: Interaction, label: str):
+    async def click(self, interaction: Interaction, label: str) -> None:
         if not label.isdigit():
             return
 
-        L = int(label)
-        u_id = interaction.user.id
-        lng = 1 if "ru" in interaction.locale else 0
+        L: int = int(label)
+        u_id: int = interaction.user.id
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
 
         if u_id in self.voters[L-1]:
             await self.update_votes(interaction=interaction, L=L, val=False)
@@ -181,14 +182,14 @@ class Poll(View):
             try:
                 await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][4].format(L)), ephemeral=True)
             except NotFound:
-                sleep(1)
+                await sleep(1)
                 try:
                     await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][4].format(L)), ephemeral=True)
                 except:
                     pass
                 
         else:    
-            fl = -1
+            fl: int = -1
             for x in range(self.n):
                 if u_id in self.voters[x]:
                     fl = x
@@ -215,7 +216,7 @@ class Poll(View):
                 except:
                     pass
             
-    async def on_timeout(self):
+    async def on_timeout(self) -> None:
         if not self.verified:
             self.stop()
             return
@@ -526,7 +527,7 @@ class PollCog(Cog):
             default=""
         )
     ):
-        lng = 1 if "ru" in interaction.locale else 0
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         g_id: int = interaction.guild_id
         with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:

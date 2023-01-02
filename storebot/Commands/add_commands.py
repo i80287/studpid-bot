@@ -1,11 +1,12 @@
-from sqlite3 import connect, Connection, Cursor
-from contextlib import closing
+from datetime import datetime
+from typing import Literal
 
-from nextcord import Embed, Emoji, Colour, SlashOption, Interaction, Status, slash_command, Locale
+from nextcord import Embed, Emoji, Guild, Colour,\
+    SlashOption, Interaction, Status, slash_command, Locale
 from nextcord.ext.commands import Bot, Cog
 
+from Tools.db_commands import check_member
 from Tools.parse_tools import parse_emoji
-from Variables.vars import path_to
 
 
 class AdditionalCommandsCog(Cog):
@@ -174,28 +175,8 @@ class AdditionalCommandsCog(Cog):
         }
     }
 
-    def __init__(self, bot: Bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot: Bot = bot
-
-    @staticmethod
-    def check_user(base: Connection, cur: Cursor, memb_id: int):
-        member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
-        if not member:
-            cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, 0, "", 0, 0))
-            base.commit()
-        else:
-            if member[1] is None or member[1] < 0:
-                cur.execute('UPDATE users SET money = ? WHERE memb_id = ?', (0, memb_id))
-                base.commit()
-            if member[2] is None:
-                cur.execute('UPDATE users SET owned_roles = ? WHERE memb_id = ?', ("", memb_id))
-                base.commit()
-            if member[3] is None:
-                cur.execute('UPDATE users SET work_date = ? WHERE memb_id = ?', (0, memb_id))
-                base.commit()
-            if member[4] is None:
-                cur.execute('UPDATE users SET xp = ? WHERE memb_id = ?', (0, memb_id))
-                base.commit()
 
     
     @slash_command(
@@ -216,24 +197,21 @@ class AdditionalCommandsCog(Cog):
             },
             required=True
         )
-    ):
-        lng = 1 if "ru" in interaction.locale else 0
-        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
-            with closing(base.cursor()) as cur:
-                AdditionalCommandsCog.check_user(base=base, cur=cur, memb_id=interaction.user.id)
-        
-        emoji = parse_emoji(self.bot, emoji_str)        
+    ) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        check_member(guild_id=interaction.guild_id, memb_id=interaction.user.id)        
+        emoji: Emoji | str | None = parse_emoji(self.bot, emoji_str)        
         if emoji is None:
-            emb = Embed(title=self.text_slash[lng][0], colour=Colour.red(), description=self.text_slash[lng][12])
+            emb: Embed = Embed(title=self.text_slash[lng][0], colour=Colour.red(), description=self.text_slash[lng][12])
             await interaction.response.send_message(embed=emb, ephemeral=True)
         elif isinstance(emoji, Emoji):
-            emoji_url = emoji.url + "?quality=lossless"
-            emoji_str = emoji.__str__()
+            emoji_url: str = emoji.url + "?quality=lossless"
+            emoji_raw_str: str = emoji.__str__()
             created_at: str = emoji.created_at.strftime("%d/%m/%Y, %H:%M:%S")
             emb = Embed(
                 title=self.text_slash[lng][11], 
-                description=f"**`Emoji:`** {emoji_str}\n\
-                            **`Raw string:`** \{emoji_str}\n\
+                description=f"**`Emoji:`** {emoji_raw_str}\n\
+                            **`Raw string:`** \\{emoji_raw_str}\n\
                             **`Emoji id:`** {emoji.id}\n\
                             **`Created at:`** {created_at}\n\
                             **`URL:`** {emoji_url}"
@@ -251,19 +229,15 @@ class AdditionalCommandsCog(Cog):
             Locale.ru: "Показывает информацию о сервере"
         }
     )
-    async def server(self, interaction: Interaction):
-        lng = 1 if "ru" in interaction.locale else 0
+    async def server(self, interaction: Interaction) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        check_member(guild_id=interaction.guild_id, memb_id=interaction.user.id)
+        emb: Embed = Embed(title=self.text_slash[lng][13], colour=Colour.dark_purple())
+        guild: Guild = interaction.guild
 
-        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
-            with closing(base.cursor()) as cur:
-                AdditionalCommandsCog.check_user(base=base, cur=cur, memb_id=interaction.user.id)
-
-        emb = Embed(title=self.text_slash[lng][13], colour=Colour.dark_purple())
-        guild = interaction.guild
-
-        onl = 0; idl = 0; dnd = 0; ofl = 0
+        onl: int = 0; idl: int = 0; dnd: int = 0; ofl: int = 0
         for m in guild.members:
-            st = m.status
+            st: Status | str = m.status
             if st == Status.online:
                 onl += 1
             elif st == Status.idle:
@@ -273,16 +247,16 @@ class AdditionalCommandsCog(Cog):
             else:
                 ofl += 1
 
-        ca = guild.created_at
-        time = f"{ca.strftime('%Y-%m-%d %H:%M:%S')}\n{self.months[lng][ca.month-1].format(ca.day)}, {ca.year}"
+        ca: datetime = guild.created_at
+        time: str = f"{ca.strftime('%Y-%m-%d %H:%M:%S')}\n{self.months[lng][ca.month-1].format(ca.day)}, {ca.year}"
         
-        vls = [len(guild.humans), len(guild.bots), len(guild.text_channels), len(guild.voice_channels), len(guild.emojis), len(guild.stickers),
+        vls: list = [len(guild.humans), len(guild.bots), len(guild.text_channels), len(guild.voice_channels), len(guild.emojis), len(guild.stickers),
         time, guild.verification_level, guild.filesize_limit >> 20, f"`{len(guild.premium_subscribers)}` - `{guild.premium_tier}{self.text_slash[lng][6]}`"]
 
         if guild.icon is not None:
             emb.set_thumbnail(url=guild.icon.url)
         
-        lc_s = self.server_info_text[lng]
+        lc_s: dict[int, str] = self.server_info_text[lng]
         for i in (0,):
             emb.add_field(name=lc_s[i * 4], value=f"{self.emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{self.emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\
             \n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`")
@@ -303,5 +277,5 @@ class AdditionalCommandsCog(Cog):
         await interaction.response.send_message(embed=emb)
 
 
-def setup(bot: Bot):
+def setup(bot: Bot) -> None:
     bot.add_cog(AdditionalCommandsCog(bot))

@@ -24,7 +24,7 @@ class SalePriceModal(Modal):
         },
     }
 
-    def __init__(self, timeout: int, lng: int, auth_id: int, current_sale_role_percent: int):
+    def __init__(self, timeout: int, lng: int, auth_id: int, current_sale_role_percent: int) -> None:
         super().__init__(title=self.sale_price_modal_text[lng][0], timeout=timeout, custom_id=f"12000_{auth_id}_{randint(1, 100)}")
         self.sell_price_percent_textinput = TextInput(
             label=self.sale_price_modal_text[lng][1],
@@ -47,7 +47,7 @@ class SalePriceModal(Modal):
             return 0
         return sale_role_percent
 
-    async def callback(self, interaction: Interaction):
+    async def callback(self, interaction: Interaction) -> None:
         if not (sale_role_percent := self.check_ans(self.sell_price_percent_textinput.value)):
             await interaction.response.send_message(
                 embed=Embed(

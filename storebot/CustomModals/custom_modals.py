@@ -1,6 +1,7 @@
 from sqlite3 import connect, Connection, Cursor
 from contextlib import closing
 from random import randint
+from typing import Literal
 from time import time
 
 from nextcord import Embed, Message, Interaction, TextInputStyle
@@ -8,7 +9,7 @@ from nextcord.ui import TextInput, Modal
 
 from Variables.vars import path_to
 
-r_types = {
+r_types: dict[int, dict[int, str]] = {
     0: {
         1: "Nonstacking, displayed separated",
         2: "Stacking, countable",
@@ -21,7 +22,7 @@ r_types = {
     }
 }
 
-ranking_text = {
+ranking_text: dict[int, dict[int, str]] = {
     0: {
         0: "✨ Xp gained per message:\n**`{}`**",
         1: "✨ Amount of xp between adjacent levels:\n**`{}`**",
@@ -148,7 +149,7 @@ class ManageRoleModalBase(Modal):
         }
     }
 
-    def __init__(self, title: str, *, timeout: float | None = None, custom_id: str = ..., auto_defer: bool = True):
+    def __init__(self, title: str, *, timeout: float | None = None, custom_id: str = ..., auto_defer: bool = True) -> None:
         super().__init__(title=title, timeout=timeout, custom_id=custom_id, auto_defer=auto_defer)
 
 
@@ -164,7 +165,7 @@ class RoleAddModal(ManageRoleModalBase):
         }
     }
 
-    def __init__(self, timeout: int, lng: int, role: int, message: Message, auth_id: int):
+    def __init__(self, timeout: int, lng: int, role: int, message: Message, auth_id: int) -> None:
         super().__init__(title=self.manage_role_modals_text[lng][0], timeout=timeout, custom_id=f"6100_{auth_id}_{randint(1, 100)}")
         self.role_id=role
         self.m: Message = message
@@ -217,35 +218,37 @@ class RoleAddModal(ManageRoleModalBase):
     def verify_user_input(self) -> int:
         errors_bit_mask: int = 0b000000
 
-        price = self.price_text_input.value
+        price: str | None = self.price_text_input.value
         if price and price.isdigit() and (price_int := int(price)) > 0:
             self.price = price_int
         else:
             errors_bit_mask |= 0b000001
         
-        salary_and_cooldown = self.salary_text_input.value
+        salary_and_cooldown: str | None = self.salary_text_input.value
         if salary_and_cooldown:
-            s_ans = salary_and_cooldown.split()
+            s_ans: list[str] = salary_and_cooldown.split()
             if len(s_ans) != 2:
                 errors_bit_mask |= 0b000010
             else:
-                s, s_c = s_ans[0], s_ans[1]
-                if s.isdigit() and (salary_int := int(s)) > 0:
+                salary: str = s_ans[0]
+                if salary.isdigit() and (salary_int := int(salary)) > 0:
                     self.salary = salary_int
                 else:
                     errors_bit_mask |= 0b000100
-                if s_c.isdigit() and (0 < (salary_cooldown_int := int(s_c)) <= 1008):
+                
+                salary_cooldown: str = s_ans[1]
+                if salary_cooldown.isdigit() and (1 <= (salary_cooldown_int := int(salary_cooldown)) <= 1008):
                     self.salary_cooldown = salary_cooldown_int * 3600
                 else:
                     errors_bit_mask |= 0b001000
         
-        role_type = self.r_type_text_input.value
+        role_type: str | None = self.r_type_text_input.value
         if role_type and role_type.isdigit() and (role_type_int := int(role_type)) in {1, 2, 3}:
             self.role_type = role_type_int
         else:
             errors_bit_mask |= 0b010000
         
-        additional_salary = self.additional_salary_text_input.value
+        additional_salary: str | None = self.additional_salary_text_input.value
         if additional_salary:
             if additional_salary.isdigit() and (additional_salary_int := int(additional_salary)) > 0:
                 self.additional_salary = additional_salary_int
@@ -254,8 +257,9 @@ class RoleAddModal(ManageRoleModalBase):
 
         return errors_bit_mask
 
-    async def callback(self, interaction: Interaction):
-        lng: int = 1 if "ru" in interaction.locale else 0
+    async def callback(self, interaction: Interaction) -> None:
+        lng: int = 1 if "ru" in str(interaction.locale) else 0
+ 
         errors_bit_mask: int = self.verify_user_input()
         if errors_bit_mask:
             report: list[str] = []
@@ -401,29 +405,31 @@ class RoleEditModal(ManageRoleModalBase):
     def check_ans(self) -> int:
         errors_bit_mask: int = 0b000000
 
-        price = self.price_text_input.value
+        price: str | None = self.price_text_input.value
         if price and price.isdigit() and (price_int := int(price)) > 0:
             self.new_price = price_int
         else:
             errors_bit_mask |= 0b0000001
         
-        salary_and_cooldown = self.salary_text_input.value
+        salary_and_cooldown: str | None = self.salary_text_input.value
         if salary_and_cooldown:
-            s_ans = salary_and_cooldown.split()
+            s_ans: list[str] = salary_and_cooldown.split()
             if len(s_ans) != 2:
                 errors_bit_mask |= 0b0000010
             else:
-                s, s_c = s_ans[0], s_ans[1]
-                if s.isdigit() and (salary_int := int(s)) > 0:
+                salary: str = s_ans[0]
+                if salary.isdigit() and (salary_int := int(salary)) > 0:
                     self.new_salary = salary_int
                 else:
                     errors_bit_mask |= 0b0000100
-                if s_c.isdigit() and (salary_cooldown_int := int(s_c)) > 0:
+
+                salary_cooldown: str =  s_ans[1]
+                if salary_cooldown.isdigit() and (1 <= (salary_cooldown_int := int(salary_cooldown)) <= 1008):
                     self.new_salary_cooldown = salary_cooldown_int * 3600
                 else:
                     errors_bit_mask |= 0b0001000
         
-        role_type = self.r_type_text_input.value
+        role_type: str | None = self.r_type_text_input.value
         if role_type and role_type.isdigit() and (role_type_int := int(role_type)) in {1, 2, 3}:
             self.new_role_type = role_type_int
         else:
@@ -436,7 +442,7 @@ class RoleEditModal(ManageRoleModalBase):
             else:
                 errors_bit_mask |= 0b0100000
 
-        in_store_amount = self.in_store_amount_text_input.value
+        in_store_amount: str | None = self.in_store_amount_text_input.value
         if in_store_amount and in_store_amount.isdigit() and (in_store_amount_int := int(in_store_amount)) >= 0:
             self.new_in_store_amount = in_store_amount_int
         else:
@@ -445,7 +451,7 @@ class RoleEditModal(ManageRoleModalBase):
         return errors_bit_mask
 
     async def callback(self, interaction: Interaction):
-        lng: int = 1 if "ru" in interaction.locale else 0
+        lng: int = 1 if "ru" in str(interaction.locale) else 0
         errors_bit_mask: int = self.check_ans()
         if errors_bit_mask:
             report: list[str] = []
@@ -616,9 +622,9 @@ class RoleEditModal(ManageRoleModalBase):
         req: list[tuple[int]] = cur.execute("SELECT role_number FROM store").fetchall()
         if req:
             role_numbers: set[int] = {r_n[0] for r_n in req}
-            after_last_number =  max(role_numbers) + 1
+            after_last_number: int =  max(role_numbers) + 1
             free_numbers: set[int] = set(range(1, after_last_number)).difference(role_numbers)
-            lack_numbers_len = amount_of_numbers - len(free_numbers)
+            lack_numbers_len: int = amount_of_numbers - len(free_numbers)
             if lack_numbers_len <= 0:
                 return list(free_numbers)[:amount_of_numbers]            
             free_numbers.update(range(after_last_number, after_last_number + lack_numbers_len))
@@ -628,7 +634,7 @@ class RoleEditModal(ManageRoleModalBase):
 
 
 class ManageMemberCashXpModal(Modal):
-    mng_membs_text = {
+    mng_membs_text: dict[int, dict[int, str]] = {
         0: {
             0: "Change cash/xp",
             1: "Cash",
@@ -676,13 +682,17 @@ class ManageMemberCashXpModal(Modal):
         }
     }
 
-    def __init__(self, timeout: int, title: str, lng: int, memb_id: int, cur_money: int, cur_xp: int, auth_id: int):
+    def __init__(self, timeout: int, title: str, lng: int, memb_id: int, cur_money: int, cur_xp: int, auth_id: int) -> None:
         super().__init__(title=title, timeout=timeout, custom_id=f"8100_{auth_id}_{randint(1, 100)}")
-        self.is_changed = False
-        self.memb_id = memb_id
-        self.st_cash = cur_money,
-        self.st_xp = cur_xp
-        self.cash = TextInput(
+        self.is_changed: bool = False
+        self.memb_id: int = memb_id
+
+        self.st_cash: int = cur_money
+        self.st_xp: int = cur_xp
+        self.new_cash: int = cur_money
+        self.new_xp: int = cur_xp
+
+        self.cash_text_input: TextInput = TextInput(
             label=self.mng_membs_text[lng][11],
             placeholder=self.mng_membs_text[lng][12],
             default_value=f"{cur_money}",
@@ -691,7 +701,7 @@ class ManageMemberCashXpModal(Modal):
             required=True,
             custom_id=f"8101_{auth_id}_{randint(1, 100)}"
         )
-        self.xp = TextInput(
+        self.xp_text_input: TextInput = TextInput(
             label=self.mng_membs_text[lng][13],
             placeholder=self.mng_membs_text[lng][12],
             default_value=f"{cur_xp}",
@@ -700,38 +710,42 @@ class ManageMemberCashXpModal(Modal):
             required=True,
             custom_id=f"8102_{auth_id}_{randint(1, 100)}"
         )
-        self.add_item(self.cash)
-        self.add_item(self.xp)
+        self.add_item(self.cash_text_input)
+        self.add_item(self.xp_text_input)
     
-    def check_ans(self) -> int:
-        if not(self.cash.value and self.cash.value.isdigit() and int(self.cash.value) >= 0):
-            ans = 1
+    def verify_user_input(self) -> int:
+        errors_bit_mask: int = 0b00
+        
+        cash_value: str | None = self.cash_text_input.value
+        if cash_value and cash_value.isdigit() and (new_cash := int(cash_value)) >= 0:
+            self.new_cash = new_cash
         else:
-            ans = 0        
-        if not(self.xp.value and self.xp.value.isdigit() and int(self.xp.value) >= 0):
-            ans += 10
-        return ans
+            errors_bit_mask |= 0b01
+        
+        xp_value: str | None = self.xp_text_input.value
+        if xp_value and xp_value.isdigit() and (new_xp := int(xp_value)) >= 0:
+            self.new_xp = new_xp
+        else:
+            errors_bit_mask |= 0b10
 
-    async def callback(self, interaction: Interaction):
-        lng = 1 if "ru" in interaction.locale else 0
-        ans = self.check_ans()
-        msg = []
-        if ans % 2 == 1:
-            msg.append(self.mng_membs_text[lng][14])
-        if ans // 10 == 1:
-            msg.append(self.mng_membs_text[lng][15])
-        if len(msg):
-            await interaction.response.send_message(embed=Embed(description="\n".join(msg)), ephemeral=True)
+        return errors_bit_mask
+
+    async def callback(self, interaction: Interaction) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        errors_bit_mask: int = self.verify_user_input()
+        if errors_bit_mask:
+            report: list[str] = []
+            if errors_bit_mask & 0b01:
+                report.append(self.mng_membs_text[lng][14])
+            if errors_bit_mask & 0b10:
+                report.append(self.mng_membs_text[lng][15])
+            await interaction.response.send_message(embed=Embed(description="\n".join(report)), ephemeral=True)
             self.stop()
             return
 
-        cash = int(self.cash.value)
-        xp = int(self.xp.value)
-        
-        self.new_cash = cash
-        self.new_xp = xp
+        cash: int = self.new_cash
+        xp: int = self.new_xp
         self.is_changed = True
-
         if cash != self.st_cash and xp != self.st_xp:
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:  
@@ -756,9 +770,9 @@ class ManageMemberCashXpModal(Modal):
 
 
 class XpSettingsModal(Modal):
-    def __init__(self, timeout: int, lng: int, auth_id: int, g_id: int, cur_xp: int, cur_xpb: int):
+    def __init__(self, timeout: int, lng: int, auth_id: int, g_id: int, cur_xp: int, cur_xpb: int) -> None:
         super().__init__(title=ranking_text[lng][7], timeout=timeout, custom_id=f"9100_{auth_id}_{randint(1, 100)}")
-        self.xp = TextInput(
+        self.xp_text_input = TextInput(
             label=ranking_text[lng][8],
             placeholder=ranking_text[lng][9],
             default_value=f"{cur_xp}",
@@ -767,7 +781,7 @@ class XpSettingsModal(Modal):
             required=True,
             custom_id=f"9101_{auth_id}_{randint(1, 100)}"
         )
-        self.xp_b = TextInput(
+        self.xp_b_text_input = TextInput(
             label=ranking_text[lng][10],
             placeholder=ranking_text[lng][11],
             default_value=f"{cur_xpb}",
@@ -776,48 +790,58 @@ class XpSettingsModal(Modal):
             required=True,
             custom_id=f"9102_{auth_id}_{randint(1, 100)}"
         )
-        self.add_item(self.xp)
-        self.add_item(self.xp_b)
+        self.add_item(self.xp_text_input)
+        self.add_item(self.xp_b_text_input)
 
-        self.g_id = g_id
-        self.old_xp = cur_xp
-        self.old_xpb = cur_xpb
+        self.g_id: int = g_id
+        self.old_xp: int = cur_xp
+        self.old_xpb: int = cur_xpb
+        self.new_xp: int = cur_xp
+        self.new_xp_b: int = cur_xpb
         self.changed: bool = False
 
-    def check_ans(self):
-        ans = 0b01 if not(self.xp.value and self.xp.value.isdigit() and int(self.xp.value) >= 0) else 0b00
-        if not(self.xp_b.value and self.xp_b.value.isdigit() and int(self.xp_b.value) >= 1):
-            ans |= 0b10
-        return ans
+    def verify_user_input(self) -> int:
+        errors_bit_mask: int = 0b00
 
-    async def callback(self, interaction: Interaction):
-        lng = 1 if "ru" in interaction.locale else 0
-        ans: int = self.check_ans()
-        if ans:
-            rep = []
-            if ans & 0b01:
-                rep.append(ranking_text[lng][12])
-            if ans & 0b10:
-                rep.append(ranking_text[lng][13])
-            await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
+        xp_value: str | None = self.xp_text_input.value
+        if xp_value and xp_value.isdigit() and (xp_value_int := int(xp_value)) >= 0:
+            self.new_xp = xp_value_int
+        else:
+            errors_bit_mask |= 0b01 
+
+        xp_b_value: str | None = self.xp_b_text_input.value
+        if xp_b_value and xp_b_value.isdigit() and (xp_b_value_int := int(xp_b_value)) >= 1:
+            self.new_xp_b = xp_b_value_int
+        else:
+            errors_bit_mask |= 0b10
+        
+        return errors_bit_mask
+
+    async def callback(self, interaction: Interaction) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        errors_bit_mask: int = self.verify_user_input()
+        if errors_bit_mask:
+            report: list[str] = []
+            if errors_bit_mask & 0b01:
+                report.append(ranking_text[lng][12])
+            if errors_bit_mask & 0b10:
+                report.append(ranking_text[lng][13])
+            await interaction.response.send_message(embed=Embed(description="\n".join(report)), ephemeral=True)
             self.stop()
             return
 
-        xp = int(self.xp.value)
-        xpb = int(self.xp_b.value)
-
-        if self.old_xp != xp or self.old_xpb != xpb:
-            rep = []
+        xp: int = self.new_xp
+        xp_border: int = self.new_xp_b
+        if self.old_xp != xp or self.old_xpb != xp_border:
+            rep: list[str] = []
             with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     if self.old_xp != xp:
                         cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_per_msg'", (xp,))
                         rep.append(ranking_text[lng][14].format(xp))
-                        self.old_xp = xp
-                    if self.old_xpb != xpb:
-                        cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_border'", (xpb,))
-                        rep.append(ranking_text[lng][15].format(xpb))
-                        self.old_xpb = xpb
+                    if self.old_xpb != xp_border:
+                        cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_border'", (xp_border,))
+                        rep.append(ranking_text[lng][15].format(xp_border))
                     base.commit()
             await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
             self.changed = True
@@ -827,10 +851,10 @@ class XpSettingsModal(Modal):
 
 
 class SelectLevelModal(Modal):
-    def __init__(self, lng: int, auth_id: int, timeout: int):
+    def __init__(self, lng: int, auth_id: int, timeout: int) -> None:
         super().__init__(title=ranking_text[lng][24], timeout=timeout, custom_id=f"11100_{auth_id}_{randint(1, 100)}")
-        self.lng = lng
-        self.level = None
+        self.lng: int = lng
+        self.level: int | None = None
         self.level_selection = TextInput(
             label=ranking_text[lng][24],
             style=TextInputStyle.short,
@@ -842,15 +866,15 @@ class SelectLevelModal(Modal):
         )
         self.add_item(self.level_selection)
     
-    def check_level(self, value: str) -> int | None:
+    def check_level(self, value: str | None) -> int:
         if value and value.isdigit() and (0 < (level := int(value)) < 101):
             return level
-        return None
+        return 0
 
-    async def callback(self, interaction: Interaction):
+    async def callback(self, interaction: Interaction) -> None:
         ans: int = self.check_level(self.level_selection.value)
-        if not ans:
-            await interaction.response.send_message(embed=Embed(description=ranking_text[self.lng][35]), ephemeral=True)
-            return
-        self.level = ans
+        if ans:
+            self.level = ans
+        else:
+            await interaction.response.send_message(embed=Embed(description=ranking_text[self.lng][35]), ephemeral=True)        
         self.stop()

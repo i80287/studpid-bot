@@ -1,3 +1,4 @@
+from typing import Literal
 from random import randint
 from asyncio import sleep
 from os import path
@@ -26,7 +27,7 @@ class FeedbackModal(Modal):
         }
     }
 
-    def __init__(self, lng: int, auth_id: int):
+    def __init__(self, lng: int, auth_id: int) -> None:
         super().__init__(title=self.feedback_text[lng][0], timeout=1200, custom_id=f"10100_{auth_id}_{randint(1, 100)}")
         self.feedback = TextInput(
             label=self.feedback_text[lng][0],
@@ -39,16 +40,16 @@ class FeedbackModal(Modal):
         self.add_item(self.feedback)
         
     
-    async def callback(self, interaction: Interaction):    
+    async def callback(self, interaction: Interaction) -> None:    
 
-        dsc = (
+        dsc: tuple[str, str, str] = (
             f"`Guild: {interaction.guild.name} - {interaction.guild_id}`",
             f"`Author: {interaction.user.name} - {interaction.user.id}`",
             feedback if (feedback := self.feedback.value) else ""
         )
 
         chnl = interaction.client.get_channel(feedback_channel)
-        lng = 1 if "ru" in interaction.locale else 0
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
 
         if chnl:
             await chnl.send(embed=Embed(description="\n".join(dsc)))
@@ -194,7 +195,7 @@ class BasicComandsCog(Cog):
         }
     }
 
-    def __init__(self, bot: Bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot: Bot = bot
 
     @slash_command(
@@ -204,9 +205,9 @@ class BasicComandsCog(Cog):
             Locale.ru: "показывает гайд о системе бота"
         }
     )
-    async def guide(self, interaction: Interaction):
-        lng = 1 if "ru" in interaction.locale else 0
-        emb = Embed(title=self.guide_text[lng][0])
+    async def guide(self, interaction: Interaction) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        emb: Embed = Embed(title=self.guide_text[lng][0])
         for i in range(1, 20, 2):
             emb.add_field(name=self.guide_text[lng][i], value=self.guide_text[lng][i+1], inline=False)
         await interaction.response.send_message(embed=emb)
@@ -218,12 +219,12 @@ class BasicComandsCog(Cog):
             Locale.ru : "Вызывает меню команд"
         }
     )
-    async def help(self, interaction: Interaction):
-        lng = 1 if "ru" in interaction.locale else 0
-        emb1 = Embed(title=self.text_help_view[lng][0], description=self.text_help_view[lng][2])
-        emb2 = Embed(description=self.text_help_view[lng][3])
-        emb3 = Embed(description=self.text_help_view[lng][4])
-        emb4 = Embed(title=self.text_help_view[lng][1])
+    async def help(self, interaction: Interaction) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        emb1: Embed = Embed(title=self.text_help_view[lng][0], description=self.text_help_view[lng][2])
+        emb2: Embed = Embed(description=self.text_help_view[lng][3])
+        emb3: Embed = Embed(description=self.text_help_view[lng][4])
+        emb4: Embed = Embed(title=self.text_help_view[lng][1])
         for n, v in self.u_ec_cmds[lng]:
             emb1.add_field(name=n, value=v, inline=False)
         for n, v in self.u_pers_cmds[lng]:
@@ -242,47 +243,47 @@ class BasicComandsCog(Cog):
         },
         default_member_permissions=Permissions.administrator.flag
     )
-    async def feedback(self, interaction: Interaction):
-        lng = 1 if "ru" in interaction.locale else 0
-        mdl = FeedbackModal(lng=lng, auth_id=interaction.user.id)
+    async def feedback(self, interaction: Interaction) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        mdl: FeedbackModal = FeedbackModal(lng=lng, auth_id=interaction.user.id)
         await interaction.response.send_modal(modal=mdl)
 
     @command(aliases=("sunload_access_level_two", "s_a_l_2"))
     @is_owner()
-    async def _salt(self, ctx: Context, chnl: TextChannel):
+    async def _salt(self, ctx: Context, chnl: TextChannel) -> None:
         global feedback_channel
         feedback_channel = chnl.id
         await ctx.reply(embed=Embed(description=f"New feedback channel is <#{feedback_channel}>"), mention_author=False, delete_after=5)
 
     @command(name="load")
     @is_owner()
-    async def _load(self, ctx: Context, extension):
+    async def _load(self, ctx: Context, extension) -> None:
         if path.exists(f"{path_to}/Commands/{extension}.py"):
             self.bot.load_extension(f"Commands.{extension}")
             await sleep(1)
             await self.bot.sync_all_application_commands()
             await sleep(1)
-            emb=Embed(description=f"**Loaded `{extension}`**")
+            emb: Embed = Embed(description=f"**Loaded `{extension}`**")
         else:
-            emb=Embed(description=f"**`{extension}` not found**")
+            emb: Embed = Embed(description=f"**`{extension}` not found**")
         await ctx.reply(embed=emb, mention_author=False, delete_after=5)
     
     @command(name="unload")
     @is_owner()
-    async def _unload(self, ctx: Context, extension):
+    async def _unload(self, ctx: Context, extension) -> None:
         if path.exists(f"{path_to}/Commands/{extension}.py"):
             self.bot.unload_extension(f"Commands.{extension}")
             await sleep(1)
             await self.bot.sync_all_application_commands()
             await sleep(1)
-            emb=Embed(description=f"**Unloaded `{extension}`**")
+            emb: Embed = Embed(description=f"**Unloaded `{extension}`**")
         else:
-            emb=Embed(description=f"**`{extension}` not found**")
+            emb: Embed = Embed(description=f"**`{extension}` not found**")
         await ctx.reply(embed=emb, mention_author=False, delete_after=5)
 
     @command(name="reload")
     @is_owner()
-    async def _reload(self, ctx: Context, extension):
+    async def _reload(self, ctx: Context, extension) -> None:
         if path.exists(f"{path_to}/Commands/{extension}.py"):
             await ctx.reply(embed=Embed(description="Started reloading"), mention_author=False, delete_after=5)
             self.bot.unload_extension(f"Commands.{extension}")
@@ -290,24 +291,24 @@ class BasicComandsCog(Cog):
             await sleep(1)
             await self.bot.sync_all_application_commands()
             await sleep(1)
-            emb=Embed(description=f"**Reloaded `{extension}`**")
+            emb: Embed = Embed(description=f"**Reloaded `{extension}`**")
         else:
-            emb=Embed(description=f"**`{extension}` not found**")
+            emb: Embed = Embed(description=f"**`{extension}` not found**")
         await ctx.reply(embed=emb, mention_author=False, delete_after=5)
 
     @command(aliases=["statistic", "statistics"])
     @is_owner()
-    async def _statistic(self, ctx: Context):
+    async def _statistic(self, ctx: Context) -> None:
         description: list[str] = \
             ["```guild - id - member_count```"] + \
             [f"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}" for guild in self.bot.guilds] + \
             [f"\n**`Total guilds: {len(self.bot.guilds)}`**", f"\n**`Currently active polls: {self.bot.current_polls}`**"]
-        emb = Embed(description='\n'.join(description))
+        emb: Embed = Embed(description='\n'.join(description))
         await ctx.reply(embed=emb, mention_author=False, delete_after=15)
 
     @command(name="update_status")
     @is_owner()
-    async def update_status(self, ctx: Context, *text):
+    async def update_status(self, ctx: Context, *text) -> None:
         if text == "default":
             await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"), status=Status.online)
         else:
@@ -315,10 +316,10 @@ class BasicComandsCog(Cog):
         await ctx.reply(embed=Embed(description=f"**`Changed status to {' '.join(text)}`**"), mention_author=False)
 
     @Cog.listener()
-    async def on_command_error(self, ctx: Context, error):
+    async def on_command_error(self, ctx: Context, error) -> None:
         # officially bot doesn't support text commands anymore
         return
 
 
-def setup(bot: Bot):
+def setup(bot: Bot) -> None:
     bot.add_cog(BasicComandsCog(bot))

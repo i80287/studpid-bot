@@ -2,10 +2,12 @@ from sqlite3 import connect, Connection, Cursor
 from datetime import datetime, timedelta
 from contextlib import closing
 from os import path, mkdir
+from typing import Literal
 from asyncio import sleep
 from time import time
 
-from nextcord import Game, Message, ChannelType, Embed, Guild, Interaction
+from nextcord import Game, Message, ChannelType,\
+    Embed, Guild, Interaction, Role, TextChannel
 from nextcord.errors import ApplicationCheckFailure
 from nextcord.ext.commands import Bot, Cog
 from nextcord.ext import tasks
@@ -48,13 +50,13 @@ class EventsHandlerCog(Cog):
         }
     }
 
-    def __init__(self, bot: Bot):
+    def __init__(self, bot: Bot) -> None:
         self.bot: Bot = bot
         self.salary_roles.start()
         self._backup.start()
         
     @classmethod
-    def correct_db(cls, guild: Guild):
+    def correct_db(cls, guild: Guild) -> None:
         with closing(connect(f"{path_to}/bases/bases_{guild.id}/{guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.executescript("""\
@@ -108,11 +110,13 @@ class EventsHandlerCog(Cog):
                 );""")
                 base.commit()
                 
-                lng = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()
-                if lng: lng = lng[0]
-                else: lng = 1 if "ru" in guild.preferred_locale else 0
+                db_guild_language: tuple[int] | None = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()
+                if db_guild_language: 
+                    lng: Literal[1, 0] = db_guild_language[0]
+                else: 
+                    lng: Literal[1, 0] = 1 if "ru" in str(guild.preferred_locale) else 0
                 
-                settings_params = (
+                settings_params: list[tuple[str, int, str]] = [
                     ('lang', lng, ""),
                     ('tz', 0, ""),
                     ('xp_border', 100, ""),
@@ -129,7 +133,7 @@ class EventsHandlerCog(Cog):
                     ('ranking_enabled', 1, ""),
                     ('currency', 0, ":coin:"),
                     ('sale_price_perc', 100, ""),
-                )
+                ]
                 cur.executemany("INSERT OR IGNORE INTO server_info (settings, value, str_value) VALUES(?, ?, ?)", settings_params)
                 base.commit()
 
@@ -139,13 +143,13 @@ class EventsHandlerCog(Cog):
         cls.log_event(report=["correct_db func", str(guild.id), str(guild.name)])
 
     @staticmethod
-    def log_event(filename: str = "common_logs", report: list[str] = [""]):
+    def log_event(filename: str = "common_logs", report: list[str] = [""]) -> None:
         with open(file=filename+".log", mode="a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] {' '.join([f'[{s}]' for s in report])}\n")
 
     @classmethod
-    async def send_first_message(cls, guild: Guild, lng: int):
-        channel_to_send_greet = None
+    async def send_first_message(cls, guild: Guild, lng: int) -> None:
+        channel_to_send_greet: TextChannel | None = None
         if guild.system_channel.permissions_for(guild.me).send_messages:
             channel_to_send_greet = guild.system_channel
         else:
@@ -157,11 +161,11 @@ class EventsHandlerCog(Cog):
             await channel_to_send_greet.send(embed=Embed(description="\n".join(cls.greetings[lng])))
 
     @Cog.listener()
-    async def on_connect(self):
+    async def on_connect(self) -> None:
         self.log_event(report=["on_connect"])
     
     @Cog.listener()
-    async def on_ready(self):
+    async def on_ready(self) -> None:
         setattr(self.bot, "current_polls", 0)
         if not path.exists(f"{path_to}/bases/"):
             mkdir(f"{path_to}/bases/")
@@ -184,18 +188,18 @@ class EventsHandlerCog(Cog):
         self.log_event(report=["on_ready", f"total {len(bot_guilds)} guilds"])
 
     @Cog.listener()
-    async def on_guild_join(self, guild: Guild):
+    async def on_guild_join(self, guild: Guild) -> None:
         if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
             mkdir(f"{path_to}/bases/bases_{guild.id}/")
         self.correct_db(guild=guild)
-        guild_locale = guild.preferred_locale
+        guild_locale: str | None = guild.preferred_locale
         lng: int = 1 if guild_locale and "ru" in guild_locale else 0
         
         if guild.me:
             await self.send_first_message(guild=guild, lng=lng)
         else:
-            g = self.bot.get_guild(guild.id)
-            if g.me:
+            g: Guild | None = self.bot.get_guild(guild.id)
+            if g and g.me:
                 await self.send_first_message(guild=g, lng=lng)
             else:
                 with open("error.log", "a+", encoding="utf-8") as f:
@@ -207,8 +211,8 @@ class EventsHandlerCog(Cog):
         await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
 
     @Cog.listener()
-    async def on_guild_remove(self, guild: Guild):
-        g_id = guild.id
+    async def on_guild_remove(self, guild: Guild) -> None:
+        g_id: int = guild.id
         if g_id in bot_guilds:
             bot_guilds.remove(g_id)
         self.log_event(filename="guild", report=["guild_remove", str(guild.id), str(guild.name)])
@@ -217,13 +221,16 @@ class EventsHandlerCog(Cog):
         
     
     @tasks.loop(seconds=60)
-    async def salary_roles(self):
+    async def salary_roles(self) -> None:
         for g in bot_guilds: 
             with closing(connect(f"{path_to}/bases/bases_{g}/{g}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    r = cur.execute("SELECT * FROM salary_roles").fetchall()
+                    r: list[tuple[int, str, int, int, int]] | list = \
+                        cur.execute(
+                            "SELECT role_id, members, salary, salary_cooldown, last_time FROM salary_roles"
+                        ).fetchall()
                     if r:
-                        t_n = int(time())
+                        t_n: int = int(time())
                         for role, members, salary, t, last_time in r:
                             if not last_time or t_n - last_time >= t:
                                 cur.execute("UPDATE salary_roles SET last_time = ? WHERE role_id = ?", (t_n, role))
@@ -236,50 +243,52 @@ class EventsHandlerCog(Cog):
 
     
     @salary_roles.before_loop
-    async def before_timer(self):
+    async def before_timer(self) -> None:
         await self.bot.wait_until_ready()
 
-
     @tasks.loop(minutes=30)
-    async def _backup(self):
+    async def _backup(self) -> None:
         for guild_id in bot_guilds:
             with closing(connect(f"{path_to}/bases/bases_{guild_id}/{guild_id}.db")) as src:
                 with closing(connect(f"{path_to}/bases/bases_{guild_id}/{guild_id}_backup.db")) as bck:
                     src.backup(bck)
-            await sleep(0.5)
-        
+            await sleep(0.5)        
 
     @_backup.before_loop
-    async def before_timer_backup(self):
+    async def before_timer_backup(self) -> None:
         await self.bot.wait_until_ready()
-
 
     @staticmethod
     def check_user(base: Connection, cur: Cursor, memb_id: int, xp_b: int, mn_m: int, xp_m: int) -> int:
-        member = cur.execute('SELECT * FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
-        if not member:
-            cur.execute('INSERT INTO users(memb_id, money, owned_roles, work_date, xp) VALUES(?, ?, ?, ?, ?)', (memb_id, mn_m, "", 0, xp_m))
+        member: tuple[int] | None = cur.execute(
+            "SELECT xp FROM users WHERE memb_id = ?",
+            (memb_id,)
+        ).fetchone()
+        if member:
+            cur.execute("UPDATE users SET money = money + ?, xp = xp + ? WHERE memb_id = ?", (mn_m, xp_m, memb_id))
+            base.commit()
+            old_level: int = (member[0] - 1) // xp_b + 1
+            new_level: int = (member[0] + xp_m - 1) // xp_b + 1
+            if old_level == new_level:                
+                return 0
+            return new_level
+        else:
+            cur.execute(
+                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, pending_requests) VALUES (?, ?, ?, ?, ?, ?)",
+                (memb_id, mn_m, "", 0, xp_m, 0)
+            )
             base.commit()
             return 1
-        else:
-            cur.execute('UPDATE users SET money = money + ?, xp = xp + ? WHERE memb_id = ?', (mn_m, xp_m, memb_id))
-            base.commit()
-            old_level = (member[4] - 1) // xp_b + 1
-            new_level = (member[4] + xp_m - 1) // xp_b + 1
-            if old_level != new_level:
-                return new_level
-            return 0
-
 
     @Cog.listener()
-    async def on_message(self, message: Message):
+    async def on_message(self, message: Message) -> None:
         user = message.author
 
         #or message.type is MessageType.chat_input_command
         if user.bot or message.channel.type is ChannelType.private:
             return
         
-        g_id = message.guild.id
+        g_id: int = message.guild.id
         if g_id not in ignored_channels:
             ignored_channels[g_id] = set()
         elif message.channel.id in ignored_channels[g_id]:
@@ -287,20 +296,18 @@ class EventsHandlerCog(Cog):
 
         with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:                    
-                xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border';").fetchone()[0]
-                xp_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';").fetchone()[0]
-                mn_p_m = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]
-                
-                new_level = self.check_user(base=base, cur=cur, memb_id=user.id, xp_b=xp_b, mn_m=mn_p_m, xp_m=xp_p_m)
-
+                xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border';").fetchone()[0]
+                xp_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';").fetchone()[0]
+                mn_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]
+                new_level: int = self.check_user(base=base, cur=cur, memb_id=user.id, xp_b=xp_b, mn_m=mn_p_m, xp_m=xp_p_m)
                 if new_level:
-                    channel_id = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
+                    channel_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
                     
                     if channel_id:
                         channel = message.guild.get_channel(channel_id)
                         if channel:
                             lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
-                            emb = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(user.mention, new_level))
+                            emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(user.mention, new_level))
                             await channel.send(embed=emb)
 
                     lvl_rls: list = cur.execute("SELECT * FROM rank_roles ORDER BY level").fetchall()
@@ -309,19 +316,19 @@ class EventsHandlerCog(Cog):
 
                     lvl_rls: dict[int, int] = {k: v for k, v in lvl_rls}                
                     if new_level in lvl_rls:
-                        memb_roles = {role.id for role in user.roles}
-                        new_level_role_id = lvl_rls[new_level]
+                        memb_roles: set[int] = {role.id for role in user.roles}
+                        new_level_role_id: int = lvl_rls[new_level]
                         if new_level_role_id not in memb_roles:
-                            role = user.guild.get_role(new_level_role_id)
+                            role: Role | None = user.guild.get_role(new_level_role_id)
                             if role:
                                 try: 
                                     await user.add_roles(role, reason=f"Member gained new level {new_level}")
                                 except: 
                                     pass
                         levels: list[int] = sorted(lvl_rls.keys())
-                        i = levels.index(new_level)
+                        i: int = levels.index(new_level)
                         if i and lvl_rls[levels[i-1]] in memb_roles:                                
-                            role = user.guild.get_role(lvl_rls[levels[i-1]])
+                            role: Role | None = user.guild.get_role(lvl_rls[levels[i-1]])
                             if role:
                                 try: 
                                     await user.remove_roles(role, reason=f"Member gained new level {new_level}")
@@ -329,9 +336,9 @@ class EventsHandlerCog(Cog):
                                     pass
 
     @Cog.listener()
-    async def on_application_command_error(self, interaction: Interaction, exception):
+    async def on_application_command_error(self, interaction: Interaction, exception) -> None:
         if isinstance(exception, ApplicationCheckFailure):
-            lng = 1 if "ru" in interaction.locale else 0
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=self.event_handl_text[lng][0]), ephemeral=True)
             return
 
@@ -339,5 +346,5 @@ class EventsHandlerCog(Cog):
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash_command] [{interaction.application_command.name}] [{interaction.guild_id}] [{interaction.guild.name}] [{str(exception)}]\n")
 
 
-def setup(bot: Bot):
+def setup(bot: Bot) -> None:
     bot.add_cog(EventsHandlerCog(bot))
