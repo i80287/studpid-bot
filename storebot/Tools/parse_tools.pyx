@@ -16,7 +16,6 @@ def parse_emoji(bot: Bot, str string) -> Emoji | str | None:
         if emoji:
             return emoji
 
-    print(string)
     cdef:
         list finds = _CUSTOM_EMOJI_PATTERN.findall(string)
         size_t length = len(finds)
