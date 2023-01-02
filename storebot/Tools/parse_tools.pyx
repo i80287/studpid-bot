@@ -1,10 +1,7 @@
 import re
-
 from emoji import demojize
 from nextcord import Emoji
 from nextcord.ext.commands import Bot
-
-cimport cython
 
 cdef:
     _CUSTOM_EMOJI_PATTERN = re.compile(r"\d+", flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE)
