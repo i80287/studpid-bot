@@ -45,15 +45,26 @@ def check_member(guild_id: int, memb_id: int) -> tuple[int, int, str, int, int, 
             return (memb_id, 0, "", 0, 0, 0)
 
 def peek_role_free_number(cur: Cursor) -> int:
-    req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
-    if req:
-        role_numbers: list[int] = [int(r_n[0]) for r_n in req]
-        if role_numbers[0] != 1:
+        req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
+        if req:
+            role_numbers: list[int] = [int(r_n[0]) for r_n in req]
+            if role_numbers[0] != 1:
+                return 1
+            for role_number_cur, role_number_next in zip(role_numbers, role_numbers[1:]):
+                if role_number_next - role_number_cur != 1:
+                    return role_number_cur + 1
+            return len(role_numbers) + 1
+        else:
             return 1
-        for i in range(len(role_numbers) - 1):
-            if role_numbers[i+1] - role_numbers[i] != 1:
-                return role_numbers[i] + 1
-        return len(role_numbers) + 1
+
+def peek_free_request_id(cur: Cursor) -> int:
+    request_ids_list: list[tuple[int]] = cur.execute(
+        "SELECT request_id FROM sale_requests ORDER BY request_id"
+    ).fetchall()
+    if request_ids_list:
+        request_ids: set[int] = {int(req_id_tuple[0]) for req_id_tuple in request_ids_list}
+        free_requests_ids: set[int] = set(range(1, len(request_ids) + 2)).difference(request_ids)
+        return min(free_requests_ids)
     else:
         return 1
 

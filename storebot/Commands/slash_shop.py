@@ -11,7 +11,8 @@ from nextcord.ui import Button, View, Select
 from nextcord.ext.commands import Bot, Cog
 from nextcord.abc import GuildChannel
 
-from Tools.db_commands import check_db_member, peek_role_free_number
+from Tools.db_commands import check_db_member, \
+    peek_role_free_number, peek_free_request_id
 from Variables.vars import path_to
 from config import in_row
 
@@ -78,7 +79,6 @@ text_slash: dict[int, dict[int, str]] = {
         45: "**`There is no role with such number in the store`**",
         46: "**`Role is not found on the server. May be it was deleted`**",
         47: "**`You gained {}`** {} **`from the /work command and {}`** {} **`additionally from your roles`**",
-        48: "**`You are already selling role`** {}"
     },
     1: {
         0: "Ошибка",  # title
@@ -642,6 +642,21 @@ class RatingView(View):
 
 
 class SlashCommandsCog(Cog):
+    sell_to_text: dict[int, dict[int, str]] = {
+        0 : {
+            0: "**`You can't sell role to yourself`**",
+            1: "**`You are already selling role`** {}",
+            2: "**`Role sale request has been created`**",
+            3: "**`You made request for sale role`** <@&{}> **`to`** <@{}> **`for {}`** {}"
+        },
+        1: {
+            0: "**`Вы не можете продать роль самому себе`**",
+            1: "**`Вы уже продаёте роль`** {}",
+            2: "**`Запрос продажи роли был создан`**",
+            3: "**`Вы сделали запрос о продаже роли`** <@&{}> **`пользователю`** <@{}> **`за {}`** {}"
+        }
+    }
+
     def __init__(self, bot: Bot) -> None:
         self.bot: Bot = bot
         self.in_row: int = in_row
@@ -991,7 +1006,90 @@ class SlashCommandsCog(Cog):
                 except:
                     return
 
-    # async def sell_to(self, interaction: Interaction, role: Role, price: int, target: Member);
+    async def sell_to(self, interaction: Interaction, role: Role, price: int, target: Member) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        if not await self.can_role(interaction=interaction, role=role, lng=lng):
+            return
+        memb_id: int = interaction.user.id
+        target_id: int = target.id
+        if memb_id == target_id:
+            await interaction.response.send_message(
+                embed=Embed(
+                    title=text_slash[lng][0],
+                    description=self.sell_to_text[lng][0],
+                    colour=Colour.red()
+                ),
+                ephemeral=True
+            )
+            return
+        role_id: int = role.id
+        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(base.cursor()) as cur:
+                if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
+                    await interaction.response.send_message(
+                        embed=Embed(description=common_text[lng][2]),
+                        ephemeral=True
+                    )
+                    return
+                is_role_added_to_server: int = cur.execute(
+                    "SELECT count() FROM server_roles WHERE role_id = ?",
+                    (role_id,)
+                ).fetchone()[0]
+                if not is_role_added_to_server:
+                    await interaction.response.send_message(
+                        embed=Embed(
+                            title=text_slash[lng][0],
+                            description=text_slash[lng][17],
+                            colour=Colour.red()
+                        ),
+                        ephemeral=True
+                    )
+                    return
+
+                user: tuple[int, int, str, int, int, int] = check_db_member(base=base, cur=cur, memb_id=memb_id)
+                owned_roles: set[str] = {str_role_id for str_role_id in user[2].split("#") if str_role_id}
+                str_role_id: str = str(role_id)
+                if str_role_id not in owned_roles:
+                    await interaction.response.send_message(
+                        embed=Embed(
+                            title=text_slash[lng][0],
+                            description=text_slash[lng][16],
+                            colour=Colour.red()
+                        ),
+                        ephemeral=True
+                    )
+                    return
+                
+                is_role_already_being_sold_by_user: int = cur.execute(
+                    "SELECT count() FROM sale_requests WHERE seller_id = ? AND role_id = ?",
+                    (memb_id, role_id)
+                ).fetchone()[0]
+                if is_role_already_being_sold_by_user:
+                    await interaction.response.send_message(
+                        embed=Embed(
+                            title=text_slash[lng][0],
+                            description=self.sell_to_text[lng][1].format(f"<@&{role_id}>"),
+                            colour=Colour.red()
+                        ),
+                        ephemeral=True
+                    )
+                    return
+
+                free_request_id: int = peek_free_request_id(cur=cur)
+                cur.execute(
+                    "INSERT INTO sale_requests (request_id, seller_id, target_id, role_id, price) VALUES (?, ?, ?, ?, ?)",
+                    (free_request_id, memb_id, target_id, role_id, price)
+                )
+                base.commit()
+                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+        await interaction.response.send_message(
+            embed=Embed(
+                title=self.sell_to_text[lng][2],
+                description=self.sell_to_text[lng][3].format(role_id, target_id, price, currency),
+                colour=Colour.green()
+            ),
+            ephemeral=True
+        )
 
     async def profile(self, interaction: Interaction) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
@@ -1388,19 +1486,19 @@ class SlashCommandsCog(Cog):
         }
     )
     async def buy_e(
-            self,
-            interaction: Interaction,
-            role: Role = SlashOption(
-                name="role",
-                name_localizations={
-                    Locale.ru: "роль"
-                },
-                description="Role that you want to buy",
-                description_localizations={
-                    Locale.ru: "Роль, которую Вы хотите купить"
-                },
-                required=True
-            )
+        self,
+        interaction: Interaction,
+        role: Role = SlashOption(
+            name="role",
+            name_localizations={
+                Locale.ru: "роль"
+            },
+            description="Role that you want to buy",
+            description_localizations={
+                Locale.ru: "Роль, которую Вы хотите купить"
+            },
+            required=True
+        )
     ) -> None:
         await self.buy(interaction=interaction, role=role)
 
@@ -1412,19 +1510,19 @@ class SlashCommandsCog(Cog):
         }
     )
     async def buy_by_number(
-            self,
-            interaction: Interaction,
-            role_number: int = SlashOption(
-                name="number",
-                name_localizations={
-                    Locale.ru: "номер"
-                },
-                description="Number of the role that you want to buy",
-                description_localizations={
-                    Locale.ru: "Номер роли, которую Вы хотите купить"
-                },
-                required=True
-            )
+        self,
+        interaction: Interaction,
+        role_number: int = SlashOption(
+            name="number",
+            name_localizations={
+                Locale.ru: "номер"
+            },
+            description="Number of the role that you want to buy",
+            description_localizations={
+                Locale.ru: "Номер роли, которую Вы хотите купить"
+            },
+            required=True
+        )
     ) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         if role_number < 1:
@@ -1480,21 +1578,69 @@ class SlashCommandsCog(Cog):
         }
     )
     async def sell_e(
-            self,
-            interaction: Interaction,
-            role: Role = SlashOption(
-                name="role",
-                name_localizations={
-                    Locale.ru: "роль"
-                },
-                description="Your role that you want to sell",
-                description_localizations={
-                    Locale.ru: "Ваша роль, которую Вы хотите продать"
-                },
-                required=True
-            )
+        self,
+        interaction: Interaction,
+        role: Role = SlashOption(
+            name="role",
+            name_localizations={
+                Locale.ru: "роль"
+            },
+            description="Your role that you want to sell",
+            description_localizations={
+                Locale.ru: "Ваша роль, которую Вы хотите продать"
+            },
+            required=True
+        )
     ) -> None:
         await self.sell(interaction=interaction, role=role)
+
+    @slash_command(
+        name="sell_to",
+        description="Makes role sale request to the target member for the selected price",
+        description_localizations={
+            Locale.ru: "Делает предложение продажи роли пользователю за указанную цену"
+        }
+    )
+    async def sell_to_e(
+        self,
+        interaction: Interaction,
+        role: Role = SlashOption(
+            name="role",
+            name_localizations={
+                Locale.ru: "роль"
+            },
+            description="Your role that you want to sell",
+            description_localizations={
+                Locale.ru: "Ваша роль, которую Вы хотите продать"
+            },
+            required=True
+        ),
+        price: int = SlashOption(
+            name="price",
+            name_localizations={
+                Locale.ru: "цена"
+            },
+            description="Price of the role that is being sold",
+            description_localizations={
+                Locale.ru: "Цена продаваемой роли"
+            },
+            min_value=0,
+            max_value=999999999,
+            required=True
+        ),
+        target: Member = SlashOption(
+            name="target",
+            name_localizations={
+                Locale.ru: "покупатель"
+            },
+            description="Member that is supposted to buy the role",
+            description_localizations={
+                Locale.ru: "Предполагаемый покупатель роли"
+            },
+            required=True
+        )
+    ) -> None:
+        await self.sell_to(interaction=interaction, role=role, price=price, target=target)
 
     @slash_command(
         name="profile",
@@ -1524,20 +1670,20 @@ class SlashCommandsCog(Cog):
         }
     )
     async def duel_e(
-            self,
-            interaction: Interaction,
-            amount: int = SlashOption(
-                name="amount",
-                name_localizations={
-                    Locale.ru: "количество"
-                },
-                description="Bet amount",
-                description_localizations={
-                    Locale.ru: "Сумма ставки"
-                },
-                required=True,
-                min_value=1
-            )
+        self,
+        interaction: Interaction,
+        amount: int = SlashOption(
+            name="amount",
+            name_localizations={
+                Locale.ru: "количество"
+            },
+            description="Bet amount",
+            description_localizations={
+                Locale.ru: "Сумма ставки"
+            },
+            required=True,
+            min_value=1
+        )
     ) -> None:
         await self.bet(interaction=interaction, amount=amount)
 
@@ -1549,31 +1695,31 @@ class SlashCommandsCog(Cog):
         }
     )
     async def transfer_e(
-            self,
-            interaction: Interaction,
-            value: int = SlashOption(
-                name="value",
-                name_localizations={
-                    Locale.ru: "сумма"
-                },
-                description="Amount of money to transfer",
-                description_localizations={
-                    Locale.ru: "Переводимая сумма денег"
-                },
-                required=True,
-                min_value=1
-            ),
-            target: Member = SlashOption(
-                name="target",
-                name_localizations={
-                    Locale.ru: "кому"
-                },
-                description="The member you want to transfer money to",
-                description_localizations={
-                    Locale.ru: "Пользователь, которому Вы хотите перевести деньги"
-                },
-                required=True
-            )
+        self,
+        interaction: Interaction,
+        value: int = SlashOption(
+            name="value",
+            name_localizations={
+                Locale.ru: "сумма"
+            },
+            description="Amount of money to transfer",
+            description_localizations={
+                Locale.ru: "Переводимая сумма денег"
+            },
+            required=True,
+            min_value=1
+        ),
+        target: Member = SlashOption(
+            name="target",
+            name_localizations={
+                Locale.ru: "кому"
+            },
+            description="The member you want to transfer money to",
+            description_localizations={
+                Locale.ru: "Пользователь, которому Вы хотите перевести деньги"
+            },
+            required=True
+        )
     ) -> None:
         await self.transfer(interaction=interaction, value=value, target=target)
 
