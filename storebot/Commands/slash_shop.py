@@ -935,6 +935,7 @@ class SlashCommandsCog(Cog):
                     "UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?",
                     (new_owned_roles, sale_price, memb_id)
                 )
+                cur.execute("DELETE FROM sale_requests WHERE seller_id = ? AND role_id = ?", (memb_id, r_id))
                 base.commit()
 
                 time_now: int = int(time())
