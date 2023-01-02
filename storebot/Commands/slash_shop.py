@@ -651,15 +651,17 @@ class SlashCommandsCog(Cog):
     sell_to_text: dict[int, dict[int, str]] = {
         0 : {
             0: "**`You can't sell role to yourself`**",
-            1: "**`You are already selling role`** {}",
-            2: "**`Role sale request has been created`**",
-            3: "**`You made request for sale role`** <@&{}> **`to`** <@{}> **`for {}`** {}"
+            1: "**`You are already selling role`** <@&{}>",
+            2: "**`Member`** <@{}> **`already has role`** <@&{}>",
+            3: "**`Role sale request has been created`**",
+            4: "**`You made request for sale role`** <@&{}> **`to`** <@{}> **`for {}`** {}"
         },
         1: {
             0: "**`Вы не можете продать роль самому себе`**",
-            1: "**`Вы уже продаёте роль`** {}",
-            2: "**`Запрос продажи роли был создан`**",
-            3: "**`Вы сделали запрос о продаже роли`** <@&{}> **`пользователю`** <@{}> **`за {}`** {}"
+            1: "**`Вы уже продаёте роль`** <@&{}>",
+            2: "**`У пользователя`** <@{}> **`уже есть роль`** <@&{}>",
+            3: "**`Запрос продажи роли был создан`**",
+            4: "**`Вы сделали запрос о продаже роли`** <@&{}> **`пользователю`** <@{}> **`за {}`** {}"
         }
     }
 
@@ -1075,7 +1077,19 @@ class SlashCommandsCog(Cog):
                     await interaction.response.send_message(
                         embed=Embed(
                             title=text_slash[lng][0],
-                            description=self.sell_to_text[lng][1].format(f"<@&{role_id}>"),
+                            description=self.sell_to_text[lng][1].format(role_id),
+                            colour=Colour.red()
+                        ),
+                        ephemeral=True
+                    )
+                    return
+                
+                target_db_info: tuple[int, int, str, int, int, int] = check_db_member(base=base, cur=cur, memb_id=target_id)
+                if str(role_id) in target_db_info[2]:
+                    await interaction.response.send_message(
+                        embed=Embed(
+                            title=text_slash[lng][0],
+                            description=self.sell_to_text[lng][2].format(target_id, role_id),
                             colour=Colour.red()
                         ),
                         ephemeral=True
@@ -1091,8 +1105,8 @@ class SlashCommandsCog(Cog):
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
         await interaction.response.send_message(
             embed=Embed(
-                title=self.sell_to_text[lng][2],
-                description=self.sell_to_text[lng][3].format(role_id, target_id, price, currency),
+                title=self.sell_to_text[lng][3],
+                description=self.sell_to_text[lng][4].format(role_id, target_id, price, currency),
                 colour=Colour.green()
             ),
             ephemeral=True
