@@ -44,7 +44,7 @@ class FeedbackModal(Modal):
         dsc = (
             f"`Guild: {interaction.guild.name} - {interaction.guild_id}`",
             f"`Author: {interaction.user.name} - {interaction.user.id}`",
-            self.feedback.value
+            feedback if (feedback := self.feedback.value) else ""
         )
 
         chnl = interaction.client.get_channel(feedback_channel)

@@ -59,43 +59,45 @@ class EventsHandlerCog(Cog):
             with closing(base.cursor()) as cur:
                 cur.executescript("""\
                 CREATE TABLE IF NOT EXISTS users (
-                    memb_id INTEGER PRIMARY KEY, 
-                    money INTEGER NOT NULL DEFAULT 0, 
-                    owned_roles TEXT NOT NULL DEFAULT '', 
-                    work_date INTEGER NOT NULL DEFAULT 0, 
-                    xp INTEGER NOT NULL DEFAULT 0
+                    memb_id INTEGER PRIMARY KEY,
+                    money INTEGER NOT NULL DEFAULT 0,
+                    owned_roles TEXT NOT NULL DEFAULT '',
+                    work_date INTEGER NOT NULL DEFAULT 0,
+                    xp INTEGER NOT NULL DEFAULT 0,
+                    pending_requests INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE IF NOT EXISTS server_roles (
-                    role_id INTEGER PRIMARY KEY, 
-                    price INTEGER NOT NULL DEFAULT 0, 
-                    salary INTEGER NOT NULL DEFAULT 0, 
-                    salary_cooldown INTEGER NOT NULL DEFAULT 0, 
+                    role_id INTEGER PRIMARY KEY,
+                    price INTEGER NOT NULL DEFAULT 0,
+                    salary INTEGER NOT NULL DEFAULT 0,
+                    salary_cooldown INTEGER NOT NULL DEFAULT 0,
                     type INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE IF NOT EXISTS store (
-                    role_number INTEGER PRIMARY KEY, 
-                    role_id INTEGER NOT NULL DEFAULT 0, 
-                    quantity INTEGER NOT NULL DEFAULT 0, 
-                    price INTEGER NOT NULL DEFAULT 0, 
-                    last_date INTEGER NOT NULL DEFAULT 0, 
-                    salary INTEGER NOT NULL DEFAULT 0, 
-                    salary_cooldown INTEGER NOT NULL DEFAULT 0, 
+                    role_number INTEGER PRIMARY KEY,
+                    role_id INTEGER NOT NULL DEFAULT 0,
+                    quantity INTEGER NOT NULL DEFAULT 0,
+                    price INTEGER NOT NULL DEFAULT 0,
+                    last_date INTEGER NOT NULL DEFAULT 0,
+                    salary INTEGER NOT NULL DEFAULT 0,
+                    salary_cooldown INTEGER NOT NULL DEFAULT 0,
                     type INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE IF NOT EXISTS salary_roles (
-                    role_id INTEGER PRIMARY KEY, 
-                    members TEXT NOT NULL DEFAULT '', 
-                    salary INTEGER NOT NULL DEFAULT 0, 
-                    salary_cooldown INTEGER NOT NULL DEFAULT 0, 
-                    last_time INTEGER NOT NULL DEFAULT 0
+                    role_id INTEGER PRIMARY KEY,
+                    members TEXT NOT NULL DEFAULT '',
+                    salary INTEGER NOT NULL DEFAULT 0,
+                    salary_cooldown INTEGER NOT NULL DEFAULT 0,
+                    last_time INTEGER NOT NULL DEFAULT 0,
+                    additional_salary INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE IF NOT EXISTS server_info (
-                    settings TEXT PRIMARY KEY, 
+                    settings TEXT PRIMARY KEY,
                     value INTEGER NOT NULL DEFAULT 0,
                     str_value TEXT NOT NULL DEFAULT ''
                 );
                 CREATE TABLE IF NOT EXISTS rank_roles (
-                    level INTEGER PRIMARY KEY, 
+                    level INTEGER PRIMARY KEY,
                     role_id INTEGER NOT NULL DEFAULT 0
                 );
                 CREATE TABLE IF NOT EXISTS ic (

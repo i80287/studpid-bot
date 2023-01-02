@@ -7,7 +7,7 @@ from nextcord import Embed, Emoji, Interaction, ButtonStyle, Message
 from nextcord.ui import View
 from nextcord.ext.commands import Bot
 
-from Tools.parse_tools import ParseTools
+from Tools.parse_tools import parse_emoji
 from Variables.vars import path_to, ignored_channels
 from CustomComponents.custom_button import CustomButton
 from CustomComponents.custom_select import CustomSelect
@@ -202,7 +202,7 @@ ec_text = {
         15 : "Select channel",
         16 : "**`You chose channel `**{}",
         17 : "**`Timeout expired`**",
-        18 : "__**role - role id - price - salary - cooldown for salary in hours - type - how much in the store**__",
+        18 : "__**role - role id - price - salary - cooldown for salary in hours - type - how much in the store - additional income from /work**__",
         19 : "No roles were added",
         20 : "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
         21 : "**`You reseted log channel`**",
@@ -229,7 +229,7 @@ ec_text = {
         15 : "Выберите канал",
         16 : "**`Вы выбрали канал `**{}",
         17 : "**`Время ожидания вышло`**",
-        18 : "__**роль - id роли - цена - заработок - кулдаун заработка в часах - тип - сколько в магазине**__",
+        18 : "__**роль - id роли - цена - заработок - кулдаун заработка в часах - тип - сколько в магазине - дополнительный заработок от /work**__",
         19 : "Не добавлено ни одной роли",
         20 : "`Если роль не отображается ни в одном меню снизу, значит, бот не может управлять ею`",
         21 : "**`Вы сбросили канал логов`**",
@@ -492,7 +492,7 @@ class GenSettingsView(View):
             return
         else:
             user_ans_content: str = user_ans.content
-            emoji: Emoji | str | None = ParseTools.parse_emoji(self.bot, user_ans_content)
+            emoji: Emoji | str | None = parse_emoji(self.bot, user_ans_content)
             if emoji is None:
                 emoji_str = user_ans_content
             elif isinstance(emoji, Emoji):
@@ -690,7 +690,7 @@ class EconomyView(View):
     def __init__(self, t_out: int, auth_id: int, sale_price_percent: int):
         super().__init__(timeout=t_out)
         self.auth_id = auth_id
-        self.channel: int = None
+        self.channel: int | None = None
         self.sale_price_percent: int = sale_price_percent
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"10_{auth_id}_{randint(1, 100)}", emoji="💸"))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"11_{auth_id}_{randint(1, 100)}", emoji="⏰"))
@@ -736,21 +736,23 @@ class EconomyView(View):
             return True
 
     async def work_salary(self, interaction: Interaction, lng: int, ans: str) -> bool:
-        ans = ans.split()
+        splitted_ans: list[str] = ans.split()
         fl: bool = False
-        if len(ans) >= 2:
-            n1 = ans[0]
-            n2 = ans[1]
-            if n1.isdigit() and n2.isdigit():
-                n1 = int(n1); n2 = int(n2)
-                if 0 <= n1 <= n2: fl = True
-            
-        elif len(ans):
-            n1 = ans[0]
-            if n1.isdigit() and int(n1) >= 0:
-                n2 = n1 = int(n1)
-                fl = True      
-        
+        n1: int = 0
+        n2: int = 0
+        if len(splitted_ans) >= 2:
+            arg1 = splitted_ans[0]
+            arg2 = splitted_ans[1]
+            if arg1.isdigit() and arg2.isdigit():
+                n1 = int(arg1)
+                n2 = int(arg2)
+                if 0 <= n1 <= n2:
+                    fl = True
+        elif len(splitted_ans):
+            arg = splitted_ans[0]
+            if arg.isdigit() and (n1 := int(arg)) >= 0:
+                n2 = n1
+                fl = True
         if fl:
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
@@ -826,7 +828,9 @@ class EconomyView(View):
         server_roles_ids: set[int] = set()
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                roles: list[tuple[int, int, int, int, int]] = cur.execute("SELECT role_id, price, salary, salary_cooldown, type FROM server_roles").fetchall()
+                roles: list[tuple[int, int, int, int, int, int]] = cur.execute(
+                    "SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles"
+                ).fetchall()
                 if roles:
                     descr: list[str] = [ec_text[lng][18]]
                     for role in roles:
@@ -841,12 +845,12 @@ class EconomyView(View):
                                 cnt = cnt[0]
                             else:
                                 cnt = "∞"
-                        descr.append(f"<@&{role[0]}> - **`{role[0]}`** - **`{role[1]}`** - **`{role[2]}`** - **`{role[3]//3600}`** - **`{self.r_types[lng][role[4]]}`** - **`{cnt}`**")
+                        descr.append(
+                            f"<@&{role[0]}> - **`{role[0]}`** - **`{role[1]}`** - **`{role[2]}`** - **`{role[3]//3600}`** - **`{self.r_types[lng][role[4]]}`** - **`{cnt}`** - **`{role[5]}`**"
+                        )
                 else:
                     descr: list[str] = [ec_text[lng][19]]
-
         descr.append('\n' + ec_text[lng][20])
-        emb = Embed(description='\n'.join(descr))
         
         assignable_roles: list[tuple[str, int]] = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
         remove_role_button_is_disabled = False if assignable_roles else True
@@ -858,7 +862,7 @@ class EconomyView(View):
             rls=assignable_roles,
             s_rls=server_roles_ids
         )
-        await interaction.response.send_message(embed=emb, view=ec_rls_view)
+        await interaction.response.send_message(content='\n'.join(descr), view=ec_rls_view)
         await ec_rls_view.wait()
         for c in ec_rls_view.children:
             c.disabled = True
@@ -907,11 +911,11 @@ class EconomyView(View):
                         flag = await self.work_cldwn(interaction=interaction, lng=lng, ans=ans)
                     elif int_custom_id == 12: 
                         flag = await self.work_salary(interaction=interaction, lng=lng, ans=ans)
-                # try to delete user's ans
-                try: 
-                    await user_ans.delete()
-                finally: 
-                    pass
+                    # try to delete user's ans
+                    try:
+                        await user_ans.delete()
+                    finally: 
+                        pass
 
     async def click_menu(self, _, c_id: str, values):
         if c_id.startswith("50"):
@@ -979,20 +983,18 @@ class EconomyRolesManageView(View):
                 await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][8]), ephemeral=True)
                 return
             
-            role_type: int
-            role_in_store_count: int
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    req: tuple[int, int, int, int, int] = cur.execute(
-                        "SELECT role_id, price, salary, salary_cooldown, type FROM server_roles WHERE role_id = ?", 
+                    req: tuple[int, int, int, int, int, int] = cur.execute(
+                        "SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles WHERE role_id = ?", 
                         (role_id,)
                     ).fetchone()
                     role_type = req[4]
                     if role_type != 2:
-                        role_in_store_count = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,)).fetchone()[0]
+                        role_in_store_count: int = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,)).fetchone()[0]
                     else:
-                        quantity = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,)).fetchone()                        
-                        role_in_store_count = quantity[0] if quantity else 0
+                        quantity: tuple[int] = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,)).fetchone()                        
+                        role_in_store_count: int = quantity[0] if quantity else 0
             
             edit_mod = RoleEditModal(
                 timeout=90,
@@ -1004,6 +1006,7 @@ class EconomyRolesManageView(View):
                 salary=req[2],
                 salary_cooldown=req[3],
                 r_t=role_type,
+                additional_salary=req[5],
                 in_store=role_in_store_count
             )
             await interaction.response.send_modal(modal=edit_mod)
@@ -1132,7 +1135,7 @@ class SettingsView(View):
                     ans: str = m_ans.content
                     try: 
                         await m_ans.delete()
-                    finally: 
+                    except:
                         pass
                     memb, flag = self.check_ans(interaction=interaction, ans=ans)
                     if flag == 1:
@@ -1147,13 +1150,13 @@ class SettingsView(View):
                     xp_b = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
                     membs_cash = sorted(cur.execute("SELECT memb_id, money FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
                     membs_xp = sorted(cur.execute("SELECT memb_id, xp FROM users").fetchall(), key=lambda tup: tup[1], reverse=True)
-                    db_roles = cur.execute("SELECT role_id FROM server_roles").fetchall()
+                    db_roles: list[tuple[int]] = cur.execute("SELECT role_id FROM server_roles").fetchall()
 
             l = len(membs_cash)     
 
             # cnt_cash is a place in the rating sorded by cash
             cash = memb_info[1]
-            if membs_cash[l//2][1] < cash:
+            if membs_cash[l >> 1][1] < cash:
                 cnt_cash = 1
                 while cnt_cash < l and memb_id != membs_cash[cnt_cash-1][0]:
                     cnt_cash += 1
@@ -1169,7 +1172,7 @@ class SettingsView(View):
 
             # cnt_cash is a place in the rating sorded by xp
             xp = memb_info[4]
-            if membs_xp[l//2][1] < xp:
+            if membs_xp[l >> 1][1] < xp:
                 cnt_xp = 1
                 while cnt_xp < l and memb_id != membs_xp[cnt_xp-1][0]:
                     cnt_xp += 1
@@ -1194,9 +1197,14 @@ class SettingsView(View):
             emb3.description = "\n".join(dsc)
             rem_dis = True if len(dsc) == 1 else False
 
-            if db_roles: db_roles = {x[0] for x in db_roles}
-            roles = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable() and rl.id in db_roles]
-
+            if db_roles: 
+                db_roles_set: set[int] = {x[0] for x in db_roles}
+                roles: list[tuple[str, int]] = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable() and rl.id in db_roles_set]
+                del db_roles_set
+            else:
+                roles: list[tuple[str, int]] = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable()]
+                del db_roles
+            
             mng_v = ManageMemberView(
                 timeout=110, 
                 lng=lng, 
@@ -1895,7 +1903,7 @@ class ManageMemberView(View):
                 if self.cash != edit_modl.new_cash:
                     self.cash = edit_modl.new_cash
                     
-                    if membs_cash[l//2][1] < self.cash:
+                    if membs_cash[l >> 1][1] < self.cash:
                         cnt_cash = 1
                         while cnt_cash < l and self.memb_id != membs_cash[cnt_cash-1][0]:
                             cnt_cash += 1
@@ -1910,7 +1918,7 @@ class ManageMemberView(View):
                 if self.xp != edit_modl.new_xp:
                     self.xp = edit_modl.new_xp
 
-                    if membs_xp[l//2][1] < self.xp:
+                    if membs_xp[l >> 1][1] < self.xp:
                         cnt_xp = 1
                         while cnt_xp < l and self.memb_id != membs_xp[cnt_xp-1][0]:
                             cnt_xp += 1
@@ -1950,11 +1958,11 @@ class ManageMemberView(View):
 
 
 class VerifyDeleteView(View):
-    def __init__(self, lng: int, role: int, m, auth_id: int):
+    def __init__(self, lng: int, role: int, m: Message, auth_id: int):
         super().__init__(timeout=30)
-        self.role = role
-        self.auth_id = auth_id
-        self.m = m
+        self.role: int = role
+        self.auth_id: int = auth_id
+        self.m: Message = m
         self.deleted = False
         self.add_item(CustomButton(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_{randint(1, 100)}"))
@@ -1970,11 +1978,10 @@ class VerifyDeleteView(View):
             
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    cur.executescript(f"""
-                        DELETE FROM server_roles WHERE role_id = {self.role};
-                        DELETE FROM salary_roles WHERE role_id = {self.role};
-                        DELETE FROM store WHERE role_id = {self.role};
-                    """)
+                    cur.executescript(f"""\
+                    DELETE FROM server_roles WHERE role_id = {self.role};
+                    DELETE FROM salary_roles WHERE role_id = {self.role};
+                    DELETE FROM store WHERE role_id = {self.role};""")
                     base.commit()
                     for r in cur.execute("SELECT * FROM users").fetchall():
                         if f"{self.role}" in r[2]:

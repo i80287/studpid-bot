@@ -1,9 +1,9 @@
 from random import randint
 
-from nextcord import Embed, Message, Interaction, TextInputStyle
+from nextcord import Embed, Interaction, TextInputStyle
 from nextcord.ui import TextInput, Modal
 
-from db_commands import update_server_info_table
+from Tools.db_commands import update_server_info_table
 
 
 class SalePriceModal(Modal):
@@ -33,15 +33,15 @@ class SalePriceModal(Modal):
             min_length=1,
             max_length=3,
             required=True,
-            default_value=current_sale_role_percent,
+            default_value=str(current_sale_role_percent),
             placeholder=self.sale_price_modal_text[lng][2]
         )
         self.add_item(self.sell_price_percent_textinput)
-        self.new_sale_role_percent: int = None
+        self.new_sale_role_percent: int | None = None
         self.lng: int = lng
     
     @staticmethod
-    def check_ans(value: str) -> int:
+    def check_ans(value: str | None) -> int:
         if value is None or not value.isdigit() or \
             not (1 <= (sale_role_percent := int(value)) <= 200):
             return 0

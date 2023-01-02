@@ -4,7 +4,7 @@ from contextlib import closing
 from nextcord import Embed, Emoji, Colour, SlashOption, Interaction, Status, slash_command, Locale
 from nextcord.ext.commands import Bot, Cog
 
-from Tools.parse_tools import ParseTools
+from Tools.parse_tools import parse_emoji
 from Variables.vars import path_to
 
 
@@ -222,7 +222,7 @@ class AdditionalCommandsCog(Cog):
             with closing(base.cursor()) as cur:
                 AdditionalCommandsCog.check_user(base=base, cur=cur, memb_id=interaction.user.id)
         
-        emoji = ParseTools.parse_emoji(self.bot, emoji_str)        
+        emoji = parse_emoji(self.bot, emoji_str)        
         if emoji is None:
             emb = Embed(title=self.text_slash[lng][0], colour=Colour.red(), description=self.text_slash[lng][12])
             await interaction.response.send_message(embed=emb, ephemeral=True)
@@ -279,7 +279,7 @@ class AdditionalCommandsCog(Cog):
         vls = [len(guild.humans), len(guild.bots), len(guild.text_channels), len(guild.voice_channels), len(guild.emojis), len(guild.stickers),
         time, guild.verification_level, guild.filesize_limit >> 20, f"`{len(guild.premium_subscribers)}` - `{guild.premium_tier}{self.text_slash[lng][6]}`"]
 
-        if guild.icon != None:
+        if guild.icon is not None:
             emb.set_thumbnail(url=guild.icon.url)
         
         lc_s = self.server_info_text[lng]

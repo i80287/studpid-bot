@@ -38,6 +38,7 @@ class ModCommandsCog(Cog):
     def __init__(self, bot: Bot):
         self.bot = bot
 
+    @staticmethod
     def mod_check(interaction: Interaction) -> bool:
         u = interaction.user
         if u.guild_permissions.administrator or u.guild_permissions.manage_guild:

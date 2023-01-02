@@ -109,19 +109,19 @@ class ManageRoleModalBase(Modal):
             14: "The same roles will be displayed in the store",
             15: "Additional income from /work (optional)",
             16: "Amount of money gained by the role owner additionally from using the /work command",
-            18: "Price should be positive integer number from 1 to 999999999",
+            18: "Price should be positive integer number from `1` to `999999999`",
             19: "Salary and cooldown must be two positive integer numbers separated by space, for example: `100` `24`",
             20: "Salary should be positive integer number",
-            21: "Cooldown should be positive integer number from 1 to 1008, cooldown is time in hours. For example: `24` sets cooldown to 24 hours",
+            21: "Cooldown should be positive integer number from `1` to `1008`, cooldown is time in hours. For example: `24` sets cooldown to `24 hours`",
             22: "Type of displaying of the role should be one of three numbers: `1`, `2` or `3`",
-            23: "If inputted, additional income from the `/work` command should be integer number from 1 to 999999999",
-            24: "You added role <@&{}> with price **`{}`**, salary **`{}`**, cooldown for it **`{}`** hours, type **`{}`**",
+            23: "If inputted, additional income from the `/work` command should be integer number from `1` to `999999999`",
+            24: "You added role <@&{}> with price **`{}`**, salary **`{}`**, cooldown for it **`{}`** hours, type **`{}`**, additional income from `/work` command - **`{}`**",
             25: "Editing the role",
             26: "Print 1 if separated,nonstacking\n2 if countable,stacking\n3 if uncountable (can't run out),stacking",
             27: "How much roles must be in the store",
             28: "Print integer non-negative number. For uncountable roles print any non-negative number",
             29: "Amount of the roles in the store must be non-negative integer number from 0 to 99",
-            30: "You edited role <@&{}>. Now it's price is **`{}`**, salary is **`{}`**, cooldown for it is **`{}`** hours, role's type is **`{}`**, amount of roles in the store - **`{}`**",
+            30: "You edited role <@&{}>. Now it's price is **`{}`**, salary is **`{}`**, cooldown for it is **`{}`** hours, role's type is **`{}`**, amount of roles in the store - **`{}`**, additional income from `/work` command - **`{}`**",
         },
         1: {
             0: "Добавление роли",
@@ -132,19 +132,19 @@ class ManageRoleModalBase(Modal):
             14: "Одинаковые роли будут отображаться в магазине",
             15: "Дополнительный доход от /work (необязательно)",
             16: "Количество валюты, дополнительно получаемое владельцем роли при вызове команды /work",
-            18: "В качестве цены роли надо указать целое положительное число от 1 до 999999999",
+            18: "В качестве цены роли надо указать целое положительное число от `1` до `999999999`",
             19: "Заработок и кулдаун должны быть двумя положительными целыми числами, разделёнными пробелом, например, `100` `24`",
             20: "Заработок должен быть целым положительным числом",
-            21: "Кулдаун должен быть целым положительным числом от 1 до 1008, кулдаун - время в часах. Например, `24` сделать кулдаун равным 24 часам",
+            21: "Кулдаун должен быть целым положительным числом от `1` до `1008`, кулдаун - время в часах. Например, `24` сделает кулдаун равным `24 часам`",
             22: "В качестве типа отображения роли надо указать одно из трёх чисел: `1`, `2` или `3`",
-            23: "Если указан, дополнительный заработок от команды `/work` должен быть целым положительным числом от 1 до 999999999",
-            24: "Вы добавили роль <@&{}> с ценой **`{}`**, доходом **`{}`**, его кулдауном **`{}`** час(а)(ов), типом **`{}`**",
+            23: "Если указан, дополнительный заработок от команды `/work` должен быть целым положительным числом от `1` до `999999999`",
+            24: "Вы добавили роль <@&{}> с ценой **`{}`**, доходом **`{}`**, его кулдауном **`{}`** час(а)(ов), типом **`{}`**, дополнительным заработком от команды `/work` - **`{}`**",
             25: "Редактирование роли",
             26: "Напишите 1,если раздельно,нестакаются\n2,если стакающися,исчисляемые\n3,если стакающиеся,бесконечные",
             27: "Сколько ролей должно быть в магазине",
             28: "Напишите целое неотрицательное число.Для бесконечных ролей можно указать любое неотрицательное число",
             29: "Количество ролей в магазине должно быть целым неотрицательным числом от 0 до 99",
-            30: "Вы отредактировали роль <@&{}>. Теперь её цена - **`{}`**, доход - **`{}`**, его кулдаун - **`{}`** час(а)(ов), тип роли - **`{}`**, количество в магазине - **`{}`**",
+            30: "Вы отредактировали роль <@&{}>. Теперь её цена - **`{}`**, доход - **`{}`**, его кулдаун - **`{}`** час(а)(ов), тип роли - **`{}`**, количество в магазине - **`{}`**, дополнительный заработок от команды `/work` - **`{}`**",
         }
     }
 
@@ -155,11 +155,11 @@ class ManageRoleModalBase(Modal):
 class RoleAddModal(ManageRoleModalBase):
     partial_ec_text: dict[int, dict[int, str]] = {
         0: {
-            18: "__**role - role id - price - salary - cooldown for salary - type - how much in the store**__",
+            18: "__**role - role id - price - salary - cooldown for salary - type - how much in the store - additional income from /work**__",
             20: "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
         },
         1: {
-            18: "__**роль - id роли - цена - заработок - кулдаун заработка - тип - сколько в магазине**__",
+            18: "__**роль - id роли - цена - заработок - кулдаун заработка - тип - сколько в магазине - дополнительный заработок от /work**__",
             20: "`Если роль не отображается ни в одном меню снизу, значит, бот не может управлять ею`",
         }
     }
@@ -206,14 +206,15 @@ class RoleAddModal(ManageRoleModalBase):
         self.add_item(self.price_text_input)
         self.add_item(self.salary_text_input)
         self.add_item(self.r_type_text_input)
-        # self.add_item(self.additional_salary_text_input)
+        self.add_item(self.additional_salary_text_input)
+
         self.price: int = 0
         self.salary: int = 0
         self.salary_cooldown: int = 0
         self.role_type: int = 1
         self.additional_salary: int = 0
 
-    def check_ans(self) -> int:
+    def verify_user_input(self) -> int:
         errors_bit_mask: int = 0b000000
 
         price = self.price_text_input.value
@@ -244,26 +245,37 @@ class RoleAddModal(ManageRoleModalBase):
         else:
             errors_bit_mask |= 0b010000
         
+        additional_salary = self.additional_salary_text_input.value
+        if additional_salary:
+            if additional_salary.isdigit() and (additional_salary_int := int(additional_salary)) > 0:
+                self.additional_salary = additional_salary_int
+            else:
+                errors_bit_mask |= 0b100000
+
         return errors_bit_mask
 
     async def callback(self, interaction: Interaction):
         lng: int = 1 if "ru" in interaction.locale else 0
-        errors_bit_mask: int = self.check_ans()
+        errors_bit_mask: int = self.verify_user_input()
         if errors_bit_mask:
-            rep = []
+            report: list[str] = []
             if errors_bit_mask & 0b000001:
-                rep.append(self.manage_role_modals_text[lng][18])
+                report.append(self.manage_role_modals_text[lng][18])
             if errors_bit_mask & 0b000010:
-                rep.append(self.manage_role_modals_text[lng][19])
+                report.append(self.manage_role_modals_text[lng][19])
             if errors_bit_mask & 0b000100:
-                rep.append(self.manage_role_modals_text[lng][20])
+                report.append(self.manage_role_modals_text[lng][20])
             if errors_bit_mask & 0b001000:
-                rep.append(self.manage_role_modals_text[lng][21])
+                report.append(self.manage_role_modals_text[lng][21])
             if errors_bit_mask & 0b010000:
-                rep.append(self.manage_role_modals_text[lng][22])
+                report.append(self.manage_role_modals_text[lng][22])
             if errors_bit_mask & 0b100000:
-                rep.append(self.manage_role_modals_text[lng][22])
-            await interaction.response.send_message(embed=Embed(description="\n".join(rep)), ephemeral=True)
+                report.append(self.manage_role_modals_text[lng][23])
+            
+            await interaction.response.send_message(
+                embed=Embed(description='\n'.join(report)),
+                ephemeral=True
+            )
             self.stop()
             return
         
@@ -272,34 +284,40 @@ class RoleAddModal(ManageRoleModalBase):
         salary: int = self.salary
         salary_cooldown: int = self.salary_cooldown
         role_type: int = self.role_type
+        additional_salary: int = self.additional_salary
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute(
-                    "INSERT OR IGNORE INTO server_roles(role_id, price, salary, salary_cooldown, type) VALUES(?, ?, ?, ?, ?)", 
-                    (role_id, price, salary, salary_cooldown, role_type)
+                    "INSERT OR IGNORE INTO server_roles (role_id, price, salary, salary_cooldown, type, additional_salary) VALUES(?, ?, ?, ?, ?, ?)", 
+                    (role_id, price, salary, salary_cooldown, role_type, additional_salary)
                 )
                 base.commit()
                 if salary:
                     cur.execute(
-                        "INSERT OR IGNORE INTO salary_roles(role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, ?)", 
+                        "INSERT OR IGNORE INTO salary_roles (role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, ?)", 
                         (role_id, "", salary, salary_cooldown, 0)
                     )
                     base.commit()
 
-        emb = self.m.embeds[0]
-        dsc: list[str] = emb.description.split("\n")
+        dsc: list[str] = self.m.content.split("\n")
         rls = dsc[1:-2]
         dsc = [self.partial_ec_text[lng][18]]
         dsc.extend(r for r in rls)
-        dsc.append(f"<@&{role_id}> - **`{role_id}`** - **`{price}`** - **`{salary}`** - **`{salary_cooldown // 3600}`** - **`{r_types[lng][role_type]}`** - **`0`**\n")
+        dsc.append(f"<@&{role_id}> - **`{role_id}`** - **`{price}`** - **`{salary}`** - **`{salary_cooldown // 3600}`** - **`{r_types[lng][role_type]}`** - **`0`** - **`{additional_salary}`**\n")
         dsc.append(self.partial_ec_text[lng][20])
-        emb.description = "\n".join(dsc)
-        await self.m.edit(embed=emb)
+        await self.m.edit(content='\n'.join(dsc))
 
         self.added = True
         await interaction.response.send_message(
             embed=Embed(
-                description=self.manage_role_modals_text[lng][24].format(role_id, price, salary, salary_cooldown // 3600, r_types[lng][role_type])
+                description=self.manage_role_modals_text[lng][24].format(
+                    role_id, 
+                    price, 
+                    salary, 
+                    salary_cooldown // 3600, 
+                    r_types[lng][role_type], 
+                    additional_salary
+                )
             ),
             ephemeral=True
         )
@@ -307,7 +325,7 @@ class RoleAddModal(ManageRoleModalBase):
 
 
 class RoleEditModal(ManageRoleModalBase):
-    def __init__(self, timeout: int, role: int, message: Message, lng: int, auth_id: int, price: int, salary: int, salary_cooldown: int, r_t: int, in_store: int):
+    def __init__(self, timeout: int, role: int, message: Message, lng: int, auth_id: int, price: int, salary: int, salary_cooldown: int, r_t: int, additional_salary: int, in_store: int):
         super().__init__(title=self.manage_role_modals_text[lng][25], timeout=timeout, custom_id=f"7100_{auth_id}_{randint(1, 100)}")
         self.role_id: int = role
         self.m: Message = message
@@ -318,18 +336,19 @@ class RoleEditModal(ManageRoleModalBase):
         self.prev_r_t: int = r_t
         self.prev_in_store_amount: int = in_store
         
-        self.new_price: int = 0
-        self.new_salary: int = 0
-        self.new_salary_cooldown: int = 0
-        self.new_role_type: int = 1
-        self.new_in_store_amount: int = 0
+        self.new_price: int = price
+        self.new_salary: int = salary
+        self.new_salary_cooldown: int = salary_cooldown
+        self.new_role_type: int = r_t
+        self.new_in_store_amount: int = in_store
+        self.new_additional_salary: int = additional_salary
         
         self.price_text_input = TextInput(
             label=self.manage_role_modals_text[lng][10],
             min_length=1,
             max_length=9,
             placeholder=self.manage_role_modals_text[lng][11],
-            default_value=f"{price}",
+            default_value=str(price),
             required=True,
             custom_id=f"7101_{auth_id}_{randint(1, 100)}"
         )
@@ -350,7 +369,7 @@ class RoleEditModal(ManageRoleModalBase):
             max_length=1,
             style=TextInputStyle.paragraph,
             placeholder=self.manage_role_modals_text[lng][26],
-            default_value=f"{r_t}",
+            default_value=str(r_t),
             required=False,
             custom_id=f"7103_{auth_id}_{randint(1, 100)}"
         )
@@ -360,14 +379,24 @@ class RoleEditModal(ManageRoleModalBase):
             max_length=2,
             style=TextInputStyle.paragraph,
             placeholder=self.manage_role_modals_text[lng][28],
-            default_value=f"{in_store}",
+            default_value=str(in_store),
             required=True,
             custom_id=f"7104_{auth_id}_{randint(1, 100)}"
         )
+        self.additional_salary_text_input = TextInput(
+            label=self.manage_role_modals_text[lng][15],
+            style=TextInputStyle.paragraph,
+            min_length=0,
+            max_length=9,
+            required=False,
+            default_value=str(additional_salary),
+            placeholder=self.manage_role_modals_text[lng][16]
+        )    
         self.add_item(self.price_text_input)
         self.add_item(self.salary_text_input)
         self.add_item(self.r_type_text_input)
         self.add_item(self.in_store_amount_text_input)
+        self.add_item(self.additional_salary_text_input)
 
     def check_ans(self) -> int:
         errors_bit_mask: int = 0b000000
@@ -376,35 +405,42 @@ class RoleEditModal(ManageRoleModalBase):
         if price and price.isdigit() and (price_int := int(price)) > 0:
             self.new_price = price_int
         else:
-            errors_bit_mask |= 0b000001
+            errors_bit_mask |= 0b0000001
         
         salary_and_cooldown = self.salary_text_input.value
         if salary_and_cooldown:
             s_ans = salary_and_cooldown.split()
             if len(s_ans) != 2:
-                errors_bit_mask |= 0b000010
+                errors_bit_mask |= 0b0000010
             else:
                 s, s_c = s_ans[0], s_ans[1]
                 if s.isdigit() and (salary_int := int(s)) > 0:
                     self.new_salary = salary_int
                 else:
-                    errors_bit_mask |= 0b000100
+                    errors_bit_mask |= 0b0000100
                 if s_c.isdigit() and (salary_cooldown_int := int(s_c)) > 0:
                     self.new_salary_cooldown = salary_cooldown_int * 3600
                 else:
-                    errors_bit_mask |= 0b001000
+                    errors_bit_mask |= 0b0001000
         
         role_type = self.r_type_text_input.value
         if role_type and role_type.isdigit() and (role_type_int := int(role_type)) in {1, 2, 3}:
             self.new_role_type = role_type_int
         else:
-            errors_bit_mask |= 0b010000
+            errors_bit_mask |= 0b0010000
+
+        additional_salary: str | None = self.additional_salary_text_input.value
+        if additional_salary:
+            if additional_salary.isdigit() and (additional_salary_int := int(additional_salary)) > 0:
+                self.new_additional_salary = additional_salary_int
+            else:
+                errors_bit_mask |= 0b0100000
 
         in_store_amount = self.in_store_amount_text_input.value
         if in_store_amount and in_store_amount.isdigit() and (in_store_amount_int := int(in_store_amount)) >= 0:
             self.new_in_store_amount = in_store_amount_int
         else:
-            errors_bit_mask |= 0b100000
+            errors_bit_mask |= 0b1000000
 
         return errors_bit_mask
 
@@ -412,34 +448,39 @@ class RoleEditModal(ManageRoleModalBase):
         lng: int = 1 if "ru" in interaction.locale else 0
         errors_bit_mask: int = self.check_ans()
         if errors_bit_mask:
-            rep: list = []
-            if errors_bit_mask & 0b000001:
-                rep.append(self.manage_role_modals_text[lng][18])
-            if errors_bit_mask & 0b000010:
-                rep.append(self.manage_role_modals_text[lng][19])
-            if errors_bit_mask & 0b000100:
-                rep.append(self.manage_role_modals_text[lng][20])
-            if errors_bit_mask & 0b001000:
-                rep.append(self.manage_role_modals_text[lng][21])
-            if errors_bit_mask & 0b010000:
-                rep.append(self.manage_role_modals_text[lng][22])
-            if errors_bit_mask & 0b100000:
-                rep.append(self.manage_role_modals_text[lng][29])
+            report: list[str] = []
+            if errors_bit_mask & 0b0000001:
+                report.append(self.manage_role_modals_text[lng][18])
+            if errors_bit_mask & 0b0000010:
+                report.append(self.manage_role_modals_text[lng][19])
+            if errors_bit_mask & 0b0000100:
+                report.append(self.manage_role_modals_text[lng][20])
+            if errors_bit_mask & 0b0001000:
+                report.append(self.manage_role_modals_text[lng][21])
+            if errors_bit_mask & 0b0010000:
+                report.append(self.manage_role_modals_text[lng][22])
+            if errors_bit_mask & 0b0100000:
+                report.append(self.manage_role_modals_text[lng][23])
+            if errors_bit_mask & 0b1000000:
+                report.append(self.manage_role_modals_text[lng][29])
             
-            await interaction.response.send_message(embed=Embed(description='\n'.join(rep)), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description='\n'.join(report)), ephemeral=True)
             self.stop()
             return
         
-        price = self.new_price
-        salary = self.new_salary
-        salary_c = self.new_salary_cooldown
-        r_type = self.new_role_type
-        l = self.new_in_store_amount
-        r = self.role_id
-
+        price: int = self.new_price
+        salary: int = self.new_salary
+        salary_c: int = self.new_salary_cooldown
+        r_type: int = self.new_role_type
+        l: int = self.new_in_store_amount
+        r: int = self.role_id
+        new_additional_salary: int = self.new_additional_salary
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                cur.execute("UPDATE server_roles SET price = ?, salary = ?, salary_cooldown = ?, type = ? WHERE role_id = ?", (price, salary, salary_c, r_type, r))
+                cur.execute(
+                    "UPDATE server_roles SET price = ?, salary = ?, salary_cooldown = ?, type = ?, additional_salary = ? WHERE role_id = ?",
+                    (price, salary, salary_c, r_type, new_additional_salary, r)
+                )
                 if r_type != self.prev_r_t:
                     self.update_type_and_store(base=base, cur=cur, price=price, salary=salary, salary_c=salary_c, r_type=r_type, r=r, l=l)
                 else:
@@ -449,19 +490,27 @@ class RoleEditModal(ManageRoleModalBase):
         
         if r_type == 3 and l:
             l = "∞"
-
-        emb = self.m.embeds[0]
-        dsc = emb.description.split("\n")
+        
+        dsc = self.m.content.split('\n')
+        str_role_id = str(r)
         for i in range(1, len(dsc)-1):
-            if f"{r}" in dsc[i]:
-                dsc[i] = f"<@&{r}> - **`{r}`** - **`{price}`** - **`{salary}`** - **`{salary_c // 3600}`** - **`{r_types[lng][r_type]}`** - **`{l}`**"
-        emb.description = "\n".join(dsc)
-        await self.m.edit(embed=emb)
+            if str_role_id in dsc[i]:
+                dsc[i] = f"<@&{r}> - **`{r}`** - **`{price}`** - **`{salary}`** - **`{salary_c // 3600}`** - **`{r_types[lng][r_type]}`** - **`{l}`** - **`{new_additional_salary}`**"
+                break
+        await self.m.edit(content='\n'.join(dsc))
         self.changed = True
 
         await interaction.response.send_message(
             embed=Embed(
-                description=self.manage_role_modals_text[lng][30].format(r, price, salary, salary_c // 3600, r_types[lng][r_type], l)
+                description=self.manage_role_modals_text[lng][30].format(
+                    r, 
+                    price, 
+                    salary, 
+                    salary_c // 3600, 
+                    r_types[lng][r_type], 
+                    l, 
+                    new_additional_salary
+                )
             ), 
             ephemeral=True
         )
@@ -485,7 +534,10 @@ class RoleEditModal(ManageRoleModalBase):
         elif r_type == 1:
             free_numbers = cls.peek_role_free_numbers(cur, l)
             inserting_roles = ((free_number, r, 1, price, t, salary, salary_c, 1) for free_number in free_numbers)
-            cur.executemany("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", inserting_roles)
+            cur.executemany(
+                "INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                inserting_roles
+            )
         base.commit()
     
     @classmethod
@@ -546,7 +598,7 @@ class RoleEditModal(ManageRoleModalBase):
 
     @staticmethod
     def peek_role_free_number(cur: Cursor) -> int:
-        req = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
+        req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
         if req:
             role_numbers = [int(r_n[0]) for r_n in req]
             if role_numbers[0] != 1:
@@ -561,11 +613,11 @@ class RoleEditModal(ManageRoleModalBase):
 
     @staticmethod
     def peek_role_free_numbers(cur: Cursor, amount_of_numbers: int) -> list[int]:
-        req = cur.execute("SELECT role_number FROM store").fetchall()
+        req: list[tuple[int]] = cur.execute("SELECT role_number FROM store").fetchall()
         if req:
-            role_numbers = {r_n[0] for r_n in req}
+            role_numbers: set[int] = {r_n[0] for r_n in req}
             after_last_number =  max(role_numbers) + 1
-            free_numbers = set(range(1, after_last_number)).difference(role_numbers)
+            free_numbers: set[int] = set(range(1, after_last_number)).difference(role_numbers)
             lack_numbers_len = amount_of_numbers - len(free_numbers)
             if lack_numbers_len <= 0:
                 return list(free_numbers)[:amount_of_numbers]            

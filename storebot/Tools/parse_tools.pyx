@@ -7,8 +7,8 @@ from nextcord.ext.commands import Bot
 cimport cython
 
 cdef:
-    _CUSTOM_EMOJI_PATTERN = re.compile("\d+", flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE)
-    _DEFAULT_EMOJI_PATTERN = re.compile(":[A-Za-z\d_]+:", flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE)
+    _CUSTOM_EMOJI_PATTERN = re.compile(r"\d+", flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE)
+    _DEFAULT_EMOJI_PATTERN = re.compile(r":[A-Za-z\d_]+:", flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE)
 
 @cython.profile(False)
 @cython.nonecheck(False)
