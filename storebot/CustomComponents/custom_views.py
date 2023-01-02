@@ -1947,7 +1947,7 @@ class ManageMemberView(View):
 class VerifyDeleteView(View):
     def __init__(self, lng: int, role: int, m: Message, auth_id: int) -> None:
         super().__init__(timeout=30)
-        self.role: int = role
+        self.role_id: int = role
         self.auth_id: int = auth_id
         self.m: Message = m
         self.deleted: bool = False
@@ -1957,25 +1957,27 @@ class VerifyDeleteView(View):
     async def click(self, interaction: Interaction, c_id: str) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         if c_id.startswith("1001_"):
-            await interaction.message.delete()
-            await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][3].format(self.role)), ephemeral=True)
+            if interaction.message:
+                await interaction.message.delete()
+            await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][3].format(self.role_id)), ephemeral=True)
             self.stop()
         elif c_id.startswith("1000_"):
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][4]), ephemeral=True)
+            str_role_id: str = str(self.role_id)
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.executescript(f"""\
-                    DELETE FROM server_roles WHERE role_id = {self.role};
-                    DELETE FROM salary_roles WHERE role_id = {self.role};
-                    DELETE FROM store WHERE role_id = {self.role};""")
+                    DELETE FROM server_roles WHERE role_id = {str_role_id};
+                    DELETE FROM salary_roles WHERE role_id = {str_role_id};
+                    DELETE FROM store WHERE role_id = {str_role_id};""")
                     base.commit()
                     for r in cur.execute("SELECT * FROM users").fetchall():
-                        if f"{self.role}" in r[2]:
-                            cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (r[2].replace(f"#{self.role}", ""), r[0]))
+                        if str_role_id in r[2]:
+                            cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (r[2].replace(f"#{self.role_id}", ""), r[0]))
                             base.commit()
             
             try:
-                await interaction.edit_original_message(embed=Embed(description=ec_mr_text[lng][5].format(self.role)))
+                await interaction.edit_original_message(embed=Embed(description=ec_mr_text[lng][5].format(str_role_id)))
             except:
                 pass
             if interaction.message:
@@ -1984,7 +1986,7 @@ class VerifyDeleteView(View):
             dsc: list[str] = self.m.content.split("\n")
             i: int = 0
             while i < len(dsc):
-                if f"{self.role}" in dsc[i]:
+                if str_role_id in dsc[i]:
                     del dsc[i]
                 else:
                     i += 1
