@@ -10,10 +10,6 @@ cdef:
     _CUSTOM_EMOJI_PATTERN = re.compile(r"\d+", flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE)
     _DEFAULT_EMOJI_PATTERN = re.compile(r":[A-Za-z\d_]+:", flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE)
 
-# @cython.profile(False)
-# @cython.nonecheck(False)
-# @cython.boundscheck(False)  # Deactivate bounds checking
-# @cython.wraparound(False)   # Deactivate negative indexing.
 def parse_emoji(bot: Bot, str string) -> Emoji | str | None:
     if string.isdigit():
         emoji = bot.get_emoji(int(string))
