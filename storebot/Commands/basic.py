@@ -4,11 +4,12 @@ from asyncio import sleep
 from os import path
 
 from nextcord import Embed, Locale, Interaction, Game, Status, slash_command, TextInputStyle, Permissions, TextChannel
-from nextcord.ext.commands import command, is_owner, Bot, Context, Cog
+from nextcord.ext.commands import command, is_owner, Context, Cog
 from nextcord.ui import Modal, TextInput
+from nextcord.abc import GuildChannel
 
+from storebot import StoreBot
 from Variables.vars import path_to
-from config import feedback_channel
 
 
 class FeedbackModal(Modal):
@@ -27,8 +28,9 @@ class FeedbackModal(Modal):
         }
     }
 
-    def __init__(self, lng: int, auth_id: int) -> None:
+    def __init__(self, bot: StoreBot, lng: int, auth_id: int) -> None:
         super().__init__(title=self.feedback_text[lng][0], timeout=1200, custom_id=f"10100_{auth_id}_{randint(1, 100)}")
+        self.bot: StoreBot = bot
         self.feedback = TextInput(
             label=self.feedback_text[lng][0],
             placeholder=self.feedback_text[lng][1],
@@ -48,9 +50,8 @@ class FeedbackModal(Modal):
             feedback if (feedback := self.feedback.value) else ""
         )
 
-        chnl = interaction.client.get_channel(feedback_channel)
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-
+        chnl: GuildChannel = self.bot.get_channel(self.bot.bot_feedback_channel)
         if chnl:
             await chnl.send(embed=Embed(description="\n".join(dsc)))
         else:
@@ -195,8 +196,8 @@ class BasicComandsCog(Cog):
         }
     }
 
-    def __init__(self, bot: Bot) -> None:
-        self.bot: Bot = bot
+    def __init__(self, bot: StoreBot) -> None:
+        self.bot: StoreBot = bot
 
     @slash_command(
         name="guide",
@@ -245,15 +246,14 @@ class BasicComandsCog(Cog):
     )
     async def feedback(self, interaction: Interaction) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        mdl: FeedbackModal = FeedbackModal(lng=lng, auth_id=interaction.user.id)
+        mdl: FeedbackModal = FeedbackModal(bot=self.bot, lng=lng, auth_id=interaction.user.id)
         await interaction.response.send_modal(modal=mdl)
 
     @command(aliases=("sunload_access_level_two", "s_a_l_2"))
     @is_owner()
     async def _salt(self, ctx: Context, chnl: TextChannel) -> None:
-        global feedback_channel
-        feedback_channel = chnl.id
-        await ctx.reply(embed=Embed(description=f"New feedback channel is <#{feedback_channel}>"), mention_author=False, delete_after=5)
+        self.bot.bot_feedback_channel = chnl.id
+        await ctx.reply(embed=Embed(description=f"New feedback channel is <#{self.bot.bot_feedback_channel}>"), mention_author=False, delete_after=5)
 
     @command(name="load")
     @is_owner()
@@ -321,5 +321,5 @@ class BasicComandsCog(Cog):
         return
 
 
-def setup(bot: Bot) -> None:
+def setup(bot: StoreBot) -> None:
     bot.add_cog(BasicComandsCog(bot))

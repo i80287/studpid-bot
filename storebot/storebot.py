@@ -1,7 +1,7 @@
 from nextcord import Intents
 from nextcord.ext.commands import Bot, when_mentioned_or
 
-from config import prefix, DEBUG_TOKEN, TOKEN, DEBUG
+from config import prefix, DEBUG_TOKEN, TOKEN, DEBUG, FEEDBACK_CHANNEL
 
 class StoreBot(Bot):
     def __init__(self) -> None:
@@ -11,20 +11,22 @@ class StoreBot(Bot):
             intents=Intents.all(), 
             help_command=None
         )
+        self.bot_feedback_channel: int = FEEDBACK_CHANNEL
+        self.current_polls: int = 0
 
     # just because if i put handler only in the cog i get an error message in the cmd every time
-    async def on_application_command_error(*args):
+    async def on_application_command_error(*args) -> None:
         return
 
 if __name__ == "__main__":
-    bot = StoreBot()
+    bot: StoreBot = StoreBot()
     bot.load_extensions_from_module("Commands")
 
     if DEBUG:
         from colorama import Fore
         from dpyConsole import Console
         
-        cmd = Console(bot)
+        cmd: Console = Console(bot)
         cmd.load_extension("console")
         cmd.start()
 

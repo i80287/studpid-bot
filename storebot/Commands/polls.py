@@ -6,25 +6,26 @@ from asyncio import sleep
 from time import time
 
 from nextcord import slash_command, Message, Interaction, Embed, ButtonStyle, Colour, Locale, SlashOption, NotFound
-from nextcord.ext.commands import Cog, Bot
+from nextcord.ext.commands import Cog
 from nextcord.ui import Button, View
 
+from storebot import StoreBot
 from Variables.vars import path_to
 
 
 class cutom_button_with_row(Button):
-    def __init__(self, label: str, disabled: bool, style: ButtonStyle, row: int):
+    def __init__(self, label: str, disabled: bool, style: ButtonStyle, row: int) -> None:
         super().__init__(label=label, disabled=disabled, style=style, row=row)
 
-    async def callback(self, interaction: Interaction):
+    async def callback(self, interaction: Interaction) -> None:
         await super().view.click_row_button(interaction=interaction, label=super().label)
 
 
 class custom_button(Button):
-    def __init__(self, label: str, disabled: bool, style: ButtonStyle):
+    def __init__(self, label: str, disabled: bool, style: ButtonStyle) -> None:
         super().__init__(label=label, disabled=disabled, style=style)
     
-    async def callback(self, interaction: Interaction):
+    async def callback(self, interaction: Interaction) -> None:
         await super().view.click(interaction=interaction, label=super().label)
 
 
@@ -63,30 +64,30 @@ class Poll(View):
     }
 
 
-    def __init__(self, bot: Bot):
+    def __init__(self, bot: StoreBot) -> None:
         self.thesis: str = ""
         self.n: int = 12
         self.questions: list[str] = []
         self.timeout: int = 0
-        self.poll_final_message: Message = None
-        self.timestamp: datetime = None
+        self.poll_final_message: Message | None = None
+        self.timestamp: datetime | None = None
         self.verified: bool = False
         self.anon: bool = True
         self.mult: bool = True
         self.lng: int = 0
-        self.bot: Bot = bot    
+        self.bot: StoreBot = bot    
 
-    def init_timeout(self):
+    def init_timeout(self) -> None:
         super().__init__(timeout=self.timeout)
 
-    def init_buttons(self):
+    def init_buttons(self) -> None:
         for i in range(self.n):
             self.add_item(custom_button(label=f"{i+1}", disabled=True, style=ButtonStyle.blurple))
         self.add_item(cutom_button_with_row(label="approve", disabled=False, style=ButtonStyle.green, row=(self.n + 4) // 5 + 1))
         self.add_item(cutom_button_with_row(label="disapprove", disabled=False, style=ButtonStyle.red, row=(self.n + 4) // 5 + 1))
 
-    def init_ans(self):
-        self.voters = [set() for _ in range(self.n)]
+    def init_ans(self) -> None:
+        self.voters: list[set] = [set() for _ in range(self.n)]
 
     def check_moder(self, interaction: Interaction, base: Connection, cur: Cursor) -> bool:
         if interaction.user.guild_permissions.administrator:
@@ -97,7 +98,7 @@ class Poll(View):
             return any(role.id in mdrls for role in interaction.user.roles)
         return False        
 
-    async def click_row_button(self, interaction: Interaction, label):
+    async def click_row_button(self, interaction: Interaction, label) -> None:
         g = interaction.guild
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
 
@@ -106,12 +107,12 @@ class Poll(View):
                 if not self.check_moder(interaction=interaction, base=base, cur=cur):
                     await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][11]), ephemeral=True)
                     return
-                chnl_id = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
+                chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
 
         if label == "disapprove":
             for i in self.children:
                 i.disabled = True
-            emb = interaction.message.embeds[0]
+            emb: Embed = interaction.message.embeds[0]
             emb.description = f"{self.poll_class_text[lng][0]}{interaction.user.mention}\n" + emb.description
             await interaction.message.edit(view=self, embed=emb)
             self.stop()
@@ -119,13 +120,13 @@ class Poll(View):
         elif label == "approve":
             if chnl_id and (chnl := g.get_channel(chnl_id)):
                 emb = interaction.message.embeds[0]
-                o_dsc = emb.description
+                o_dsc: str = emb.description
                 emb.description = f"{self.poll_class_text[lng][1]}{interaction.user.mention}\n" + emb.description
                 self.children[-1].disabled = True
                 self.children[-2].disabled = True
                 await interaction.message.edit(view=self, embed=emb)
 
-                i = 0
+                i: int = 0
                 while i < len(self.children):
                     if "prove" in self.children[i].label:
                         self.remove_item(self.children[i])
@@ -226,7 +227,7 @@ class Poll(View):
         dsc: list[str] = [""]
         lng: int = self.lng
         for i in range(self.n):
-            voters_for_ans_i = len(self.voters[i])
+            voters_for_ans_i: int = len(self.voters[i])
 
             if voters_for_ans_i == 1:
                 dsc.append(f"{i+1}) {self.questions[i]} - {self.poll_class_text[lng][12].format(voters_for_ans_i)}")
@@ -254,7 +255,7 @@ class Poll(View):
         won_results_description.append(f"{self.poll_class_text[lng][8]}")
         dsc[0] = '\n'.join(won_results_description)
         
-        emb = Embed(description="\n".join(dsc))
+        emb: Embed = Embed(description="\n".join(dsc))
         
         for c in self.children:
             c.disabled = True
@@ -293,8 +294,8 @@ class PollCog(Cog):
         }
     }   
 
-    def __init__(self, bot: Bot):
-        self.bot = bot
+    def __init__(self, bot: StoreBot) -> None:
+        self.bot: StoreBot = bot
     
 
     @slash_command(
@@ -526,7 +527,7 @@ class PollCog(Cog):
             required=False,
             default=""
         )
-    ):
+    ) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         g_id: int = interaction.guild_id
         with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
@@ -540,7 +541,7 @@ class PollCog(Cog):
             await interaction.response.send_message(embed=Embed(description=self.polls_text[lng][1], colour=Colour.dark_red()), ephemeral=True)
             return
 
-        poll = Poll(self.bot)
+        poll: Poll = Poll(self.bot)
         poll.timestamp = datetime.fromtimestamp(int(time()) + 3600 * hours + 60 * minutes)
         poll.timeout = 3600 * hours + 60 * minutes
         poll.init_timeout()
@@ -581,7 +582,7 @@ class PollCog(Cog):
             poll_description.append(f"**`{self.polls_text[lng][7]}`**")
         poll_description.append(self.polls_text[lng][8].format(interaction.user.id))
         
-        emb = Embed(description='\n'.join(poll_description), timestamp=poll.timestamp)
+        emb: Embed = Embed(description='\n'.join(poll_description), timestamp=poll.timestamp)
         for i, i_question in enumerate(poll.questions):
             emb.add_field(name=f"{i+1} {self.polls_text[lng][2]}", value=f"{i_question}\n{self.polls_text[lng][3]}")
         emb.set_author(name=self.polls_text[lng][3])
@@ -594,5 +595,5 @@ class PollCog(Cog):
         await interaction.response.send_message(embed=Embed(description=self.polls_text[lng][9], colour=Colour.dark_purple()), ephemeral=True)
 
 
-def setup(bot: Bot):
+def setup(bot: StoreBot) -> None:
     bot.add_cog(PollCog(bot))

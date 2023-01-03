@@ -868,7 +868,7 @@ class EconomyView(View):
             rls=assignable_roles,
             s_rls=server_roles_ids
         )
-        await interaction.response.send_message(content='\n'.join(descr), view=ec_rls_view)
+        await interaction.response.send_message(embed=Embed(description='\n'.join(descr)), view=ec_rls_view)
         await ec_rls_view.wait()
         for c in ec_rls_view.children:
             c.disabled = True

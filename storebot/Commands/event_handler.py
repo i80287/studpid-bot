@@ -173,7 +173,6 @@ class EventsHandlerCog(Cog):
     
     @Cog.listener()
     async def on_ready(self) -> None:
-        setattr(self.bot, "current_polls", 0)
         if not path.exists(f"{path_to}/bases/"):
             mkdir(f"{path_to}/bases/")
         for guild in self.bot.guilds:

@@ -1323,7 +1323,7 @@ class SlashCommandsCog(Cog):
             )
             return
         
-        seller_roles_ids: set[int] = {role.id for role in seller.roles[1:]}
+        seller_roles_ids: set[int] = set(seller._roles)
         # Just in case seller roles were changed manually without the bot.
         seller_db_roles_ids: set[int] = {int(str_role_id) for str_role_id in seller_db_roles_str.split('#') if str_role_id}
         seller_roles_ids.intersection_update(seller_db_roles_ids)
