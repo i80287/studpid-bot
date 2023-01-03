@@ -170,7 +170,7 @@ class RoleAddModal(ManageRoleModalBase):
         super().__init__(title=self.manage_role_modals_text[lng][0], timeout=timeout, custom_id=f"6100_{auth_id}_{randint(1, 100)}")
         self.role_id=role
         self.m: Message = message
-        self.added = False
+        self.added: bool = False
         self.price_text_input = TextInput(
             label=self.manage_role_modals_text[lng][10],
             min_length=1,
@@ -304,13 +304,15 @@ class RoleAddModal(ManageRoleModalBase):
                     )
                     base.commit()
 
-        dsc: list[str] = self.m.content.split("\n")
-        rls = dsc[1:-2]
+        emb: Embed = self.m.embeds[0]
+        dsc: list[str] = emb.description.split("\n")
+        rls: list[str] = dsc[1:-2]
         dsc = [self.partial_ec_text[lng][18]]
         dsc.extend(r for r in rls)
         dsc.append(f"<@&{role_id}> - **`{role_id}`** - **`{price}`** - **`{salary}`** - **`{salary_cooldown // 3600}`** - **`{r_types[lng][role_type]}`** - **`0`** - **`{additional_salary}`**\n")
         dsc.append(self.partial_ec_text[lng][20])
-        await self.m.edit(content='\n'.join(dsc))
+        emb.description = '\n'.join(dsc)
+        await self.m.edit(embed=emb)
 
         self.added = True
         await interaction.response.send_message(
@@ -496,13 +498,15 @@ class RoleEditModal(ManageRoleModalBase):
                     self.update_salary(base=base, cur=cur, r=r, salary=salary, salary_c=salary_c)
         
         amount_in_store: str = str(l) if r_type != 3 or not l else "∞"
-        dsc: list[str] = self.m.content.split('\n')
+        emb: Embed = self.m.embeds[0]
+        dsc: list[str] = emb.description.split('\n')
         str_role_id: str = str(r)
         for i in range(1, len(dsc)-1):
             if str_role_id in dsc[i]:
                 dsc[i] = f"<@&{r}> - **`{r}`** - **`{price}`** - **`{salary}`** - **`{salary_c // 3600}`** - **`{r_types[lng][r_type]}`** - **`{amount_in_store}`** - **`{new_additional_salary}`**"
                 break
-        await self.m.edit(content='\n'.join(dsc))
+        emb.description = '\n'.join(dsc)
+        await self.m.edit(embed=emb)
         self.changed = True
 
         await interaction.response.send_message(

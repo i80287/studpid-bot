@@ -1973,7 +1973,8 @@ class VerifyDeleteView(View):
             if interaction.message:
                 await interaction.message.delete()
 
-            dsc: list[str] = self.m.content.split("\n")
+            emb: Embed = self.m.embeds[0]
+            dsc: list[str] = emb.description.split("\n")
             i: int = 0
             while i < len(dsc):
                 if str_role_id in dsc[i]:
@@ -1982,7 +1983,8 @@ class VerifyDeleteView(View):
                     i += 1
             if len(dsc) == 3:
                 dsc[0] = ec_text[lng][19]
-            await self.m.edit(content='\n'.join(dsc))
+            emb.description = '\n'.join(dsc)
+            await self.m.edit(embed=emb)
             self.deleted = True
             self.stop()
     
