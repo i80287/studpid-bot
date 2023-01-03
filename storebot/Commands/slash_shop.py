@@ -1,18 +1,18 @@
 from datetime import datetime, timedelta, timezone
-from sqlite3 import connect
+from sqlite3 import connect, Cursor
 from contextlib import closing
 from random import randint
 from typing import Literal
 from time import time
 
 from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction,\
-        Locale, SelectOption, slash_command, Role, Member, User
+        Locale, SelectOption, slash_command, Role, Member, User, Guild
 from nextcord.ui import Button, View, Select
 from nextcord.ext.commands import Bot, Cog
 from nextcord.abc import GuildChannel
 
 from Tools.db_commands import check_db_member, \
-    peek_role_free_number, peek_free_request_id
+    peek_role_free_number, peek_free_request_id, delete_role_from_db
 from Variables.vars import path_to
 from config import in_row
 
@@ -656,8 +656,8 @@ class SlashCommandsCog(Cog):
             4: "Место в рейтинге",
             5: "**`Информация о пользователе:`**\n<@{}>",
             6: "**`У Вас нет ролей из магазина бота`**",
-            7: "**`Роль:`** <@&{}> **`цена: {}`** {} **`кому:`** <@{}>",
-            8: "**`Роль:`** <@&{}> **`цена: {}`** {} **`продавец:`** <@{}>",
+            7: "**`id предложения: {} роль:`** <@&{}> **`цена: {}`** {} **`кому:`** <@{}>",
+            8: "**`id предложения: {} роль:`** <@&{}> **`цена: {}`** {} **`продавец:`** <@{}>",
         }
     }
     code_blocks: dict[int, dict[int, str]] = {
@@ -676,36 +676,72 @@ class SlashCommandsCog(Cog):
             2: "```c\n{}\n```",
         }       
     }
+    manage_requests_text: dict[int, dict[int, str]] = {
+        0: {
+            0: "**`You have not received role purchase/sale request with such id`**",
+            1: "**`You have not received role purchase request with sush id`**",
+            2: "**`The role offered to you no longer exists on the server`**",
+            3: "**`For purchasing this role you need {}`** {} **`more`**",
+            4: "**`At the moment you already have this role`**",
+            5: "**`At the moment, the seller is not on the server`**",
+            6: "**`The seller no longer has the role offered to you`**",
+            7: "**`When adding/removing a role, an access rights error occurred`**",
+            8: "**`You bought role`** <@&{}> **`from`** <@{}> **`for {}`** {}",
+            9: "**`You deleted your role sale request for role`** <@&{}>",
+            10: "**`You declined role purchase request for role`** <@&{}>",
+        },
+        1: {
+            0: "**`Вы вас нет предложения от покупке/продаже роли c таким id`**",
+            1: "**`Вам не приходило предложение покупке роли c таким id`**",
+            2: "**`Продаваемой Вам роли больше нет на сервере`**",
+            3: "**`Для покупки роли Вам не хватает {}`** {}",
+            4: "**`На данный момент у Вас уже есть эта роль`**",
+            5: "**`На данный момент продавца нет на сервере`**",
+            6: "**`У продавца больше нет продаваемой вам роли`**",
+            7: "**`При добавлении/изъятии роли возникла ошибка права доступа`**",
+            8: "**`Вы купили роль`** <@&{}> **`у`** <@{}> **`за {}`** {}",
+            9: "**`Вы удалили своё предложение продажи роли`** <@&{}>",
+            10: "**`Вы отклонили предложение покупки роли`** <@&{}>",
+        }
+    }
 
     def __init__(self, bot: Bot) -> None:
         self.bot: Bot = bot
         self.in_row: int = in_row
 
-    @staticmethod
-    async def can_role(interaction: Interaction, role: Role, lng: int) -> bool:
+    @classmethod
+    async def can_role(cls, interaction: Interaction, role: Role, lng: int) -> bool:
         # if not interaction.permissions.manage_roles:
         if not interaction.guild.me.guild_permissions.manage_roles:
-            await interaction.response.send_message(
-                embed=Embed(
-                    title=text_slash[lng][0],
-                    colour=Colour.red(),
-                    description=text_slash[lng][1]
-                ),
-                ephemeral=True
-            )
+            await cls.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][1])
             return False
         elif not role.is_assignable():
-            await interaction.response.send_message(
-                embed=Embed(
-                    title=text_slash[lng][0],
-                    colour=Colour.red(),
-                    description=text_slash[lng][2]
-                ),
-                ephemeral=True
-            )
+            await cls.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][2])
             return False
 
         return True
+
+    @classmethod
+    async def verify_request_id(cls, cur: Cursor, request_id: int, interaction: Interaction, memb_id: int) -> tuple[int, int, int, int] | None:
+        request: tuple[int, int, int, int] | None = cur.execute(
+            "SELECT seller_id, target_id, role_id, price FROM sale_requests WHERE request_id = ? AND (seller_id = ? OR target_id = ?)",
+            (request_id, memb_id, memb_id)
+        ).fetchone()
+        if not request:
+            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            await cls.respond_with_error_report(interaction=interaction, lng=lng, answer=cls.manage_requests_text[lng][0])
+        return request
+
+    @classmethod
+    async def respond_with_error_report(cls, interaction: Interaction, lng: int, answer: str) -> None:
+        await interaction.response.send_message(
+            embed=Embed(
+                title=text_slash[lng][0],
+                description=answer, 
+                colour=Colour.red()
+            ),
+            ephemeral=True
+        )
 
     async def buy(self, interaction: Interaction, role: Role) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
@@ -730,32 +766,21 @@ class SlashCommandsCog(Cog):
                     (r_id,)
                 ).fetchone()
                 if not store:
-                    await interaction.response.send_message(
-                        embed=Embed(title=text_slash[lng][0], description=text_slash[lng][5], colour=Colour.red())
-                    )
+                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][5])
                     return
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 buyer: tuple[int, int, str, int, int, int] = check_db_member(base=base, cur=cur, memb_id=memb_id)
 
         # if r_id in {int(x) for x in buyer[2].split("#") if x != ""}:
         if str(r_id) in buyer[2]:
-            await interaction.response.send_message(
-                embed=Embed(title=text_slash[lng][0], description=text_slash[lng][4], colour=Colour.red()),
-                ephemeral=True)
+            await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][4])
             return
 
         buyer_cash: int = buyer[1]
         cost: int = store[1]
 
         if buyer_cash < cost:
-            await interaction.response.send_message(
-                embed=Embed(
-                    title=text_slash[lng][0],
-                    colour=Colour.red(),
-                    description=text_slash[lng][6].format(cost - buyer_cash, currency)
-                ),
-                delete_after=10
-            )
+            await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][6].format(cost - buyer_cash, currency))
             return
 
         emb: Embed = Embed(title=text_slash[lng][7], description=text_slash[lng][8].format(role.mention, cost, currency))
@@ -912,14 +937,7 @@ class SlashCommandsCog(Cog):
                 role_info: tuple[int, int, int, int, int] | None = \
                     cur.execute("SELECT role_id, price, salary, salary_cooldown, type FROM server_roles WHERE role_id = ?", (r_id,)).fetchone()
                 if not role_info:
-                    await interaction.response.send_message(
-                        embed=Embed(
-                            title=text_slash[lng][0],
-                            description=text_slash[lng][17],
-                            colour=Colour.red()
-                        ),
-                        ephemeral=True
-                    )
+                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][17])
                     return
 
                 memb_id: int = interaction.user.id
@@ -927,9 +945,7 @@ class SlashCommandsCog(Cog):
                 owned_roles: set[str] = {str_role_id for str_role_id in user[2].split("#") if str_role_id}
                 str_role_id: str = str(r_id)
                 if str_role_id not in owned_roles:
-                    await interaction.response.send_message(
-                        embed=Embed(colour=Colour.red(), title=text_slash[lng][0], description=text_slash[lng][16]),
-                        ephemeral=True)
+                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][16])
                     return
                 else:
                     owned_roles.remove(str_role_id)
@@ -1034,14 +1050,7 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
         target_id: int = target.id
         if memb_id == target_id:
-            await interaction.response.send_message(
-                embed=Embed(
-                    title=text_slash[lng][0],
-                    description=self.sell_to_text[lng][0],
-                    colour=Colour.red()
-                ),
-                ephemeral=True
-            )
+            await self.respond_with_error_report(interaction=interaction, lng=lng, answer=self.sell_to_text[lng][0])
             return
         role_id: int = role.id
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
@@ -1057,28 +1066,14 @@ class SlashCommandsCog(Cog):
                     (role_id,)
                 ).fetchone()[0]
                 if not is_role_added_to_server:
-                    await interaction.response.send_message(
-                        embed=Embed(
-                            title=text_slash[lng][0],
-                            description=text_slash[lng][17],
-                            colour=Colour.red()
-                        ),
-                        ephemeral=True
-                    )
+                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][17])
                     return
 
                 user: tuple[int, int, str, int, int, int] = check_db_member(base=base, cur=cur, memb_id=memb_id)
                 owned_roles: set[str] = {str_role_id for str_role_id in user[2].split("#") if str_role_id}
                 str_role_id: str = str(role_id)
                 if str_role_id not in owned_roles:
-                    await interaction.response.send_message(
-                        embed=Embed(
-                            title=text_slash[lng][0],
-                            description=text_slash[lng][16],
-                            colour=Colour.red()
-                        ),
-                        ephemeral=True
-                    )
+                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][16])
                     return
                 
                 is_role_already_being_sold_by_user: int = cur.execute(
@@ -1086,26 +1081,12 @@ class SlashCommandsCog(Cog):
                     (memb_id, role_id)
                 ).fetchone()[0]
                 if is_role_already_being_sold_by_user:
-                    await interaction.response.send_message(
-                        embed=Embed(
-                            title=text_slash[lng][0],
-                            description=self.sell_to_text[lng][1].format(str_role_id),
-                            colour=Colour.red()
-                        ),
-                        ephemeral=True
-                    )
+                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=self.sell_to_text[lng][1].format(str_role_id))
                     return
                 
                 target_db_info: tuple[int, int, str, int, int, int] = check_db_member(base=base, cur=cur, memb_id=target_id)
                 if str_role_id in target_db_info[2]:
-                    await interaction.response.send_message(
-                        embed=Embed(
-                            title=text_slash[lng][0],
-                            description=self.sell_to_text[lng][2].format(target_id, str_role_id),
-                            colour=Colour.red()
-                        ),
-                        ephemeral=True
-                    )
+                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=self.sell_to_text[lng][2].format(target_id, str_role_id))
                     return
 
                 free_request_id: int = peek_free_request_id(cur=cur)
@@ -1271,6 +1252,157 @@ class SlashCommandsCog(Cog):
 
         await interaction.response.send_message(embeds=embs)
 
+    async def accept_request(self, interaction: Interaction, request_id: int) -> None:
+        guild_id: int = interaction.guild_id
+        memb_id: int = interaction.user.id
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        with closing(connect(f"{path_to}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                purchase_request: tuple[int, int, int, int] | None = await self.verify_request_id(
+                    cur=cur,
+                    request_id=request_id,
+                    interaction=interaction,
+                    memb_id=memb_id
+                )
+                if not purchase_request:
+                    return
+                if purchase_request[1] != memb_id:
+                    await self.respond_with_error_report(
+                        interaction=interaction,
+                        lng=lng,
+                        answer=self.manage_requests_text[lng][1]
+                    )
+                    return
+                member_info: tuple[int, int, str, int, int, int] = check_db_member(base=base, cur=cur, memb_id=memb_id)
+                seller_id: int = purchase_request[0]
+                seller_db_roles_str: str = cur.execute(
+                    "SELECT owned_roles FROM users WHERE memb_id = ?",
+                    (seller_id,)
+                ).fetchone()[0]
+        
+        role_id: int = purchase_request[2]
+        guild: Guild = interaction.guild
+        role: Role | None = guild.get_role(role_id)
+        if not role:
+            await self.respond_with_error_report(
+                interaction=interaction,
+                lng=lng,
+                answer=self.manage_requests_text[lng][2]
+            )
+            delete_role_from_db(guild_id=guild_id, str_role_id=str(role_id))
+            return
+        
+        price: int = purchase_request[3]
+        if member_info[1] < price:
+            await self.respond_with_error_report(
+                interaction=interaction,
+                lng=lng,
+                answer=self.manage_requests_text[lng][3]
+            )
+            return
+
+        if not await self.can_role(interaction=interaction, role=role, lng=lng):
+            return
+
+        str_member_roles: str = member_info[2]
+        member_roles: set[int] = {int(str_role_id) for str_role_id in str_member_roles.split('#') if str_role_id}
+        if role_id in member_roles:
+            await self.respond_with_error_report(
+                interaction=interaction,
+                lng=lng,
+                answer=self.manage_requests_text[lng][4]
+            )
+            return
+
+        seller: Member | None = guild.get_member(seller_id)
+        if not seller:
+            await self.respond_with_error_report(
+                interaction=interaction,
+                lng=lng,
+                answer=self.manage_requests_text[lng][5]
+            )
+            return
+        
+        seller_roles_ids: set[int] = {role.id for role in seller.roles[1:]}
+        # Just in case seller roles were changed manually without the bot.
+        seller_db_roles_ids: set[int] = {int(str_role_id) for str_role_id in seller_db_roles_str.split('#') if str_role_id}
+        seller_roles_ids.intersection_update(seller_db_roles_ids)
+        del seller_db_roles_ids
+
+        if role_id not in seller_roles_ids:
+            await self.respond_with_error_report(
+                interaction=interaction,
+                lng=lng,
+                answer=self.manage_requests_text[lng][6]
+            )
+            with closing(connect(f"{path_to}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+                with closing(base.cursor()) as cur:
+                    cur.execute("DELETE FROM sale_requests WHERE request_id = ?", (request_id,))
+                    base.commit()
+            return
+        seller_roles_ids.remove(role_id)
+
+        new_seller_roles: str = '#' + '#'.join(str(r_id) for r_id in seller_roles_ids) if seller_roles_ids else ""
+        str_member_roles += '#' + str(role_id)
+        with closing(connect(f"{path_to}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                cur.execute(
+                    "UPDATE users SET money = money + ?, owned_roles = ? WHERE memb_id = ?",
+                    (price, new_seller_roles, seller_id)
+                )
+                cur.execute(
+                    "UPDATE users SET money = money - ?, owned_roles = ? WHERE memb_id = ?",
+                    (price, str_member_roles, memb_id)
+                )
+                cur.execute("DELETE FROM sale_requests WHERE request_id = ?", (request_id,))
+                base.commit()
+                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+        try:
+            await seller.remove_roles(role)
+            await interaction.user.add_roles(role)
+        except:
+            await self.respond_with_error_report(
+                interaction=interaction,
+                lng=lng,
+                answer=self.manage_requests_text[lng][7]
+            )
+        else:
+            await interaction.response.send_message(embed=Embed(
+                description=self.manage_requests_text[lng][8].format(
+                    role_id, 
+                    seller_id,
+                    price,
+                    currency
+                ),
+                colour=Colour.green()
+            ))
+
+    async def decline_request(self, interaction: Interaction, request_id: int) -> None:
+        guild_id: int = interaction.guild_id
+        memb_id: int = interaction.user.id
+        with closing(connect(f"{path_to}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                request: tuple[int, int, int, int] | None = await self.verify_request_id(
+                    cur=cur,
+                    request_id=request_id,
+                    interaction=interaction,
+                    memb_id=memb_id
+                )
+                if not request:
+                    return
+                cur.execute("DELETE FROM sale_requests WHERE request_id = ?", (request_id,))
+                base.commit()
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        decr: str = self.manage_requests_text[lng][9] \
+            if memb_id == request[0] else self.manage_requests_text[lng][10]
+        await interaction.response.send_message(
+            embed=Embed(
+                description=decr.format(request[2]),
+                colour=Colour.green()
+            ),
+            ephemeral=True
+        )
+
     async def work(self, interaction: Interaction) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
@@ -1288,9 +1420,7 @@ class SlashCommandsCog(Cog):
                 if member[3] and (lasted_time := int(time()) - member[3]) < time_reload:
                     time_l: int = time_reload - lasted_time
                     t_l: str = f"{time_l // 3600}:{(time_l % 3600) // 60}:{time_l % 60}"
-                    await interaction.response.send_message(
-                        embed=Embed(title=text_slash[lng][0], description=text_slash[lng][26].format(t_l)),
-                        ephemeral=True)
+                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][26].format(t_l))
                     return
 
                 sal_l: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l'").fetchone()[0]
@@ -1353,14 +1483,7 @@ class SlashCommandsCog(Cog):
                 server_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
         if amount > member[1]:
-            await interaction.response.send_message(
-                embed=Embed(
-                    title=text_slash[lng][0],
-                    description=text_slash[lng][31].format(amount - member[1], currency), 
-                    colour=Colour.red()
-                ),
-                ephemeral=True
-            )
+            await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][31].format(amount - member[1], currency))
             return
 
         bet_view: BetView = BetView(timeout=30, lng=lng, auth_id=memb_id, bet=amount, currency=currency)
@@ -1430,12 +1553,7 @@ class SlashCommandsCog(Cog):
                 check_db_member(base=base, cur=cur, memb_id=t_id)
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 if value > act[1]:
-                    emb: Embed = Embed(
-                        title=text_slash[lng][0],
-                        description=text_slash[lng][39].format(value - act[1], currency),
-                        colour=Colour.red()
-                    )
-                    await interaction.response.send_message(embed=emb)
+                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][39].format(value - act[1], currency))
                     return
 
                 cur.execute('UPDATE users SET money = money - ? WHERE memb_id = ?', (value, memb_id))
@@ -1446,7 +1564,7 @@ class SlashCommandsCog(Cog):
                 chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
                 server_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
-        emb = Embed(
+        emb: Embed = Embed(
             title=text_slash[lng][40],
             description=text_slash[lng][41].format(value, currency, f"<@{t_id}>"),
             colour=Colour.green()
@@ -1706,6 +1824,58 @@ class SlashCommandsCog(Cog):
     )
     async def profile_e(self, interaction: Interaction) -> None:
         await self.profile(interaction=interaction)
+
+    @slash_command(
+        name="accept_request",
+        description="Accepts role purchase request (from the /profile command)",
+        description_localizations={
+            Locale.ru: "Принимает предложение о покупке роли (из команды /profile)"
+        }
+    )
+    async def accept_request_e(
+        self,
+        interaction: Interaction,
+        request_id: int = SlashOption(
+            name="request_id",
+            name_localizations={
+                Locale.ru: "id_предложения"
+            },
+            description="id of the role purchase request (from the /profile command)",
+            description_localizations={
+                Locale.ru: "id предложения о покупке роли (из команды /profile)"
+            },
+            min_value=1,
+            max_value=99999,
+            required=True
+        )
+    ) -> None:
+        await self.accept_request(interaction=interaction, request_id=request_id)
+
+    @slash_command(
+        name="decline_request",
+        description="Decline or delete role purchase / sale request (from the /profile command)",
+        description_localizations={
+            Locale.ru: "Отменяет или удаляет предложение о покупке / продаже роли (из команды /profile)"
+        }
+    )
+    async def decline_request_e(
+        self,
+        interaction: Interaction,
+        request_id: int = SlashOption(
+            name="request_id",
+            name_localizations={
+                Locale.ru: "id_предложения"
+            },
+            description="id of the role purchase request / sale (from the /profile command)",
+            description_localizations={
+                Locale.ru: "id предложения о покупке / продаже роли (из команды /profile)"
+            },
+            min_value=1,
+            max_value=99999,
+            required=True
+        )
+    ) -> None:
+        await self.decline_request(interaction=interaction, request_id=request_id)
 
     @slash_command(
         name="work",

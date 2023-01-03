@@ -81,3 +81,21 @@ def peek_role_free_numbers(cur: Cursor, amount_of_numbers: int) -> list[int]:
         return list(free_numbers)
     else:
         return list(range(1, amount_of_numbers + 1))
+
+def delete_role_from_db(guild_id: int, str_role_id: str) -> None:
+    with closing(connect(f"{path_to}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        with closing(base.cursor()) as cur:
+            cur.executescript(f"""\
+            DELETE FROM server_roles WHERE role_id = {str_role_id};
+            DELETE FROM salary_roles WHERE role_id = {str_role_id};
+            DELETE FROM store WHERE role_id = {str_role_id};
+            DELETE FROM sale_requests WHERE role_id = {str_role_id};""")
+            base.commit()
+            memb_ids_and_roles: list[tuple[int, str]] = cur.execute("SELECT memb_id, owned_roles FROM users").fetchall()
+            for memb_id, owned_roles in memb_ids_and_roles:
+                if str_role_id in owned_roles:
+                    cur.execute(
+                        "UPDATE users SET owned_roles = ? WHERE memb_id = ?",
+                        (owned_roles.replace('#' + str_role_id, ""), memb_id)
+                    )
+                    base.commit()

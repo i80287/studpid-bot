@@ -9,7 +9,7 @@ from nextcord import Embed, Emoji, Interaction,\
 from nextcord.ui import View
 from nextcord.ext.commands import Bot
 
-from Tools.db_commands import check_db_member
+from Tools.db_commands import check_db_member, delete_role_from_db
 from Tools.parse_tools import parse_emoji
 from Variables.vars import path_to, ignored_channels
 from CustomComponents.custom_button import CustomButton
@@ -631,7 +631,7 @@ class ModRolesView(View):
                 cur.execute("DELETE FROM mod_roles WHERE role_id = ?", (rl_id,))
                 base.commit()
         self.m_rls.remove(rl_id)
-        emb = interaction.message.embeds[0]
+        emb: Embed = interaction.message.embeds[0]
 
         if self.m_rls:
             dsc = emb.description.split("\n")
@@ -1953,7 +1953,7 @@ class VerifyDeleteView(View):
         self.deleted: bool = False
         self.add_item(CustomButton(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_{randint(1, 100)}"))
-    
+
     async def click(self, interaction: Interaction, c_id: str) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         if c_id.startswith("1001_"):
@@ -1964,18 +1964,8 @@ class VerifyDeleteView(View):
         elif c_id.startswith("1000_"):
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][4]), ephemeral=True)
             str_role_id: str = str(self.role_id)
-            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
-                with closing(base.cursor()) as cur:
-                    cur.executescript(f"""\
-                    DELETE FROM server_roles WHERE role_id = {str_role_id};
-                    DELETE FROM salary_roles WHERE role_id = {str_role_id};
-                    DELETE FROM store WHERE role_id = {str_role_id};""")
-                    base.commit()
-                    for r in cur.execute("SELECT * FROM users").fetchall():
-                        if str_role_id in r[2]:
-                            cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (r[2].replace(f"#{self.role_id}", ""), r[0]))
-                            base.commit()
-            
+            guild_id: int = g_id if (g_id := interaction.guild_id) else interaction.guild.id
+            delete_role_from_db(guild_id=guild_id, str_role_id=str_role_id)
             try:
                 await interaction.edit_original_message(embed=Embed(description=ec_mr_text[lng][5].format(str_role_id)))
             except:
