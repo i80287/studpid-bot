@@ -7,8 +7,8 @@ from random import randint
 from nextcord import Embed, Emoji, Interaction,\
     ButtonStyle, Message, Member
 from nextcord.ui import View
-from nextcord.ext.commands import Bot
 
+from storebot import StoreBot
 from Tools.db_commands import check_db_member, delete_role_from_db
 from Tools.parse_tools import parse_emoji
 from Variables.vars import path_to, ignored_channels
@@ -425,12 +425,12 @@ code_blocks: dict[int, str] = {
 
 
 class GenSettingsView(View):
-    def __init__(self, t_out: int, auth_id: int, bot: Bot, lng: int, ec_status: int, rnk_status: int) -> None:
+    def __init__(self, t_out: int, auth_id: int, bot: StoreBot, lng: int, ec_status: int, rnk_status: int) -> None:
         super().__init__(timeout=t_out)
-        self.bot: Bot = bot
+        self.bot: StoreBot = bot
         self.auth_id: int = auth_id
-        self.lang = None
-        self.tz = None
+        self.lang: int | None = None
+        self.tz: int | None = None
         self.ec_status: int = ec_status
         self.rnk_status: int = rnk_status
         tzs: list[tuple[str, int]] = [(f"UTC{i}", i) for i in range(-12, 0)] + [(f"UTC+{i}", i) for i in range(0, 13)]
@@ -442,12 +442,12 @@ class GenSettingsView(View):
         self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"43_{auth_id}_{randint(1, 100)}", emoji="💰", row=2))
         self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"44_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
         
-    async def select_lng(self, interaction: Interaction, lng: int):
-        s_lng = self.lang
+    async def select_lng(self, interaction: Interaction, lng: int) -> None:
+        s_lng: int | None = self.lang
         if s_lng is None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][22]), ephemeral=True)
             return
-        g_id = interaction.guild_id
+        g_id: int = interaction.guild_id
         with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0] == s_lng:
@@ -456,10 +456,10 @@ class GenSettingsView(View):
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lang'", (s_lng,))
                 base.commit()
         
-        s_lng_nm = languages[lng][s_lng]
+        s_lng_nm: str = languages[lng][s_lng]
         
-        emb = interaction.message.embeds[0]
-        dsc = emb.description.split("\n")
+        emb: Embed = interaction.message.embeds[0]
+        dsc: list[str] = emb.description.split("\n")
         dsc[0] = gen_settings_text[lng][0].format(s_lng_nm)
         emb.description = "\n".join(dsc)
         await interaction.message.edit(embed=emb)
@@ -467,8 +467,8 @@ class GenSettingsView(View):
         await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][25].format(s_lng_nm)), ephemeral=True)
         self.lang = None
     
-    async def digit_tz(self, interaction: Interaction, lng: int):
-        tz = self.tz
+    async def digit_tz(self, interaction: Interaction, lng: int) -> None:
+        tz: int | None = self.tz
         if tz is None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][23]), ephemeral=True)
             return
@@ -476,18 +476,17 @@ class GenSettingsView(View):
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (tz,))
                 base.commit()
-        tz =  f"+{tz}" if tz >= 0 else str(tz)
-
-        emb = interaction.message.embeds[0]
-        dsc = emb.description.split("\n")
-        dsc[1] = gen_settings_text[lng][1].format(tz)
+        formatted_tz: str =  f"+{tz}" if tz >= 0 else str(tz)
+        emb: Embed = interaction.message.embeds[0]
+        dsc: list[str] = emb.description.split("\n")
+        dsc[1] = gen_settings_text[lng][1].format(formatted_tz)
         emb.description = "\n".join(dsc)
         await interaction.message.edit(embed=emb)
 
-        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][24].format(tz)), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][24].format(formatted_tz)), ephemeral=True)
         self.tz = None
 
-    async def change_currency(self, interaction: Interaction, lng: int):
+    async def change_currency(self, interaction: Interaction, lng: int) -> None:
         await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][29]), ephemeral=True)
         try:
             user_ans: Message = await self.bot.wait_for(event="message", check=lambda m: m.channel.id == interaction.channel_id and m.author.id == self.auth_id, timeout=25)
@@ -497,19 +496,19 @@ class GenSettingsView(View):
             user_ans_content: str = user_ans.content
             emoji: Emoji | str | None = parse_emoji(self.bot, user_ans_content)
             if emoji is None:
-                emoji_str = user_ans_content
+                emoji_str: str = user_ans_content
             elif isinstance(emoji, Emoji):
-                emoji_str = emoji.__str__()
+                emoji_str: str = emoji.__str__()
             else:
-                emoji_str = emoji
+                emoji_str: str = emoji
 
             with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("UPDATE server_info SET str_value = ? WHERE settings = 'currency'", (emoji_str,))
                     base.commit()
 
-            emb = interaction.message.embeds[0]
-            dsc = emb.description.split("\n")
+            emb: Embed = interaction.message.embeds[0]
+            dsc: list[str] = emb.description.split("\n")
             dsc[2] = gen_settings_text[lng][2].format(emoji_str)
             emb.description = "\n".join(dsc)
             await interaction.message.edit(embed=emb)
@@ -517,16 +516,16 @@ class GenSettingsView(View):
             if await interaction.original_message():
                 await interaction.edit_original_message(embed=Embed(description=gen_settings_text[lng][30].format(emoji_str)))
 
-    async def change_ec_system(self, interaction: Interaction, lng: int):
-        self.ec_status = (self.ec_status + 1) % 2
+    async def change_ec_system(self, interaction: Interaction, lng: int) -> None:
+        self.ec_status ^= 1
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'economy_enabled'", (self.ec_status,))
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (self.ec_status,))
                 base.commit()
 
-        emb = interaction.message.embeds[0]
-        dsc = emb.description.split("\n")
+        emb: Embed = interaction.message.embeds[0]
+        dsc: list[str] = emb.description.split("\n")
         dsc[3] = gen_settings_text[lng][3].format(system_status[lng][self.ec_status])
         dsc[8] = gen_settings_text[lng][8].format(system_status[lng][self.ec_status+2])
         emb.description = "\n".join(dsc)
@@ -534,16 +533,16 @@ class GenSettingsView(View):
 
         await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][27].format(system_status[lng][self.ec_status+4])), ephemeral=True)
 
-    async def change_rnk_system(self, interaction: Interaction, lng: int):
-        self.rnk_status = (self.rnk_status + 1) % 2
+    async def change_rnk_system(self, interaction: Interaction, lng: int) -> None:
+        self.rnk_status ^= 1
         with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'ranking_enabled'", (self.rnk_status,))
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_per_msg'", (self.rnk_status,))
                 base.commit()
         
-        emb = interaction.message.embeds[0]
-        dsc = emb.description.split("\n")
+        emb: Embed = interaction.message.embeds[0]
+        dsc: list[str] = emb.description.split("\n")
         dsc[4] = gen_settings_text[lng][4].format(system_status[lng][self.rnk_status])
         dsc[9] = gen_settings_text[lng][9].format(system_status[lng][self.rnk_status+2])
         emb.description = "\n".join(dsc)
@@ -551,7 +550,7 @@ class GenSettingsView(View):
             
         await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][28].format(system_status[lng][self.rnk_status+4])), ephemeral=True)
 
-    async def click(self, interaction: Interaction, c_id: str):
+    async def click(self, interaction: Interaction, c_id: str) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0        
         if c_id.startswith("6_"):
             await self.select_lng(interaction=interaction, lng=lng)
@@ -564,7 +563,7 @@ class GenSettingsView(View):
         elif c_id.startswith("44_"):
             await self.change_rnk_system(interaction=interaction, lng=lng)
 
-    async def click_menu(self, __, c_id: str, values):
+    async def click_menu(self, __, c_id: str, values) -> None:
         if c_id.startswith("100_"):
             self.lang = int(values[0])
         elif c_id.startswith("101_"):
@@ -579,19 +578,19 @@ class GenSettingsView(View):
 
 
 class ModRolesView(View):
-    def __init__(self, t_out: int, m_rls: set, lng: int, auth_id: int, rem_dis: bool, rls: list):
+    def __init__(self, t_out: int, m_rls: set[int], lng: int, auth_id: int, rem_dis: bool, rls: list[tuple[str, int]]) -> None:
         super().__init__(timeout=t_out)
-        self.auth_id = auth_id
-        self.m_rls = m_rls
-        self.role = None
+        self.auth_id: int = auth_id
+        self.m_rls: set[int] = m_rls
+        self.role: int | None = None
         for i in range((len(rls)+24)//25):
             self.add_item(CustomSelect(custom_id=f"{200+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][2], opts=rls[i*25:min(len(rls), (i+1)*25)]))
         self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"8_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
     
 
-    async def add_role(self, interaction: Interaction, lng: int):
-        rl_id = self.role
+    async def add_role(self, interaction: Interaction, lng: int) -> None:
+        rl_id: int = self.role
         if rl_id in self.m_rls:
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][7]), ephemeral=True)
             return       
@@ -603,8 +602,8 @@ class ModRolesView(View):
 
         self.m_rls.add(rl_id)
         
-        emb = interaction.message.embeds[0]
-        dsc = emb.description.split("\n")
+        emb: Embed = interaction.message.embeds[0]
+        dsc: list[str] = emb.description.split("\n")
         if len(self.m_rls) == 1:
             for c in self.children:
                 if c.custom_id.startswith("9_"):
@@ -620,8 +619,8 @@ class ModRolesView(View):
         await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][8].format(f"<@&{rl_id}>")), ephemeral=True)
     
 
-    async def rem_role(self, interaction: Interaction, lng: int):
-        rl_id = self.role
+    async def rem_role(self, interaction: Interaction, lng: int) -> None:
+        rl_id: int = self.role
         if not rl_id in self.m_rls:
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][9]), ephemeral=True)
             return
@@ -634,7 +633,7 @@ class ModRolesView(View):
         emb: Embed = interaction.message.embeds[0]
 
         if self.m_rls:
-            dsc = emb.description.split("\n")
+            dsc: list[str] = emb.description.split("\n")
             dsc.remove(f"<@&{rl_id}> - {rl_id}")
             emb.description = "\n".join(sorted(dsc))
             await interaction.message.edit(embed=emb)
@@ -651,7 +650,6 @@ class ModRolesView(View):
 
     async def click(self, interaction: Interaction, c_id: str) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        m = interaction.message
         if self.role is None:
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
             return
@@ -667,7 +665,7 @@ class ModRolesView(View):
                 ephemeral=True
             )
 
-    async def click_menu(self, __, c_id: str, values):
+    async def click_menu(self, __, c_id: str, values) -> None:
         if c_id.startswith("20") and c_id[3] == "_":
             self.role = int(values[0])
     
@@ -680,7 +678,7 @@ class ModRolesView(View):
 
 
 class EconomyView(View):
-    r_types = {
+    r_types: dict[int, dict[int, str]] = {
         0 : {
             1 : "Nonstacking, displayed separated",
             2 : "Stacking, countable",
@@ -693,9 +691,9 @@ class EconomyView(View):
         }
     }
 
-    def __init__(self, t_out: int, auth_id: int, sale_price_percent: int):
+    def __init__(self, t_out: int, auth_id: int, sale_price_percent: int) -> None:
         super().__init__(timeout=t_out)
-        self.auth_id = auth_id
+        self.auth_id: int = auth_id
         self.channel: int | None = None
         self.sale_price_percent: int = sale_price_percent
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"10_{auth_id}_{randint(1, 100)}", emoji="💸"))
@@ -714,8 +712,8 @@ class EconomyView(View):
             
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][10].format(ans)))
             
-            emb = interaction.message.embeds[0]
-            dsc = emb.description.split("\n\n")
+            emb: Embed = interaction.message.embeds[0]
+            dsc: list[str] = emb.description.split("\n\n")
             dsc[0] = ec_text[lng][1].format(ans)
             emb.description = "\n\n".join(dsc)
             await interaction.message.edit(embed=emb)
@@ -732,8 +730,8 @@ class EconomyView(View):
                     base.commit()
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][12].format(ans)))
             
-            emb = interaction.message.embeds[0]
-            dsc = emb.description.split("\n\n")
+            emb: Embed = interaction.message.embeds[0]
+            dsc: list[str] = emb.description.split("\n\n")
             dsc[1] = ec_text[lng][2].format(ans)
             emb.description = "\n\n".join(dsc)
             await interaction.message.edit(embed=emb)
@@ -747,15 +745,15 @@ class EconomyView(View):
         n1: int = 0
         n2: int = 0
         if len(splitted_ans) >= 2:
-            arg1 = splitted_ans[0]
-            arg2 = splitted_ans[1]
+            arg1: str = splitted_ans[0]
+            arg2: str = splitted_ans[1]
             if arg1.isdigit() and arg2.isdigit():
                 n1 = int(arg1)
                 n2 = int(arg2)
                 if 0 <= n1 <= n2:
                     fl = True
         elif len(splitted_ans):
-            arg = splitted_ans[0]
+            arg: str = splitted_ans[0]
             if arg.isdigit() and (n1 := int(arg)) >= 0:
                 n2 = n1
                 fl = True
@@ -766,8 +764,8 @@ class EconomyView(View):
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_r'", (n2,))
                     base.commit()
             
-            emb = interaction.message.embeds[0]
-            dsc = emb.description.split("\n\n")
+            emb: Embed = interaction.message.embeds[0]
+            dsc: list[str] = emb.description.split("\n\n")
             if n1 == n2:
                 await interaction.edit_original_message(embed=Embed(description=ec_text[lng][14].format(n1)))
                 dsc[2] = ec_text[lng][3].format(n1)
@@ -782,21 +780,21 @@ class EconomyView(View):
         else:
             return True
 
-    async def log_chnl(self, interaction: Interaction, lng: int):
-        channels = [(c.name, c.id) for c in interaction.guild.text_channels]
+    async def log_chnl(self, interaction: Interaction, lng: int) -> None:
+        channels: list[tuple[str, int]] = [(c.name, c.id) for c in interaction.guild.text_channels]
         for i in range(min((len(channels) + 23) // 24, 7)):
-            opts = [(settings_text[lng][12], 0)] + channels[i*24:min((i+1)*24, len(channels))]
+            opts: list[tuple[str, int]] = [(settings_text[lng][12], 0)] + channels[i*24:min((i+1)*24, len(channels))]
             self.add_item(CustomSelect(custom_id=f"{500+i}_{self.auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=opts))
             
         await interaction.message.edit(view=self)
         await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), ephemeral=True)
 
-        cnt = 0
+        cnt: int = 0
         while self.channel is None and cnt < 40:
             cnt += 1
             await sleep(1)
 
-        i = 0
+        i: int = 0
         while i < len(self.children):
             if self.children[i].custom_id.startswith("5"):
                 self.remove_item(item=self.children[i])
@@ -814,23 +812,23 @@ class EconomyView(View):
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_c'", (self.channel,))
                 base.commit()
         
-        emb = interaction.message.embeds[0]
-        dsc = emb.description.split("\n\n")
-        if self.channel != 0:
+        emb: Embed = interaction.message.embeds[0]
+        dsc: list[str] = emb.description.split("\n\n")
+        if self.channel:
             dsc[4] = ec_text[lng][5].format(f"<#{self.channel}>")
         else:
             dsc[4] = ec_text[lng][5].format(settings_text[lng][13])
         emb.description = "\n\n".join(dsc)
         await interaction.message.edit(embed=emb, view=self)
 
-        if self.channel != 0:
+        if self.channel:
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][16].format(f"<#{self.channel}>")))
         else:
             await interaction.edit_original_message(embed=Embed(description=ec_text[lng][21]))
         
         self.channel = None
 
-    async def manage_economy_roles(self, interaction: Interaction, lng: int):
+    async def manage_economy_roles(self, interaction: Interaction, lng: int) -> None:
         server_roles_ids: set[int] = set()
         with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
@@ -840,27 +838,28 @@ class EconomyView(View):
                 if roles:
                     descr: list[str] = [ec_text[lng][18]]
                     for role in roles:
-                        server_roles_ids.add(role[0])
+                        role_id: int = role[0]
+                        server_roles_ids.add(role_id)
                         if role[4] == 1:
-                            cnt = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role[0],)).fetchone()[0]
+                            cnt: str = str(cur.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,)).fetchone()[0])
                         else:
-                            cnt = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role[0],)).fetchone()
-                            if not cnt:
-                                cnt = 0
+                            quantity_in_store: tuple[int] | None = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,)).fetchone()
+                            if not quantity_in_store:
+                                cnt: str = "0"
                             elif role[4] == 2:
-                                cnt = cnt[0]
+                                cnt: str = str(quantity_in_store[0])
                             else:
-                                cnt = "∞"
+                                cnt: str = "∞"
                         descr.append(
-                            f"<@&{role[0]}> - **`{role[0]}`** - **`{role[1]}`** - **`{role[2]}`** - **`{role[3]//3600}`** - **`{self.r_types[lng][role[4]]}`** - **`{cnt}`** - **`{role[5]}`**"
+                            f"<@&{role_id}> - **`{role_id}`** - **`{role[1]}`** - **`{role[2]}`** - **`{role[3]//3600}`** - **`{self.r_types[lng][role[4]]}`** - **`{cnt}`** - **`{role[5]}`**"
                         )
                 else:
                     descr: list[str] = [ec_text[lng][19]]
         descr.append('\n' + ec_text[lng][20])
         
         assignable_roles: list[tuple[str, int]] = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
-        remove_role_button_is_disabled = False if assignable_roles else True
-        ec_rls_view = EconomyRolesManageView(
+        remove_role_button_is_disabled: bool = False if assignable_roles else True
+        ec_rls_view: EconomyRolesManageView = EconomyRolesManageView(
             t_out=155,
             lng=lng,
             auth_id=self.auth_id,
@@ -874,8 +873,8 @@ class EconomyView(View):
             c.disabled = True
         await interaction.edit_original_message(view=ec_rls_view)
 
-    async def change_sale_role_price(self, interaction: Interaction, lng: int):
-        sale_price_modal = SalePriceModal(
+    async def change_sale_role_price(self, interaction: Interaction, lng: int) -> None:
+        sale_price_modal: SalePriceModal = SalePriceModal(
             timeout=40, 
             lng=lng, 
             auth_id=self.auth_id, 
@@ -892,9 +891,9 @@ class EconomyView(View):
             emb.description = "\n\n".join(descript_lines)
             await interaction.message.edit(embed=emb)
 
-    async def click(self, interaction: Interaction, c_id: str):
+    async def click(self, interaction: Interaction, c_id: str) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        int_custom_id = int(c_id[:2])
+        int_custom_id: int = int(c_id[:2])
         if int_custom_id == 13:
             await self.log_chnl(interaction=interaction, lng=lng)
         elif int_custom_id == 14:
@@ -903,7 +902,7 @@ class EconomyView(View):
             await self.change_sale_role_price(interaction=interaction, lng=lng)
         elif int_custom_id in {10, 11, 12}:
             await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (int_custom_id - 10) * 2]), ephemeral=True)
-            flag = True
+            flag: bool = True
             while flag:
                 try:
                     user_ans: Message = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == self.auth_id and m.channel.id == interaction.channel_id, timeout=40)
@@ -923,7 +922,7 @@ class EconomyView(View):
                     except:
                         pass
 
-    async def click_menu(self, _, c_id: str, values):
+    async def click_menu(self, _, c_id: str, values) -> None:
         if c_id.startswith("50"):
             self.channel = int(values[0])
 
@@ -936,11 +935,11 @@ class EconomyView(View):
 
 
 class EconomyRolesManageView(View):
-    def __init__(self, t_out: int, lng: int, auth_id: int, rem_dis: bool, rls: list, s_rls: set):
+    def __init__(self, t_out: int, lng: int, auth_id: int, rem_dis: bool, rls: list, s_rls: set[int]) -> None:
         super().__init__(timeout=t_out)
         self.auth_id: int = auth_id
-        self.s_rls = s_rls
-        self.role = None
+        self.s_rls: set[int] = s_rls
+        self.role: int | None = None
         for i in range((len(rls)+24)//25):
             self.add_item(CustomSelect(custom_id=f"{800+i}", placeholder=settings_text[lng][2], opts=rls[i*25:min(len(rls), (i+1)*25)]))
         self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"15_{auth_id}_{randint(1, 100)}"))
@@ -948,7 +947,7 @@ class EconomyRolesManageView(View):
         self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
 
 
-    async def click(self, interaction: Interaction, c_id: str):
+    async def click(self, interaction: Interaction, c_id: str) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
 
         if self.role is None:
@@ -959,7 +958,7 @@ class EconomyRolesManageView(View):
             if not self.role in self.s_rls:
                 await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
                 return
-            v_d = VerifyDeleteView(lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
+            v_d: VerifyDeleteView = VerifyDeleteView(lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(self.role)), view=v_d)
             
             if await v_d.wait():
@@ -975,7 +974,13 @@ class EconomyRolesManageView(View):
             if self.role in self.s_rls:
                 await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][9]), ephemeral=True)
                 return
-            add_mod = RoleAddModal(timeout=90, lng=lng, role=self.role, message=interaction.message, auth_id=interaction.user.id)
+            add_mod: RoleAddModal = RoleAddModal(
+                timeout=90,
+                lng=lng,
+                role=self.role,
+                message=interaction.message,
+                auth_id=interaction.user.id
+            )
             await interaction.response.send_modal(modal=add_mod)
             
             await add_mod.wait()
@@ -995,14 +1000,14 @@ class EconomyRolesManageView(View):
                         "SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles WHERE role_id = ?", 
                         (role_id,)
                     ).fetchone()
-                    role_type = req[4]
+                    role_type: int = req[4]
                     if role_type != 2:
                         role_in_store_count: int = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,)).fetchone()[0]
                     else:
                         quantity: tuple[int] = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,)).fetchone()                        
                         role_in_store_count: int = quantity[0] if quantity else 0
             
-            edit_mod = RoleEditModal(
+            edit_mod: RoleEditModal = RoleEditModal(
                 timeout=90,
                 role=role_id,
                 message=interaction.message,
@@ -1021,7 +1026,7 @@ class EconomyRolesManageView(View):
                 self.role = None
             return
 
-    async def click_menu(self, _, c_id: str, values):
+    async def click_menu(self, _, c_id: str, values) -> None:
         if c_id.startswith("80"):
             self.role = int(values[0])
 
@@ -1034,10 +1039,10 @@ class EconomyRolesManageView(View):
     
 
 class SettingsView(View):
-    def __init__(self, t_out: int, auth_id: int, bot: Bot):
+    def __init__(self, t_out: int, auth_id: int, bot: StoreBot) -> None:
         super().__init__(timeout=t_out)
-        self.auth_id = auth_id
-        self.bot = bot
+        self.auth_id: int = auth_id
+        self.bot: StoreBot = bot
         self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"0_{auth_id}_{randint(1, 100)}", emoji="⚙️"))
         self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"1_{auth_id}_{randint(1, 100)}", emoji="<:moder:1000090629897998336>"))
         self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"2_{auth_id}_{randint(1, 100)}", emoji="<:user:1002245779089535006>"))
@@ -1083,7 +1088,7 @@ class SettingsView(View):
             dsc.append(gen_settings_text[lng][8].format(system_status[lng][ec_status+2]))
             dsc.append(gen_settings_text[lng][9].format(system_status[lng][rnk_status+2]))
             
-            gen_view = GenSettingsView(t_out=50, auth_id=self.auth_id, bot=self.bot, lng=lng, ec_status=ec_status, rnk_status=rnk_status)
+            gen_view: GenSettingsView = GenSettingsView(t_out=50, auth_id=self.auth_id, bot=self.bot, lng=lng, ec_status=ec_status, rnk_status=rnk_status)
             await interaction.response.send_message(embed=Embed(description="\n".join(dsc)), view=gen_view)
             await gen_view.wait()
             for c in gen_view.children:
@@ -1093,20 +1098,27 @@ class SettingsView(View):
         elif custom_id.startswith("1_"):
             with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
-                    m_rls: list = cur.execute("SELECT * FROM mod_roles").fetchall()
+                    db_m_rls: list[tuple[int]] = cur.execute("SELECT role_id FROM mod_roles").fetchall()
             emb = Embed(title=mod_roles_text[lng][0])
-            if m_rls:
-                m_rls: set[int] = {x[0] for x in m_rls}
+            if db_m_rls:
+                m_rls: set[int] = {x[0] for x in db_m_rls}
                 emb.description = "\n".join([mod_roles_text[lng][2]] + [f"<@&{i}> - {i}" for i in m_rls])
-                rem_dis = False
+                rem_dis: bool = False
+                del db_m_rls
             else:
                 emb.description=mod_roles_text[lng][1]
-                m_rls = set()
-                rem_dis = True
+                m_rls: set[int] = set()
+                rem_dis: bool = True
 
-            rls = [(r.name, r.id) for r in interaction.guild.roles if not r.is_bot_managed()]
-            
-            m_rls_v = ModRolesView(t_out=50, m_rls=m_rls, lng=lng, auth_id=self.auth_id, rem_dis=rem_dis, rls=rls)
+            rls: list[tuple[str, int]] = [(r.name, r.id) for r in interaction.guild.roles if not r.is_bot_managed()]
+            m_rls_v: ModRolesView = ModRolesView(
+                t_out=50,
+                m_rls=m_rls,
+                lng=lng,
+                auth_id=self.auth_id,
+                rem_dis=rem_dis,
+                rls=rls
+            )
             await interaction.response.send_message(embed=emb, view=m_rls_v)
             await m_rls_v.wait()
             for c in m_rls_v.children:
@@ -1322,7 +1334,7 @@ class PollSettingsView(View):
         super().__init__(timeout=timeout)
         self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"28_{auth_id}_{randint(1, 100)}", emoji="🔎"))
         self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"29_{auth_id}_{randint(1, 100)}", emoji="📰"))
-        self.auth_id = auth_id
+        self.auth_id: int = auth_id
     
     async def click(self, interaction: Interaction, c_id: str) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
