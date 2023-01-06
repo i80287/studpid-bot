@@ -65,17 +65,23 @@ class FeedbackModal(Modal):
 class BasicComandsCog(Cog):
     u_ec_cmds: dict[int, list[tuple[str, str]]] = {
         0 : [
-            ("`/store`", "Show store"), 
-            ("`/buy`", "Make a role purchase"), 
+            ("`/store`", "Show store"),
+            ("`/buy`", "Make a role purchase"),
             ("`/buy_by_number`", "Make a role purchase. Role is selected by number in the store"),
-            ("`/sell`", "Sell the role"), 
+            ("`/sell`", "Sell the role"),
+            ("`/sell_to`", "Sell the role to the selected member by selected price"),
+            ("`/accept_request`", "Accept role purchase request made by another member for you"),
+            ("`/decline_request`", "Decline role purchase request made by another member for you or delete you role sale request"),
             ("`/leaders`", "Show top members by balance/xp"),
         ],
         1 : [
-            ("`/store`", "Открывает меню магазина"), 
+            ("`/store`", "Открывает меню магазина"),
             ("`/buy`", "Совершает покупку роли"),
             ("`/buy_by_number`", "Совершает покупку роли. Роль выбирается по номеру из магазина."),
-            ("`/sell`", "Совершает продажу роли"), 
+            ("`/sell`", "Совершает продажу роли"),
+            ("`/sell_to`", "Создаёт запрос продажи роли указанному участнику за указанную цену"),
+            ("`/accept_request`", "Принимает запрос покупки роли, сделанный Вам другим участником"),
+            ("`/decline_request`", "Отклоняет запрос покупки роли, сделанный Вам другим участником, или отменяет Ваш запрос продажи роли"),
             ("`/leaders`", "Показывет топ пользователей по балансу/опыту"),
         ],
     }
