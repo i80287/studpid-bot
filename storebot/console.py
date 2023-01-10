@@ -1,6 +1,3 @@
-
-from contextlib import closing
-from sqlite3 import connect
 from os import mkdir, path
 
 from dpyConsole import console, Cog, Console
