@@ -3,14 +3,11 @@ from nextcord.ext.commands import Cog
 from nextcord.abc import GuildChannel
 
 from storebot import StoreBot
-from Variables.vars import path_to
-from config import DEBUG
 
 
 class VoiceHandlerCog(Cog):
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
-        self._backup.start()
 
     @Cog.listener()
     async def on_guild_channel_update(self, before: GuildChannel, after: GuildChannel):
