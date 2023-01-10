@@ -1,4 +1,3 @@
-from typing import Literal
 from time import time
 from sqlite3 import connect, Connection, Cursor
 from contextlib import closing
@@ -46,22 +45,24 @@ def check_member(guild_id: int, memb_id: int) -> tuple[int, int, str, int, int, 
             base.commit()
             return (memb_id, 0, "", 0, 0, 0)
 
-def register_user_voice_channel_join(guild_id: int, member_id: int):
-    time_now = int(time())
+def register_user_voice_channel_join(guild_id: int, member_id: int) -> None:
+    time_now: int = int(time())
     with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
         with closing(base.cursor()) as cur:
             money_for_voice: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice'").fetchone()[0]
             if not money_for_voice:
                 return
             
-            if not cur.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)):
-                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-                (member_id, 0, "", 0, 0, 0)
+            if not cur.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)).fetchone():
+                cur.execute(
+                    "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
+                    (member_id, 0, "", 0, 0, 0)
+                )
             else:
                 cur.execute("UPDATE users SET voice_join_time = ? WHERE memb_id = ?", (time_now, member_id))
             base.commit()
 
-def register_user_voice_channel_left(guild_id: int, member_id: int):
+def register_user_voice_channel_left(guild_id: int, member_id: int) -> None:
     with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
         with closing(base.cursor()) as cur:
             money_for_voice: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice'").fetchone()[0]
@@ -84,6 +85,7 @@ def peek_role_free_number(cur: Cursor) -> int:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
     if req:
         role_numbers: list[int] = [int(r_n[0]) for r_n in req]
+        del req
         if role_numbers[0] != 1:
             return 1
         for role_number_cur, role_number_next in zip(role_numbers, role_numbers[1:]):
@@ -99,6 +101,7 @@ def peek_free_request_id(cur: Cursor) -> int:
     ).fetchall()
     if request_ids_list:
         request_ids: set[int] = {int(req_id_tuple[0]) for req_id_tuple in request_ids_list}
+        del request_ids_list
         free_requests_ids: set[int] = set(range(1, len(request_ids) + 2)).difference(request_ids)
         return min(free_requests_ids)
     else:
@@ -108,6 +111,7 @@ def peek_role_free_numbers(cur: Cursor, amount_of_numbers: int) -> list[int]:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store").fetchall()
     if req:
         role_numbers: set[int] = {r_n[0] for r_n in req}
+        del req
         after_last_number: int =  max(role_numbers) + 1
         free_numbers: set[int] = set(range(1, after_last_number)).difference(role_numbers)
         lack_numbers_len: int = amount_of_numbers - len(free_numbers)
@@ -199,9 +203,9 @@ def check_db(guild_id: int, guild_locale: str | None) -> set[int]:
             
             db_guild_language: tuple[int] | None = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()
             if db_guild_language: 
-                lng: Literal[1, 0] = db_guild_language[0]
+                lng: int = db_guild_language[0]
             else: 
-                lng: Literal[1, 0] = 1 if guild_locale and "ru" in guild_locale else 0
+                lng: int = 1 if guild_locale and "ru" in guild_locale else 0
             
             settings_params: list[tuple[str, int, str]] = [
                 ('lang', lng, ""),
