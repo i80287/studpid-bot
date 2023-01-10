@@ -177,14 +177,14 @@ class AdditionalCommandsCog(Cog):
 
     def __init__(self, bot: Bot) -> None:
         self.bot: Bot = bot
-
     
     @slash_command(
         name="emoji", 
         description="Fetchs emoji's info",
         description_localizations={
             Locale.ru: "Показывает информацию о эмодзи"
-        }
+        },
+        dm_permission=False
     )
     async def emoji(
         self, 
@@ -227,7 +227,8 @@ class AdditionalCommandsCog(Cog):
         description="Shows an information about the server",
         description_localizations={
             Locale.ru: "Показывает информацию о сервере"
-        }
+        },
+        dm_permission=False
     )
     async def server(self, interaction: Interaction) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0

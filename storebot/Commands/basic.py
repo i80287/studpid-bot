@@ -210,7 +210,8 @@ class BasicComandsCog(Cog):
         description="show guide about bot's system",
         description_localizations={
             Locale.ru: "показывает гайд о системе бота"
-        }
+        },
+        dm_permission=False
     )
     async def guide(self, interaction: Interaction) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
@@ -224,7 +225,8 @@ class BasicComandsCog(Cog):
         description="Calls menu with commands",
         description_localizations={
             Locale.ru : "Вызывает меню команд"
-        }
+        },
+        dm_permission=False
     )
     async def help(self, interaction: Interaction) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
@@ -248,6 +250,7 @@ class BasicComandsCog(Cog):
         description_localizations={
             Locale.ru: "Отправляет отзыв на сервер поддержки"
         },
+        dm_permission=False,
         default_member_permissions=Permissions.administrator.flag
     )
     async def feedback(self, interaction: Interaction) -> None:

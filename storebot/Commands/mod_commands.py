@@ -63,7 +63,8 @@ class ModCommandsCog(Cog):
         description="Show menu to see and manage bot's settings",
         description_localizations={
             Locale.ru : "Вызывает меню просмотра и управления настройками бота"
-        }
+        },
+        dm_permission=False
     )
     @application_checks.check(mod_check)
     async def settings(self, interaction: Interaction) -> None:

@@ -6,7 +6,7 @@ from typing import Literal
 from asyncio import sleep
 from time import time
 
-from nextcord import Game, Message, ChannelType, Embed, \
+from nextcord import Game, Message, User, Embed, \
     Guild, Interaction, Role, TextChannel, Member
 from nextcord.errors import ApplicationCheckFailure
 from nextcord.ext.commands import Bot, Cog
@@ -199,10 +199,10 @@ class EventsHandlerCog(Cog):
 
     @Cog.listener()
     async def on_message(self, message: Message) -> None:
-        user = message.author
+        user: User | Member = message.author
 
         #or message.type is MessageType.chat_input_command
-        if user.bot or message.channel.type is ChannelType.private:
+        if user.bot or not isinstance(user, Member):
             return
         
         g_id: int = message.guild.id
