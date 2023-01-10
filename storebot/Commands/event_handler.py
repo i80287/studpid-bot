@@ -260,8 +260,9 @@ class EventsHandlerCog(Cog):
             await interaction.response.send_message(embed=Embed(description=self.event_handl_text[lng][0]), ephemeral=True)
             return
 
+        guild_report: str = f" [{guild.id}] [{guild.name}]" if (guild := interaction.guild) else ""
         with open("error.log", "a+", encoding="utf-8") as f:
-            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash_command] [{interaction.application_command.name}] [{interaction.guild_id}] [{interaction.guild.name}] [{str(exception)}]\n")
+            f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash_command] [{interaction.application_command.name}]{guild_report} [{str(exception)}]\n")
 
 
 def setup(bot: Bot) -> None:
