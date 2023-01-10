@@ -303,7 +303,8 @@ class PollCog(Cog):
         description="creates new poll",
         description_localizations={
             Locale.ru: "создаёт новый опрос (полл)"
-        } 
+        },
+        dm_permission=False
     )
     async def poll(
         self, 
