@@ -73,11 +73,11 @@ def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_vo
         with closing(base.cursor()) as cur:
             voice_join_time: int = check_db_member(base=base, cur=cur, memb_id=member_id)[5]
             if not voice_join_time:
-                return
+                return 0
 
             time_delta: int = int(time()) - voice_join_time
             if not time_delta:
-                return
+                return 0
 
             income_for_voice: int = time_delta * money_for_voice // 600
             cur.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
@@ -88,7 +88,6 @@ def register_user_voice_channel_left_with_join_time(guild_id: int, member_id: in
     with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
         with closing(base.cursor()) as cur:
             time_delta: int = int(time()) - time_join
-
             income_for_voice: int = time_delta * money_for_voice // 600
             cur.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
             base.commit()

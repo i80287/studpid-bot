@@ -1,3 +1,4 @@
+from asyncio import Lock
 from time import time
 
 from nextcord import Intents, Member
@@ -13,6 +14,7 @@ class StoreBot(Bot):
             intents=Intents.all(), 
             help_command=None
         )
+        self.lock: Lock = Lock()
         self.bot_feedback_channel: int = FEEDBACK_CHANNEL
         self.current_polls: int = 0
         self.startup_time: int = int(time())

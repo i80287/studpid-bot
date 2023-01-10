@@ -86,6 +86,7 @@ class EventsHandlerCog(Cog):
             guild_id: int = guild.id
             if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
                 mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
+            self.bot.members_in_voice[guild_id] = {}
             self.bot.ignored_channels[guild_id] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
             self.log_event(report=["correct_db func", str(guild_id), str(guild.name)])
 
