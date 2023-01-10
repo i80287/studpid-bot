@@ -323,6 +323,18 @@ class BasicComandsCog(Cog):
         else:
             await self.bot.change_presence(activity=Game(' '.join(text)), status=Status.dnd)
         await ctx.reply(embed=Embed(description=f"**`Changed status to {' '.join(text)}`**"), mention_author=False)
+    
+    @command(name="shutdown")
+    @is_owner()
+    async def shutdown(self, ctx: Context) -> None:
+        from Commands.voice_handler import VoiceHandlerCog
+        cog: Cog | None = self.bot.cogs.get("VoiceHandlerCog")
+        if not cog or not isinstance(cog, VoiceHandlerCog):
+            return
+        
+        # for 
+        # cog.process_left_members()
+        # await ctx.reply(embed=Embed(description=, mention_author=False)
 
     @Cog.listener()
     async def on_command_error(self, ctx: Context, error) -> None:
