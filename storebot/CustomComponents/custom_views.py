@@ -436,11 +436,11 @@ class GenSettingsView(View):
         tzs: list[tuple[str, int]] = [(f"UTC{i}", i) for i in range(-12, 0)] + [(f"UTC+{i}", i) for i in range(0, 13)]
         self.add_item(CustomSelect(custom_id=f"100_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][20], opts=languages[2][lng]))
         self.add_item(CustomSelect(custom_id=f"101_{auth_id}_{randint(1, 100)}", placeholder=gen_settings_text[lng][21], opts=tzs))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"6_{auth_id}_{randint(1, 100)}", emoji="🗣️"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"7_{auth_id}_{randint(1, 100)}", emoji="⏱"))
-        self.add_item(CustomButton(style=ButtonStyle.gray, label=None, custom_id=f"42_{auth_id}_{randint(1, 100)}", emoji="💵"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"43_{auth_id}_{randint(1, 100)}", emoji="💰", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"44_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"6_{auth_id}_{randint(1, 100)}", emoji="🗣️"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"7_{auth_id}_{randint(1, 100)}", emoji="⏱"))
+        self.add_item(CustomButton(style=ButtonStyle.gray, label="", custom_id=f"42_{auth_id}_{randint(1, 100)}", emoji="💵"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"43_{auth_id}_{randint(1, 100)}", emoji="💰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"44_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
         
     async def select_lng(self, interaction: Interaction, lng: int) -> None:
         s_lng: int | None = self.lang

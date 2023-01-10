@@ -213,7 +213,7 @@ def check_db(guild_id: int, guild_locale: str | None) -> set[int]:
                 ('xp_border', 100, ""),
                 ('xp_per_msg', 1, ""),
                 ('mn_per_msg', 1, ""),
-                ('mn_for_voice', 1, ""),
+                ('mn_for_voice', 600, ""),
                 ('w_cd', 14400, ""),
                 ('sal_l', 1, ""),
                 ('sal_r', 250, ""),

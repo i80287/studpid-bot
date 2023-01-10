@@ -191,7 +191,7 @@ class EventsHandlerCog(Cog):
             return new_level
         else:
             cur.execute(
-                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, pending_requests) VALUES (?, ?, ?, ?, ?, ?)",
+                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
                 (memb_id, mn_m, "", 0, xp_m, 0)
             )
             base.commit()
@@ -221,7 +221,7 @@ class EventsHandlerCog(Cog):
                     channel_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
                     if channel_id:
                         channel: GuildChannel | None = message.guild.get_channel(channel_id)
-                        if channel:
+                        if channel and isinstance(channel, TextChannel):
                             lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
                             emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(user.mention, new_level))
                             await channel.send(embed=emb)

@@ -266,7 +266,7 @@ class BetView(View):
                     db_cash: tuple[int] | None = cur.execute("SELECT money FROM users WHERE memb_id = ?", (memb_id,)).fetchone()
                     if not db_cash:
                         cur.execute(
-                            "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, pending_requests) VALUES (?, ?, ?, ?, ?, ?)",
+                            "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
                             (memb_id, 0, "", 0, 0, 0))
                         base.commit()
                         cash: int = 0
@@ -343,8 +343,11 @@ class StoreView(View):
                 default=False
             )
         ]
-        self.add_item(CustomSelect(custom_id=f"103_{auth_id}_{randint(1, 100)}", placeholder=store_text[lng][7],
-                                   opts=sort_how_options))
+        self.add_item(CustomSelect(
+            custom_id=f"103_{auth_id}_{randint(1, 100)}",
+            placeholder=store_text[lng][7],
+            opts=sort_how_options
+        ))
 
     def sort_store(self) -> None:
         if self.sort_reversed:
@@ -477,8 +480,8 @@ class BuyView(View):
         self.add_item(CustomButton(
             label=buy_approve_text[lng][0],
             custom_id=f"30_{auth_id}_{randint(1, 100)}",
-            style=ButtonStyle.green, emoji="✅")
-        )
+            style=ButtonStyle.green, emoji="✅"
+        ))
         self.add_item(CustomButton(
             label=buy_approve_text[lng][1],
             custom_id=f"31_{auth_id}_{randint(1, 100)}",
@@ -1656,7 +1659,8 @@ class SlashCommandsCog(Cog):
         description="Makes a role purchase from the store",
         description_localizations={
             Locale.ru: "Совершает покупку роли из магазина"
-        }
+        },
+        dm_permission=False
     )
     async def buy_e(
         self,
@@ -1680,7 +1684,8 @@ class SlashCommandsCog(Cog):
         description="Makes a role purchase from the store by role number in the store",
         description_localizations={
             Locale.ru: "Совершает покупку роли из магазина по номеру роли в магазине"
-        }
+        },
+        dm_permission=False
     )
     async def buy_by_number(
         self,
@@ -1738,7 +1743,8 @@ class SlashCommandsCog(Cog):
         description="Shows store",
         description_localizations={
             Locale.ru: "Открывает меню магазина"
-        }
+        },
+        dm_permission=False
     )
     async def store_e(self, interaction: Interaction) -> None:
         await self.store(interaction=interaction)
@@ -1748,7 +1754,8 @@ class SlashCommandsCog(Cog):
         description="Sells the role",
         description_localizations={
             Locale.ru: "Совершает продажу роли"
-        }
+        },
+        dm_permission=False
     )
     async def sell_e(
         self,
@@ -1772,7 +1779,8 @@ class SlashCommandsCog(Cog):
         description="Makes role sale request to the target member for the selected price",
         description_localizations={
             Locale.ru: "Делает предложение продажи роли пользователю за указанную цену"
-        }
+        },
+        dm_permission=False
     )
     async def sell_to_e(
         self,
@@ -1820,7 +1828,8 @@ class SlashCommandsCog(Cog):
         description="Shows your profile",
         description_localizations={
             Locale.ru: "Показывает меню Вашего профиля"
-        }
+        },
+        dm_permission=False
     )
     async def profile_e(self, interaction: Interaction) -> None:
         await self.profile(interaction=interaction)
@@ -1830,7 +1839,8 @@ class SlashCommandsCog(Cog):
         description="Accepts role purchase request (from the /profile command)",
         description_localizations={
             Locale.ru: "Принимает предложение о покупке роли (из команды /profile)"
-        }
+        },
+        dm_permission=False
     )
     async def accept_request_e(
         self,
@@ -1856,7 +1866,8 @@ class SlashCommandsCog(Cog):
         description="Decline or delete role purchase / sale request (from the /profile command)",
         description_localizations={
             Locale.ru: "Отменяет или удаляет предложение о покупке / продаже роли (из команды /profile)"
-        }
+        },
+        dm_permission=False
     )
     async def decline_request_e(
         self,
@@ -1882,7 +1893,8 @@ class SlashCommandsCog(Cog):
         description="Allows to gain money",
         description_localizations={
             Locale.ru: "Позволяет заработать деньги"
-        }
+        },
+        dm_permission=False
     )
     async def work_e(self, interaction: Interaction) -> None:
         await self.work(interaction=interaction)
@@ -1892,7 +1904,8 @@ class SlashCommandsCog(Cog):
         description="Make a bet",
         description_localizations={
             Locale.ru: "Сделать ставку"
-        }
+        },
+        dm_permission=False
     )
     async def duel_e(
         self,
@@ -1917,7 +1930,8 @@ class SlashCommandsCog(Cog):
         description="Transfers money to another member",
         description_localizations={
             Locale.ru: "Совершает перевод валюты другому пользователю"
-        }
+        },
+        dm_permission=False
     )
     async def transfer_e(
         self,
@@ -1953,7 +1967,8 @@ class SlashCommandsCog(Cog):
         description="Shows top members by balance",
         description_localizations={
             Locale.ru: "Показывет топ пользователей по балансу"
-        }
+        },
+        dm_permission=False
     )
     async def leaders_e(self, interaction: Interaction) -> None:
         await self.leaders(interaction=interaction)
