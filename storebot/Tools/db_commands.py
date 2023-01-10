@@ -11,6 +11,16 @@ def update_server_info_table(guild_id: int, key_name: str, new_value: int) -> No
             cur.execute("UPDATE server_info SET value = ? WHERE settings = ?", (new_value, key_name))
             base.commit()
 
+def get_server_info_value(guild_id: int, key_name: str) -> int:
+    with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        with closing(base.cursor()) as cur:
+            return cur.execute("SELECT value FROM server_info WHERE settings = '" + key_name + "';").fetchone()[0]
+
+def get_server_currency(guild_id: int) -> str:
+    with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        with closing(base.cursor()) as cur:
+            return cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency';").fetchone()[0]
+
 def check_db_member(base: Connection, cur: Cursor, memb_id: int) -> tuple[int, int, str, int, int, int]:
     member: tuple[int, int, str, int, int, int] | None = \
         cur.execute(
@@ -49,10 +59,6 @@ def register_user_voice_channel_join(guild_id: int, member_id: int) -> None:
     time_now: int = int(time())
     with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
         with closing(base.cursor()) as cur:
-            money_for_voice: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice'").fetchone()[0]
-            if not money_for_voice:
-                return
-            
             if not cur.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)).fetchone():
                 cur.execute(
                     "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
@@ -62,13 +68,9 @@ def register_user_voice_channel_join(guild_id: int, member_id: int) -> None:
                 cur.execute("UPDATE users SET voice_join_time = ? WHERE memb_id = ?", (time_now, member_id))
             base.commit()
 
-def register_user_voice_channel_left(guild_id: int, member_id: int) -> None:
+def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_voice: int) -> int:
     with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
         with closing(base.cursor()) as cur:
-            money_for_voice: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice'").fetchone()[0]
-            if not money_for_voice:
-                return
-
             voice_join_time: int = check_db_member(base=base, cur=cur, memb_id=member_id)[5]
             if not voice_join_time:
                 return
@@ -80,6 +82,17 @@ def register_user_voice_channel_left(guild_id: int, member_id: int) -> None:
             income_for_voice: int = time_delta * money_for_voice // 600
             cur.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
             base.commit()
+            return income_for_voice
+
+def register_user_voice_channel_left_with_join_time(guild_id: int, member_id: int, money_for_voice: int, time_join: int) -> int:
+    with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        with closing(base.cursor()) as cur:
+            time_delta: int = int(time()) - time_join
+
+            income_for_voice: int = time_delta * money_for_voice // 600
+            cur.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
+            base.commit()
+            return income_for_voice
 
 def peek_role_free_number(cur: Cursor) -> int:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()

@@ -1,3 +1,5 @@
+from time import time
+
 from nextcord import Intents, Member
 from nextcord.ext.commands import Bot, when_mentioned_or
 
@@ -13,6 +15,7 @@ class StoreBot(Bot):
         )
         self.bot_feedback_channel: int = FEEDBACK_CHANNEL
         self.current_polls: int = 0
+        self.startup_time: int = int(time())
         # guild_id: member_id: Member
         self.members_in_voice: dict[int, dict[int, Member]] = {}
         # guild_is: {channel_id}
