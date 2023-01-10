@@ -263,7 +263,7 @@ class BetView(View):
                 return
             with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    db_cash: tuple[int] | None = cur.execute('SELECT money FROM users WHERE memb_id = ?', (memb_id,)).fetchone()
+                    db_cash: tuple[int] | None = cur.execute("SELECT money FROM users WHERE memb_id = ?", (memb_id,)).fetchone()
                     if not db_cash:
                         cur.execute(
                             "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, pending_requests) VALUES (?, ?, ?, ?, ?, ?)",

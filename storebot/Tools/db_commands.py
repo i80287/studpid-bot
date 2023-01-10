@@ -56,7 +56,7 @@ def register_user_voice_channel_join(guild_id: int, member_id: int) -> None:
             if not cur.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)).fetchone():
                 cur.execute(
                     "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-                    (member_id, 0, "", 0, 0, 0)
+                    (member_id, 0, "", 0, 0, time_now)
                 )
             else:
                 cur.execute("UPDATE users SET voice_join_time = ? WHERE memb_id = ?", (time_now, member_id))
@@ -84,7 +84,7 @@ def register_user_voice_channel_left(guild_id: int, member_id: int) -> None:
 def peek_role_free_number(cur: Cursor) -> int:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
     if req:
-        role_numbers: list[int] = [int(r_n[0]) for r_n in req]
+        role_numbers: list[int] = [r_n[0] for r_n in req]
         del req
         if role_numbers[0] != 1:
             return 1
@@ -100,7 +100,7 @@ def peek_free_request_id(cur: Cursor) -> int:
         "SELECT request_id FROM sale_requests ORDER BY request_id"
     ).fetchall()
     if request_ids_list:
-        request_ids: set[int] = {int(req_id_tuple[0]) for req_id_tuple in request_ids_list}
+        request_ids: set[int] = {req_id_tuple[0] for req_id_tuple in request_ids_list}
         del request_ids_list
         free_requests_ids: set[int] = set(range(1, len(request_ids) + 2)).difference(request_ids)
         return min(free_requests_ids)

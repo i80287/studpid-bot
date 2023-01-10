@@ -1043,12 +1043,12 @@ class SettingsView(View):
         super().__init__(timeout=t_out)
         self.auth_id: int = auth_id
         self.bot: StoreBot = bot
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"0_{auth_id}_{randint(1, 100)}", emoji="⚙️"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"1_{auth_id}_{randint(1, 100)}", emoji="<:moder:1000090629897998336>"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"2_{auth_id}_{randint(1, 100)}", emoji="<:user:1002245779089535006>"))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"3_{auth_id}_{randint(1, 100)}", emoji="💰", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"4_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"5_{auth_id}_{randint(1, 100)}", emoji="📊", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"0_{auth_id}_{randint(1, 100)}", emoji="⚙️"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"1_{auth_id}_{randint(1, 100)}", emoji="<:moder:1000090629897998336>"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"2_{auth_id}_{randint(1, 100)}", emoji="<:user:1002245779089535006>"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"3_{auth_id}_{randint(1, 100)}", emoji="💰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"4_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"5_{auth_id}_{randint(1, 100)}", emoji="📊", row=2))
     
     @staticmethod
     def check_ans(interaction: Interaction, ans: str):
@@ -1064,7 +1064,7 @@ class SettingsView(View):
         else:
             return None, 0
 
-    async def click(self, interaction: Interaction, custom_id: str):
+    async def click(self, interaction: Interaction, custom_id: str) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         
         if custom_id.startswith("0_"):
