@@ -8,7 +8,7 @@ from nextcord import Embed, Message, Interaction, TextInputStyle
 from nextcord.ui import TextInput, Modal
 
 from Tools.db_commands import peek_role_free_number, peek_role_free_numbers
-from Variables.vars import path_to
+from Variables.vars import CWD_PATH
 
 r_types: dict[int, dict[int, str]] = {
     0: {
@@ -290,7 +290,7 @@ class RoleAddModal(ManageRoleModalBase):
         salary_cooldown: int = self.salary_cooldown
         role_type: int = self.role_type
         additional_salary: int = self.additional_salary
-        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute(
                     "INSERT OR IGNORE INTO server_roles (role_id, price, salary, salary_cooldown, type, additional_salary) VALUES(?, ?, ?, ?, ?, ?)", 
@@ -484,7 +484,7 @@ class RoleEditModal(ManageRoleModalBase):
         l: int = self.new_in_store_amount
         r: int = self.role_id
         new_additional_salary: int = self.new_additional_salary
-        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute(
                     "UPDATE server_roles SET price = ?, salary = ?, salary_cooldown = ?, type = ?, additional_salary = ? WHERE role_id = ?",
@@ -720,21 +720,21 @@ class ManageMemberCashXpModal(Modal):
         xp: int = self.new_xp
         self.is_changed = True
         if cash != self.st_cash and xp != self.st_xp:
-            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:  
                     cur.execute("UPDATE users SET money = ?, xp = ? WHERE memb_id = ?", (cash, xp, self.memb_id))
                     base.commit()
             await interaction.response.send_message(embed=Embed(description=self.mng_membs_text[lng][16].format(self.memb_id, cash, xp)), ephemeral=True)
 
         elif cash != self.st_cash:
-            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:  
                     cur.execute("UPDATE users SET money = ? WHERE memb_id = ?", (cash, self.memb_id))
                     base.commit()
             await interaction.response.send_message(embed=Embed(description=self.mng_membs_text[lng][17].format(self.memb_id, cash)), ephemeral=True)
 
         elif xp != self.st_xp:
-            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:  
                     cur.execute("UPDATE users SET xp = ? WHERE memb_id = ?", (xp, self.memb_id))
                     base.commit()
@@ -807,7 +807,7 @@ class XpSettingsModal(Modal):
         xp_border: int = self.new_xp_b
         if self.old_xp != xp or self.old_xpb != xp_border:
             rep: list[str] = []
-            with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+            with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     if self.old_xp != xp:
                         cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_per_msg'", (xp,))

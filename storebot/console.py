@@ -6,7 +6,7 @@ from os import mkdir, path
 from dpyConsole import console, Cog, Console
 from colorama import Fore
 
-from Variables.vars import path_to
+from Variables.vars import CWD_PATH
 
 
 class ConsoleCog(Cog):
@@ -16,19 +16,19 @@ class ConsoleCog(Cog):
     
     @console.command()
     async def setup(self, guild_id, str_lng = "0"):
-        if not path.exists(f"{path_to}/bases/"):
+        if not path.exists(f"{CWD_PATH}/bases/"):
             try:
-                mkdir(f"{path_to}/bases/")
+                mkdir(f"{CWD_PATH}/bases/")
             except:
-                print(f"Can't create {path_to}/bases folder")
+                print(f"Can't create {CWD_PATH}/bases folder")
 
-        if not path.exists(f"{path_to}/bases/bases_{guild_id}/"):
+        if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
             try:
-                mkdir(f"{path_to}/bases/bases_{guild_id}/")
+                mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
             except:
-                print(f"{Fore.YELLOW}Can't create path to the database in the {path_to}/bases/ folder!{Fore.RED}\n")
+                print(f"{Fore.YELLOW}Can't create path to the database in the {CWD_PATH}/bases/ folder!{Fore.RED}\n")
 
-        with closing(connect(f'{path_to}/bases/bases_{guild_id}/{guild_id}.db')) as base:
+        with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 cur.executescript("""\
                 CREATE TABLE IF NOT EXISTS users(

@@ -9,7 +9,7 @@ from nextcord.ui import Modal, TextInput
 from nextcord.abc import GuildChannel
 
 from storebot import StoreBot
-from Variables.vars import path_to
+from Variables.vars import CWD_PATH
 
 
 class FeedbackModal(Modal):
@@ -264,7 +264,7 @@ class BasicComandsCog(Cog):
     @command(name="load")
     @is_owner()
     async def _load(self, ctx: Context, extension) -> None:
-        if path.exists(f"{path_to}/Commands/{extension}.py"):
+        if path.exists(f"{CWD_PATH}/Commands/{extension}.py"):
             self.bot.load_extension(f"Commands.{extension}")
             await sleep(1)
             await self.bot.sync_all_application_commands()
@@ -277,7 +277,7 @@ class BasicComandsCog(Cog):
     @command(name="unload")
     @is_owner()
     async def _unload(self, ctx: Context, extension) -> None:
-        if path.exists(f"{path_to}/Commands/{extension}.py"):
+        if path.exists(f"{CWD_PATH}/Commands/{extension}.py"):
             self.bot.unload_extension(f"Commands.{extension}")
             await sleep(1)
             await self.bot.sync_all_application_commands()
@@ -290,7 +290,7 @@ class BasicComandsCog(Cog):
     @command(name="reload")
     @is_owner()
     async def _reload(self, ctx: Context, extension) -> None:
-        if path.exists(f"{path_to}/Commands/{extension}.py"):
+        if path.exists(f"{CWD_PATH}/Commands/{extension}.py"):
             await ctx.reply(embed=Embed(description="Started reloading"), mention_author=False, delete_after=5)
             self.bot.unload_extension(f"Commands.{extension}")
             self.bot.load_extension(f"Commands.{extension}")

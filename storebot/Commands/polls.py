@@ -10,7 +10,7 @@ from nextcord.ext.commands import Cog
 from nextcord.ui import Button, View
 
 from storebot import StoreBot
-from Variables.vars import path_to
+from Variables.vars import CWD_PATH
 
 
 class cutom_button_with_row(Button):
@@ -102,7 +102,7 @@ class Poll(View):
         g = interaction.guild
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
 
-        with closing(connect(f"{path_to}/bases/bases_{g.id}/{g.id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{g.id}/{g.id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if not self.check_moder(interaction=interaction, base=base, cur=cur):
                     await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][11]), ephemeral=True)
@@ -530,7 +530,7 @@ class PollCog(Cog):
     ) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         g_id: int = interaction.guild_id
-        with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
                 if not chnl_id or not (chnl := interaction.guild.get_channel(chnl_id)):

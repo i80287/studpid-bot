@@ -11,7 +11,7 @@ from nextcord.ui import View
 from storebot import StoreBot
 from Tools.db_commands import check_db_member, delete_role_from_db
 from Tools.parse_tools import parse_emoji
-from Variables.vars import path_to, ignored_channels
+from Variables.vars import CWD_PATH, ignored_channels
 from CustomComponents.custom_button import CustomButton
 from CustomComponents.custom_select import CustomSelect
 from CustomModals.custom_modals import RoleAddModal, RoleEditModal,\
@@ -448,7 +448,7 @@ class GenSettingsView(View):
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][22]), ephemeral=True)
             return
         g_id: int = interaction.guild_id
-        with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0] == s_lng:
                     await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][26]), ephemeral=True)
@@ -472,7 +472,7 @@ class GenSettingsView(View):
         if tz is None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][23]), ephemeral=True)
             return
-        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (tz,))
                 base.commit()
@@ -502,7 +502,7 @@ class GenSettingsView(View):
             else:
                 emoji_str: str = emoji
 
-            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("UPDATE server_info SET str_value = ? WHERE settings = 'currency'", (emoji_str,))
                     base.commit()
@@ -518,7 +518,7 @@ class GenSettingsView(View):
 
     async def change_ec_system(self, interaction: Interaction, lng: int) -> None:
         self.ec_status ^= 1
-        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'economy_enabled'", (self.ec_status,))
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (self.ec_status,))
@@ -535,7 +535,7 @@ class GenSettingsView(View):
 
     async def change_rnk_system(self, interaction: Interaction, lng: int) -> None:
         self.rnk_status ^= 1
-        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'ranking_enabled'", (self.rnk_status,))
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_per_msg'", (self.rnk_status,))
@@ -595,7 +595,7 @@ class ModRolesView(View):
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][7]), ephemeral=True)
             return       
                 
-        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("INSERT OR IGNORE INTO mod_roles(role_id) VALUES(?)", (rl_id,))
                 base.commit()
@@ -625,7 +625,7 @@ class ModRolesView(View):
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][9]), ephemeral=True)
             return
         
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+        with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("DELETE FROM mod_roles WHERE role_id = ?", (rl_id,))
                 base.commit()
@@ -705,7 +705,7 @@ class EconomyView(View):
 
     async def msg_salary(self, interaction: Interaction, lng: int, ans: str) -> bool:
         if ans.isdigit() and (money_per_message := int(ans)) >= 0:
-            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (money_per_message,))
                     base.commit()
@@ -724,7 +724,7 @@ class EconomyView(View):
 
     async def work_cldwn(self, interaction: Interaction, lng: int, ans: str) -> bool:
         if ans.isdigit() and (work_command_cooldown := int(ans)) >= 60:
-            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'w_cd'", (work_command_cooldown,))
                     base.commit()
@@ -758,7 +758,7 @@ class EconomyView(View):
                 n2 = n1
                 fl = True
         if fl:
-            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_l'", (n1,))
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_r'", (n2,))
@@ -807,7 +807,7 @@ class EconomyView(View):
             self.channel = None
             return
 
-        with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_c'", (self.channel,))
                 base.commit()
@@ -830,7 +830,7 @@ class EconomyView(View):
 
     async def manage_economy_roles(self, interaction: Interaction, lng: int) -> None:
         server_roles_ids: set[int] = set()
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+        with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 roles: list[tuple[int, int, int, int, int, int]] = cur.execute(
                     "SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles"
@@ -994,7 +994,7 @@ class EconomyRolesManageView(View):
                 await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][8]), ephemeral=True)
                 return
             
-            with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     req: tuple[int, int, int, int, int, int] = cur.execute(
                         "SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles WHERE role_id = ?", 
@@ -1068,7 +1068,7 @@ class SettingsView(View):
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         
         if custom_id.startswith("0_"):
-            with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     s_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                     tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
@@ -1096,7 +1096,7 @@ class SettingsView(View):
             await interaction.edit_original_message(view=gen_view)
 
         elif custom_id.startswith("1_"):
-            with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     db_m_rls: list[tuple[int]] = cur.execute("SELECT role_id FROM mod_roles").fetchall()
             emb = Embed(title=mod_roles_text[lng][0])
@@ -1151,7 +1151,7 @@ class SettingsView(View):
                 return
             
             memb_id: int = memb.id
-            with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     memb_info: tuple[int, int, str, int, int, int] = check_db_member(base=base, cur=cur, memb_id=memb_id)
                     xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
@@ -1234,7 +1234,7 @@ class SettingsView(View):
             await interaction.edit_original_message(view=mng_v)
 
         elif custom_id.startswith("3_"):
-            with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     money_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg'").fetchone()[0]
                     w_cd: int = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd'").fetchone()[0]
@@ -1270,7 +1270,7 @@ class SettingsView(View):
             await interaction.edit_original_message(view=ec_v)
 
         elif custom_id.startswith("4_"):   
-            with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     xp_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg'").fetchone()[0]
                     xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
@@ -1297,7 +1297,7 @@ class SettingsView(View):
             await interaction.edit_original_message(view=rnk_v)
 
         elif custom_id.startswith("5_"):
-            with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+            with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
                     p_v_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
                     p_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
@@ -1353,7 +1353,7 @@ class PollSettingsView(View):
             emb: Embed = interaction.message.embeds[0]
             dsc: list[str] = emb.description.split("\n\n")
             if v_c.c:
-                with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                     with closing(base.cursor()) as cur:
                         cur.execute("UPDATE server_info SET value = ? WHERE settings = 'poll_v_c'", (v_c.c,))
                         base.commit()                
@@ -1363,7 +1363,7 @@ class PollSettingsView(View):
 
                 await interaction.send(embed=Embed(description=poll_text[lng][4].format(v_c.c)), ephemeral=True)         
             else:
-                with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                     with closing(base.cursor()) as cur:
                         cur.execute("UPDATE server_info SET value = 0 WHERE settings = 'poll_v_c'")
                         base.commit()
@@ -1385,7 +1385,7 @@ class PollSettingsView(View):
             emb: Embed = interaction.message.embeds[0]
             dsc: list[str] = emb.description.split("\n\n")
             if v_c.c:
-                with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                     with closing(base.cursor()) as cur:
                         cur.execute("UPDATE server_info SET value = ? WHERE settings = 'poll_c'", (v_c.c,))
                         base.commit()                
@@ -1396,7 +1396,7 @@ class PollSettingsView(View):
                 await interaction.send(embed=Embed(description=poll_text[lng][6].format(v_c.c)), ephemeral=True)
                        
             else:
-                with closing(connect(f"{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                     with closing(base.cursor()) as cur:
                         cur.execute("UPDATE server_info SET value = 0 WHERE settings = 'poll_c'")
                         base.commit()
@@ -1445,7 +1445,7 @@ class RankingView(View):
 
     async def ic(self, lng: int, interaction: Interaction) -> None:
         chnls: list[tuple[str, int]] = [(c.name, c.id) for c in interaction.guild.text_channels]
-        with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 db_chnls: list[tuple[int]] = cur.execute("SELECT chnl_id FROM ic").fetchall()
         if db_chnls:
@@ -1494,7 +1494,7 @@ class RankingView(View):
             self.lvl_chnl = None
             return
         
-        with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lvl_c'", (self.lvl_chnl,))
                 base.commit()
@@ -1512,7 +1512,7 @@ class RankingView(View):
         await interaction.message.edit(embed=emb, view=self)
             
     async def lvl_roles(self, lng: int, interaction: Interaction) -> None:
-        with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 lvl_rls: list[tuple[int, int]] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level ASC").fetchall()
         if lvl_rls:
@@ -1624,7 +1624,7 @@ class LevelRolesView(View):
                 await interaction.send(embed=Embed(description=ranking_text[lng][32]), ephemeral=True)
                 return
 
-            with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+            with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     if cur.execute("SELECT role_id FROM rank_roles WHERE level = ?", (ans,)).fetchone() is None:
                         cur.execute("INSERT INTO rank_roles(level, role_id) VALUES(?, ?)", (ans, self.role))
@@ -1652,7 +1652,7 @@ class LevelRolesView(View):
             self.role = None    
 
         elif c_id.startswith("28_"):
-            with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+            with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     if cur.execute("SELECT count() FROM rank_roles WHERE level = ?", (ans,)).fetchone()[0]:
                         cur.execute("DELETE FROM rank_roles WHERE level = ?", (ans,))
@@ -1705,7 +1705,7 @@ class IgnoredChannelsView(View):
         self.auth_id: int = auth_id
 
     async def add_chnl(self, interaction: Interaction, lng: int) -> None:
-        with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("INSERT OR IGNORE INTO ic(chnl_id) VALUES(?)", (self.chnl,))
                 base.commit()
@@ -1727,7 +1727,7 @@ class IgnoredChannelsView(View):
         self.chnl = None
     
     async def rem_chnl(self, interaction: Interaction, lng: int) -> None:
-        with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("DELETE FROM ic WHERE chnl_id = ?", (self.chnl,))
                 base.commit()
@@ -1806,7 +1806,7 @@ class ManageMemberView(View):
             return
         self.memb_rls.add(self.role)
 
-        with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 m_rls: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
                 cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls + f"#{self.role}", self.memb_id))
@@ -1842,7 +1842,7 @@ class ManageMemberView(View):
             return
         self.memb_rls.remove(self.role)
 
-        with closing(connect(f"{path_to}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 m_rls: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
                 cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls.replace(f"#{self.role}", ""), self.memb_id))
@@ -1887,7 +1887,7 @@ class ManageMemberView(View):
             if edit_modl.is_changed:
                 l: int = 0
                 embs: list[Embed] = interaction.message.embeds
-                with closing(connect(f'{path_to}/bases/bases_{self.g_id}/{self.g_id}.db')) as base:
+                with closing(connect(f'{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db')) as base:
                     with closing(base.cursor()) as cur:
                         xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
                         if self.cash != edit_modl.new_cash:

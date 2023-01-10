@@ -11,8 +11,10 @@ from nextcord import Game, Message, ChannelType,\
 from nextcord.errors import ApplicationCheckFailure
 from nextcord.ext.commands import Bot, Cog
 from nextcord.ext import tasks
+from nextcord.abc import GuildChannel
 
-from Variables.vars import path_to, bot_guilds, ignored_channels
+from Tools import db_commands
+from Variables.vars import CWD_PATH, bot_guilds, ignored_channels
 from config import DEBUG
 
 
@@ -55,100 +57,6 @@ class EventsHandlerCog(Cog):
         self.salary_roles.start()
         self._backup.start()
         
-    @classmethod
-    def correct_db(cls, guild: Guild) -> None:
-        with closing(connect(f"{path_to}/bases/bases_{guild.id}/{guild.id}.db")) as base:
-            with closing(base.cursor()) as cur:
-                cur.executescript("""\
-                CREATE TABLE IF NOT EXISTS users (
-                    memb_id INTEGER PRIMARY KEY,
-                    money INTEGER NOT NULL DEFAULT 0,
-                    owned_roles TEXT NOT NULL DEFAULT '',
-                    work_date INTEGER NOT NULL DEFAULT 0,
-                    xp INTEGER NOT NULL DEFAULT 0,
-                    pending_requests INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS sale_requests (
-                    request_id INTEGER PRIMARY KEY,
-                    seller_id INTEGER NOT NULL DEFAULT 0,
-                    target_id INTEGER NOT NULL DEFAULT 0,
-                    role_id INTEGER NOT NULL DEFAULT 0,
-                    price INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS server_roles (
-                    role_id INTEGER PRIMARY KEY,
-                    price INTEGER NOT NULL DEFAULT 0,
-                    salary INTEGER NOT NULL DEFAULT 0,
-                    salary_cooldown INTEGER NOT NULL DEFAULT 0,
-                    type INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS store (
-                    role_number INTEGER PRIMARY KEY,
-                    role_id INTEGER NOT NULL DEFAULT 0,
-                    quantity INTEGER NOT NULL DEFAULT 0,
-                    price INTEGER NOT NULL DEFAULT 0,
-                    last_date INTEGER NOT NULL DEFAULT 0,
-                    salary INTEGER NOT NULL DEFAULT 0,
-                    salary_cooldown INTEGER NOT NULL DEFAULT 0,
-                    type INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS salary_roles (
-                    role_id INTEGER PRIMARY KEY,
-                    members TEXT NOT NULL DEFAULT '',
-                    salary INTEGER NOT NULL DEFAULT 0,
-                    salary_cooldown INTEGER NOT NULL DEFAULT 0,
-                    last_time INTEGER NOT NULL DEFAULT 0,
-                    additional_salary INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS server_info (
-                    settings TEXT PRIMARY KEY,
-                    value INTEGER NOT NULL DEFAULT 0,
-                    str_value TEXT NOT NULL DEFAULT ''
-                );
-                CREATE TABLE IF NOT EXISTS rank_roles (
-                    level INTEGER PRIMARY KEY,
-                    role_id INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS ic (
-                    chnl_id INTEGER PRIMARY KEY
-                );
-                CREATE TABLE IF NOT EXISTS mod_roles (
-                    role_id INTEGER PRIMARY KEY
-                );""")
-                base.commit()
-                
-                db_guild_language: tuple[int] | None = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()
-                if db_guild_language: 
-                    lng: Literal[1, 0] = db_guild_language[0]
-                else: 
-                    lng: Literal[1, 0] = 1 if "ru" in str(guild.preferred_locale) else 0
-                
-                settings_params: list[tuple[str, int, str]] = [
-                    ('lang', lng, ""),
-                    ('tz', 0, ""),
-                    ('xp_border', 100, ""),
-                    ('xp_per_msg', 1, ""),
-                    ('mn_per_msg', 1, ""),
-                    ('w_cd', 14400, ""),
-                    ('sal_l', 1, ""),
-                    ('sal_r', 250, ""),
-                    ('lvl_c', 0, ""),
-                    ('log_c', 0, ""),
-                    ('poll_v_c', 0, ""),
-                    ('poll_c', 0, ""),
-                    ('economy_enabled', 1, ""),
-                    ('ranking_enabled', 1, ""),
-                    ('currency', 0, ":coin:"),
-                    ('sale_price_perc', 100, ""),
-                ]
-                cur.executemany("INSERT OR IGNORE INTO server_info (settings, value, str_value) VALUES(?, ?, ?)", settings_params)
-                base.commit()
-
-                ignored_channels[guild.id] = {r[0] for r in cur.execute("SELECT chnl_id FROM ic").fetchall()}
-
-        bot_guilds.add(guild.id)
-        cls.log_event(report=["correct_db func", str(guild.id), str(guild.name)])
-
     @staticmethod
     def log_event(filename: str = "common_logs", report: list[str] = [""]) -> None:
         with open(file=filename+".log", mode="a+", encoding="utf-8") as f:
@@ -173,12 +81,15 @@ class EventsHandlerCog(Cog):
     
     @Cog.listener()
     async def on_ready(self) -> None:
-        if not path.exists(f"{path_to}/bases/"):
-            mkdir(f"{path_to}/bases/")
+        if not path.exists(f"{CWD_PATH}/bases/"):
+            mkdir(f"{CWD_PATH}/bases/")
         for guild in self.bot.guilds:
-            if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
-                mkdir(f"{path_to}/bases/bases_{guild.id}/")
-            self.correct_db(guild=guild)
+            guild_id: int = guild.id
+            if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
+                mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
+            ignored_channels[guild_id] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
+            bot_guilds.add(guild_id)
+            self.log_event(report=["correct_db func", str(guild_id), str(guild.name)])
 
         if DEBUG:
             from colorama import Fore
@@ -195,11 +106,12 @@ class EventsHandlerCog(Cog):
 
     @Cog.listener()
     async def on_guild_join(self, guild: Guild) -> None:
-        if not path.exists(f"{path_to}/bases/bases_{guild.id}/"):
-            mkdir(f"{path_to}/bases/bases_{guild.id}/")
-        self.correct_db(guild=guild)
-        guild_locale: str | None = guild.preferred_locale
-        lng: int = 1 if guild_locale and "ru" in guild_locale else 0
+        guild_id: int = guild.i
+        if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
+            mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
+        guild_locale: str = str(guild.preferred_locale)
+        lng: int = 1 if "ru" in guild_locale else 0
+        db_commands.check_db(guild_id=guild_id, guild_locale=guild_locale)
         
         if guild.me:
             await self.send_first_message(guild=guild, lng=lng)
@@ -211,8 +123,9 @@ class EventsHandlerCog(Cog):
                 with open("error.log", "a+", encoding="utf-8") as f:
                     f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [FATAL] [ERROR] [send_first_message] [{guild.me}] [{g.me}]\n")
     
-        self.log_event(filename="guild", report=["guild_join", str(guild.id), str(guild.name)])
-        self.log_event(report=["guild_join", str(guild.id), str(guild.name)])
+        report_args: list[str] = ["guild_join", str(guild_id), str(guild.name)]
+        self.log_event(filename="guild", report=report_args)
+        self.log_event(report=report_args)
 
         await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
 
@@ -221,30 +134,30 @@ class EventsHandlerCog(Cog):
         g_id: int = guild.id
         if g_id in bot_guilds:
             bot_guilds.remove(g_id)
-        self.log_event(filename="guild", report=["guild_remove", str(guild.id), str(guild.name)])
-        self.log_event(filename="common_logs", report=["guild_remove", str(guild.id), str(guild.name)])
-        await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
-        
+        report_args: list[str] = ["guild_remove", str(g_id), str(guild.name)]
+        self.log_event(filename="guild", report=report_args)
+        self.log_event(filename="common_logs", report=report_args)
+        await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))   
     
     @tasks.loop(seconds=60)
     async def salary_roles(self) -> None:
         for g in bot_guilds: 
-            with closing(connect(f"{path_to}/bases/bases_{g}/{g}.db")) as base:
+            with closing(connect(f"{CWD_PATH}/bases/bases_{g}/{g}.db")) as base:
                 with closing(base.cursor()) as cur:
                     r: list[tuple[int, str, int, int, int]] | list = \
                         cur.execute(
                             "SELECT role_id, members, salary, salary_cooldown, last_time FROM salary_roles"
                         ).fetchall()
                     if r:
-                        t_n: int = int(time())
-                        for role, members, salary, t, last_time in r:
-                            if not last_time or t_n - last_time >= t:
-                                cur.execute("UPDATE salary_roles SET last_time = ? WHERE role_id = ?", (t_n, role))
+                        time_now: int = int(time())
+                        for role, role_owners, salary, t, last_time in r:
+                            if not last_time or time_now - last_time >= t:
+                                cur.execute("UPDATE salary_roles SET last_time = ? WHERE role_id = ?", (time_now, role))
                                 base.commit()
-                                for member in members.split("#"):
-                                    if member:
-                                        cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, int(member)))
-                                        base.commit()
+                                member_ids: set[int] = {int(member_id) for member_id in role_owners.split("#") if member_id}
+                                for member_id in member_ids:
+                                    cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, member_id))
+                                    base.commit()
             await sleep(0.5)
 
     
@@ -254,9 +167,9 @@ class EventsHandlerCog(Cog):
 
     @tasks.loop(minutes=30)
     async def _backup(self) -> None:
-        for guild_id in bot_guilds:
-            with closing(connect(f"{path_to}/bases/bases_{guild_id}/{guild_id}.db")) as src:
-                with closing(connect(f"{path_to}/bases/bases_{guild_id}/{guild_id}_backup.db")) as bck:
+        for guild_id in bot_guilds.copy():
+            with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as src:
+                with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}_backup.db")) as bck:
                     src.backup(bck)
             await sleep(0.5)        
 
@@ -300,7 +213,7 @@ class EventsHandlerCog(Cog):
         elif message.channel.id in ignored_channels[g_id]:
             return
 
-        with closing(connect(f"{path_to}/bases/bases_{g_id}/{g_id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:                    
                 xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border';").fetchone()[0]
                 xp_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';").fetchone()[0]
@@ -308,19 +221,20 @@ class EventsHandlerCog(Cog):
                 new_level: int = self.check_user(base=base, cur=cur, memb_id=user.id, xp_b=xp_b, mn_m=mn_p_m, xp_m=xp_p_m)
                 if new_level:
                     channel_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
-                    
                     if channel_id:
-                        channel = message.guild.get_channel(channel_id)
+                        channel: GuildChannel | None = message.guild.get_channel(channel_id)
                         if channel:
                             lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
                             emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(user.mention, new_level))
                             await channel.send(embed=emb)
 
-                    lvl_rls: list = cur.execute("SELECT * FROM rank_roles ORDER BY level").fetchall()
-                    if not lvl_rls:
+                    db_lvl_rls: list[tuple[int, int]] | list = \
+                        cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level").fetchall()
+                    if not db_lvl_rls:
                         return
 
-                    lvl_rls: dict[int, int] = {k: v for k, v in lvl_rls}                
+                    lvl_rls: dict[int, int] = {k: v for k, v in db_lvl_rls}  
+                    del db_lvl_rls              
                     if new_level in lvl_rls:
                         memb_roles: set[int] = {role.id for role in user.roles}
                         new_level_role_id: int = lvl_rls[new_level]
@@ -333,8 +247,8 @@ class EventsHandlerCog(Cog):
                                     pass
                         levels: list[int] = sorted(lvl_rls.keys())
                         i: int = levels.index(new_level)
-                        if i and lvl_rls[levels[i-1]] in memb_roles:                                
-                            role: Role | None = user.guild.get_role(lvl_rls[levels[i-1]])
+                        if i and (old_role_id := lvl_rls[levels[i-1]]) in memb_roles:                                
+                            role: Role | None = user.guild.get_role(old_role_id)
                             if role:
                                 try: 
                                     await user.remove_roles(role, reason=f"Member gained new level {new_level}")

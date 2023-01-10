@@ -6,7 +6,7 @@ from nextcord import Embed, Locale, Interaction, slash_command
 from nextcord.ext import application_checks
 from nextcord.ext.commands import Cog, Bot
 
-from Variables.vars import path_to
+from Variables.vars import CWD_PATH
 from CustomComponents.custom_views import SettingsView
 
 
@@ -45,12 +45,13 @@ class ModCommandsCog(Cog):
         if u.guild_permissions.administrator or u.guild_permissions.manage_guild:
             return True
 
-        with closing(connect(f'{path_to}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+        with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                m_rls = cur.execute("SELECT * FROM mod_roles").fetchall()
-                if m_rls:
-                    m_rls = {x[0] for x in m_rls}
-                    return any(role.id in m_rls for role in u.roles)
+                mod_roles_ids_list: list[tuple[int]] | list = cur.execute("SELECT * FROM mod_roles").fetchall()
+                if mod_roles_ids_list:
+                    mod_roles_ids_set: set[int] = {x[0] for x in mod_roles_ids_list}
+                    del mod_roles_ids_list
+                    return any(role.id in mod_roles_ids_set for role in u.roles)
                 return False
 
     async def settings(self, interaction: Interaction) -> None:
