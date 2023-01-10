@@ -6,8 +6,8 @@ from typing import Literal
 from asyncio import sleep
 from time import time
 
-from nextcord import Game, Message, ChannelType,\
-    Embed, Guild, Interaction, Role, TextChannel
+from nextcord import Game, Message, ChannelType, Embed, \
+    Guild, Interaction, Role, TextChannel, Member
 from nextcord.errors import ApplicationCheckFailure
 from nextcord.ext.commands import Bot, Cog
 from nextcord.ext import tasks
@@ -27,19 +27,15 @@ class EventsHandlerCog(Cog):
             0: "**`Извините, но у Вас недостаточно прав для использования этой команды`**",
         },
     }
-    greetings: dict[int, list[str]] = {
-        0: [
-            "Thanks for adding bot!",
-            "Use **`/guide`** to see guide about bot's system",
-            "**`/settings`** to manage bot",
-            "and **`/help`** to see available commands",
-        ],
-        1: [
-            "Благодарим за добавление бота!",
-            "Используйте **`/guide`** для просмотра гайда о системе бота",
-            "**`/settings`** для управления ботом",
-            "и **`/help`** для просмотра доступных команд",
-        ]
+    greetings: dict[int, str] = {
+        0: "Thanks for adding bot!\n\
+            Use **`/guide`** to see guide about bot's system\n\
+            *`/settings`** to manage bot\n\
+            and **`/help`** to see available commands",
+        1: "Благодарим за добавление бота!\n\
+            Используйте **`/guide`** для просмотра гайда о системе бота\n\
+            **`/settings`** для управления ботом\n\
+            и **`/help`** для просмотра доступных команд",
     }
     new_level_text: dict[int, dict[int, str]] = {
         0: {
@@ -65,15 +61,17 @@ class EventsHandlerCog(Cog):
     @classmethod
     async def send_first_message(cls, guild: Guild, lng: int) -> None:
         channel_to_send_greet: TextChannel | None = None
-        if guild.system_channel.permissions_for(guild.me).send_messages:
-            channel_to_send_greet = guild.system_channel
+        system_channel: TextChannel | None = guild.system_channel
+        guild_me: Member = guild.me
+        if system_channel and system_channel.permissions_for(guild_me).send_messages:
+            channel_to_send_greet = system_channel
         else:
             for channel in guild.text_channels:
-                if channel.permissions_for(guild.me).send_messages:
+                if channel.permissions_for(guild_me).send_messages:
                     channel_to_send_greet = channel
                     break
         if channel_to_send_greet:
-            await channel_to_send_greet.send(embed=Embed(description="\n".join(cls.greetings[lng])))
+            await channel_to_send_greet.send(embed=Embed(description=cls.greetings[lng]))
 
     @Cog.listener()
     async def on_connect(self) -> None:
@@ -106,7 +104,7 @@ class EventsHandlerCog(Cog):
 
     @Cog.listener()
     async def on_guild_join(self, guild: Guild) -> None:
-        guild_id: int = guild.i
+        guild_id: int = guild.id
         if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
             mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
         guild_locale: str = str(guild.preferred_locale)
@@ -141,7 +139,7 @@ class EventsHandlerCog(Cog):
     
     @tasks.loop(seconds=60)
     async def salary_roles(self) -> None:
-        for g in bot_guilds: 
+        for g in bot_guilds.copy(): 
             with closing(connect(f"{CWD_PATH}/bases/bases_{g}/{g}.db")) as base:
                 with closing(base.cursor()) as cur:
                     r: list[tuple[int, str, int, int, int]] | list = \
