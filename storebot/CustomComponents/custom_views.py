@@ -513,8 +513,10 @@ class GenSettingsView(View):
             emb.description = "\n".join(dsc)
             await interaction.message.edit(embed=emb)
 
-            if await interaction.original_message():
+            try:
                 await interaction.edit_original_message(embed=Embed(description=gen_settings_text[lng][30].format(emoji_str)))
+            except:
+                pass
 
     async def change_ec_system(self, interaction: Interaction, lng: int) -> None:
         self.ec_status ^= 1
@@ -710,7 +712,10 @@ class EconomyView(View):
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (money_per_message,))
                     base.commit()
             
-            await interaction.edit_original_message(embed=Embed(description=ec_text[lng][10].format(ans)))
+            try:
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][10].format(ans)))
+            except:
+                pass
             
             emb: Embed = interaction.message.embeds[0]
             dsc: list[str] = emb.description.split("\n\n")
@@ -728,7 +733,10 @@ class EconomyView(View):
                 with closing(base.cursor()) as cur:
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'w_cd'", (work_command_cooldown,))
                     base.commit()
-            await interaction.edit_original_message(embed=Embed(description=ec_text[lng][12].format(ans)))
+            try:
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][12].format(ans)))
+            except:
+                pass
             
             emb: Embed = interaction.message.embeds[0]
             dsc: list[str] = emb.description.split("\n\n")
@@ -767,10 +775,16 @@ class EconomyView(View):
             emb: Embed = interaction.message.embeds[0]
             dsc: list[str] = emb.description.split("\n\n")
             if n1 == n2:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][14].format(n1)))
+                try:
+                    await interaction.edit_original_message(embed=Embed(description=ec_text[lng][14].format(n1)))
+                except:
+                    pass
                 dsc[2] = ec_text[lng][3].format(n1)
             else:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][14].format(ec_text[lng][4].format(n1, n2))))
+                try:
+                    await interaction.edit_original_message(embed=Embed(description=ec_text[lng][14].format(ec_text[lng][4].format(n1, n2))))
+                except:
+                    pass
                 dsc[2] = ec_text[lng][3].format(ec_text[lng][4].format(n1, n2))
             
             emb.description = "\n\n".join(dsc)
@@ -803,7 +817,10 @@ class EconomyView(View):
 
         if cnt >= 40:
             await interaction.message.edit(view=self)
-            await interaction.edit_original_message(embed=Embed(description=ec_text[lng][17]))
+            try:
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][17]))
+            except:
+                pass
             self.channel = None
             return
 
@@ -821,11 +838,14 @@ class EconomyView(View):
         emb.description = "\n\n".join(dsc)
         await interaction.message.edit(embed=emb, view=self)
 
-        if self.channel:
-            await interaction.edit_original_message(embed=Embed(description=ec_text[lng][16].format(f"<#{self.channel}>")))
-        else:
-            await interaction.edit_original_message(embed=Embed(description=ec_text[lng][21]))
-        
+        try:
+            if self.channel:
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][16].format(f"<#{self.channel}>")))
+            else:
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][21]))
+        except:
+            pass
+            
         self.channel = None
 
     async def manage_economy_roles(self, interaction: Interaction, lng: int) -> None:
@@ -871,7 +891,10 @@ class EconomyView(View):
         await ec_rls_view.wait()
         for c in ec_rls_view.children:
             c.disabled = True
-        await interaction.edit_original_message(view=ec_rls_view)
+        try:
+            await interaction.edit_original_message(view=ec_rls_view)
+        except:
+            pass
 
     async def change_sale_role_price(self, interaction: Interaction, lng: int) -> None:
         sale_price_modal: SalePriceModal = SalePriceModal(
@@ -964,7 +987,10 @@ class EconomyRolesManageView(View):
             if await v_d.wait():
                 for c in v_d.children:
                     c.disabled = True
-                await interaction.edit_original_message(view=v_d)
+                try:
+                    await interaction.edit_original_message(view=v_d)
+                except:
+                    pass
 
             if v_d.deleted:
                 self.s_rls.remove(self.role)
@@ -1093,7 +1119,10 @@ class SettingsView(View):
             await gen_view.wait()
             for c in gen_view.children:
                 c.disabled = True
-            await interaction.edit_original_message(view=gen_view)
+            try:
+                await interaction.edit_original_message(view=gen_view)
+            except:
+                pass
 
         elif custom_id.startswith("1_"):
             with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
@@ -1123,7 +1152,10 @@ class SettingsView(View):
             await m_rls_v.wait()
             for c in m_rls_v.children:
                 c.disabled = True
-            await interaction.edit_original_message(view=m_rls_v)
+            try:
+                await interaction.edit_original_message(view=m_rls_v)
+            except:
+                pass
 
         elif custom_id.startswith("2_"):
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][7]))
@@ -1226,12 +1258,18 @@ class SettingsView(View):
                 member=memb
             )
 
-            await interaction.edit_original_message(embeds=[emb1, emb2, emb3], view=mng_v)
+            try:
+                await interaction.edit_original_message(embeds=[emb1, emb2, emb3], view=mng_v)
+            except:
+                pass
             
             await mng_v.wait()
             for c in mng_v.children:
                 c.disabled = True
-            await interaction.edit_original_message(view=mng_v)
+            try:
+                await interaction.edit_original_message(view=mng_v)
+            except:
+                pass
 
         elif custom_id.startswith("3_"):
             with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
@@ -1267,7 +1305,10 @@ class SettingsView(View):
             await ec_v.wait()
             for c in ec_v.children:
                 c.disabled = True
-            await interaction.edit_original_message(view=ec_v)
+            try:
+                await interaction.edit_original_message(view=ec_v)
+            except:
+                pass
 
         elif custom_id.startswith("4_"):   
             with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
@@ -1294,7 +1335,10 @@ class SettingsView(View):
             await rnk_v.wait()
             for c in rnk_v.children:
                 c.disabled = True
-            await interaction.edit_original_message(view=rnk_v)
+            try:
+                await interaction.edit_original_message(view=rnk_v)
+            except:
+                pass
 
         elif custom_id.startswith("5_"):
             with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
@@ -1319,7 +1363,10 @@ class SettingsView(View):
             await p_v.wait()
             for c in p_v.children:
                 c.disabled = True
-            await interaction.edit_original_message(view=p_v)
+            try:
+                await interaction.edit_original_message(view=p_v)
+            except:
+                pass
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
