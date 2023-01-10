@@ -11,7 +11,7 @@ from nextcord.ui import View
 from storebot import StoreBot
 from Tools.db_commands import check_db_member, delete_role_from_db
 from Tools.parse_tools import parse_emoji
-from Variables.vars import CWD_PATH, ignored_channels
+from Variables.vars import CWD_PATH
 from CustomComponents.custom_button import CustomButton
 from CustomComponents.custom_select import CustomSelect
 from CustomModals.custom_modals import RoleAddModal, RoleEditModal,\
@@ -1328,7 +1328,7 @@ class SettingsView(View):
             dsc += [ranking_text[lng][i] for i in (4, 5, 6)]
 
             emb.description = "\n\n".join(dsc)
-            rnk_v: RankingView = RankingView(timeout=90, auth_id=interaction.user.id, g_id=interaction.guild_id, cur_xp_pm=xp_p_m, cur_xpb=xp_b)
+            rnk_v: RankingView = RankingView(timeout=90, auth_id=interaction.user.id, g_id=interaction.guild_id, cur_xp_pm=xp_p_m, cur_xpb=xp_b, bot=self.bot)
             
             await interaction.response.send_message(embed=emb, view=rnk_v)
 
@@ -1462,7 +1462,7 @@ class PollSettingsView(View):
 
 
 class RankingView(View):
-    def __init__(self, timeout: int, auth_id: int, g_id: int, cur_xp_pm: int, cur_xpb: int) -> None:
+    def __init__(self, timeout: int, auth_id: int, g_id: int, cur_xp_pm: int, cur_xpb: int, bot: StoreBot) -> None:
         super().__init__(timeout=timeout)
         self.add_item(CustomButton(style=ButtonStyle.green, label="", emoji="✨", custom_id=f"21_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.grey, label="", emoji="📗", custom_id=f"22_{auth_id}_{randint(1, 100)}"))
@@ -1473,6 +1473,7 @@ class RankingView(View):
         self.cur_xpb: int = cur_xpb
         self.g_id: int = g_id
         self.lvl_chnl: int | None = None
+        self.bot: StoreBot = bot
     
     async def xp_change(self, lng: int, interaction: Interaction) -> None:
         xp_m: XpSettingsModal = XpSettingsModal(timeout=80, lng=lng, auth_id=self.auth_id, g_id=self.g_id, cur_xp=self.cur_xp_pm, cur_xpb=self.cur_xpb)
@@ -1496,23 +1497,23 @@ class RankingView(View):
             with closing(base.cursor()) as cur:
                 db_chnls: list[tuple[int]] = cur.execute("SELECT chnl_id FROM ic").fetchall()
         if db_chnls:
-            ignored_channels[self.g_id] = {r[0] for r in db_chnls}
-            dsc: list[str] = [ranking_text[lng][17]] + [f"<#{r}>**` - {r}`**" for r in ignored_channels[self.g_id]]
+            guild_ignored_channels: set[int] = {tup[0] for tup in db_chnls}
+            self.bot.ignored_channels[self.g_id] = guild_ignored_channels
+            dsc: list[str] = [ranking_text[lng][17]] + [f"<#{chnl_id}>**` - {chnl_id}`**" for chnl_id in guild_ignored_channels]
             rd: bool = False
         else:
-            ignored_channels[self.g_id] = set()
+            self.bot.ignored_channels[self.g_id] = set()
             rd: bool = True
             dsc = [ranking_text[lng][18]]
         
         emb: Embed = Embed(description="\n".join(dsc))     
-        ic_v: IgnoredChannelsView = IgnoredChannelsView(timeout=80, lng=lng, auth_id=self.auth_id, chnls=chnls, rem_dis=rd, g_id=self.g_id)
+        ic_v: IgnoredChannelsView = IgnoredChannelsView(timeout=80, lng=lng, auth_id=self.auth_id, chnls=chnls, rem_dis=rd, g_id=self.g_id, bot=self.bot)
 
         await interaction.response.send_message(embed=emb, view=ic_v)
         await ic_v.wait()
         await interaction.delete_original_message()
 
     async def level_channel(self, lng: int, interaction: Interaction) -> None:
-        
         me: Member = interaction.guild.me
         chnls: list[tuple[str, int]] = [(c.name, c.id) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
         l: int = len(chnls)
@@ -1740,7 +1741,7 @@ class LevelRolesView(View):
 
 
 class IgnoredChannelsView(View):
-    def __init__(self, timeout: int, lng: int, auth_id: int, chnls: list, rem_dis: bool, g_id: int) -> None:
+    def __init__(self, timeout: int, lng: int, auth_id: int, chnls: list, rem_dis: bool, g_id: int, bot: StoreBot) -> None:
         super().__init__(timeout=timeout)
         l: int = len(chnls)
         for i in range(min((l + 23) // 24, 20)):
@@ -1750,13 +1751,14 @@ class IgnoredChannelsView(View):
         self.chnl: int | None = None
         self.g_id: int = g_id
         self.auth_id: int = auth_id
+        self.bot: StoreBot = bot
 
     async def add_chnl(self, interaction: Interaction, lng: int) -> None:
         with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("INSERT OR IGNORE INTO ic(chnl_id) VALUES(?)", (self.chnl,))
                 base.commit()
-        ignored_channels[self.g_id].add(self.chnl)
+        self.bot.ignored_channels[self.g_id].add(self.chnl)
 
         emb: Embed = interaction.message.embeds[0]
         dsc: list[str] = emb.description.split("\n")
@@ -1778,7 +1780,7 @@ class IgnoredChannelsView(View):
             with closing(base.cursor()) as cur:
                 cur.execute("DELETE FROM ic WHERE chnl_id = ?", (self.chnl,))
                 base.commit()
-        ignored_channels[self.g_id].remove(self.chnl)
+        self.bot.ignored_channels[self.g_id].remove(self.chnl)
 
         emb: Embed = interaction.message.embeds[0]
         dsc: list[str] = emb.description.split("\n")
@@ -1807,12 +1809,12 @@ class IgnoredChannelsView(View):
             await interaction.response.send_message(embed=Embed(description=ranking_text[lng][21]), ephemeral=True)
             return
         if c_id.startswith("25_"):
-            if self.chnl in ignored_channels[self.g_id]:
+            if self.chnl in self.bot.ignored_channels[self.g_id]:
                 await interaction.response.send_message(embed=Embed(description=ranking_text[lng][22]), ephemeral=True)
                 return
             await self.add_chnl(interaction=interaction, lng=lng)
         elif c_id.startswith("26_"):
-            if not self.chnl in ignored_channels[self.g_id]:
+            if not self.chnl in self.bot.ignored_channels[self.g_id]:
                 await interaction.response.send_message(embed=Embed(description=ranking_text[lng][23]), ephemeral=True)
                 return
             await self.rem_chnl(interaction=interaction, lng=lng)           

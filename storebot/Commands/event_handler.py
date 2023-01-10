@@ -9,12 +9,13 @@ from time import time
 from nextcord import Game, Message, User, Embed, \
     Guild, Interaction, Role, TextChannel, Member
 from nextcord.errors import ApplicationCheckFailure
-from nextcord.ext.commands import Bot, Cog
+from nextcord.ext.commands import Cog
 from nextcord.ext import tasks
 from nextcord.abc import GuildChannel
 
+from storebot import StoreBot
 from Tools import db_commands
-from Variables.vars import CWD_PATH, bot_guilds, ignored_channels
+from Variables.vars import CWD_PATH
 from config import DEBUG
 
 
@@ -48,8 +49,8 @@ class EventsHandlerCog(Cog):
         }
     }
 
-    def __init__(self, bot: Bot) -> None:
-        self.bot: Bot = bot
+    def __init__(self, bot: StoreBot) -> None:
+        self.bot: StoreBot = bot
         self.salary_roles.start()
         self._backup.start()
         
@@ -85,8 +86,7 @@ class EventsHandlerCog(Cog):
             guild_id: int = guild.id
             if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
                 mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
-            ignored_channels[guild_id] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
-            bot_guilds.add(guild_id)
+            self.bot.ignored_channels[guild_id] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
             self.log_event(report=["correct_db func", str(guild_id), str(guild.name)])
 
         if DEBUG:
@@ -98,9 +98,9 @@ class EventsHandlerCog(Cog):
                 f'{Fore.RED}\n[>>>]Enter command:'
             print(opt, end=' ')
 
-        await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
-
-        self.log_event(report=["on_ready", f"total {len(bot_guilds)} guilds"])
+        guilds_len: int = len(self.bot.guilds)
+        await self.bot.change_presence(activity=Game(f"/help on {guilds_len} servers"))
+        self.log_event(report=["on_ready", f"total {guilds_len} guilds"])
 
     @Cog.listener()
     async def on_guild_join(self, guild: Guild) -> None:
@@ -125,22 +125,20 @@ class EventsHandlerCog(Cog):
         self.log_event(filename="guild", report=report_args)
         self.log_event(report=report_args)
 
-        await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))
+        await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"))
 
     @Cog.listener()
     async def on_guild_remove(self, guild: Guild) -> None:
-        g_id: int = guild.id
-        if g_id in bot_guilds:
-            bot_guilds.remove(g_id)
-        report_args: list[str] = ["guild_remove", str(g_id), str(guild.name)]
+        report_args: list[str] = ["guild_remove", str(guild.id), str(guild.name)]
         self.log_event(filename="guild", report=report_args)
         self.log_event(filename="common_logs", report=report_args)
-        await self.bot.change_presence(activity=Game(f"/help on {len(bot_guilds)} servers"))   
+        await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"))   
     
     @tasks.loop(seconds=60)
     async def salary_roles(self) -> None:
-        for g in bot_guilds.copy(): 
-            with closing(connect(f"{CWD_PATH}/bases/bases_{g}/{g}.db")) as base:
+        guild_ids: frozenset[int] = frozenset(guild.id for guild in self.bot.guilds.copy())
+        for guild_id in guild_ids: 
+            with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     r: list[tuple[int, str, int, int, int]] | list = \
                         cur.execute(
@@ -165,7 +163,8 @@ class EventsHandlerCog(Cog):
 
     @tasks.loop(minutes=30)
     async def _backup(self) -> None:
-        for guild_id in bot_guilds.copy():
+        guild_ids: frozenset[int] = frozenset(guild.id for guild in self.bot.guilds.copy())
+        for guild_id in guild_ids:
             with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as src:
                 with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}_backup.db")) as bck:
                     src.backup(bck)
@@ -206,9 +205,9 @@ class EventsHandlerCog(Cog):
             return
         
         g_id: int = message.guild.id
-        if g_id not in ignored_channels:
-            ignored_channels[g_id] = set()
-        elif message.channel.id in ignored_channels[g_id]:
+        if g_id not in self.bot.ignored_channels:
+            self.bot.ignored_channels[g_id] = set()
+        elif message.channel.id in self.bot.ignored_channels[g_id]:
             return
 
         with closing(connect(f"{CWD_PATH}/bases/bases_{g_id}/{g_id}.db")) as base:
@@ -265,5 +264,5 @@ class EventsHandlerCog(Cog):
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [ERROR] [slash_command] [{interaction.application_command.name}]{guild_report} [{str(exception)}]\n")
 
 
-def setup(bot: Bot) -> None:
+def setup(bot: StoreBot) -> None:
     bot.add_cog(EventsHandlerCog(bot))
