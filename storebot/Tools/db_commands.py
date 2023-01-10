@@ -150,7 +150,7 @@ def check_db(guild_id: int, guild_locale: str | None) -> set[int]:
                 owned_roles TEXT NOT NULL DEFAULT '',
                 work_date INTEGER NOT NULL DEFAULT 0,
                 xp INTEGER NOT NULL DEFAULT 0,
-                voice_join_time INTEGER NOT NULL
+                voice_join_time INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS sale_requests (
                 request_id INTEGER PRIMARY KEY,
