@@ -6,6 +6,7 @@ from os import mkdir, path
 from dpyConsole import console, Cog, Console
 from colorama import Fore
 
+from Tools import db_commands
 from Variables.vars import CWD_PATH
 
 
@@ -15,91 +16,25 @@ class ConsoleCog(Cog):
         self.console = console
     
     @console.command()
-    async def setup(self, guild_id, str_lng = "0"):
+    async def setup(self, guild_id, str_lng = "1"):
+        if not guild_id.isdigit() or (g_id := int(guild_id)) <= 0:
+            print("first param (guild id) should be integer > 0")
+            return
         if not path.exists(f"{CWD_PATH}/bases/"):
             try:
                 mkdir(f"{CWD_PATH}/bases/")
             except:
                 print(f"Can't create {CWD_PATH}/bases folder")
+                return
 
         if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
             try:
                 mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
             except:
                 print(f"{Fore.YELLOW}Can't create path to the database in the {CWD_PATH}/bases/ folder!{Fore.RED}\n")
-
-        with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
-            with closing(base.cursor()) as cur:
-                cur.executescript("""\
-                CREATE TABLE IF NOT EXISTS users(
-                    memb_id INTEGER PRIMARY KEY, 
-                    money INTEGER NOT NULL DEFAULT 0, 
-                    owned_roles TEXT NOT NULL DEFAULT '', 
-                    work_date INTEGER NOT NULL DEFAULT 0, 
-                    xp INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS server_roles(
-                    role_id INTEGER PRIMARY KEY, 
-                    price INTEGER NOT NULL DEFAULT 0, 
-                    salary INTEGER NOT NULL DEFAULT 0, 
-                    salary_cooldown INTEGER NOT NULL DEFAULT 0, 
-                    type INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS store (
-                    role_number INTEGER PRIMARY KEY, 
-                    role_id INTEGER NOT NULL DEFAULT 0, 
-                    quantity INTEGER NOT NULL DEFAULT 0, 
-                    price INTEGER NOT NULL DEFAULT 0, 
-                    last_date INTEGER NOT NULL DEFAULT 0, 
-                    salary INTEGER NOT NULL DEFAULT 0, 
-                    salary_cooldown INTEGER NOT NULL DEFAULT 0, 
-                    type INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS salary_roles(
-                    role_id INTEGER PRIMARY KEY, 
-                    members TEXT NOT NULL DEFAULT '', 
-                    salary INTEGER NOT NULL DEFAULT 0, 
-                    salary_cooldown INTEGER NOT NULL DEFAULT 0, 
-                    last_time INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS server_info(
-                    settings TEXT PRIMARY KEY, 
-                    value INTEGER NOT NULL DEFAULT 0,
-                    str_value TEXT NOT NULL DEFAULT ''
-                );
-                CREATE TABLE IF NOT EXISTS rank_roles(
-                    level INTEGER PRIMARY KEY, 
-                    role_id INTEGER NOT NULL DEFAULT 0
-                );
-                CREATE TABLE IF NOT EXISTS ic(
-                    chnl_id INTEGER PRIMARY KEY
-                );
-                CREATE TABLE IF NOT EXISTS mod_roles(
-                    role_id INTEGER PRIMARY KEY
-                );""")
-                base.commit()
-                
-                lng = tmp if str_lng.isdigit() and (tmp := int(str_lng)) >= 0 else 0
-                settings_params = (
-                    ('lang', lng, ""),
-                    ('tz', 0, ""),
-                    ('xp_border', 100, ""),
-                    ('xp_per_msg', 1, ""),
-                    ('mn_per_msg', 1, ""),
-                    ('w_cd', 14400, ""),
-                    ('sal_l', 1, ""),
-                    ('sal_r', 250, ""),
-                    ('lvl_c', 0, ""),
-                    ('log_c', 0, ""),
-                    ('poll_v_c', 0, ""),
-                    ('poll_c', 0, ""),
-                    ('economy_enabled', 1, ""),
-                    ('ranking_enabled', 1, ""),
-                    ('currency', 0, ":coin:"),
-                    ("sale_price_perc", 100, ""),
-                )
-                cur.executemany("INSERT OR IGNORE INTO server_info (settings, value, str_value) VALUES(?, ?, ?)", settings_params)
-                base.commit()
+                return
+        
+        db_commands.check_db(guild_id=g_id, guild_locale="ru" if str_lng == "1" else "en-US")
 
         print(f'{Fore.CYAN}[>>>]created and setuped database for {guild_id}{Fore.RED}')
         opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
