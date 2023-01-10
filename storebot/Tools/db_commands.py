@@ -136,7 +136,7 @@ def delete_role_from_db(guild_id: int, str_role_id: str) -> None:
                     )
                     base.commit()
 
-def check_db(guild_id: int, guild_locale: str | None):
+def check_db(guild_id: int, guild_locale: str | None) -> set[int]:
     with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
         with closing(base.cursor()) as cur:
             cur.executescript("""\
@@ -209,7 +209,7 @@ def check_db(guild_id: int, guild_locale: str | None):
                 ('xp_border', 100, ""),
                 ('xp_per_msg', 1, ""),
                 ('mn_per_msg', 1, ""),
-                ('mn_for_voice', 1, "")
+                ('mn_for_voice', 1, ""),
                 ('w_cd', 14400, ""),
                 ('sal_l', 1, ""),
                 ('sal_r', 250, ""),
