@@ -291,8 +291,8 @@ class BetView(View):
 
 
 class StoreView(View):
-    def __init__(self, timeout: int, db_store: list[tuple[int, int, int, int, int, int, int, int]], auth_id: int,
-                 lng: int, in_row: int, currency: str, tz: int) -> None:
+    def __init__(self, timeout: int, db_store: list[tuple[int, int, int, int, int, int, int, int]],
+                 auth_id: int, lng: int, in_row: int, currency: str, tz: int) -> None:
         super().__init__(timeout=timeout)
         self.db_store: list[tuple[int, int, int, int, int, int, int, int]] = db_store
         self.l: int = len(db_store)
@@ -709,7 +709,6 @@ class SlashCommandsCog(Cog):
     }
 
     def __init__(self, bot: Bot) -> None:
-        self.bot: Bot = bot
         self.in_row: int = in_row
 
     @classmethod

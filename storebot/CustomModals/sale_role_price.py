@@ -3,7 +3,7 @@ from random import randint
 from nextcord import Embed, Interaction, TextInputStyle
 from nextcord.ui import TextInput, Modal
 
-from Tools.db_commands import update_server_info_table
+from Tools import db_commands
 
 
 class SalePriceModal(Modal):
@@ -57,7 +57,7 @@ class SalePriceModal(Modal):
             )
             self.stop()
             return
-        update_server_info_table(interaction.guild_id, "sale_price_perc", sale_role_percent)
+        db_commands.update_server_info_table(interaction.guild_id, "sale_price_perc", sale_role_percent)
         self.new_sale_role_percent = sale_role_percent
         await interaction.response.send_message(
             embed=Embed(

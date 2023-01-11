@@ -97,5 +97,25 @@ class VoiceHandlerCog(Cog):
             ))
 
 
+    def process_member_on_bot_shutdown(self, guild: Guild, member_id: int, member: Member) -> None:
+        if not member.voice:
+            return
+
+        money_for_voice: int = db_commands.get_server_info_value(guild_id=guild.id, key_name="mn_for_voice")
+        if not money_for_voice:
+            return
+
+        current_channel: VoiceChannel | StageChannel | None = member.voice.channel
+        channel_is_voice: bool = isinstance(current_channel, VoiceChannel)
+        if not channel_is_voice:
+            return
+        
+        db_commands.register_user_voice_channel_left(
+            guild_id=guild.id,
+            member_id=member_id,
+            money_for_voice=money_for_voice
+        )
+
+
 def setup(bot: StoreBot) -> None:
     bot.add_cog(VoiceHandlerCog(bot))

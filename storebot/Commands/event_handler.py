@@ -82,12 +82,13 @@ class EventsHandlerCog(Cog):
     async def on_ready(self) -> None:
         if not path.exists(f"{CWD_PATH}/bases/"):
             mkdir(f"{CWD_PATH}/bases/")
-        for guild in self.bot.guilds:
+        for guild in self.bot.guilds.copy():
             guild_id: int = guild.id
             if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
                 mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
-            self.bot.members_in_voice[guild_id] = {}
-            self.bot.ignored_channels[guild_id] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
+            async with self.bot.lock:
+                self.bot.members_in_voice[guild_id] = {}
+                self.bot.ignored_channels[guild_id] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
             self.log_event(report=["correct_db func", str(guild_id), str(guild.name)])
 
         if DEBUG:
@@ -108,19 +109,18 @@ class EventsHandlerCog(Cog):
         guild_id: int = guild.id
         if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
             mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
+
         guild_locale: str = str(guild.preferred_locale)
-        lng: int = 1 if "ru" in guild_locale else 0
-        db_commands.check_db(guild_id=guild_id, guild_locale=guild_locale)
+        async with self.bot.lock:
+            self.bot.members_in_voice[guild_id] = {}
+            self.bot.ignored_channels[guild_id] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
         
-        if guild.me:
+        lng: int = 1 if "ru" in guild_locale else 0
+        try:
             await self.send_first_message(guild=guild, lng=lng)
-        else:
-            g: Guild | None = self.bot.get_guild(guild.id)
-            if g and g.me:
-                await self.send_first_message(guild=g, lng=lng)
-            else:
-                with open("error.log", "a+", encoding="utf-8") as f:
-                    f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [FATAL] [ERROR] [send_first_message] [{guild.me}] [{g.me}]\n")
+        except Exception as ex:
+            with open("error.log", "a+", encoding="utf-8") as f:
+                f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [FATAL] [ERROR] [send_first_message] [{str(ex)}]\n")
     
         report_args: list[str] = ["guild_join", str(guild_id), str(guild.name)]
         self.log_event(filename="guild", report=report_args)
@@ -202,14 +202,15 @@ class EventsHandlerCog(Cog):
         user: User | Member = message.author
 
         #or message.type is MessageType.chat_input_command
-        if user.bot or not isinstance(user, Member):
+        if user.bot or not isinstance(user, Member) or not (guild := message.guild):
             return
         
-        g_id: int = message.guild.id
-        if g_id not in self.bot.ignored_channels:
-            self.bot.ignored_channels[g_id] = set()
-        elif message.channel.id in self.bot.ignored_channels[g_id]:
-            return
+        g_id: int = guild.id
+        async with self.bot.lock:
+            if g_id not in self.bot.ignored_channels:
+                self.bot.ignored_channels[g_id] = set()
+            elif message.channel.id in self.bot.ignored_channels[g_id]:
+                return
 
         with closing(connect(f"{CWD_PATH}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:                    
@@ -220,7 +221,7 @@ class EventsHandlerCog(Cog):
                 if new_level:
                     channel_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
                     if channel_id:
-                        channel: GuildChannel | None = message.guild.get_channel(channel_id)
+                        channel: GuildChannel | None = guild.get_channel(channel_id)
                         if channel and isinstance(channel, TextChannel):
                             lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
                             emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(user.mention, new_level))

@@ -3,7 +3,8 @@ from random import randint
 from asyncio import sleep
 from os import path
 
-from nextcord import Embed, Locale, Interaction, Game, Status, slash_command, TextInputStyle, Permissions, TextChannel
+from nextcord import Embed, Locale, Interaction, Game, Status, \
+    slash_command, TextInputStyle, Permissions, TextChannel, Guild
 from nextcord.ext.commands import command, is_owner, Context, Cog
 from nextcord.ui import Modal, TextInput
 from nextcord.abc import GuildChannel
@@ -308,10 +309,11 @@ class BasicComandsCog(Cog):
     @command(aliases=["statistic", "statistics"])
     @is_owner()
     async def _statistic(self, ctx: Context) -> None:
-        description: list[str] = \
-            ["```guild - id - member_count```"] + \
-            [f"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}" for guild in self.bot.guilds] + \
-            [f"\n**`Total guilds: {len(self.bot.guilds)}`**", f"\n**`Currently active polls: {self.bot.current_polls}`**"]
+        async with self.bot.lock:
+            description: list[str] = \
+                ["```guild - id - member_count```"] + \
+                [f"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}" for guild in self.bot.guilds] + \
+                [f"\n**`Total guilds: {len(self.bot.guilds)}`**", f"\n**`Currently active polls: {self.bot.current_polls}`**"]
         emb: Embed = Embed(description='\n'.join(description))
         await ctx.reply(embed=emb, mention_author=False, delete_after=15)
 
@@ -329,12 +331,25 @@ class BasicComandsCog(Cog):
     async def shutdown(self, ctx: Context) -> None:
         from Commands.voice_handler import VoiceHandlerCog
         cog: Cog | None = self.bot.cogs.get("VoiceHandlerCog")
-        if not cog or not isinstance(cog, VoiceHandlerCog):
+        
+        if not isinstance(cog, VoiceHandlerCog):
             return
         
-        # for 
-        # cog.process_left_members()
-        # await ctx.reply(embed=Embed(description=, mention_author=False)
+        k: int = 0
+        async with self.bot.lock:
+            for guild_id, members_dict in self.bot.members_in_voice.items():
+                guild: Guild | None = self.bot.get_guild(guild_id)
+                if not guild:
+                    continue
+                for member_id, member in members_dict.items():
+                    cog.process_member_on_bot_shutdown(
+                        guild=guild,
+                        member_id=member_id,
+                        member=member
+                    )
+                    k += 1
+
+        await ctx.reply(embed=Embed(description=f"**`Processed {k} members`**"), mention_author=False)
 
     @Cog.listener()
     async def on_command_error(self, ctx: Context, error) -> None:

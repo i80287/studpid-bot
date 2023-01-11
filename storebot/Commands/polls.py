@@ -261,7 +261,8 @@ class Poll(View):
             c.disabled = True
         await self.poll_final_message.edit(view=self, embed=emb)
         
-        self.bot.current_polls -= 1
+        async with self.bot.lock:
+            self.bot.current_polls -= 1
 
         self.stop()
 

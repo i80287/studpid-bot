@@ -17,6 +17,7 @@ from CustomComponents.custom_select import CustomSelect
 from CustomModals.custom_modals import RoleAddModal, RoleEditModal,\
     XpSettingsModal, SelectLevelModal, ManageMemberCashXpModal
 from CustomModals.sale_role_price import SalePriceModal
+from CustomModals.voice_income_modal import VoiceIncomeModal
 
 
 languages = {
@@ -187,56 +188,58 @@ mod_roles_text: dict[int, dict[int, str]] = {
 ec_text: dict[int, dict[int, str]] = {
     0 : {
         0 : "Economy settings",
-        1 : "💸 Money gained for message:\n**`{}`**",
-        2 : "⏰ Cooldown for `/work`:\n**`{} seconds`**",
-        3 : "💹 Salary from `/work`:\n**{}**",
-        4 : "random integer from `{}` to `{}`",
-        5 : "📙 Log channel for economic operations:\n{}",
-        7 : "> To manage setting press button with\ncorresponding emoji",
-        8 : "> To see and manage roles available for\npurchase/sale in the bot press 🛠️",
-        9 : "**`Write amount of money gained for message (non negative integer number)`**",
-        10 : "Amount of money gained from messages set to: `{}`",
-        11 : "Write cooldown for `/work` command **in seconds** (integer at least 60)\nFor example, to make cooldown equalt to 240 seconds, write `240` in the chat",
-        12 : "Cooldown for `/work` set to: `{}`",
-        13 : "Write salary from `/work`:\nTwo non-negative numbers, second at least as much as first\nSalary will be random integer \
+        1: "💸 Money gained for message:\n**`{}`** {}",
+        2: "⏰ Cooldown for `/work`:\n**`{} seconds`**",
+        3: "💹 Salary from `/work`:\n**`{}`** {}",
+        4: "random integer from {} to {}",
+        5: "🎤 Income from presenting in voice channel (for ten minutes):\n**`{}`** {}",
+        6: "🛍️ Sale price of the role, from the purchase price: **`{}`** %",
+        7: "📙 Log channel for economic operations:\n{}",
+        8: "> To manage setting press button with\ncorresponding emoji",
+        9: "> To see and manage roles available for\npurchase/sale in the bot press 🛠️",
+        10: "**`Write amount of money gained for message (non negative integer number)`**",
+        11: "Amount of money gained from messages set to: **`{}`** {}",
+        12: "Write cooldown for `/work` command **in seconds** (integer at least 60)\nFor example, to make cooldown equalt to 240 seconds, write `240` in the chat",
+        13: "Cooldown for `/work` set to: **`{}`** seconds",
+        14: "Write salary from `/work`:\nTwo non-negative numbers, second at least as much as first\nSalary will be random integer \
             between them\nIf you want salary to constant write one number\nFor example, if you write `1` `100` then salary \
             will be random integer from `1` to `100`\nIf you write `10`, then salary will always be `10`",
-        14 : "**`Now salary is `**{}",
-        15 : "Select channel",
-        16 : "**`You chose channel `**{}",
-        17 : "**`Timeout expired`**",
-        18 : "__**role - role id - price - salary - cooldown for salary in hours - type - how much in the store - additional income from /work**__",
-        19 : "No roles were added",
-        20 : "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
-        21 : "**`You reseted log channel`**",
-        22: "🛍️ Sale price of the role, from the purchase price: **`{}`** %",
+        15: "**`Now salary is {}`** {}",
+        16: "Select channel",
+        17: "**`You chose channel`** {}",
+        18: "**`Timeout expired`**",
+        19: "__**role - role id - price - salary - cooldown for salary in hours - type - how much in the store - additional income from /work**__",
+        20: "No roles were added",
+        21: "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
+        22: "**`You reseted log channel`**",
     },
     1 : {
-        0 : "Настройки экономики",
-        1 : "💸 Количество денег, получаемых за сообщение:\n**`{}`**",
-        2 : "⏰ Кулдаун для команды `/work`:\n**`{} секунд`**",
-        3 : "💹 Доход от команды `/work`:\n**{}**",
-        4 : "рандомное целое число от `{}` до `{}`",
-        5 : "📙 Канал для логов экономических операций:\n{}",
-        7 : "> Для управления настройкой нажмите на кнопку с\nсоответствующим эмодзи",
-        8 : "> Для просмотра и управления ролями, доступными\nдля покупки/продажи у бота, нажмите 🛠️",
-        9 : "**`Укажите количество денег, получаемых за сообщение\n(неотрицательное целое число)`**",
-        10 : "Количество денег, получаемых за одно сообщение, теперь равно: `{}`",
-        11 : "Укажите кулдаун для команды `/work` **в секундах** (целое число не менее 60)\nНапример, чтобы поставить кулдаун 240 секунд, напишите в чат `240`",
-        12 : "Кулдаун для команды `/work` теперь равен: `{}`",
-        13 : "Укажите заработок от команды `/work`:\nДва неотрицательных числа, второе не менее первого\nЗаработок будет \
+        0: "Настройки экономики",
+        1: "💸 Количество денег, получаемых за сообщение:\n**`{}`** {}",
+        2: "⏰ Кулдаун для команды `/work`:\n**`{} секунд`**",
+        3: "💹 Доход от команды `/work`:\n**`{}`** {}",
+        4: "рандомное целое число от {} до {}",
+        5: "🎤 Доход от присутствия в голосовом канале (доход указан за 10 минут):\n**`{}`** {}",
+        6: "🛍️ Цена роли при продаже, от цены покупки: **`{}`** %",
+        7: "📙 Канал для логов экономических операций:\n{}",
+        8: "> Для управления настройкой нажмите на кнопку с\nсоответствующим эмодзи",
+        9: "> Для просмотра и управления ролями, доступными\nдля покупки/продажи у бота, нажмите 🛠️",
+        10: "**`Укажите количество денег, получаемых за сообщение\n(неотрицательное целое число)`**",
+        11: "Количество денег, получаемых за одно сообщение, теперь равно: **`{}`** {}",
+        12: "Укажите кулдаун для команды `/work` **в секундах** (целое число не менее 60)\nНапример, чтобы поставить кулдаун 240 секунд, напишите в чат `240`",
+        13: "Кулдаун для команды `/work` теперь равен: **`{}`** секунд",
+        14: "Укажите заработок от команды `/work`:\nДва неотрицательных числа, второе не менее первого\nЗаработок будет \
             рандомным целым числом между ними\nЕсли Вы хотите сделать заработок постоянным, укажите одно число\nНапример, \
             если Вы укажите `1` `100`, то заработок будет рандомным целым числом от `1` до `100`\nЕсли Вы укажите `10`, то \
             заработок всегда будет равен `10`",
-        14 : "**`Теперь заработок: `**{}",
-        15 : "Выберите канал",
-        16 : "**`Вы выбрали канал `**{}",
-        17 : "**`Время ожидания вышло`**",
-        18 : "__**роль - id роли - цена - заработок - кулдаун заработка в часах - тип - сколько в магазине - дополнительный заработок от /work**__",
-        19 : "Не добавлено ни одной роли",
-        20 : "`Если роль не отображается ни в одном меню снизу, значит, бот не может управлять ею`",
-        21 : "**`Вы сбросили канал логов`**",
-        22: "🛍️ Цена роли при продаже, от цены покупки: **`{}`** %",
+        15: "**`Теперь заработок: {}`** {}",
+        16: "Выберите канал",
+        17: "**`Вы выбрали канал`** {}",
+        18: "**`Время ожидания вышло`**",
+        19: "__**роль - id роли - цена - заработок - кулдаун заработка в часах - тип - сколько в магазине - дополнительный заработок от /work**__",
+        20: "Не добавлено ни одной роли",
+        21: "`Если роль не отображается ни в одном меню снизу, значит, бот не может управлять ею`",
+        22: "**`Вы сбросили канал логов`**",
     }
 }
 
@@ -693,15 +696,18 @@ class EconomyView(View):
         }
     }
 
-    def __init__(self, t_out: int, auth_id: int, sale_price_percent: int) -> None:
+    def __init__(self, t_out: int, auth_id: int, sale_price_percent: int, voice_income: int, currency: str) -> None:
         super().__init__(timeout=t_out)
         self.auth_id: int = auth_id
         self.channel: int | None = None
         self.sale_price_percent: int = sale_price_percent
+        self.voice_income: int = voice_income
+        self.currency: str = currency
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"10_{auth_id}_{randint(1, 100)}", emoji="💸"))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"11_{auth_id}_{randint(1, 100)}", emoji="⏰"))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"12_{auth_id}_{randint(1, 100)}", emoji="💹"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"45_{auth_id}_{randint(1, 100)}", emoji="🛍️"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"45_{auth_id}_{randint(1, 100)}", emoji="🎤"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"46_{auth_id}_{randint(1, 100)}", emoji="🛍️"))
         self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"13_{auth_id}_{randint(1, 100)}", emoji="📙"))
         self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"14_{auth_id}_{randint(1, 100)}", emoji="🛠️"))        
 
@@ -713,13 +719,13 @@ class EconomyView(View):
                     base.commit()
             
             try:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][10].format(ans)))
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][11].format(ans, self.currency)))
             except:
                 pass
             
             emb: Embed = interaction.message.embeds[0]
             dsc: list[str] = emb.description.split("\n\n")
-            dsc[0] = ec_text[lng][1].format(ans)
+            dsc[0] = ec_text[lng][1].format(ans, self.currency)
             emb.description = "\n\n".join(dsc)
             await interaction.message.edit(embed=emb)
 
@@ -734,7 +740,7 @@ class EconomyView(View):
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'w_cd'", (work_command_cooldown,))
                     base.commit()
             try:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][12].format(ans)))
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][13].format(ans)))
             except:
                 pass
             
@@ -776,16 +782,16 @@ class EconomyView(View):
             dsc: list[str] = emb.description.split("\n\n")
             if n1 == n2:
                 try:
-                    await interaction.edit_original_message(embed=Embed(description=ec_text[lng][14].format(n1)))
+                    await interaction.edit_original_message(embed=Embed(description=ec_text[lng][15].format(n1, self.currency)))
                 except:
                     pass
-                dsc[2] = ec_text[lng][3].format(n1)
+                dsc[2] = ec_text[lng][3].format(n1, self.currency)
             else:
                 try:
-                    await interaction.edit_original_message(embed=Embed(description=ec_text[lng][14].format(ec_text[lng][4].format(n1, n2))))
+                    await interaction.edit_original_message(embed=Embed(description=ec_text[lng][15].format(ec_text[lng][4].format(n1, n2), self.currency)))
                 except:
                     pass
-                dsc[2] = ec_text[lng][3].format(ec_text[lng][4].format(n1, n2))
+                dsc[2] = ec_text[lng][3].format(ec_text[lng][4].format(n1, n2), self.currency)
             
             emb.description = "\n\n".join(dsc)
             await interaction.message.edit(embed=emb)
@@ -793,6 +799,42 @@ class EconomyView(View):
             return False
         else:
             return True
+
+    async def update_voice_income(self, interaction: Interaction, lng: int) -> None:
+        voice_income_modal: VoiceIncomeModal = VoiceIncomeModal(
+            timeout=30,
+            lng=lng,
+            auth_id=self.auth_id,
+            voice_income=self.voice_income
+        )
+        await interaction.response.send_modal(voice_income_modal)
+
+        await voice_income_modal.wait()
+        if (new_voice_income := voice_income_modal.voice_income) != self.voice_income:
+            self.voice_income = new_voice_income
+            emb: Embed = interaction.message.embeds[0]
+            descript_lines: list[str] = emb.description.split("\n\n")
+            descript_lines[3] = ec_text[lng][5].format(new_voice_income, self.currency)
+            emb.description = "\n\n".join(descript_lines)
+            await interaction.message.edit(embed=emb)
+    
+    async def update_sale_role_price(self, interaction: Interaction, lng: int) -> None:
+        sale_price_modal: SalePriceModal = SalePriceModal(
+            timeout=40, 
+            lng=lng, 
+            auth_id=self.auth_id, 
+            current_sale_role_percent=self.sale_price_percent
+        )
+        await interaction.response.send_modal(sale_price_modal)
+
+        await sale_price_modal.wait()
+        if (new_sale_percent := sale_price_modal.new_sale_role_percent) is not None:
+            self.sale_price_percent = new_sale_percent
+            emb: Embed = interaction.message.embeds[0]
+            descript_lines: list[str] = emb.description.split("\n\n")
+            descript_lines[4] = ec_text[lng][6].format(new_sale_percent)
+            emb.description = "\n\n".join(descript_lines)
+            await interaction.message.edit(embed=emb)
 
     async def log_chnl(self, interaction: Interaction, lng: int) -> None:
         channels: list[tuple[str, int]] = [(c.name, c.id) for c in interaction.guild.text_channels]
@@ -818,7 +860,7 @@ class EconomyView(View):
         if cnt >= 40:
             await interaction.message.edit(view=self)
             try:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][17]))
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][18]))
             except:
                 pass
             self.channel = None
@@ -832,17 +874,17 @@ class EconomyView(View):
         emb: Embed = interaction.message.embeds[0]
         dsc: list[str] = emb.description.split("\n\n")
         if self.channel:
-            dsc[4] = ec_text[lng][5].format(f"<#{self.channel}>")
+            dsc[5] = ec_text[lng][7].format(f"<#{self.channel}>")
         else:
-            dsc[4] = ec_text[lng][5].format(settings_text[lng][13])
+            dsc[5] = ec_text[lng][7].format(settings_text[lng][13])
         emb.description = "\n\n".join(dsc)
         await interaction.message.edit(embed=emb, view=self)
 
         try:
             if self.channel:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][16].format(f"<#{self.channel}>")))
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][17].format(f"<#{self.channel}>")))
             else:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][21]))
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][22]))
         except:
             pass
             
@@ -856,7 +898,7 @@ class EconomyView(View):
                     "SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles"
                 ).fetchall()
                 if roles:
-                    descr: list[str] = [ec_text[lng][18]]
+                    descr: list[str] = [ec_text[lng][19]]
                     for role in roles:
                         role_id: int = role[0]
                         server_roles_ids.add(role_id)
@@ -874,8 +916,8 @@ class EconomyView(View):
                             f"<@&{role_id}> - **`{role_id}`** - **`{role[1]}`** - **`{role[2]}`** - **`{role[3]//3600}`** - **`{self.r_types[lng][role[4]]}`** - **`{cnt}`** - **`{role[5]}`**"
                         )
                 else:
-                    descr: list[str] = [ec_text[lng][19]]
-        descr.append('\n' + ec_text[lng][20])
+                    descr: list[str] = [ec_text[lng][20]]
+        descr.append('\n' + ec_text[lng][21])
         
         assignable_roles: list[tuple[str, int]] = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
         remove_role_button_is_disabled: bool = False if assignable_roles else True
@@ -895,55 +937,46 @@ class EconomyView(View):
             await interaction.edit_original_message(view=ec_rls_view)
         except:
             pass
-
-    async def change_sale_role_price(self, interaction: Interaction, lng: int) -> None:
-        sale_price_modal: SalePriceModal = SalePriceModal(
-            timeout=40, 
-            lng=lng, 
-            auth_id=self.auth_id, 
-            current_sale_role_percent=self.sale_price_percent
-        )
-        await interaction.response.send_modal(sale_price_modal)
-
-        await sale_price_modal.wait()
-        if (new_sale_percent := sale_price_modal.new_sale_role_percent) is not None:
-            self.sale_price_percent = new_sale_percent
-            emb: Embed = interaction.message.embeds[0]
-            descript_lines: list[str] = emb.description.split("\n\n")
-            descript_lines[3] = ec_text[lng][22].format(new_sale_percent)
-            emb.description = "\n\n".join(descript_lines)
-            await interaction.message.edit(embed=emb)
-
+    
     async def click(self, interaction: Interaction, c_id: str) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         int_custom_id: int = int(c_id[:2])
-        if int_custom_id == 13:
-            await self.log_chnl(interaction=interaction, lng=lng)
-        elif int_custom_id == 14:
-            await self.manage_economy_roles(interaction=interaction, lng=lng)
-        elif int_custom_id == 45:
-            await self.change_sale_role_price(interaction=interaction, lng=lng)
-        elif int_custom_id in {10, 11, 12}:
-            await interaction.response.send_message(embed=Embed(description=ec_text[lng][9 + (int_custom_id - 10) * 2]), ephemeral=True)
-            flag: bool = True
-            while flag:
-                try:
-                    user_ans: Message = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == self.auth_id and m.channel.id == interaction.channel_id, timeout=40)
-                except TimeoutError:
-                    flag = False
-                else:
-                    ans: str = user_ans.content
-                    if int_custom_id == 10: 
-                        flag = await self.msg_salary(interaction=interaction, lng=lng, ans=ans)
-                    elif int_custom_id == 11: 
-                        flag = await self.work_cldwn(interaction=interaction, lng=lng, ans=ans)
-                    elif int_custom_id == 12: 
-                        flag = await self.work_salary(interaction=interaction, lng=lng, ans=ans)
-                    # try to delete user's ans
+        match int_custom_id:
+            case 13:
+                await self.log_chnl(interaction=interaction, lng=lng)
+            case 14:
+                await self.manage_economy_roles(interaction=interaction, lng=lng)
+            case 45:
+                await self.update_voice_income(interaction=interaction, lng=lng)
+            case 46:
+                await self.update_sale_role_price(interaction=interaction, lng=lng)
+            case _:
+                if int_custom_id not in {10, 11, 12}:
+                    return
+                await interaction.response.send_message(embed=Embed(description=ec_text[lng][10 + (int_custom_id - 10) * 2]), ephemeral=True)
+                flag: bool = True
+                while flag:
                     try:
-                        await user_ans.delete()
-                    except:
-                        pass
+                        user_ans: Message = await interaction.client.wait_for(
+                            event="message",
+                            check=lambda m: m.author.id == self.auth_id and m.channel.id == interaction.channel_id,
+                            timeout=40
+                        )
+                    except TimeoutError:
+                        flag = False
+                    else:
+                        ans: str = user_ans.content
+                        if int_custom_id == 10: 
+                            flag = await self.msg_salary(interaction=interaction, lng=lng, ans=ans)
+                        elif int_custom_id == 11: 
+                            flag = await self.work_cldwn(interaction=interaction, lng=lng, ans=ans)
+                        elif int_custom_id == 12: 
+                            flag = await self.work_salary(interaction=interaction, lng=lng, ans=ans)
+                        # try to delete user's ans
+                        try:
+                            await user_ans.delete()
+                        except:
+                            pass
 
     async def click_menu(self, _, c_id: str, values) -> None:
         if c_id.startswith("50"):
@@ -1274,32 +1307,38 @@ class SettingsView(View):
         elif custom_id.startswith("3_"):
             with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                 with closing(base.cursor()) as cur:
-                    money_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg'").fetchone()[0]
-                    w_cd: int = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd'").fetchone()[0]
-                    sal_l: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l'").fetchone()[0]
-                    sal_r: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r'").fetchone()[0]
-                    e_l_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
-                    sale_price_percent: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sale_price_perc'").fetchone()[0]
+                    money_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]
+                    w_cd: int = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd';").fetchone()[0]
+                    sal_l: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l';").fetchone()[0]
+                    sal_r: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r';").fetchone()[0]
+                    e_l_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c';").fetchone()[0]
+                    sale_price_percent: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sale_price_perc';").fetchone()[0]
+                    voice_income: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice';").fetchone()[0]
+                    currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency';").fetchone()[0]
+
             emb: Embed = Embed(title=ec_text[lng][0])
-            dsc: list[str] = [ec_text[lng][1].format(money_p_m)]
+            dsc: list[str] = [ec_text[lng][1].format(money_p_m, currency)]
             dsc.append(ec_text[lng][2].format(w_cd))
             if sal_l == sal_r:
-                dsc.append(ec_text[lng][3].format(sal_l))
+                dsc.append(ec_text[lng][3].format(sal_l, currency))
             else:
-                dsc.append(ec_text[lng][3].format(ec_text[lng][4].format(sal_l, sal_r)))
-            dsc.append(ec_text[lng][22].format(sale_price_percent))
-            if e_l_c == 0:
-                dsc.append(ec_text[lng][5].format(settings_text[lng][13]))
+                dsc.append(ec_text[lng][3].format(ec_text[lng][4].format(sal_l, sal_r), currency))
+            dsc.append(ec_text[lng][5].format(voice_income, currency))
+            dsc.append(ec_text[lng][6].format(sale_price_percent))
+            if e_l_c:
+                dsc.append(ec_text[lng][7].format(f"<#{e_l_c}>"))
             else:
-                dsc.append(ec_text[lng][5].format(f"<#{e_l_c}>"))
-            dsc.append(ec_text[lng][7])
+                dsc.append(ec_text[lng][7].format(settings_text[lng][13]))
             dsc.append(ec_text[lng][8])
+            dsc.append(ec_text[lng][9])
             emb.description = "\n\n".join(dsc)
             
             ec_v: EconomyView = EconomyView(
                 t_out=110, 
                 auth_id=self.auth_id,
                 sale_price_percent=sale_price_percent,
+                voice_income=voice_income,
+                currency=currency
             )
             await interaction.response.send_message(embed=emb, view=ec_v)
             await ec_v.wait()
@@ -1498,11 +1537,13 @@ class RankingView(View):
                 db_chnls: list[tuple[int]] = cur.execute("SELECT chnl_id FROM ic").fetchall()
         if db_chnls:
             guild_ignored_channels: set[int] = {tup[0] for tup in db_chnls}
-            self.bot.ignored_channels[self.g_id] = guild_ignored_channels
+            async with self.bot.lock:
+                self.bot.ignored_channels[self.g_id] = guild_ignored_channels
             dsc: list[str] = [ranking_text[lng][17]] + [f"<#{chnl_id}>**` - {chnl_id}`**" for chnl_id in guild_ignored_channels]
             rd: bool = False
         else:
-            self.bot.ignored_channels[self.g_id] = set()
+            async with self.bot.lock:
+                self.bot.ignored_channels[self.g_id] = set()
             rd: bool = True
             dsc = [ranking_text[lng][18]]
         
@@ -1644,8 +1685,8 @@ class LevelRolesView(View):
             return
         
         if c_id.startswith("27_"):
-            rls = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
-            if not len(rls):
+            rls: list[tuple[str, int]] = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
+            if not rls:
                 await interaction.send(embed=Embed(description = ranking_text[lng][30]), ephemeral=True)
                 return
             for i in range((len(rls) + 24) // 25):
@@ -1758,7 +1799,8 @@ class IgnoredChannelsView(View):
             with closing(base.cursor()) as cur:
                 cur.execute("INSERT OR IGNORE INTO ic(chnl_id) VALUES(?)", (self.chnl,))
                 base.commit()
-        self.bot.ignored_channels[self.g_id].add(self.chnl)
+        async with self.bot.lock:
+            self.bot.ignored_channels[self.g_id].add(self.chnl)
 
         emb: Embed = interaction.message.embeds[0]
         dsc: list[str] = emb.description.split("\n")
@@ -1808,13 +1850,16 @@ class IgnoredChannelsView(View):
         if not self.chnl:
             await interaction.response.send_message(embed=Embed(description=ranking_text[lng][21]), ephemeral=True)
             return
+        
+        async with self.bot.lock:
+            guild_ignored_channels: set[int] = self.bot.ignored_channels[self.g_id]
         if c_id.startswith("25_"):
-            if self.chnl in self.bot.ignored_channels[self.g_id]:
+            if self.chnl in guild_ignored_channels:
                 await interaction.response.send_message(embed=Embed(description=ranking_text[lng][22]), ephemeral=True)
                 return
             await self.add_chnl(interaction=interaction, lng=lng)
         elif c_id.startswith("26_"):
-            if not self.chnl in self.bot.ignored_channels[self.g_id]:
+            if not self.chnl in guild_ignored_channels:
                 await interaction.response.send_message(embed=Embed(description=ranking_text[lng][23]), ephemeral=True)
                 return
             await self.rem_chnl(interaction=interaction, lng=lng)           
@@ -2043,7 +2088,7 @@ class VerifyDeleteView(View):
                 else:
                     i += 1
             if len(dsc) == 3:
-                dsc[0] = ec_text[lng][19]
+                dsc[0] = ec_text[lng][20]
             emb.description = '\n'.join(dsc)
             await self.m.edit(embed=emb)
             self.deleted = True
