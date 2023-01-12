@@ -12,19 +12,21 @@ class VoiceIncomeModal(Modal):
             0: "Change voice income",
             1: "Income from presence in voice channel",
             2: "Income from presence in voice channel for 10 minutes (income will be given for every second)",
-            3: "**`Income should be integer non-negative number`**",
-            4: "**`From now income from presence in voice channel for 10 minutes is {}`**\n\
+            3: "**`From now income from presence in voice channel for 10 minutes is {}`**\n\
                 **`Income will be given for every second by formula:`**\n\
-                **`time_presence_in_channel_in_seconds`** * **`income`** / **`600`**"
+                **`time_presence_in_channel_in_seconds`** * **`income`** / **`600`**",
+            4: "**`You have not change value`**",
+            5: "**`Income should be integer non-negative number`**",
         },
         1: {
             0: "Изменение дохода",
             1: "Доход за присутствие в голосовом канале",
             2: "Доход за 10 минут присутствия в голосовом канале (сам доход начислится за каждую секунду)",
-            3: "**`Доход должен быть целым неотрицательным числом`**",
-            4: "**`Теперь доход за 10 минут присутствия в голосовом канале равен {}`**\n\
+            3: "**`Теперь доход за 10 минут присутствия в голосовом канале равен {}`**\n\
                 **`Сам доход начислится за каждую секунду по формуле:`**\n\
                 **`время_присутствия_в_канале_в_секундах`** * **`доход`** / **`600`**",
+            4: "**`Вы не поменяли знечение`**",
+            5: "**`Доход должен быть целым неотрицательным числом`**",
         },
     }
 
@@ -51,12 +53,15 @@ class VoiceIncomeModal(Modal):
         return None
 
     async def callback(self, interaction: Interaction) -> None:
-        if (voice_income := self.check_ans(self.voice_income_textinput.value)) is not None and voice_income != self.voice_income:
-            update_server_info_table(interaction.guild_id, "mn_for_voice", voice_income)
-            self.voice_income = voice_income
-            response: str = self.voice_income_modal_text[self.lng][4].format(voice_income)
+        if (voice_income := self.check_ans(self.voice_income_textinput.value)) is not None:
+            if voice_income != self.voice_income:
+                update_server_info_table(interaction.guild_id, "mn_for_voice", voice_income)
+                self.voice_income = voice_income
+                response: str = self.voice_income_modal_text[self.lng][3].format(voice_income)
+            else:
+                response: str = self.voice_income_modal_text[self.lng][4]
         else:
-            response: str = self.voice_income_modal_text[self.lng][3]
+            response: str = self.voice_income_modal_text[self.lng][5]
         await interaction.response.send_message(
             embed=Embed(description=response),
             ephemeral=True
