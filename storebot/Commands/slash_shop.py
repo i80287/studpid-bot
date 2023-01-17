@@ -836,7 +836,10 @@ class SlashCommandsCog(Cog):
 
         emb.title = text_slash[lng][10]
         emb.description = text_slash[lng][11]
-        await interaction.edit_original_message(embed=emb, view=None)
+        try:
+            await interaction.edit_original_message(embed=emb, view=None)
+        except:
+            pass
 
         try:
             await member_buyer.send(
@@ -925,7 +928,10 @@ class SlashCommandsCog(Cog):
         await store_view.wait()
         for button in store_view.children:
             button.disabled = True
-        await interaction.edit_original_message(view=store_view)
+        try:
+            await interaction.edit_original_message(view=store_view)
+        except:
+            return
 
     async def sell(self, interaction: Interaction, role: Role) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
@@ -1506,8 +1512,11 @@ class SlashCommandsCog(Cog):
         if not bet_view.dueler:
             if bet_view.declined:
                 emb.description = bet_text[lng][5]
-            await interaction.edit_original_message(embed=emb, view=bet_view)
-            await interaction.delete_original_message(delay=7)
+            try:
+                await interaction.edit_original_message(embed=emb, view=bet_view)
+                await interaction.delete_original_message(delay=7)
+            except:
+                return
             return
 
         dueler: int = bet_view.dueler
@@ -1533,7 +1542,10 @@ class SlashCommandsCog(Cog):
                 base.commit()
                 chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
 
-        await interaction.edit_original_message(embed=emb, view=bet_view)
+        try:
+            await interaction.edit_original_message(embed=emb, view=bet_view)
+        except:
+            pass
         if chnl_id:
             guild_log_channel: GuildChannel | None = interaction.guild.get_channel(chnl_id)
             if guild_log_channel:
@@ -1655,7 +1667,10 @@ class SlashCommandsCog(Cog):
 
         for c in rate_view.children:
             c.disabled = True
-        await interaction.edit_original_message(view=rate_view)
+        try:
+            await interaction.edit_original_message(view=rate_view)
+        except:
+            return
 
     @slash_command(
         name="buy",
