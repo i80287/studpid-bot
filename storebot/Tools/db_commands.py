@@ -152,7 +152,7 @@ def delete_role_from_db(guild_id: int, str_role_id: str) -> None:
                     )
                     base.commit()
 
-def check_db(guild_id: int, guild_locale: str | None) -> set[int]:
+def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, int]]:
     with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
         with closing(base.cursor()) as cur:
             cur.executescript("""\
@@ -205,15 +205,17 @@ def check_db(guild_id: int, guild_locale: str | None) -> set[int]:
                 level INTEGER PRIMARY KEY,
                 role_id INTEGER NOT NULL DEFAULT 0
             );
-            CREATE TABLE IF NOT EXISTS ic (
-                chnl_id INTEGER PRIMARY KEY
+            CREATE TABLE IF NOT EXISTS ignored_channels (
+                chnl_id INTEGER PRIMARY KEY,
+                is_text INTEGER NOT NULL DEFAULT 0,
+                is_voice INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS mod_roles (
                 role_id INTEGER PRIMARY KEY
             );""")
             base.commit()
             
-            db_guild_language: tuple[int] | None = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()
+            db_guild_language: tuple[int] | None = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()
             if db_guild_language: 
                 lng: int = db_guild_language[0]
             else: 
@@ -224,8 +226,9 @@ def check_db(guild_id: int, guild_locale: str | None) -> set[int]:
                 ('tz', 0, ""),
                 ('xp_border', 100, ""),
                 ('xp_per_msg', 1, ""),
+                ('xp_for_voice', 6, ""),
                 ('mn_per_msg', 1, ""),
-                ('mn_for_voice', 60, ""),
+                ('mn_for_voice', 6, ""),
                 ('w_cd', 14400, ""),
                 ('sal_l', 1, ""),
                 ('sal_r', 250, ""),
@@ -241,4 +244,4 @@ def check_db(guild_id: int, guild_locale: str | None) -> set[int]:
             cur.executemany("INSERT OR IGNORE INTO server_info (settings, value, str_value) VALUES(?, ?, ?)", settings_params)
             base.commit()
 
-            return {r[0] for r in cur.execute("SELECT chnl_id FROM ic").fetchall()}
+            return cur.execute("SELECT chnl_id, is_text, is_voice FROM ignored_channels;").fetchall()

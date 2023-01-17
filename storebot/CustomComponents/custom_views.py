@@ -9,7 +9,7 @@ from nextcord import Embed, Emoji, Interaction,\
 from nextcord.ui import View
 
 from storebot import StoreBot
-from Tools.db_commands import check_db_member, delete_role_from_db
+from Tools import db_commands
 from Tools.parse_tools import parse_emoji
 from Variables.vars import CWD_PATH
 from CustomComponents.custom_button import CustomButton
@@ -18,6 +18,7 @@ from CustomModals.custom_modals import RoleAddModal, RoleEditModal,\
     XpSettingsModal, SelectLevelModal, ManageMemberCashXpModal
 from CustomModals.sale_role_price import SalePriceModal
 from CustomModals.voice_income_modal import VoiceIncomeModal
+from CustomComponents.select_ic_view import SelectICView
 
 
 languages = {
@@ -64,15 +65,6 @@ system_status: dict[int, dict[int, str]] = {
 
 settings_text = {
     0 : {
-        0 : "Choose section",
-        1: [
-            "⚙️ general settings",
-            "<:moder:1000090629897998336> manage moders' roles",
-            "<:user:1002245779089535006> manage members",
-            "💰 economy",
-            "📈 ranking",
-            "📊 polls"
-        ],
         2 : "Select role",
         3 : "Adding role",
         4 : "Add role",
@@ -88,15 +80,6 @@ settings_text = {
         14 : "**`This role not found on the server. Please try to recall the command`**"
     },
     1 : {
-        0 : "Выберите раздел",
-        1 : [
-            "⚙️ основные настройки",
-            "<:moder:1000090629897998336> настройка ролей модераторов",
-            "<:user:1002245779089535006> управление пользователями",
-            "💰 экономика",
-            "📈 ранговая система",
-            "📊 поллы"
-        ],
         2 : "Выберите роль",
         3 : "Добавление роли",
         4 : "Добавить роль",
@@ -195,8 +178,8 @@ ec_text: dict[int, dict[int, str]] = {
         5: "🎤 Income from presenting in voice channel (for ten minutes):\n**`{}`** {}",
         6: "🛍️ Sale price of the role, from the purchase price: **`{}`** %",
         7: "📙 Log channel for economic operations:\n{}",
-        8: "> To manage setting press button with\ncorresponding emoji",
-        9: "> To see and manage roles available for\npurchase/sale in the bot press 🛠️",
+        8: "> To manage setting press button with corresponding emoji",
+        9: "> To see and manage roles available for purchase/sale in the bot press 🛠️",
         10: "**`Write amount of money gained for message (non negative integer number)`**",
         11: "Amount of money gained from messages set to: **`{}`** {}",
         12: "Write cooldown for `/work` command **in seconds** (integer at least 60)\nFor example, to make cooldown equalt to 240 seconds, write `240` in the chat",
@@ -222,8 +205,8 @@ ec_text: dict[int, dict[int, str]] = {
         5: "🎤 Доход от присутствия в голосовом канале (доход указан за 10 минут):\n**`{}`** {}",
         6: "🛍️ Цена роли при продаже, от цены покупки: **`{}`** %",
         7: "📙 Канал для логов экономических операций:\n{}",
-        8: "> Для управления настройкой нажмите на кнопку с\nсоответствующим эмодзи",
-        9: "> Для просмотра и управления ролями, доступными\nдля покупки/продажи у бота, нажмите 🛠️",
+        8: "> Для управления настройкой нажмите на кнопку с соответствующим эмодзи",
+        9: "> Для просмотра и управления ролями, доступными для покупки/продажи у бота, нажмите 🛠️",
         10: "**`Укажите количество денег, получаемых за сообщение\n(неотрицательное целое число)`**",
         11: "Количество денег, получаемых за одно сообщение, теперь равно: **`{}`** {}",
         12: "Укажите кулдаун для команды `/work` **в секундах** (целое число не менее 60)\nНапример, чтобы поставить кулдаун 240 секунд, напишите в чат `240`",
@@ -348,74 +331,34 @@ ranking_text: dict[int, dict[int, str]] = {
         1 : "✨ Amount of xp between adjacent levels:\n**`{}`**",
         2 : "📗 Channel for the notification about new levels:\n{}",
         4 : "> To manage setting press button with corresponding emoji\n",
-        5 : "> Press :mute: to manage channels where members can't get xp\n",
         6 : "> Press 🥇 to manage roles given for levels",
-        7 : "Managing xp settings",
-        8 : "Xp per message",
-        9 : "Amount of xp gained by every member from one message, non-negative integer number",
-        10 : "Amount of xp between adjected levels",
-        11 : "Amount of xp members need to gain to get next level, positive integer number",
-        12 : "**`Xp gained per message should be non-negative integer number`**",
-        13 : "**`Amount of xp between adjected levels should be positive integer number`**",
-        14 : "**`You changed amount of xp gained from one message, now it's {}`**",
-        15 : "**`You changed amount of xp needed to get next level, now it's {}`**",
-        16 : "**`You hasn't changed anything`**",
-        17 : "__**channel**__ - __**id**__",
-        18 : "**`No channels were selected`**",
-        19 : "**`You added channel `**<#{}>",
-        20 : "**`You removed channel `**<#{}>",
-        21 : "**`You hasn't selected the channel yet`**",
-        22 : "**`This channel is already added`**",
-        23 : "**`This channel hasn't been added yet`**",
         24 : "level",
         25 : "**`No roles matched for levels`**",
         26 : "Roles for level",
         27 : "**`Press `**<:add01:999663315804500078>🔧**`to add / change role for the level`**\n**`Press `**<:remove01:999663428689997844>**` to remove role for the level`**",
-        28 : "Write the level: positive integer from 1 to 100",
         29 : "**`Select role for level {}`**",
         30 : "**`Bot can't give any role on the server`**",
         31 : "**`From now role given for the level {} is `**<@&{}>",
         32 : "**`Timeout has expired`**",
         33 : "**`You removed role for level {}`**",
         34 : "**`No roles matches level {}`**",
-        35 : "Write the level: **`positive integer from 1 to 100`**",
     },
     1 : {
         0 : "✨ Опыт, получаемый за одно сообщение:\n**`{}`**",
         1 : "✨ Количество опыта между соседними уровнями:\n**`{}`**",
         2 : "📗 Канал для оповещений о получении нового уровня:\n{}",
         4 : "> Для управления настройкой нажмите на кнопку с соответствующим эмодзи\n",
-        5 : "> Нажмите :mute: для управления каналами, в которых пользователи не могут получать опыт\n",
         6 : "> Нажмите 🥇 для управления ролями, выдаваемыми за уровни",
-        7 : "Управление настройками опыта",
-        8 : "Опыт за сообщение",
-        9 : "Количество опыта, получаемого пользователем за одно сообщение, целое неотрицательное число",
-        10 : "Количество опыта между уровнями",
-        11 : "Количество опыта,необходимого участникам для получения следующего уровня, целове положительное число",
-        12 : "**`Опыт, получаемый участником за одно сообщение, должен быть целым неотрицательным числом`**",
-        13 : "**`Количество опыта, который необходимо набрать участникам для получения следующего уровня, должно быть целым положительным числом`**",
-        14 : "**`Вы изменили количество опыта, получаемого участником за одно сообщение, теперь оно равно {}`**",
-        15 : "**`Вы изменили количество опыта, необходимого участнику для получения следующего уровня, теперь оно равно {}`**",
-        16 : "**`Вы ничего не изменили`**",
-        17 : "__**канал**__ - __**id**__",
-        18 : "**`Не выбрано ни одного канала`**",
-        19 : "**`Вы добавили канал `**<#{}>",
-        20 : "**`Вы убрали канал `**<#{}>",
-        21 : "**`Вы не выбрали канал`**",
-        22 : "**`Этот канал уже добавлен`**",
-        23 : "**`Этот канал ещё не был добавлен`**",
         24 : "уровень",
         25 : "**`Роли за уровни не назначены`**",
         26 : "Роли за уровни",
         27 : "**`Нажмите `**<:add01:999663315804500078>🔧**`, чтобы добавить / изменить роль за уровень`**\n**`Нажмите `**<:remove01:999663428689997844>**`, чтобы убрать роль за уровень`**",
-        28 : "Напишите номер уровня: положительное целое число от 1 до 100",
         29 : "**`Выберите роль для уровня {}`**",
         30 : "**`Бот не может выдать ни одной роли на сервере`**",
         31 : "**`Теперь за уровень {} выдаётся роль `**<@&{}>",
         32 : "**`Время истекло`**",
         33 : "**`Вы убрали роль за уровень {}`**",
         34 : "**`Уровню {} не соответствует ни одна роль`**",
-        35 : "Напишите номер уровня: **`положительное целое число от 1 до 100`**",
     }
 }
 
@@ -527,7 +470,7 @@ class GenSettingsView(View):
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'economy_enabled'", (self.ec_status,))
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (self.ec_status,))
-                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_for_voice'", (self.ec_status*60,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_for_voice'", (self.ec_status*6,))
                 base.commit()
 
         emb: Embed = interaction.message.embeds[0]
@@ -545,6 +488,7 @@ class GenSettingsView(View):
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'ranking_enabled'", (self.rnk_status,))
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_per_msg'", (self.rnk_status,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_for_voice'", (self.rnk_status*6,))
                 base.commit()
         
         emb: Embed = interaction.message.embeds[0]
@@ -710,8 +654,8 @@ class EconomyView(View):
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"45_{auth_id}_{randint(1, 100)}", emoji="🎤"))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"46_{auth_id}_{randint(1, 100)}", emoji="🛍️"))
         self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"13_{auth_id}_{randint(1, 100)}", emoji="📙"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"14_{auth_id}_{randint(1, 100)}", emoji="🛠️"))        
-
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"14_{auth_id}_{randint(1, 100)}", emoji="🛠️"))
+        
     async def msg_salary(self, interaction: Interaction, lng: int, ans: str) -> bool:
         if ans.isdigit() and (money_per_message := int(ans)) >= 0:
             with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
@@ -1003,7 +947,6 @@ class EconomyRolesManageView(View):
         self.add_item(CustomButton(style=ButtonStyle.blurple, label=ec_mr_text[lng][0], emoji="🔧", custom_id=f"16_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
         self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
 
-
     async def click(self, interaction: Interaction, c_id: str) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
 
@@ -1107,8 +1050,9 @@ class SettingsView(View):
         self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"1_{auth_id}_{randint(1, 100)}", emoji="<:moder:1000090629897998336>"))
         self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"2_{auth_id}_{randint(1, 100)}", emoji="<:user:1002245779089535006>"))
         self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"3_{auth_id}_{randint(1, 100)}", emoji="💰", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"4_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"5_{auth_id}_{randint(1, 100)}", emoji="📊", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"4_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"54_{auth_id}_{randint(1, 100)}", emoji="🚫", row=3))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"5_{auth_id}_{randint(1, 100)}", emoji="📊", row=3))
     
     @staticmethod
     def check_ans(interaction: Interaction, ans: str):
@@ -1126,287 +1070,304 @@ class SettingsView(View):
 
     async def click(self, interaction: Interaction, custom_id: str) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        
-        if custom_id.startswith("0_"):
-            with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
-                with closing(base.cursor()) as cur:
-                    s_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                    tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
-                    currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
-                    ec_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
-                    rnk_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
+        int_custom_id: int = int(custom_id.split('_')[0])
+        match int_custom_id:
+            case 0:
+                with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                    with closing(base.cursor()) as cur:
+                        s_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+                        tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
+                        currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                        ec_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
+                        rnk_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
 
-            dsc = [gen_settings_text[lng][0].format(languages[lng][s_lng])]
-            if tz >= 0:
-                dsc.append(gen_settings_text[lng][1].format(f"+{tz}"))
-            else:
-                dsc.append(gen_settings_text[lng][1].format(f"{tz}"))
-            dsc.append(gen_settings_text[lng][2].format(currency))
-            dsc.append(gen_settings_text[lng][3].format(system_status[lng][ec_status]))
-            dsc.append(gen_settings_text[lng][4].format(system_status[lng][rnk_status]))
-            dsc.extend(gen_settings_text[lng][i] for i in (5, 6, 7))
-            dsc.append(gen_settings_text[lng][8].format(system_status[lng][ec_status+2]))
-            dsc.append(gen_settings_text[lng][9].format(system_status[lng][rnk_status+2]))
-            
-            gen_view: GenSettingsView = GenSettingsView(t_out=50, auth_id=self.auth_id, bot=self.bot, lng=lng, ec_status=ec_status, rnk_status=rnk_status)
-            await interaction.response.send_message(embed=Embed(description="\n".join(dsc)), view=gen_view)
-            await gen_view.wait()
-            for c in gen_view.children:
-                c.disabled = True
-            try:
-                await interaction.edit_original_message(view=gen_view)
-            except:
-                pass
-
-        elif custom_id.startswith("1_"):
-            with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
-                with closing(base.cursor()) as cur:
-                    db_m_rls: list[tuple[int]] = cur.execute("SELECT role_id FROM mod_roles").fetchall()
-            emb = Embed(title=mod_roles_text[lng][0])
-            if db_m_rls:
-                m_rls: set[int] = {x[0] for x in db_m_rls}
-                emb.description = "\n".join([mod_roles_text[lng][2]] + [f"<@&{i}> - {i}" for i in m_rls])
-                rem_dis: bool = False
-                del db_m_rls
-            else:
-                emb.description=mod_roles_text[lng][1]
-                m_rls: set[int] = set()
-                rem_dis: bool = True
-
-            rls: list[tuple[str, int]] = [(r.name, r.id) for r in interaction.guild.roles if not r.is_bot_managed()]
-            m_rls_v: ModRolesView = ModRolesView(
-                t_out=50,
-                m_rls=m_rls,
-                lng=lng,
-                auth_id=self.auth_id,
-                rem_dis=rem_dis,
-                rls=rls
-            )
-            await interaction.response.send_message(embed=emb, view=m_rls_v)
-            await m_rls_v.wait()
-            for c in m_rls_v.children:
-                c.disabled = True
-            try:
-                await interaction.edit_original_message(view=m_rls_v)
-            except:
-                pass
-
-        elif custom_id.startswith("2_"):
-            await interaction.response.send_message(embed=Embed(description=settings_text[lng][7]))
-            flag: int = 0
-            memb: Member | None = None
-            while not flag:
-                try:
-                    m_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == interaction.user.id and m.channel.id == interaction.channel_id, timeout=30)
-                except TimeoutError:
-                    await interaction.delete_original_message()
-                    flag = 1
+                dsc = [gen_settings_text[lng][0].format(languages[lng][s_lng])]
+                if tz >= 0:
+                    dsc.append(gen_settings_text[lng][1].format(f"+{tz}"))
                 else:
-                    ans: str = m_ans.content
-                    try: 
-                        await m_ans.delete()
-                    except:
-                        pass
-                    memb, flag = self.check_ans(interaction=interaction, ans=ans)
-                    if flag == 1:
-                        try:
-                            await interaction.delete_original_message()
+                    dsc.append(gen_settings_text[lng][1].format(f"{tz}"))
+                dsc.append(gen_settings_text[lng][2].format(currency))
+                dsc.append(gen_settings_text[lng][3].format(system_status[lng][ec_status]))
+                dsc.append(gen_settings_text[lng][4].format(system_status[lng][rnk_status]))
+                dsc.extend(gen_settings_text[lng][i] for i in (5, 6, 7))
+                dsc.append(gen_settings_text[lng][8].format(system_status[lng][ec_status+2]))
+                dsc.append(gen_settings_text[lng][9].format(system_status[lng][rnk_status+2]))
+                
+                gen_view: GenSettingsView = GenSettingsView(t_out=50, auth_id=self.auth_id, bot=self.bot, lng=lng, ec_status=ec_status, rnk_status=rnk_status)
+                await interaction.response.send_message(embed=Embed(description="\n".join(dsc)), view=gen_view)
+                await gen_view.wait()
+                for c in gen_view.children:
+                    c.disabled = True
+                try:
+                    await interaction.edit_original_message(view=gen_view)
+                except:
+                    pass
+
+            case 1:
+                with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                    with closing(base.cursor()) as cur:
+                        db_m_rls: list[tuple[int]] = cur.execute("SELECT role_id FROM mod_roles").fetchall()
+                emb = Embed(title=mod_roles_text[lng][0])
+                if db_m_rls:
+                    m_rls: set[int] = {x[0] for x in db_m_rls}
+                    emb.description = "\n".join([mod_roles_text[lng][2]] + [f"<@&{i}> - {i}" for i in m_rls])
+                    rem_dis: bool = False
+                    del db_m_rls
+                else:
+                    emb.description=mod_roles_text[lng][1]
+                    m_rls: set[int] = set()
+                    rem_dis: bool = True
+
+                rls: list[tuple[str, int]] = [(r.name, r.id) for r in interaction.guild.roles if not r.is_bot_managed()]
+                m_rls_v: ModRolesView = ModRolesView(
+                    t_out=50,
+                    m_rls=m_rls,
+                    lng=lng,
+                    auth_id=self.auth_id,
+                    rem_dis=rem_dis,
+                    rls=rls
+                )
+                await interaction.response.send_message(embed=emb, view=m_rls_v)
+                await m_rls_v.wait()
+                for c in m_rls_v.children:
+                    c.disabled = True
+                try:
+                    await interaction.edit_original_message(view=m_rls_v)
+                except:
+                    pass
+            
+            case 2:
+                await interaction.response.send_message(embed=Embed(description=settings_text[lng][7]))
+                flag: int = 0
+                memb: Member | None = None
+                while not flag:
+                    try:
+                        m_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == interaction.user.id and m.channel.id == interaction.channel_id, timeout=30)
+                    except TimeoutError:
+                        await interaction.delete_original_message()
+                        flag = 1
+                    else:
+                        ans: str = m_ans.content
+                        try: 
+                            await m_ans.delete()
                         except:
                             pass
-            if flag != 2:
-                return
+                        memb, flag = self.check_ans(interaction=interaction, ans=ans)
+                        if flag == 1:
+                            try:
+                                await interaction.delete_original_message()
+                            except:
+                                pass
+                if flag != 2:
+                    return
+                
+                memb_id: int = memb.id
+                with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                    with closing(base.cursor()) as cur:
+                        memb_info: tuple[int, int, str, int, int, int] = db_commands.check_db_member(base=base, cur=cur, memb_id=memb_id)
+                        xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                        membs_cash: list[tuple[int, int]] = cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall()
+                        membs_xp: list[tuple[int, int]] = cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall()
+                        db_roles: list[tuple[int]] = cur.execute("SELECT role_id FROM server_roles").fetchall()
+
+                l: int = len(membs_cash)     
+
+                # cnt_cash is a place in the rating sorded by cash
+                cash: int = memb_info[1]
+                if membs_cash[l >> 1][1] < cash:
+                    cnt_cash: int = 1
+                    while cnt_cash < l and memb_id != membs_cash[cnt_cash-1][0]:
+                        cnt_cash += 1
+                else:
+                    cnt_cash: int = l
+                    while cnt_cash > 1 and memb_id != membs_cash[cnt_cash-1][0]:
+                        cnt_cash -= 1
+
+                emb1: Embed = Embed()
+                emb1.description = mng_membs_text[lng][5].format(memb_id, memb_id)
+                emb1.add_field(name=mng_membs_text[lng][1], value=code_blocks[1].format(cash), inline=True)
+                emb1.add_field(name=mng_membs_text[lng][4], value=code_blocks[1].format(cnt_cash), inline=True)
+
+                # cnt_cash is a place in the rating sorded by xp
+                xp: int = memb_info[4]
+                if membs_xp[l >> 1][1] < xp:
+                    cnt_xp: int = 1
+                    while cnt_xp < l and memb_id != membs_xp[cnt_xp-1][0]:
+                        cnt_xp += 1
+                else:
+                    cnt_xp: int = l
+                    while cnt_xp > 1 and memb_id != membs_xp[cnt_xp-1][0]:
+                        cnt_xp -= 1
+
+                level: int = (xp + xp_b - 1) // xp_b
+                
+                emb2: Embed = Embed()
+                emb2.add_field(name=mng_membs_text[lng][2], value=code_blocks[2].format(f"{xp}/{level * xp_b + 1}"), inline=True)
+                emb2.add_field(name=mng_membs_text[lng][3], value=code_blocks[2].format(level), inline=True)
+                emb2.add_field(name=mng_membs_text[lng][4], value=code_blocks[2].format(cnt_xp), inline=True)
+
+                emb3: Embed = Embed()
+                member_roles_ids: set[int] = {int(r) for r in memb_info[2].split("#") if r.isdigit()}
+                if member_roles_ids:
+                    dsc = [code_blocks[lng*5]] + [f"<@&{r}>**` - {r}`**" for r in member_roles_ids]
+                else:
+                    dsc = [mng_membs_text[lng][6]]
+                emb3.description = "\n".join(dsc)
+                rem_dis: bool = True if len(dsc) == 1 else False
+
+                if db_roles:
+                    db_roles_set: set[int] = {x[0] for x in db_roles}
+                    roles: list[tuple[str, int]] = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable() and rl.id in db_roles_set]
+                    del db_roles_set
+                else:
+                    roles: list[tuple[str, int]] = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable()]
+                    del db_roles
+                
+                mng_v: ManageMemberView = ManageMemberView(
+                    timeout=110, 
+                    lng=lng, 
+                    auth_id=interaction.user.id, 
+                    memb_id=memb_id, 
+                    memb_rls=member_roles_ids, 
+                    rls=roles,
+                    cur_money=cash,
+                    cur_xp=xp,
+                    rem_dis=rem_dis,
+                    g_id=interaction.guild_id,
+                    member=memb
+                )
+
+                try:
+                    await interaction.edit_original_message(embeds=[emb1, emb2, emb3], view=mng_v)
+                except:
+                    pass
+                
+                await mng_v.wait()
+                for c in mng_v.children:
+                    c.disabled = True
+                try:
+                    await interaction.edit_original_message(view=mng_v)
+                except:
+                    pass
+
+            case 3:
+                with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                    with closing(base.cursor()) as cur:
+                        money_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]
+                        w_cd: int = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd';").fetchone()[0]
+                        sal_l: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l';").fetchone()[0]
+                        sal_r: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r';").fetchone()[0]
+                        e_l_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c';").fetchone()[0]
+                        sale_price_percent: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sale_price_perc';").fetchone()[0]
+                        voice_income: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice';").fetchone()[0]
+                        currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency';").fetchone()[0]
+
+                emb: Embed = Embed(title=ec_text[lng][0])
+                dsc: list[str] = [ec_text[lng][1].format(money_p_m, currency)]
+                dsc.append(ec_text[lng][2].format(w_cd))
+                if sal_l == sal_r:
+                    dsc.append(ec_text[lng][3].format(sal_l, currency))
+                else:
+                    dsc.append(ec_text[lng][3].format(ec_text[lng][4].format(sal_l, sal_r), currency))
+                dsc.append(ec_text[lng][5].format(voice_income, currency))
+                dsc.append(ec_text[lng][6].format(sale_price_percent))
+                if e_l_c:
+                    dsc.append(ec_text[lng][7].format(f"<#{e_l_c}>"))
+                else:
+                    dsc.append(ec_text[lng][7].format(settings_text[lng][13]))
+                dsc.append(ec_text[lng][8])
+                dsc.append(ec_text[lng][9])
+                emb.description = "\n\n".join(dsc)
+                
+                ec_v: EconomyView = EconomyView(
+                    t_out=110, 
+                    auth_id=self.auth_id,
+                    sale_price_percent=sale_price_percent,
+                    voice_income=voice_income,
+                    currency=currency
+                )
+                await interaction.response.send_message(embed=emb, view=ec_v)
+                await ec_v.wait()
+                for c in ec_v.children:
+                    c.disabled = True
+                try:
+                    await interaction.edit_original_message(view=ec_v)
+                except:
+                    pass
+
+            case 4:
+                with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                    with closing(base.cursor()) as cur:
+                        xp_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg'").fetchone()[0]
+                        xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                        lvl_c_a: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c'").fetchone()[0]
+
+                emb = Embed()
+                dsc = [ranking_text[lng][0].format(xp_p_m)]
+                dsc.append(ranking_text[lng][1].format(xp_b))
+                if lvl_c_a == 0:
+                    dsc.append(ranking_text[lng][2].format(settings_text[lng][13]))
+                else:
+                    dsc.append(ranking_text[lng][2].format(f"<#{lvl_c_a}>"))
+                dsc.extend(ranking_text[lng][i] for i in (4, 6))
+
+                emb.description = "\n\n".join(dsc)
+                rnk_v: RankingView = RankingView(timeout=90, auth_id=interaction.user.id, g_id=interaction.guild_id, cur_xp_pm=xp_p_m, cur_xpb=xp_b, bot=self.bot)
+                
+                await interaction.response.send_message(embed=emb, view=rnk_v)
+
+                await rnk_v.wait()
+                for c in rnk_v.children:
+                    c.disabled = True
+                try:
+                    await interaction.edit_original_message(view=rnk_v)
+                except:
+                    pass
+
+            case 5:
+                with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                    with closing(base.cursor()) as cur:
+                        p_v_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
+                        p_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
+                
+                if p_v_c:
+                    dsc = [poll_text[lng][0].format(f"<#{p_v_c}>")]
+                else:
+                    dsc = [poll_text[lng][0].format(settings_text[lng][13])]
+                if p_c:
+                    dsc.append(poll_text[lng][1].format(f"<#{p_c}>"))
+                else:
+                    dsc.append(poll_text[lng][1].format(settings_text[lng][13]))
+                dsc.append(poll_text[lng][2])
+                dsc.append(poll_text[lng][3])
+
+                p_v: PollSettingsView = PollSettingsView(timeout=100, auth_id=self.auth_id)
+                await interaction.response.send_message(embed=Embed(description="\n\n".join(dsc)), view=p_v)
+                
+                await p_v.wait()
+                for c in p_v.children:
+                    c.disabled = True
+                try:
+                    await interaction.edit_original_message(view=p_v)
+                except:
+                    pass
             
-            memb_id: int = memb.id
-            with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
-                with closing(base.cursor()) as cur:
-                    memb_info: tuple[int, int, str, int, int, int] = check_db_member(base=base, cur=cur, memb_id=memb_id)
-                    xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
-                    membs_cash: list[tuple[int, int]] = cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall()
-                    membs_xp: list[tuple[int, int]] = cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall()
-                    db_roles: list[tuple[int]] = cur.execute("SELECT role_id FROM server_roles").fetchall()
-
-            l: int = len(membs_cash)     
-
-            # cnt_cash is a place in the rating sorded by cash
-            cash: int = memb_info[1]
-            if membs_cash[l >> 1][1] < cash:
-                cnt_cash: int = 1
-                while cnt_cash < l and memb_id != membs_cash[cnt_cash-1][0]:
-                    cnt_cash += 1
-            else:
-                cnt_cash: int = l
-                while cnt_cash > 1 and memb_id != membs_cash[cnt_cash-1][0]:
-                    cnt_cash -= 1
-
-            emb1: Embed = Embed()
-            emb1.description = mng_membs_text[lng][5].format(memb_id, memb_id)
-            emb1.add_field(name=mng_membs_text[lng][1], value=code_blocks[1].format(cash), inline=True)
-            emb1.add_field(name=mng_membs_text[lng][4], value=code_blocks[1].format(cnt_cash), inline=True)
-
-            # cnt_cash is a place in the rating sorded by xp
-            xp: int = memb_info[4]
-            if membs_xp[l >> 1][1] < xp:
-                cnt_xp: int = 1
-                while cnt_xp < l and memb_id != membs_xp[cnt_xp-1][0]:
-                    cnt_xp += 1
-            else:
-                cnt_xp: int = l
-                while cnt_xp > 1 and memb_id != membs_xp[cnt_xp-1][0]:
-                    cnt_xp -= 1
-
-            level: int = (xp + xp_b - 1) // xp_b
-            
-            emb2: Embed = Embed()
-            emb2.add_field(name=mng_membs_text[lng][2], value=code_blocks[2].format(f"{xp}/{level * xp_b + 1}"), inline=True)
-            emb2.add_field(name=mng_membs_text[lng][3], value=code_blocks[2].format(level), inline=True)
-            emb2.add_field(name=mng_membs_text[lng][4], value=code_blocks[2].format(cnt_xp), inline=True)
-
-            emb3: Embed = Embed()
-            member_roles_ids: set[int] = {int(r) for r in memb_info[2].split("#") if r.isdigit()}
-            if member_roles_ids:
-                dsc = [code_blocks[lng*5]] + [f"<@&{r}>**` - {r}`**" for r in member_roles_ids]
-            else:
-                dsc = [mng_membs_text[lng][6]]
-            emb3.description = "\n".join(dsc)
-            rem_dis: bool = True if len(dsc) == 1 else False
-
-            if db_roles:
-                db_roles_set: set[int] = {x[0] for x in db_roles}
-                roles: list[tuple[str, int]] = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable() and rl.id in db_roles_set]
-                del db_roles_set
-            else:
-                roles: list[tuple[str, int]] = [(rl.name, rl.id) for rl in interaction.guild.roles if rl.is_assignable()]
-                del db_roles
-            
-            mng_v: ManageMemberView = ManageMemberView(
-                timeout=110, 
-                lng=lng, 
-                auth_id=interaction.user.id, 
-                memb_id=memb_id, 
-                memb_rls=member_roles_ids, 
-                rls=roles,
-                cur_money=cash,
-                cur_xp=xp,
-                rem_dis=rem_dis,
-                g_id=interaction.guild_id,
-                member=memb
-            )
-
-            try:
-                await interaction.edit_original_message(embeds=[emb1, emb2, emb3], view=mng_v)
-            except:
-                pass
-            
-            await mng_v.wait()
-            for c in mng_v.children:
-                c.disabled = True
-            try:
-                await interaction.edit_original_message(view=mng_v)
-            except:
-                pass
-
-        elif custom_id.startswith("3_"):
-            with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
-                with closing(base.cursor()) as cur:
-                    money_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]
-                    w_cd: int = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd';").fetchone()[0]
-                    sal_l: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l';").fetchone()[0]
-                    sal_r: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r';").fetchone()[0]
-                    e_l_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c';").fetchone()[0]
-                    sale_price_percent: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sale_price_perc';").fetchone()[0]
-                    voice_income: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice';").fetchone()[0]
-                    currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency';").fetchone()[0]
-
-            emb: Embed = Embed(title=ec_text[lng][0])
-            dsc: list[str] = [ec_text[lng][1].format(money_p_m, currency)]
-            dsc.append(ec_text[lng][2].format(w_cd))
-            if sal_l == sal_r:
-                dsc.append(ec_text[lng][3].format(sal_l, currency))
-            else:
-                dsc.append(ec_text[lng][3].format(ec_text[lng][4].format(sal_l, sal_r), currency))
-            dsc.append(ec_text[lng][5].format(voice_income, currency))
-            dsc.append(ec_text[lng][6].format(sale_price_percent))
-            if e_l_c:
-                dsc.append(ec_text[lng][7].format(f"<#{e_l_c}>"))
-            else:
-                dsc.append(ec_text[lng][7].format(settings_text[lng][13]))
-            dsc.append(ec_text[lng][8])
-            dsc.append(ec_text[lng][9])
-            emb.description = "\n\n".join(dsc)
-            
-            ec_v: EconomyView = EconomyView(
-                t_out=110, 
-                auth_id=self.auth_id,
-                sale_price_percent=sale_price_percent,
-                voice_income=voice_income,
-                currency=currency
-            )
-            await interaction.response.send_message(embed=emb, view=ec_v)
-            await ec_v.wait()
-            for c in ec_v.children:
-                c.disabled = True
-            try:
-                await interaction.edit_original_message(view=ec_v)
-            except:
-                pass
-
-        elif custom_id.startswith("4_"):   
-            with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
-                with closing(base.cursor()) as cur:
-                    xp_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg'").fetchone()[0]
-                    xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
-                    lvl_c_a: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c'").fetchone()[0]
-
-            emb = Embed()
-            dsc = [ranking_text[lng][0].format(xp_p_m)]
-            dsc.append(ranking_text[lng][1].format(xp_b))
-            if lvl_c_a == 0:
-                dsc.append(ranking_text[lng][2].format(settings_text[lng][13]))
-            else:
-                dsc.append(ranking_text[lng][2].format(f"<#{lvl_c_a}>"))
-
-            dsc += [ranking_text[lng][i] for i in (4, 5, 6)]
-
-            emb.description = "\n\n".join(dsc)
-            rnk_v: RankingView = RankingView(timeout=90, auth_id=interaction.user.id, g_id=interaction.guild_id, cur_xp_pm=xp_p_m, cur_xpb=xp_b, bot=self.bot)
-            
-            await interaction.response.send_message(embed=emb, view=rnk_v)
-
-            await rnk_v.wait()
-            for c in rnk_v.children:
-                c.disabled = True
-            try:
-                await interaction.edit_original_message(view=rnk_v)
-            except:
-                pass
-
-        elif custom_id.startswith("5_"):
-            with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
-                with closing(base.cursor()) as cur:
-                    p_v_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
-                    p_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
-            
-            if p_v_c:
-                dsc = [poll_text[lng][0].format(f"<#{p_v_c}>")]
-            else:
-                dsc = [poll_text[lng][0].format(settings_text[lng][13])]
-            if p_c:
-                dsc.append(poll_text[lng][1].format(f"<#{p_c}>"))
-            else:
-                dsc.append(poll_text[lng][1].format(settings_text[lng][13]))
-            dsc.append(poll_text[lng][2])
-            dsc.append(poll_text[lng][3])
-
-            p_v: PollSettingsView = PollSettingsView(timeout=100, auth_id=self.auth_id)
-            await interaction.response.send_message(embed=Embed(description="\n\n".join(dsc)), view=p_v)
-            
-            await p_v.wait()
-            for c in p_v.children:
-                c.disabled = True
-            try:
-                await interaction.edit_original_message(view=p_v)
-            except:
-                pass
+            case 54:
+                emb = Embed(description=SelectICView.select_ignored_channels_text[lng][0])
+                select_ic_view: SelectICView = SelectICView(
+                    timeout=90,
+                    lng=lng,
+                    auth_id=self.auth_id,
+                    g_id=interaction.guild_id,
+                    bot=self.bot
+                )
+                
+                await interaction.response.send_message(embed=emb, view=select_ic_view)
+                await select_ic_view.wait()
+                try:
+                    await interaction.delete_original_message()
+                except:
+                    pass
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         if interaction.user.id != self.auth_id:
@@ -1506,7 +1467,6 @@ class RankingView(View):
         super().__init__(timeout=timeout)
         self.add_item(CustomButton(style=ButtonStyle.green, label="", emoji="✨", custom_id=f"21_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.grey, label="", emoji="📗", custom_id=f"22_{auth_id}_{randint(1, 100)}"))
-        self.add_item(CustomButton(style=ButtonStyle.grey, label="", emoji="<:ignored_channels:1003673081996378133>", custom_id=f"23_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.red, label="", emoji="🥇", custom_id=f"24_{auth_id}_{randint(1, 100)}"))
         self.auth_id: int = auth_id
         self.cur_xp_pm: int = cur_xp_pm
@@ -1530,30 +1490,6 @@ class RankingView(View):
             dsc[1] = ranking_text[lng][1].format(self.cur_xpb)
             emb.description = "\n\n".join(dsc)
             await interaction.message.edit(embed=emb)
-
-    async def ic(self, lng: int, interaction: Interaction) -> None:
-        chnls: list[tuple[str, int]] = [(c.name, c.id) for c in interaction.guild.text_channels]
-        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
-            with closing(base.cursor()) as cur:
-                db_chnls: list[tuple[int]] = cur.execute("SELECT chnl_id FROM ic").fetchall()
-        if db_chnls:
-            guild_ignored_channels: set[int] = {tup[0] for tup in db_chnls}
-            async with self.bot.lock:
-                self.bot.ignored_channels[self.g_id] = guild_ignored_channels
-            dsc: list[str] = [ranking_text[lng][17]] + [f"<#{chnl_id}>**` - {chnl_id}`**" for chnl_id in guild_ignored_channels]
-            rd: bool = False
-        else:
-            async with self.bot.lock:
-                self.bot.ignored_channels[self.g_id] = set()
-            rd: bool = True
-            dsc = [ranking_text[lng][18]]
-        
-        emb: Embed = Embed(description="\n".join(dsc))     
-        ic_v: IgnoredChannelsView = IgnoredChannelsView(timeout=80, lng=lng, auth_id=self.auth_id, chnls=chnls, rem_dis=rd, g_id=self.g_id, bot=self.bot)
-
-        await interaction.response.send_message(embed=emb, view=ic_v)
-        await ic_v.wait()
-        await interaction.delete_original_message()
 
     async def level_channel(self, lng: int, interaction: Interaction) -> None:
         me: Member = interaction.guild.me
@@ -1624,8 +1560,6 @@ class RankingView(View):
             await self.xp_change(lng=lng, interaction=interaction)
         elif c_id.startswith("22_"):
             await self.level_channel(lng=lng, interaction=interaction)
-        elif c_id.startswith("23_"):
-            await self.ic(lng=lng, interaction=interaction)
         elif c_id.startswith("24_"):
             await self.lvl_roles(lng=lng, interaction=interaction)
     
@@ -1776,101 +1710,6 @@ class LevelRolesView(View):
     
     async def interaction_check(self, interaction: Interaction) -> bool:
         if self.auth_id != interaction.user.id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-            await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
-            return False
-        return True
-
-
-class IgnoredChannelsView(View):
-    def __init__(self, timeout: int, lng: int, auth_id: int, chnls: list, rem_dis: bool, g_id: int, bot: StoreBot) -> None:
-        super().__init__(timeout=timeout)
-        l: int = len(chnls)
-        for i in range(min((l + 23) // 24, 20)):
-            self.add_item(CustomSelect(custom_id=f"{1100+i}_{auth_id}_{randint(1, 100)}", placeholder=settings_text[lng][10], opts=[(settings_text[lng][12], 0)] + chnls[i*24:min((i+1)*24, l)]))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][8], emoji="<:add01:999663315804500078>", custom_id=f"25_{auth_id}_{randint(1, 100)}"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][9], emoji="<:remove01:999663428689997844>", custom_id=f"26_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
-        self.chnl: int | None = None
-        self.g_id: int = g_id
-        self.auth_id: int = auth_id
-        self.bot: StoreBot = bot
-
-    async def add_chnl(self, interaction: Interaction, lng: int) -> None:
-        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
-            with closing(base.cursor()) as cur:
-                cur.execute("INSERT OR IGNORE INTO ic(chnl_id) VALUES(?)", (self.chnl,))
-                base.commit()
-        async with self.bot.lock:
-            self.bot.ignored_channels[self.g_id].add(self.chnl)
-
-        emb: Embed = interaction.message.embeds[0]
-        dsc: list[str] = emb.description.split("\n")
-
-        if len(dsc) == 1:
-            dsc = [ranking_text[lng][17], f"<#{self.chnl}>**` - {self.chnl}`**"]
-            emb.description = "\n".join(dsc)
-            self.children[-1].disabled = False
-            await interaction.message.edit(embed=emb, view=self)
-        else:
-            dsc.append(f"<#{self.chnl}>**` - {self.chnl}`**")
-            emb.description = "\n".join(dsc)
-            await interaction.message.edit(embed=emb)
-        await interaction.response.send_message(embed=Embed(description=ranking_text[lng][19].format(self.chnl)), ephemeral=True)
-        self.chnl = None
-    
-    async def rem_chnl(self, interaction: Interaction, lng: int) -> None:
-        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
-            with closing(base.cursor()) as cur:
-                cur.execute("DELETE FROM ic WHERE chnl_id = ?", (self.chnl,))
-                base.commit()
-        self.bot.ignored_channels[self.g_id].remove(self.chnl)
-
-        emb: Embed = interaction.message.embeds[0]
-        dsc: list[str] = emb.description.split("\n")
-        if len(dsc) <= 2:
-            dsc = [ranking_text[lng][18]]
-            self.children[-1].disabled = True
-            emb.description = "\n".join(dsc)
-            await interaction.message.edit(embed=emb, view=self)
-        else:
-            s_c: str = f"{self.chnl}"
-            i: int = 0
-            while i < len(dsc):
-                if s_c in dsc[i]:
-                    dsc.pop(i)
-                    i = len(dsc) + 2
-                else:
-                    i += 1
-            emb.description = "\n".join(dsc)
-            await interaction.message.edit(embed=emb)
-        await interaction.response.send_message(embed=Embed(description=ranking_text[lng][20].format(self.chnl)), ephemeral=True)
-        self.chnl = None
-
-    async def click(self, interaction: Interaction, c_id: str) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        if not self.chnl:
-            await interaction.response.send_message(embed=Embed(description=ranking_text[lng][21]), ephemeral=True)
-            return
-        
-        async with self.bot.lock:
-            guild_ignored_channels: set[int] = self.bot.ignored_channels[self.g_id]
-        if c_id.startswith("25_"):
-            if self.chnl in guild_ignored_channels:
-                await interaction.response.send_message(embed=Embed(description=ranking_text[lng][22]), ephemeral=True)
-                return
-            await self.add_chnl(interaction=interaction, lng=lng)
-        elif c_id.startswith("26_"):
-            if not self.chnl in guild_ignored_channels:
-                await interaction.response.send_message(embed=Embed(description=ranking_text[lng][23]), ephemeral=True)
-                return
-            await self.rem_chnl(interaction=interaction, lng=lng)           
-
-    async def click_menu(self, _, c_id: str, values) -> None:
-        if c_id.startswith("11"):
-            self.chnl = int(values[0])
-
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        if interaction.user.id != self.auth_id:
             lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
@@ -2072,7 +1911,7 @@ class VerifyDeleteView(View):
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][4]), ephemeral=True)
             str_role_id: str = str(self.role_id)
             guild_id: int = g_id if (g_id := interaction.guild_id) else interaction.guild.id
-            delete_role_from_db(guild_id=guild_id, str_role_id=str_role_id)
+            db_commands.delete_role_from_db(guild_id=guild_id, str_role_id=str_role_id)
             try:
                 await interaction.edit_original_message(embed=Embed(description=ec_mr_text[lng][5].format(str_role_id)))
             except:

@@ -55,7 +55,7 @@ class EventsHandlerCog(Cog):
         self._backup.start()
         
     @staticmethod
-    def log_event(filename: str = "common_logs", report: list[str] = [""]) -> None:
+    def log_event(filename: str = "common_logs", report: list[str] = []) -> None:
         with open(file=filename+".log", mode="a+", encoding="utf-8") as f:
             f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3))}] {' '.join([f'[{s}]' for s in report])}\n")
 
@@ -88,7 +88,10 @@ class EventsHandlerCog(Cog):
                 mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
             async with self.bot.lock:
                 self.bot.members_in_voice[guild_id] = {}
-                self.bot.ignored_channels[guild_id] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
+                db_ignored_channels_data: list[tuple[int, int, int]] =  db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
+                self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
+                self.bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
+
             self.log_event(report=["correct_db func", str(guild_id), str(guild.name)])
 
         if DEBUG:
@@ -113,7 +116,9 @@ class EventsHandlerCog(Cog):
         guild_locale: str = str(guild.preferred_locale)
         async with self.bot.lock:
             self.bot.members_in_voice[guild_id] = {}
-            self.bot.ignored_channels[guild_id] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
+            db_ignored_channels_data: list[tuple[int, int, int]] =  db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
+            self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
+            self.bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
         
         lng: int = 1 if "ru" in guild_locale else 0
         try:
@@ -130,14 +135,19 @@ class EventsHandlerCog(Cog):
 
     @Cog.listener()
     async def on_guild_remove(self, guild: Guild) -> None:
-        report_args: list[str] = ["guild_remove", str(guild.id), str(guild.name)]
+        guild_id: int = guild.id
+        report_args: list[str] = ["guild_remove", str(guild_id), str(guild.name)]
         self.log_event(filename="guild", report=report_args)
         self.log_event(filename="common_logs", report=report_args)
-        await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"))   
+        await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"))
+        async with self.bot.lock:
+            del self.bot.members_in_voice[guild_id]
+            del self.bot.ignored_text_channels[guild_id]
+            del self.bot.ignored_voice_channels[guild_id]
     
     @tasks.loop(seconds=60)
     async def salary_roles(self) -> None:
-        guild_ids: frozenset[int] = frozenset(guild.id for guild in self.bot.guilds.copy())
+        guild_ids: list[int] = [guild.id for guild in self.bot.guilds.copy()]
         for guild_id in guild_ids: 
             with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
@@ -207,9 +217,9 @@ class EventsHandlerCog(Cog):
         
         g_id: int = guild.id
         async with self.bot.lock:
-            if g_id not in self.bot.ignored_channels:
-                self.bot.ignored_channels[g_id] = set()
-            elif message.channel.id in self.bot.ignored_channels[g_id]:
+            if g_id not in self.bot.ignored_text_channels:
+                self.bot.ignored_text_channels[g_id] = set()
+            elif message.channel.id in self.bot.ignored_text_channels[g_id]:
                 return
 
         with closing(connect(f"{CWD_PATH}/bases/bases_{g_id}/{g_id}.db")) as base:

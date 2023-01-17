@@ -23,6 +23,12 @@ class VoiceHandlerCog(Cog):
 
     @Cog.listener()
     async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState) -> None:
+        guild: Guild = member.guild
+        guild_id: int = guild.id
+        async with self.bot.lock:
+            if guild_id not in self.bot.ignored_voice_channels:
+                self.bot.ignored_voice_channels[guild_id] = set()
+
         before_channel: VoiceChannel | StageChannel | None = before.channel
         after_channel:  VoiceChannel | StageChannel | None = after.channel
         before_channel_is_voice: bool = isinstance(before_channel, VoiceChannel)
@@ -31,20 +37,31 @@ class VoiceHandlerCog(Cog):
         if not (before_channel_is_voice or after_channel_is_voice):
             return
 
-        guild: Guild = member.guild
-        money_for_voice: int = db_commands.get_server_info_value(guild_id=guild.id, key_name="mn_for_voice")
+        money_for_voice: int = db_commands.get_server_info_value(guild_id=guild_id, key_name="mn_for_voice")
         if not money_for_voice:
             return
 
         member_id: int = member.id
         if before_channel_is_voice:
-            await self.process_left_member(
-                member_id=member_id,
-                guild=guild,
-                money_for_voice=money_for_voice,
-                channel_id=before_channel.id
-            )
+            async with self.bot.lock:
+                if before_channel.id not in self.bot.ignored_voice_channels[guild_id]:
+                    is_continue: bool = True
+                else:
+                    is_continue: bool = False
+
+            if is_continue:
+                await self.process_left_member(
+                    member_id=member_id,
+                    guild=guild,
+                    money_for_voice=money_for_voice,
+                    channel_id=before_channel.id
+                )
+
         if after_channel_is_voice:
+            async with self.bot.lock:
+                if after_channel.id in self.bot.ignored_voice_channels[guild_id]:
+                    return
+
             await self.process_joined_member(
                 member_id=member_id,
                 member=member,

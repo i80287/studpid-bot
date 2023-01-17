@@ -20,8 +20,9 @@ class StoreBot(Bot):
         self.startup_time: int = int(time())
         # guild_id: member_id: Member
         self.members_in_voice: dict[int, dict[int, Member]] = {}
-        # guild_is: {channel_id}
-        self.ignored_channels: dict[int, set[int]] = {}
+        # guild_id: {channel_id}
+        self.ignored_text_channels: dict[int, set[int]] = {}
+        self.ignored_voice_channels: dict[int, set[int]] = {}
 
     # just because if i put handler only in the cog i get an error message in the cmd every time
     async def on_application_command_error(*args) -> None:
