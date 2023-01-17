@@ -4,7 +4,7 @@ from nextcord import Emoji
 from nextcord.ext.commands import Bot
 
 cdef:
-    _CUSTOM_EMOJI_PATTERN = re.compile(r"\d+", flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE)
+    _CUSTOM_EMOJI_ID_PATTERN = re.compile(r"\d+", flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE)
     _DEFAULT_EMOJI_PATTERN = re.compile(r":[A-Za-z\d_]+:", flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE)
 
 def parse_emoji(bot: Bot, str string) -> Emoji | str | None:
@@ -14,11 +14,11 @@ def parse_emoji(bot: Bot, str string) -> Emoji | str | None:
             return emoji
 
     cdef:
-        list finds = _CUSTOM_EMOJI_PATTERN.findall(string)
+        list finds = _CUSTOM_EMOJI_ID_PATTERN.findall(string)
         size_t length = len(finds)
         size_t i
     
-    if finds:
+    if length:
         i = 0
         while i < length:
             emoji = bot.get_emoji(int(finds[i]))
