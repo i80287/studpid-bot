@@ -427,16 +427,18 @@ class StoreView(View):
                 await interaction.response.edit_message(embed=emb)
 
     async def click_b(self, interaction: Interaction, c_id: str) -> None:
-        if c_id.startswith("32_"):
-            click: int = 1
-        elif c_id.startswith("33_"):
-            click: int = 2
-        elif c_id.startswith("34_"):
-            click: int = 3
-        elif c_id.startswith("35_"):
-            click: int = 4
-        else:
-            click: int = 0
+        click: int
+        match int(c_id[:2]):
+            case 32:
+                click = 1
+            case 33:
+                click = 2
+            case 34:
+                click = 3
+            case 35:
+                click = 4
+            case _:
+                click = 0
 
         await self.update_menu(interaction=interaction, click=click)
 
@@ -751,7 +753,9 @@ class SlashCommandsCog(Cog):
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
 
-        member_buyer: User | Member = interaction.user
+        if not isinstance(member_buyer := interaction.user, Member):
+            return
+
         memb_id: int = member_buyer.id
         r_id: int = role.id
 

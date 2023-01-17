@@ -114,7 +114,7 @@ def peek_free_request_id(cur: Cursor) -> int:
     if request_ids_list:
         request_ids: set[int] = {req_id_tuple[0] for req_id_tuple in request_ids_list}
         del request_ids_list
-        free_requests_ids: set[int] = set(range(1, len(request_ids) + 2)).difference(request_ids)
+        free_requests_ids: set[int] = set(range(1, len(request_ids) + 2)).__sub__(request_ids)
         return min(free_requests_ids)
     else:
         return 1
@@ -125,7 +125,7 @@ def peek_role_free_numbers(cur: Cursor, amount_of_numbers: int) -> list[int]:
         role_numbers: set[int] = {r_n[0] for r_n in req}
         del req
         after_last_number: int =  max(role_numbers) + 1
-        free_numbers: set[int] = set(range(1, after_last_number)).difference(role_numbers)
+        free_numbers: set[int] = set(range(1, after_last_number)).__sub__(role_numbers)
         lack_numbers_len: int = amount_of_numbers - len(free_numbers)
         if lack_numbers_len <= 0:
             return list(free_numbers)[:amount_of_numbers]            
