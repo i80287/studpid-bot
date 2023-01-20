@@ -80,7 +80,10 @@ class ModCommandsCog(Cog):
         for c in st_view.children:
             if isinstance(c, Button) or isinstance(c, StringSelect):
                 c.disabled = True
-        await interaction.edit_original_message(view=st_view)
+        try:
+            await interaction.edit_original_message(view=st_view)
+        except:
+            return
     
 
 def setup(bot: StoreBot) -> None:

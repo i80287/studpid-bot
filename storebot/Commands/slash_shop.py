@@ -6,7 +6,7 @@ from typing import Literal
 from time import time
 
 from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction,\
-        Locale, SelectOption, slash_command, Role, Member, User, Guild
+        Locale, SelectOption, slash_command, Role, Member, Guild, TextChannel
 from nextcord.ui import Button, View, Select
 from nextcord.ext.commands import Bot, Cog
 from nextcord.abc import GuildChannel
@@ -757,23 +757,22 @@ class SlashCommandsCog(Cog):
 
         memb_id: int = member_buyer.id
         r_id: int = role.id
-
         guild_id: int = interaction.guild_id
         with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
-                    await interaction.response.send_message(
-                        embed=Embed(description=common_text[lng][2]),
-                        ephemeral=True
-                    )
+                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=common_text[lng][2])
                     return
+
                 store: tuple[int, int, int, int] | None = cur.execute(
                     "SELECT quantity, price, salary, type FROM store WHERE role_id = ?",
                     (r_id,)
                 ).fetchone()
+
                 if not store:
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][5])
                     return
+                
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
         
         buyer: tuple[int, int, str, int, int, int] = await check_member_async(guild_id=guild_id, member_id=memb_id)
@@ -855,7 +854,7 @@ class SlashCommandsCog(Cog):
 
         if chnl_id:
             guild_log_channel: GuildChannel | None = interaction.guild.get_channel(chnl_id)
-            if guild_log_channel:
+            if isinstance(guild_log_channel, TextChannel):
                 try:
                     await guild_log_channel.send(embed=Embed(
                         title=text_slash[server_lng][13],
@@ -1050,7 +1049,7 @@ class SlashCommandsCog(Cog):
             pass
         if chnl_id:
             guild_log_channel: GuildChannel | None = interaction.guild.get_channel(chnl_id)
-            if guild_log_channel:
+            if isinstance(guild_log_channel, TextChannel):
                 try:
                     await guild_log_channel.send(embed=Embed(
                         title=text_slash[server_lng][22],
@@ -1490,7 +1489,7 @@ class SlashCommandsCog(Cog):
 
         if chnl_id:
             guild_log_channel: GuildChannel | None = interaction.guild.get_channel(chnl_id)
-            if guild_log_channel:
+            if isinstance(guild_log_channel, TextChannel):
                 try:
                     await guild_log_channel.send(embed=Embed(
                         title=text_slash[server_lng][29],
@@ -1568,7 +1567,7 @@ class SlashCommandsCog(Cog):
             pass
         if chnl_id:
             guild_log_channel: GuildChannel | None = interaction.guild.get_channel(chnl_id)
-            if guild_log_channel:
+            if isinstance(guild_log_channel, TextChannel):
                 try:
                     await guild_log_channel.send(embed=Embed(
                         title=text_slash[server_lng][37],
@@ -1612,7 +1611,7 @@ class SlashCommandsCog(Cog):
         await interaction.response.send_message(embed=emb)
         if chnl_id:
             guild_log_channel: GuildChannel | None = interaction.guild.get_channel(chnl_id)
-            if guild_log_channel:
+            if isinstance(guild_log_channel, TextChannel):
                 try:
                     await guild_log_channel.send(embed=Embed(
                         title=text_slash[server_lng][42],
