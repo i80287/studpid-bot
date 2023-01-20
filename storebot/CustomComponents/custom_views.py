@@ -1162,9 +1162,11 @@ class SettingsView(View):
                     return
                 
                 memb_id: int = memb.id
-                with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                guild_id: int = interaction.guild_id
+                memb_info: tuple[int, int, str, int, int, int] = await db_commands.check_member_async(guild_id=guild_id, member_id=memb_id)
+                
+                with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
                     with closing(base.cursor()) as cur:
-                        memb_info: tuple[int, int, str, int, int, int] = db_commands.check_db_member(base=base, cur=cur, memb_id=memb_id)
                         xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
                         membs_cash: list[tuple[int, int]] = cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall()
                         membs_xp: list[tuple[int, int]] = cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall()

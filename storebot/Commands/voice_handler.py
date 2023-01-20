@@ -74,7 +74,7 @@ class VoiceHandlerCog(Cog):
         async with self.bot.lock:
             if member_id not in self.bot.members_in_voice[guild_id]:
                 # If member joined voice channel before the bot startup.
-                income: int = db_commands.register_user_voice_channel_left_with_join_time(
+                income: int = await db_commands.register_user_voice_channel_left_with_join_time(
                     guild_id=guild_id,
                     member_id=member_id,
                     money_for_voice=money_for_voice,
@@ -82,7 +82,7 @@ class VoiceHandlerCog(Cog):
                 )
             else:
                 self.bot.members_in_voice[guild_id].pop(member_id)
-                income: int = db_commands.register_user_voice_channel_left(
+                income: int = await db_commands.register_user_voice_channel_left(
                     guild_id=guild_id,
                     member_id=member_id,
                     money_for_voice=money_for_voice
@@ -101,7 +101,7 @@ class VoiceHandlerCog(Cog):
         guild_id: int = guild.id
         async with self.bot.lock:
             self.bot.members_in_voice[guild_id][member_id] = member
-        db_commands.register_user_voice_channel_join(
+        await db_commands.register_user_voice_channel_join(
             guild_id=guild_id,
             member_id=member_id
         )
@@ -114,7 +114,7 @@ class VoiceHandlerCog(Cog):
             ))
 
 
-    def process_member_on_bot_shutdown(self, guild: Guild, member_id: int, member: Member) -> None:
+    async def process_member_on_bot_shutdown(self, guild: Guild, member_id: int, member: Member) -> None:
         if not member.voice:
             return
 
@@ -127,7 +127,7 @@ class VoiceHandlerCog(Cog):
         if not channel_is_voice:
             return
         
-        db_commands.register_user_voice_channel_left(
+        await db_commands.register_user_voice_channel_left(
             guild_id=guild.id,
             member_id=member_id,
             money_for_voice=money_for_voice

@@ -342,7 +342,7 @@ class BasicComandsCog(Cog):
                 if not guild:
                     continue
                 for member_id, member in members_dict.items():
-                    cog.process_member_on_bot_shutdown(
+                    await cog.process_member_on_bot_shutdown(
                         guild=guild,
                         member_id=member_id,
                         member=member

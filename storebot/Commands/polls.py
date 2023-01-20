@@ -9,6 +9,7 @@ from nextcord import slash_command, Message, Interaction, Embed, ButtonStyle, Co
 from nextcord.ext.commands import Cog
 from nextcord.ui import Button, View
 
+from Commands.mod_commands import ModCommandsCog
 from storebot import StoreBot
 from Variables.vars import CWD_PATH
 
@@ -87,16 +88,7 @@ class Poll(View):
         self.add_item(cutom_button_with_row(label="disapprove", disabled=False, style=ButtonStyle.red, row=(self.n + 4) // 5 + 1))
 
     def init_ans(self) -> None:
-        self.voters: list[set] = [set() for _ in range(self.n)]
-
-    def check_moder(self, interaction: Interaction, base: Connection, cur: Cursor) -> bool:
-        if interaction.user.guild_permissions.administrator:
-            return True
-        mdrls: list[tuple[int]] = cur.execute("SELECT * FROM mod_roles").fetchall()
-        if mdrls:
-            mdrls: set[int] = {x[0] for x in mdrls}
-            return any(role.id in mdrls for role in interaction.user.roles)
-        return False        
+        self.voters: list[set] = [set() for _ in range(self.n)]      
 
     async def click_row_button(self, interaction: Interaction, label) -> None:
         g = interaction.guild
@@ -104,7 +96,7 @@ class Poll(View):
 
         with closing(connect(f"{CWD_PATH}/bases/bases_{g.id}/{g.id}.db")) as base:
             with closing(base.cursor()) as cur:
-                if not self.check_moder(interaction=interaction, base=base, cur=cur):
+                if not ModCommandsCog.mod_check(interaction=interaction):
                     await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][11]), ephemeral=True)
                     return
                 chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]

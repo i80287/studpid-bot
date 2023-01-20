@@ -46,8 +46,9 @@ class ModCommandsCog(Cog):
     @staticmethod
     def mod_check(interaction: Interaction) -> bool:
         member: User | Member | None = interaction.user
-        if not member or not isinstance(member, Member):
+        if not isinstance(member, Member):
             return False
+        
         if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
             return True
 

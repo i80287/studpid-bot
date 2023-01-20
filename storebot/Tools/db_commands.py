@@ -1,3 +1,4 @@
+import aiosqlite
 from time import time
 from sqlite3 import connect, Connection, Cursor
 from contextlib import closing
@@ -37,61 +38,64 @@ def check_db_member(base: Connection, cur: Cursor, memb_id: int) -> tuple[int, i
     base.commit()
     return (memb_id, 0, "", 0, 0, 0)
 
-def check_member(guild_id: int, memb_id: int) -> tuple[int, int, str, int, int, int]:
-    with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
-        with closing(base.cursor()) as cur:
-            member: tuple[int, int, str, int, int, int] | None = \
-                cur.execute(
-                    "SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = ?",
-                    (memb_id,)
-                ).fetchone()
-            if member:
-                return member
+async def check_member_async(guild_id: int, member_id: int) -> tuple[int, int, str, int, int, int]:
+    async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+        async with base.execute("SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = ?", (member_id,)) as cur:
+            result: aiosqlite.Row | None = await cur.fetchone()
+            if result is not None:
+                return tuple(result)
 
-            cur.execute(
+            await base.execute(
                 "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-                (memb_id, 0, "", 0, 0, 0)
+                (member_id, 0, "", 0, 0, 0)
             )
-            base.commit()
-            return (memb_id, 0, "", 0, 0, 0)
+            await base.commit()
 
-def register_user_voice_channel_join(guild_id: int, member_id: int) -> None:
+            return (member_id, 0, "", 0, 0, 0)
+
+async def register_user_voice_channel_join(guild_id: int, member_id: int) -> None:
     time_now: int = int(time())
-    with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
-        with closing(base.cursor()) as cur:
-            if not cur.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)).fetchone():
-                cur.execute(
+    async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+        async with base.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)) as cur:
+            result: aiosqlite.Row | None = await cur.fetchone()
+            if not result:
+                await base.execute(
                     "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
                     (member_id, 0, "", 0, 0, time_now)
                 )
             else:
-                cur.execute("UPDATE users SET voice_join_time = ? WHERE memb_id = ?", (time_now, member_id))
-            base.commit()
+                await base.execute(
+                    "UPDATE users SET voice_join_time = ? WHERE memb_id = ?",
+                    (time_now, member_id)
+                )
+        
+        await base.commit()
 
-def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_voice: int) -> int:
-    with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
-        with closing(base.cursor()) as cur:
-            voice_join_time: int = check_db_member(base=base, cur=cur, memb_id=member_id)[5]
-            if not voice_join_time:
-                return 0
+async def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_voice: int) -> int:
+    time_now: int = int(time())
+    async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+        voice_join_time: int = (await check_member_async(guild_id=guild_id, member_id=member_id))[5]
+        if not voice_join_time:
+            return 0
 
-            time_delta: int = int(time()) - voice_join_time
-            if not time_delta:
-                return 0
+        time_delta: int = time_now - voice_join_time
+        if not time_delta:
+            return 0
 
-            income_for_voice: int = time_delta * money_for_voice // 600
-            cur.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
-            base.commit()
-            return income_for_voice
+        income_for_voice: int = time_delta * money_for_voice // 600
+        await base.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
+        await base.commit()
 
-def register_user_voice_channel_left_with_join_time(guild_id: int, member_id: int, money_for_voice: int, time_join: int) -> int:
-    with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
-        with closing(base.cursor()) as cur:
-            time_delta: int = int(time()) - time_join
-            income_for_voice: int = time_delta * money_for_voice // 600
-            cur.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
-            base.commit()
-            return income_for_voice
+    return income_for_voice
+
+async def register_user_voice_channel_left_with_join_time(guild_id: int, member_id: int, money_for_voice: int, time_join: int) -> int:
+    time_delta: int = int(time()) - time_join
+    income_for_voice: int = time_delta * money_for_voice // 600
+    async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+        await base.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
+        await base.commit()
+    
+    return income_for_voice
 
 def peek_role_free_number(cur: Cursor) -> int:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()

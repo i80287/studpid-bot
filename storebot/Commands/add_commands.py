@@ -5,7 +5,7 @@ from nextcord import Embed, Emoji, Guild, Colour,\
     SlashOption, Interaction, Status, slash_command, Locale
 from nextcord.ext.commands import Bot, Cog
 
-from Tools.db_commands import check_member
+from Tools import db_commands
 from Tools.parse_tools import parse_emoji
 
 
@@ -199,7 +199,8 @@ class AdditionalCommandsCog(Cog):
         )
     ) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        check_member(guild_id=interaction.guild_id, memb_id=interaction.user.id)        
+        await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
+
         emoji: Emoji | str | None = parse_emoji(self.bot, emoji_str)        
         if emoji is None:
             emb: Embed = Embed(title=self.text_slash[lng][0], colour=Colour.red(), description=self.text_slash[lng][12])
@@ -232,7 +233,8 @@ class AdditionalCommandsCog(Cog):
     )
     async def server(self, interaction: Interaction) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        check_member(guild_id=interaction.guild_id, memb_id=interaction.user.id)
+        await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
+
         emb: Embed = Embed(title=self.text_slash[lng][13], colour=Colour.dark_purple())
         guild: Guild = interaction.guild
 
