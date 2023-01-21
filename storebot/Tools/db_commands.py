@@ -1,6 +1,7 @@
 import aiosqlite
+import sqlite3
 from time import time
-from sqlite3 import connect, Connection, Cursor
+from sqlite3 import connect
 from contextlib import closing
 
 from Variables.vars import CWD_PATH
@@ -21,22 +22,6 @@ def get_server_currency(guild_id: int) -> str:
     with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
         with closing(base.cursor()) as cur:
             return cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency';").fetchone()[0]
-
-def check_db_member(base: Connection, cur: Cursor, memb_id: int) -> tuple[int, int, str, int, int, int]:
-    member: tuple[int, int, str, int, int, int] | None = \
-        cur.execute(
-            "SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = ?",
-            (memb_id,)
-        ).fetchone()
-
-    if member:
-        return member
-    cur.execute(
-        "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-        (memb_id, 0, "", 0, 0, 0)
-    )
-    base.commit()
-    return (memb_id, 0, "", 0, 0, 0)
 
 async def check_member_async(guild_id: int, member_id: int) -> tuple[int, int, str, int, int, int]:
     async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
@@ -71,22 +56,22 @@ async def register_user_voice_channel_join(guild_id: int, member_id: int) -> Non
         
         await base.commit()
 
-async def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_voice: int) -> int:
+async def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_voice: int) -> tuple[int, int]:
     time_now: int = int(time())
     async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
         voice_join_time: int = (await check_member_async(guild_id=guild_id, member_id=member_id))[5]
         if not voice_join_time:
-            return 0
+            return (0, 0)
 
         time_delta: int = time_now - voice_join_time
         if not time_delta:
-            return 0
+            return (0, voice_join_time)
 
         income_for_voice: int = time_delta * money_for_voice // 600
         await base.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
         await base.commit()
 
-    return income_for_voice
+    return (income_for_voice, voice_join_time)
 
 async def register_user_voice_channel_left_with_join_time(guild_id: int, member_id: int, money_for_voice: int, time_join: int) -> int:
     time_delta: int = int(time()) - time_join
@@ -97,7 +82,7 @@ async def register_user_voice_channel_left_with_join_time(guild_id: int, member_
     
     return income_for_voice
 
-def peek_role_free_number(cur: Cursor) -> int:
+def peek_role_free_number(cur: sqlite3.Cursor) -> int:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
     if req:
         role_numbers: list[int] = [r_n[0] for r_n in req]
@@ -111,7 +96,7 @@ def peek_role_free_number(cur: Cursor) -> int:
     else:
         return 1
 
-def peek_free_request_id(cur: Cursor) -> int:
+def peek_free_request_id(cur: sqlite3.Cursor) -> int:
     request_ids_list: list[tuple[int]] = cur.execute(
         "SELECT request_id FROM sale_requests ORDER BY request_id"
     ).fetchall()
@@ -123,7 +108,7 @@ def peek_free_request_id(cur: Cursor) -> int:
     else:
         return 1
 
-def peek_role_free_numbers(cur: Cursor, amount_of_numbers: int) -> list[int]:
+def peek_role_free_numbers(cur: sqlite3.Cursor, amount_of_numbers: int) -> list[int]:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store").fetchall()
     if req:
         role_numbers: set[int] = {r_n[0] for r_n in req}

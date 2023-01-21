@@ -1,4 +1,4 @@
-from sqlite3 import connect, Connection, Cursor
+from sqlite3 import connect
 from contextlib import closing
 from datetime import datetime
 from typing import Literal

@@ -351,11 +351,6 @@ class BasicComandsCog(Cog):
 
         await ctx.reply(embed=Embed(description=f"**`Processed {k} members`**"), mention_author=False)
 
-    @Cog.listener()
-    async def on_command_error(self, ctx: Context, error) -> None:
-        # officially bot doesn't support text commands anymore
-        return
-
 
 def setup(bot: StoreBot) -> None:
     bot.add_cog(BasicComandsCog(bot))
