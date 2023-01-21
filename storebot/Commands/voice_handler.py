@@ -139,7 +139,6 @@ class VoiceHandlerCog(Cog):
             ))
     
     async def process_joined_member(self, member_id: int, member: Member, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str) -> None:
-        # members_in_voice_now will be pointer to the same dict
         guild_id: int = guild.id
         async with self.bot.lock:
             self.bot.members_in_voice[guild_id][member_id] = member
