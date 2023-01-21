@@ -262,7 +262,7 @@ class EventsHandlerCog(Cog):
                         memb_roles: set[int] = {role.id for role in user.roles}
                         new_level_role_id: int = lvl_rls[new_level]
                         if new_level_role_id not in memb_roles:
-                            role: Role | None = user.guild.get_role(new_level_role_id)
+                            role: Role | None = guild.get_role(new_level_role_id)
                             if role:
                                 try: 
                                     await user.add_roles(role, reason=f"Member gained new level {new_level}")
@@ -271,7 +271,7 @@ class EventsHandlerCog(Cog):
                         levels: list[int] = sorted(lvl_rls.keys())
                         i: int = levels.index(new_level)
                         if i and (old_role_id := lvl_rls[levels[i-1]]) in memb_roles:                                
-                            role: Role | None = user.guild.get_role(old_role_id)
+                            role: Role | None = guild.get_role(old_role_id)
                             if role:
                                 try: 
                                     await user.remove_roles(role, reason=f"Member gained new level {new_level}")
