@@ -42,7 +42,32 @@ class VoiceHandlerCog(Cog):
 
         money_for_voice: int = db_commands.get_server_info_value(guild_id=guild_id, key_name="mn_for_voice")       
         member_id: int = member.id
-        if before_channel_is_voice:            
+
+        if before_channel_is_voice and after_channel_is_voice:
+            after_channel_id: int = after_channel.id
+            before_channel_id: int = before_channel.id
+            if after_channel_id == before_channel_id:
+                return
+            
+            await self.process_left_member(
+                member_id=member_id,
+                guild=guild,
+                money_for_voice=money_for_voice,
+                channel_id=before_channel_id,
+                channel_name=before_channel.name
+            )
+            await self.process_joined_member(
+                member_id=member_id,
+                member=member,
+                guild=guild,
+                money_for_voice=money_for_voice,
+                channel_id=after_channel_id,
+                channel_name=after_channel.name
+            )
+
+            return
+
+        if before_channel_is_voice:
             await self.process_left_member(
                 member_id=member_id,
                 guild=guild,
@@ -50,6 +75,8 @@ class VoiceHandlerCog(Cog):
                 channel_id=before_channel.id,
                 channel_name=before_channel.name
             )
+
+            return
 
         if after_channel_is_voice:
             await self.process_joined_member(
@@ -59,7 +86,9 @@ class VoiceHandlerCog(Cog):
                 money_for_voice=money_for_voice,
                 channel_id=after_channel.id,
                 channel_name=after_channel.name
-            ) 
+            )
+
+            return
 
     async def process_left_member(self, member_id: int, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str) -> None:
         guild_id: int = guild.id
