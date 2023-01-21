@@ -292,7 +292,7 @@ class EventsHandlerCog(Cog):
 
     @Cog.listener()
     async def on_command_error(self, ctx: Context, error) -> None:
-        guild_report: str = f"{guild.id}] [{guild.name}" if (guild := ctx.guild) else ""
+        guild_report: str = f"[{guild.id}] [{guild.name}" if (guild := ctx.guild) else ""
         await Logger.write_log_async("error.log", ctx.author.id, guild_report, str(error))
     
 def setup(bot: StoreBot) -> None:
