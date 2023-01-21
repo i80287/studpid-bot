@@ -199,28 +199,6 @@ class EventsHandlerCog(Cog):
     async def before_timer_backup(self) -> None:
         await self.bot.wait_until_ready()
 
-    @staticmethod
-    def check_user(base: Connection, cur: Cursor, memb_id: int, xp_b: int, mn_m: int, xp_m: int) -> int:
-        member: tuple[int] | None = cur.execute(
-            "SELECT xp FROM users WHERE memb_id = ?",
-            (memb_id,)
-        ).fetchone()
-        if member:
-            cur.execute("UPDATE users SET money = money + ?, xp = xp + ? WHERE memb_id = ?", (mn_m, xp_m, memb_id))
-            base.commit()
-            old_level: int = (member[0] - 1) // xp_b + 1
-            new_level: int = (member[0] + xp_m - 1) // xp_b + 1
-            if old_level == new_level:                
-                return 0
-            return new_level
-        else:
-            cur.execute(
-                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-                (memb_id, mn_m, "", 0, xp_m, 0)
-            )
-            base.commit()
-            return 1
-
     @Cog.listener()
     async def on_message(self, message: Message) -> None:
         user: User | Member = message.author
@@ -236,47 +214,41 @@ class EventsHandlerCog(Cog):
             elif message.channel.id in self.bot.ignored_text_channels[g_id]:
                 return
 
+        new_level: int = await db_commands.check_member_level_async(guild_id=g_id, member_id=user.id)
+        if not new_level:
+            return
+
         with closing(connect(f"{CWD_PATH}/bases/bases_{g_id}/{g_id}.db")) as base:
-            with closing(base.cursor()) as cur:                    
-                xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border';").fetchone()[0]
-                xp_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';").fetchone()[0]
-                mn_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]
-                new_level: int = self.check_user(base=base, cur=cur, memb_id=user.id, xp_b=xp_b, mn_m=mn_p_m, xp_m=xp_p_m)
-                if new_level:
-                    channel_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
-                    if channel_id:
-                        channel: GuildChannel | None = guild.get_channel(channel_id)
-                        if channel and isinstance(channel, TextChannel):
-                            lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
-                            emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(user.mention, new_level))
-                            await channel.send(embed=emb)
+            with closing(base.cursor()) as cur:
+                channel_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
+                if channel_id and isinstance(channel := guild.get_channel(channel_id), TextChannel):
+                    lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
+                    emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(user.mention, new_level))
+                    await channel.send(embed=emb)
 
-                    db_lvl_rls: list[tuple[int, int]] | list = \
-                        cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level").fetchall()
-                    if not db_lvl_rls:
-                        return
+                db_lvl_rls: list[tuple[int, int]] | list = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level").fetchall()
+                
+        if not db_lvl_rls:
+            return
 
-                    lvl_rls: dict[int, int] = {k: v for k, v in db_lvl_rls}  
-                    del db_lvl_rls              
-                    if new_level in lvl_rls:
-                        memb_roles: set[int] = {role.id for role in user.roles}
-                        new_level_role_id: int = lvl_rls[new_level]
-                        if new_level_role_id not in memb_roles:
-                            role: Role | None = guild.get_role(new_level_role_id)
-                            if role:
-                                try: 
-                                    await user.add_roles(role, reason=f"Member gained new level {new_level}")
-                                except: 
-                                    pass
-                        levels: list[int] = sorted(lvl_rls.keys())
-                        i: int = levels.index(new_level)
-                        if i and (old_role_id := lvl_rls[levels[i-1]]) in memb_roles:                                
-                            role: Role | None = guild.get_role(old_role_id)
-                            if role:
-                                try: 
-                                    await user.remove_roles(role, reason=f"Member gained new level {new_level}")
-                                except: 
-                                    pass
+        lvl_rls: dict[int, int] = {k: v for k, v in db_lvl_rls}
+        del db_lvl_rls
+        if new_level in lvl_rls:
+            guild_roles: dict[int, Role] = guild._roles
+            memb_roles: set[int] = {role_id for role_id in user._roles if role_id in guild_roles}
+            new_level_role_id: int = lvl_rls[new_level]
+            if new_level_role_id not in memb_roles and (role := guild_roles.get(new_level_role_id)):
+                try: 
+                    await user.add_roles(role, reason=f"Member gained new level {new_level}")
+                except: 
+                    pass
+            levels: list[int] = sorted(lvl_rls.keys())
+            new_level_index: int = levels.index(new_level)
+            if new_level_index and ((old_role_id := lvl_rls[levels[new_level_index-1]]) in memb_roles) and (role := guild_roles.get(old_role_id)):
+                try: 
+                    await user.remove_roles(role, reason=f"Member gained new level {new_level}")
+                except: 
+                    pass
 
     @Cog.listener()
     async def on_application_command_error(self, interaction: Interaction, exception) -> None:

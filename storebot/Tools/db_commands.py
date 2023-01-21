@@ -38,6 +38,29 @@ async def check_member_async(guild_id: int, member_id: int) -> tuple[int, int, s
 
             return (member_id, 0, "", 0, 0, 0)
 
+async def check_member_level_async(guild_id: int, member_id: int) -> int:
+    async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+        xp_b: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_border';")).fetchone())[0] # type: ignore
+        mn_p_m: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';")).fetchone())[0] # type: ignore
+        xp_p_m: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';")).fetchone())[0] # type: ignore 
+        member_row: aiosqlite.Row | None = await (await base.execute("SELECT xp FROM users WHERE memb_id = ?", (member_id,))).fetchone() # type: ignore
+        
+        if member_row:
+            await base.execute("UPDATE users SET money = money + ?, xp = xp + ? WHERE memb_id = ?", (mn_p_m, xp_p_m, member_id))
+            await base.commit()
+            old_level: int = (member_row[0] - 1) // xp_b + 1
+            new_level: int = (member_row[0] + xp_p_m - 1) // xp_b + 1
+            if old_level == new_level:                
+                return 0
+            return new_level
+        else:
+            await base.execute(
+                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
+                (member_id, mn_p_m, "", 0, xp_p_m, 0)
+            )
+            await base.commit()
+            return 1
+
 async def register_user_voice_channel_join(guild_id: int, member_id: int) -> None:
     time_now: int = int(time())
     async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
