@@ -86,19 +86,18 @@ async def register_user_voice_channel_left(guild_id: int, member_id: int, money_
         if not voice_join_time:
             return (0, 0)
 
-        time_delta: int = time_now - voice_join_time
-        if not time_delta:
+        time_in_voice: int = time_now - voice_join_time
+        if not time_in_voice:
             return (0, voice_join_time)
 
-        income_for_voice: int = time_delta * money_for_voice // 600
+        income_for_voice: int = time_in_voice * money_for_voice // 600
         await base.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
         await base.commit()
 
     return (income_for_voice, voice_join_time)
 
 async def register_user_voice_channel_left_with_join_time(guild_id: int, member_id: int, money_for_voice: int, time_join: int) -> int:
-    time_delta: int = int(time()) - time_join
-    income_for_voice: int = time_delta * money_for_voice // 600
+    income_for_voice: int = (int(time()) - time_join) * money_for_voice // 600
     async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
         await base.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
         await base.commit()
