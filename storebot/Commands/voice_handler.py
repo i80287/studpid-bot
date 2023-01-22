@@ -36,8 +36,6 @@ class VoiceHandlerCog(Cog):
         
         await self.voice_queue.put((member, before, after))
     
-    
-
     @tasks.loop()
     async def voice_processor(self) -> NoReturn:
         while True:
