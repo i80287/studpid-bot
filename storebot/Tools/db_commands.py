@@ -1,7 +1,5 @@
-import aiosqlite
-import sqlite3
-from time import time
-from sqlite3 import connect
+from sqlite3 import connect, Cursor, Row
+from aiosqlite import connect as connect_async
 from contextlib import closing
 
 from Variables.vars import CWD_PATH
@@ -18,15 +16,20 @@ def get_server_info_value(guild_id: int, key_name: str) -> int:
         with closing(base.cursor()) as cur:
             return cur.execute("SELECT value FROM server_info WHERE settings = '" + key_name + "';").fetchone()[0]
 
-def get_server_currency(guild_id: int) -> str:
-    with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
-        with closing(base.cursor()) as cur:
-            return cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency';").fetchone()[0]
+async def get_server_info_value_async(guild_id: int, key_name: str) -> int:
+    async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+        async with base.execute("SELECT value FROM server_info WHERE settings = '" + key_name + "';") as cur:
+            return (await cur.fetchone())[0] # type: ignore
+
+async def get_server_currency_async(guild_id: int) -> str:
+    async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+        async with base.execute("SELECT str_value FROM server_info WHERE settings = 'currency';") as cur:
+            return (await cur.fetchone())[0] # type: ignore
 
 async def check_member_async(guild_id: int, member_id: int) -> tuple[int, int, str, int, int, int]:
-    async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
         async with base.execute("SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = ?", (member_id,)) as cur:
-            result: aiosqlite.Row | None = await cur.fetchone()
+            result: Row | None = await cur.fetchone()
             if result is not None:
                 return tuple(result)
 
@@ -39,11 +42,11 @@ async def check_member_async(guild_id: int, member_id: int) -> tuple[int, int, s
             return (member_id, 0, "", 0, 0, 0)
 
 async def check_member_level_async(guild_id: int, member_id: int) -> int:
-    async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
         xp_b: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_border';")).fetchone())[0] # type: ignore
         mn_p_m: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';")).fetchone())[0] # type: ignore
         xp_p_m: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';")).fetchone())[0] # type: ignore 
-        member_row: aiosqlite.Row | None = await (await base.execute("SELECT xp FROM users WHERE memb_id = ?", (member_id,))).fetchone() # type: ignore
+        member_row: Row | None = await (await base.execute("SELECT xp FROM users WHERE memb_id = ?", (member_id,))).fetchone() # type: ignore
         
         if member_row:
             await base.execute("UPDATE users SET money = money + ?, xp = xp + ? WHERE memb_id = ?", (mn_p_m, xp_p_m, member_id))
@@ -61,64 +64,58 @@ async def check_member_level_async(guild_id: int, member_id: int) -> int:
             await base.commit()
             return 1
 
-async def register_user_voice_channel_join(guild_id: int, member_id: int) -> None:
-    time_now: int = int(time())
-    async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+async def register_user_voice_channel_join(guild_id: int, member_id: int, time_join: int) -> None:
+    async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
         async with base.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)) as cur:
-            result: aiosqlite.Row | None = await cur.fetchone()
+            result: Row | None = await cur.fetchone()
             if not result:
                 await base.execute(
                     "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-                    (member_id, 0, "", 0, 0, time_now)
+                    (member_id, 0, "", 0, 0, time_join)
                 )
             else:
                 await base.execute(
                     "UPDATE users SET voice_join_time = ? WHERE memb_id = ?",
-                    (time_now, member_id)
+                    (time_join, member_id)
                 )
         
         await base.commit()
 
-async def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_voice: int) -> tuple[int, int]:
-    time_now: int = int(time())
-    async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+async def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_voice: int, time_left: int) -> tuple[int, int]:
+    async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
         voice_join_time: int = (await check_member_async(guild_id=guild_id, member_id=member_id))[5]
         if not voice_join_time:
             return (0, 0)
 
-        time_in_voice: int = time_now - voice_join_time
-        if not time_in_voice:
-            return (0, voice_join_time)
-
-        income_for_voice: int = time_in_voice * money_for_voice // 600
+        income_for_voice: int = (time_left - voice_join_time) * money_for_voice // 600
         await base.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
         await base.commit()
 
     return (income_for_voice, voice_join_time)
 
-async def register_user_voice_channel_left_with_join_time(guild_id: int, member_id: int, money_for_voice: int, time_join: int) -> int:
-    income_for_voice: int = (int(time()) - time_join) * money_for_voice // 600
-    async with aiosqlite.connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+async def register_user_voice_channel_left_with_join_time(guild_id: int, member_id: int, money_for_voice: int, time_join: int, time_left: int) -> int:
+    async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+        income_for_voice: int = (time_left - time_join) * money_for_voice // 600
         await base.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
         await base.commit()
     
     return income_for_voice
 
-def peek_role_free_number(cur: sqlite3.Cursor) -> int:
+def peek_role_free_number(cur: Cursor) -> int:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
     if req:
         role_numbers: list[int] = [r_n[0] for r_n in req]
         del req
         if role_numbers[0] != 1:
             return 1
-        for role_number_cur, role_number_next in zip(role_numbers, role_numbers[1:]):
-            if role_number_next - role_number_cur != 1:
-                return role_number_cur + 1
+        for current_role_number, next_role_number in zip(role_numbers, role_numbers[1:]):
+            if current_role_number + 1 != next_role_number:
+                return current_role_number + 1
         return len(role_numbers) + 1
     else:
         return 1
 
-def peek_free_request_id(cur: sqlite3.Cursor) -> int:
+def peek_free_request_id(cur: Cursor) -> int:
     request_ids_list: list[tuple[int]] = cur.execute(
         "SELECT request_id FROM sale_requests ORDER BY request_id"
     ).fetchall()
@@ -130,7 +127,7 @@ def peek_free_request_id(cur: sqlite3.Cursor) -> int:
     else:
         return 1
 
-def peek_role_free_numbers(cur: sqlite3.Cursor, amount_of_numbers: int) -> list[int]:
+def peek_role_free_numbers(cur: Cursor, amount_of_numbers: int) -> list[int]:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store").fetchall()
     if req:
         role_numbers: set[int] = {r_n[0] for r_n in req}
