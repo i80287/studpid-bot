@@ -1,4 +1,4 @@
-from sqlite3 import connect, Connection, Cursor
+from sqlite3 import connect
 from datetime import datetime, timedelta
 from contextlib import closing
 from os import path, mkdir
@@ -11,7 +11,6 @@ from nextcord import Game, Message, User, Embed, \
 from nextcord.errors import ApplicationCheckFailure
 from nextcord.ext.commands import Cog, Context
 from nextcord.ext import tasks
-from nextcord.abc import GuildChannel
 
 from storebot import StoreBot
 from Tools import db_commands
