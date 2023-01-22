@@ -1565,16 +1565,14 @@ class SlashCommandsCog(Cog):
             await interaction.edit_original_message(embed=emb, view=bet_view)
         except:
             pass
-        if chnl_id:
-            guild_log_channel: GuildChannel | None = interaction.guild.get_channel(chnl_id)
-            if isinstance(guild_log_channel, TextChannel):
-                try:
-                    await guild_log_channel.send(embed=Embed(
-                        title=text_slash[server_lng][37],
-                        description=text_slash[server_lng][38].format(winner_id, amount, currency, loser_id)
-                    ))
-                except:
-                    return
+        if chnl_id and isinstance(guild_log_channel := interaction.guild.get_channel(chnl_id), TextChannel):
+            try:
+                await guild_log_channel.send(embed=Embed(
+                    title=text_slash[server_lng][37],
+                    description=text_slash[server_lng][38].format(winner_id, amount, currency, loser_id)
+                ))
+            except:
+                return
 
     async def transfer(self, interaction: Interaction, value: int, target: Member) -> None:
         memb_id: int = interaction.user.id
@@ -1609,16 +1607,14 @@ class SlashCommandsCog(Cog):
             colour=Colour.green()
         )
         await interaction.response.send_message(embed=emb)
-        if chnl_id:
-            guild_log_channel: GuildChannel | None = interaction.guild.get_channel(chnl_id)
-            if isinstance(guild_log_channel, TextChannel):
-                try:
-                    await guild_log_channel.send(embed=Embed(
-                        title=text_slash[server_lng][42],
-                        description=text_slash[server_lng][43].format(f"<@{memb_id}>", value, currency, f"<@{t_id}>")
-                    ))
-                except:
-                    return
+        if chnl_id and isinstance(guild_log_channel := interaction.guild.get_channel(chnl_id), TextChannel):
+            try:
+                await guild_log_channel.send(embed=Embed(
+                    title=text_slash[server_lng][42],
+                    description=text_slash[server_lng][43].format(f"<@{memb_id}>", value, currency, f"<@{t_id}>")
+                ))
+            except:
+                return
 
     async def leaders(self, interaction: Interaction) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
