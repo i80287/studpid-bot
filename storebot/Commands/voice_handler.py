@@ -26,7 +26,7 @@ class VoiceHandlerCog(Cog):
 
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
-        self.voice_queue: asyncio.Queue[tuple[Member, VoiceState, VoiceState]] = asyncio.Queue()
+        self.voice_queue: asyncio.Queue[tuple[Member, VoiceState, VoiceState, int]] = asyncio.Queue()
         self.voice_processor.start()
 
     @Cog.listener()
@@ -34,12 +34,13 @@ class VoiceHandlerCog(Cog):
         if member.bot:
             return
         
-        await self.voice_queue.put((member, before, after))
+        await self.voice_queue.put((member, before, after, int(time())))
     
     @tasks.loop()
     async def voice_processor(self) -> NoReturn:
+        await Logger.write_one_log_async(filename="common_logs.log", report="[voice processor started]")
         while True:
-            member, before, after = await self.voice_queue.get()
+            member, before, after, timestamp = await self.voice_queue.get()
 
             guild: Guild = member.guild
             guild_id: int = guild.id
@@ -69,7 +70,8 @@ class VoiceHandlerCog(Cog):
                     guild=guild,
                     money_for_voice=money_for_voice,
                     channel_id=before_channel_id,
-                    channel_name=before_channel.name
+                    channel_name=before_channel.name,
+                    voice_left_time=timestamp
                 )
                 await self.process_joined_member(
                     member_id=member_id,
@@ -77,7 +79,8 @@ class VoiceHandlerCog(Cog):
                     guild=guild,
                     money_for_voice=money_for_voice,
                     channel_id=after_channel_id,
-                    channel_name=after_channel.name
+                    channel_name=after_channel.name,
+                    voice_join_time=timestamp
                 )
 
                 continue
@@ -88,7 +91,8 @@ class VoiceHandlerCog(Cog):
                     guild=guild,
                     money_for_voice=money_for_voice,
                     channel_id=before_channel.id,
-                    channel_name=before_channel.name
+                    channel_name=before_channel.name,
+                    voice_left_time=timestamp
                 )
 
                 continue
@@ -100,7 +104,8 @@ class VoiceHandlerCog(Cog):
                     guild=guild,
                     money_for_voice=money_for_voice,
                     channel_id=after_channel.id,
-                    channel_name=after_channel.name
+                    channel_name=after_channel.name,
+                    voice_join_time=timestamp
                 )
 
                 continue
@@ -109,83 +114,95 @@ class VoiceHandlerCog(Cog):
     async def before_voice_processor(self) -> None:
         await self.bot.wait_until_ready()
 
-    async def process_left_member(self, member_id: int, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str) -> None:
+    async def process_left_member(self, member_id: int, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str, voice_left_time: int) -> None:
         guild_id: int = guild.id
+        async with self.bot.lock:
+            if member_id in self.bot.members_in_voice[guild_id]:
+                member_name: str = self.bot.members_in_voice[guild_id].pop(member_id).name
+                voice_join_time: int = 0
+                was_in_dict: bool = True
+            else:
+                # If member joined voice channel before the bot startup.
+                member_name: str = "not in dict;"
+                voice_join_time: int = self.bot.startup_time
+                was_in_dict: bool = False
+
+            if channel_id in self.bot.ignored_voice_channels[guild_id]:
+                await Logger.write_guild_log_async(
+                    filename="voice_logs.log",
+                    guild_id=guild_id,
+                    report=f"[member {member_id}:{member_name} left ignored channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}] [money_for_voice: {money_for_voice}] [join time: {voice_join_time}] [left time: {voice_left_time}]"
+                )
+                money_for_voice = 0
+        
+        if was_in_dict:
+            income, voice_join_time = await db_commands.register_user_voice_channel_left(
+                guild_id=guild_id,
+                member_id=member_id,
+                money_for_voice=money_for_voice,
+                time_left=voice_left_time
+            )
+        else:
+            income: int = await db_commands.register_user_voice_channel_left_with_join_time(
+                guild_id=guild_id,
+                member_id=member_id,
+                money_for_voice=money_for_voice,
+                time_join=voice_join_time,
+                time_left=voice_left_time
+            )
+
+        if not money_for_voice:
+            return
+        
+        await Logger.write_guild_log_async(
+            filename="voice_logs.log",
+            guild_id=guild_id,
+            report=f"[member {member_id}:{member_name} left channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}] [income: {income}] [join time: {voice_join_time}] [left time: {voice_left_time}] [money_for_voice: {money_for_voice}]"
+        )
+
+        log_channel_id: int = await db_commands.get_server_info_value_async(guild_id=guild_id, key_name="log_c") 
+        if log_channel_id and isinstance(log_channel := guild.get_channel(log_channel_id), TextChannel):
+            server_lng: int = await db_commands.get_server_info_value_async(guild_id=guild_id, key_name="lang")
+            currency: str = await db_commands.get_server_currency_async(guild_id=guild_id)
+            await log_channel.send(embed=Embed(
+                description=self.voice_handler_text[server_lng][1].format(member_id, channel_id, income, currency)
+            ))
+    
+    async def process_joined_member(self, member_id: int, member: Member, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str, voice_join_time: int) -> None:
+        guild_id: int = guild.id
+        async with self.bot.lock:
+            self.bot.members_in_voice[guild_id][member_id] = member
+
+        await db_commands.register_user_voice_channel_join(
+            guild_id=guild_id,
+            member_id=member_id,
+            time_join=voice_join_time
+        )
 
         async with self.bot.lock:
             if channel_id in self.bot.ignored_voice_channels[guild_id]:
                 await Logger.write_guild_log_async(
                     filename="voice_logs.log",
                     guild_id=guild_id,
-                    report=f"[member {member_id} left ignored channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}] [money_for_voice: {money_for_voice}]"
+                    report=f"[member {member_id}:{member.name}] [joined ignored channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}; money_for_voice: {money_for_voice}] [join time: {voice_join_time}]"
                 )
                 return
 
-            if member_id not in self.bot.members_in_voice[guild_id]:
-                # If member joined voice channel before the bot startup.
-                voice_join_time: int = self.bot.startup_time
-                income: int = await db_commands.register_user_voice_channel_left_with_join_time(
-                    guild_id=guild_id,
-                    member_id=member_id,
-                    money_for_voice=money_for_voice,
-                    time_join=voice_join_time
-                )
-                member_name: str = "not in dict;"
-            else:
-                member: Member = self.bot.members_in_voice[guild_id].pop(member_id)
-                member_name: str = member.name
-                income, voice_join_time = await db_commands.register_user_voice_channel_left(
-                    guild_id=guild_id,
-                    member_id=member_id,
-                    money_for_voice=money_for_voice
-                )
-            
         await Logger.write_guild_log_async(
             filename="voice_logs.log",
             guild_id=guild_id,
-            report=f"[member {member_id}:{member_name} left channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}] [income: {income}] [time_now: {int(time())}] [join time: {voice_join_time}] [money_for_voice: {money_for_voice}]"
-        )
-
-        if not money_for_voice:
-            return
-        
-        log_channel_id: int = db_commands.get_server_info_value(guild_id=guild_id, key_name="log_c")
-        if log_channel_id and isinstance(log_channel := guild.get_channel(log_channel_id), TextChannel):
-            server_lng: int = db_commands.get_server_info_value(guild_id=guild_id, key_name="lang")
-            currency: str = db_commands.get_server_currency(guild_id=guild_id)
-            await log_channel.send(embed=Embed(
-                description=self.voice_handler_text[server_lng][1].format(member_id, channel_id, income, currency)
-            ))
-    
-    async def process_joined_member(self, member_id: int, member: Member, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str) -> None:
-        guild_id: int = guild.id
-        async with self.bot.lock:
-            self.bot.members_in_voice[guild_id][member_id] = member
-        
-        await Logger.write_guild_log_async(
-            filename="voice_logs.log",
-            guild_id=guild_id,
-            report=f"[member {member_id}:{member.name}] [joined channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}; money_for_voice: {money_for_voice}]"
-        )
-
-        if channel_id in self.bot.ignored_voice_channels[guild_id]:
-            return
-
-        await db_commands.register_user_voice_channel_join(
-            guild_id=guild_id,
-            member_id=member_id
+            report=f"[member {member_id}:{member.name}] [joined channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}; money_for_voice: {money_for_voice}] [join time: {voice_join_time}]"
         )
 
         if not money_for_voice:
             return
 
-        log_channel_id: int = db_commands.get_server_info_value(guild_id=guild_id, key_name="log_c") 
+        log_channel_id: int = await db_commands.get_server_info_value_async(guild_id=guild_id, key_name="log_c") 
         if log_channel_id and (log_channel := guild.get_channel(log_channel_id)) and isinstance(log_channel, TextChannel):
-            server_lng: int = db_commands.get_server_info_value(guild_id=guild_id, key_name="lang")
+            server_lng: int = await db_commands.get_server_info_value_async(guild_id=guild_id, key_name="lang")
             await log_channel.send(embed=Embed(
                 description=self.voice_handler_text[server_lng][0].format(member_id, channel_id)
             ))
-
 
     async def process_member_on_bot_shutdown(self, guild: Guild, member_id: int, member: Member) -> None:
         if not member.voice:
@@ -194,19 +211,28 @@ class VoiceHandlerCog(Cog):
         current_channel: VoiceChannel | StageChannel | None = member.voice.channel
         if not isinstance(current_channel, VoiceChannel):
             return
-        
+
+        channel_id: int = current_channel.id
         guild_id: int = guild.id
-        money_for_voice: int = db_commands.get_server_info_value(guild_id=guild_id, key_name="mn_for_voice")    
+        
+        # self.bot.lock is already locked.
+        if channel_id not in self.bot.ignored_voice_channels[guild_id]:
+            money_for_voice: int = await db_commands.get_server_info_value_async(guild_id=guild_id, key_name="mn_for_voice")
+        else:
+            money_for_voice = 0
+        
+        voice_left_time: int = int(time())
         income, voice_join_time = await db_commands.register_user_voice_channel_left(
             guild_id=guild_id,
             member_id=member_id,
-            money_for_voice=money_for_voice
+            money_for_voice=money_for_voice,
+            time_left=voice_left_time
         )
 
         await Logger.write_guild_log_async(
             filename="voice_logs.log",
             guild_id=guild_id,
-            report=f"[member {member_id}:{member.name} processed as left from channel {current_channel.id}:{current_channel.name}] [guild: {guild_id}:{guild.name}] [income: {income}] [time_now: {int(time())}] [join time: {voice_join_time}] [money_for_voice: {money_for_voice}]"
+            report=f"[member {member_id}:{member.name} processed as left from channel {channel_id}:{current_channel.name}] [guild: {guild_id}:{guild.name}] [income: {income}] [join time: {voice_join_time}] [left time: {voice_left_time}] [money_for_voice: {money_for_voice}]"
         )
 
 

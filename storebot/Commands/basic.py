@@ -295,7 +295,7 @@ class BasicComandsCog(Cog):
     @is_owner()
     async def _reload(self, ctx: Context, extension) -> None:
         if path.exists(f"{CWD_PATH}/Commands/{extension}.py"):
-            await ctx.reply(embed=Embed(description="Started reloading"), mention_author=False, delete_after=5)
+            await ctx.reply(embed=Embed(description="**`Started reloading`**"), mention_author=False, delete_after=5)
             self.bot.unload_extension(f"Commands.{extension}")
             self.bot.load_extension(f"Commands.{extension}")
             await sleep(1)
@@ -320,7 +320,7 @@ class BasicComandsCog(Cog):
     @command(name="update_status")
     @is_owner()
     async def update_status(self, ctx: Context, *text) -> None:
-        if text == "default":
+        if not text or text[0] == "default":
             await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"), status=Status.online)
         else:
             await self.bot.change_presence(activity=Game(' '.join(text)), status=Status.dnd)
@@ -348,6 +348,7 @@ class BasicComandsCog(Cog):
                         member=member
                     )
                     k += 1
+                self.bot.members_in_voice[guild_id] = {}
 
         await ctx.reply(embed=Embed(description=f"**`Processed {k} members`**"), mention_author=False)
 
