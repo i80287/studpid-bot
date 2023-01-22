@@ -259,7 +259,7 @@ class BasicComandsCog(Cog):
         mdl: FeedbackModal = FeedbackModal(bot=self.bot, lng=lng, auth_id=interaction.user.id)
         await interaction.response.send_modal(modal=mdl)
 
-    @command(aliases=("sunload_access_level_two", "s_a_l_2"))
+    @command(aliases=["sunload_access_level_two", "s_a_l_2"])
     @is_owner()
     async def _salt(self, ctx: Context, chnl: TextChannel) -> None:
         self.bot.bot_feedback_channel = chnl.id
@@ -312,8 +312,8 @@ class BasicComandsCog(Cog):
         async with self.bot.lock:
             description: list[str] = \
                 ["```guild - id - member_count```"] + \
-                [f"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}" for guild in self.bot.guilds] + \
-                [f"\n**`Total guilds: {len(self.bot.guilds)}`**", f"\n**`Currently active polls: {self.bot.current_polls}`**"]
+                [fr"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}" for guild in self.bot.guilds.copy()] + \
+                [f"\n**`Total guilds: {len(self.bot.guilds)}`**", f"\n**`Currently active polls: {len(self.bot.current_polls)}`**"]
         emb: Embed = Embed(description='\n'.join(description))
         await ctx.reply(embed=emb, mention_author=False, delete_after=15)
 
