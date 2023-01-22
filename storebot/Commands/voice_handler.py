@@ -1,7 +1,10 @@
+import asyncio
+from typing import NoReturn
 from time import time
 
 from nextcord import VoiceState, VoiceChannel, \
     StageChannel, TextChannel, Member, Guild, Embed
+from nextcord.ext import tasks
 from nextcord.ext.commands import Cog
 
 from storebot import StoreBot
@@ -23,72 +26,90 @@ class VoiceHandlerCog(Cog):
 
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
+        self.voice_queue: asyncio.Queue[tuple[Member, VoiceState, VoiceState]] = asyncio.Queue()
+        self.voice_processor.start()
 
     @Cog.listener()
     async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState) -> None:
-        guild: Guild = member.guild
-        guild_id: int = guild.id
-        async with self.bot.lock:
-            if guild_id not in self.bot.ignored_voice_channels:
-                self.bot.ignored_voice_channels[guild_id] = set()
-
-        before_channel: VoiceChannel | StageChannel | None = before.channel
-        after_channel:  VoiceChannel | StageChannel | None = after.channel
-        before_channel_is_voice: bool = isinstance(before_channel, VoiceChannel)
-        after_channel_is_voice: bool = isinstance(after_channel, VoiceChannel)
-
-        if not (before_channel_is_voice or after_channel_is_voice):
+        if member.bot:
             return
+        
+        await self.voice_queue.put((member, before, after))
+    
+    
 
-        money_for_voice: int = db_commands.get_server_info_value(guild_id=guild_id, key_name="mn_for_voice")       
-        member_id: int = member.id
+    @tasks.loop()
+    async def voice_processor(self) -> NoReturn:
+        while True:
+            member, before, after = await self.voice_queue.get()
 
-        if before_channel_is_voice and after_channel_is_voice:
-            after_channel_id: int = after_channel.id
-            before_channel_id: int = before_channel.id
-            if after_channel_id == before_channel_id:
-                return
-            
-            await self.process_left_member(
-                member_id=member_id,
-                guild=guild,
-                money_for_voice=money_for_voice,
-                channel_id=before_channel_id,
-                channel_name=before_channel.name
-            )
-            await self.process_joined_member(
-                member_id=member_id,
-                member=member,
-                guild=guild,
-                money_for_voice=money_for_voice,
-                channel_id=after_channel_id,
-                channel_name=after_channel.name
-            )
+            guild: Guild = member.guild
+            guild_id: int = guild.id
+            async with self.bot.lock:
+                if guild_id not in self.bot.ignored_voice_channels:
+                    self.bot.ignored_voice_channels[guild_id] = set()
 
-            return
+            before_channel: VoiceChannel | StageChannel | None = before.channel
+            after_channel:  VoiceChannel | StageChannel | None = after.channel
+            before_channel_is_voice: bool = isinstance(before_channel, VoiceChannel)
+            after_channel_is_voice: bool = isinstance(after_channel, VoiceChannel)
 
-        if before_channel_is_voice:
-            await self.process_left_member(
-                member_id=member_id,
-                guild=guild,
-                money_for_voice=money_for_voice,
-                channel_id=before_channel.id,
-                channel_name=before_channel.name
-            )
+            if not (before_channel_is_voice or after_channel_is_voice):
+                continue
 
-            return
+            money_for_voice: int = db_commands.get_server_info_value(guild_id=guild_id, key_name="mn_for_voice")       
+            member_id: int = member.id
 
-        if after_channel_is_voice:
-            await self.process_joined_member(
-                member_id=member_id,
-                member=member,
-                guild=guild,
-                money_for_voice=money_for_voice,
-                channel_id=after_channel.id,
-                channel_name=after_channel.name
-            )
+            if before_channel_is_voice and after_channel_is_voice:
+                after_channel_id: int = after_channel.id
+                before_channel_id: int = before_channel.id
+                if after_channel_id == before_channel_id:
+                    continue
+                
+                await self.process_left_member(
+                    member_id=member_id,
+                    guild=guild,
+                    money_for_voice=money_for_voice,
+                    channel_id=before_channel_id,
+                    channel_name=before_channel.name
+                )
+                await self.process_joined_member(
+                    member_id=member_id,
+                    member=member,
+                    guild=guild,
+                    money_for_voice=money_for_voice,
+                    channel_id=after_channel_id,
+                    channel_name=after_channel.name
+                )
 
-            return
+                continue
+
+            if before_channel_is_voice:
+                await self.process_left_member(
+                    member_id=member_id,
+                    guild=guild,
+                    money_for_voice=money_for_voice,
+                    channel_id=before_channel.id,
+                    channel_name=before_channel.name
+                )
+
+                continue
+
+            if after_channel_is_voice:
+                await self.process_joined_member(
+                    member_id=member_id,
+                    member=member,
+                    guild=guild,
+                    money_for_voice=money_for_voice,
+                    channel_id=after_channel.id,
+                    channel_name=after_channel.name
+                )
+
+                continue
+
+    @voice_processor.before_loop
+    async def before_voice_processor(self) -> None:
+        await self.bot.wait_until_ready()
 
     async def process_left_member(self, member_id: int, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str) -> None:
         guild_id: int = guild.id
