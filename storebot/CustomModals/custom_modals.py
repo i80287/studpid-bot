@@ -1,13 +1,32 @@
-from sqlite3 import connect, Connection, Cursor
+from sqlite3 import (
+    connect,
+    Connection,
+    Cursor
+)
+from typing import (
+    List,
+    Generator
+)
 from contextlib import closing
 from random import randint
 from typing import Literal
 from time import time
 
-from nextcord import Embed, Message, Interaction, TextInputStyle
-from nextcord.ui import TextInput, Modal
+from nextcord import (
+    Embed,
+    Message,
+    Interaction,
+    TextInputStyle
+)
+from nextcord.ui import (
+    TextInput,
+    Modal
+)
 
-from Tools.db_commands import peek_role_free_number, peek_role_free_numbers
+from Tools.db_commands import (
+    peek_role_free_number,
+    peek_role_free_numbers
+)
 from Variables.vars import CWD_PATH
 
 r_types: dict[int, dict[int, str]] = {
@@ -183,7 +202,7 @@ class RoleAddModal(ManageRoleModalBase):
         
         salary_and_cooldown: str | None = self.salary_text_input.value
         if salary_and_cooldown:
-            s_ans: list[str] = salary_and_cooldown.split()
+            s_ans: List[str] = salary_and_cooldown.split()
             if len(s_ans) != 2:
                 errors_bit_mask |= 0b000010
             else:
@@ -219,7 +238,7 @@ class RoleAddModal(ManageRoleModalBase):
  
         errors_bit_mask: int = self.verify_user_input()
         if errors_bit_mask:
-            report: list[str] = []
+            report: List[str] = []
             if errors_bit_mask & 0b000001:
                 report.append(self.manage_role_modals_text[lng][18])
             if errors_bit_mask & 0b000010:
@@ -261,8 +280,9 @@ class RoleAddModal(ManageRoleModalBase):
                     base.commit()
 
         emb: Embed = self.m.embeds[0]
-        dsc: list[str] = emb.description.split("\n")
-        rls: list[str] = dsc[1:-2]
+        assert emb.description is not None
+        dsc: List[str] = emb.description.split("\n")
+        rls: List[str] = dsc[1:-2]
         dsc = [self.partial_ec_text[lng][18]]
         dsc.extend(r for r in rls)
         dsc.append(f"<@&{role_id}> - **`{role_id}`** - **`{price}`** - **`{salary}`** - **`{salary_cooldown // 3600}`** - **`{r_types[lng][role_type]}`** - **`0`** - **`{additional_salary}`**\n")
@@ -372,7 +392,7 @@ class RoleEditModal(ManageRoleModalBase):
         
         salary_and_cooldown: str | None = self.salary_text_input.value
         if salary_and_cooldown:
-            s_ans: list[str] = salary_and_cooldown.split()
+            s_ans: List[str] = salary_and_cooldown.split()
             if len(s_ans) != 2:
                 errors_bit_mask |= 0b0000010
             else:
@@ -413,7 +433,7 @@ class RoleEditModal(ManageRoleModalBase):
         lng: int = 1 if "ru" in str(interaction.locale) else 0
         errors_bit_mask: int = self.check_ans()
         if errors_bit_mask:
-            report: list[str] = []
+            report: List[str] = []
             if errors_bit_mask & 0b0000001:
                 report.append(self.manage_role_modals_text[lng][18])
             if errors_bit_mask & 0b0000010:
@@ -455,7 +475,8 @@ class RoleEditModal(ManageRoleModalBase):
         
         amount_in_store: str = str(l) if r_type != 3 or not l else "∞"
         emb: Embed = self.m.embeds[0]
-        dsc: list[str] = emb.description.split('\n')
+        assert emb.description is not None
+        dsc: List[str] = emb.description.split('\n')
         str_role_id: str = str(r)
         for i in range(1, len(dsc)-1):
             if str_role_id in dsc[i]:
@@ -497,8 +518,8 @@ class RoleEditModal(ManageRoleModalBase):
             cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                         (free_number, r, l, price, t, salary, salary_c, 2))
         elif r_type == 1:
-            free_numbers: list[int] = peek_role_free_numbers(cur, l)
-            inserting_roles = ((free_number, r, 1, price, t, salary, salary_c, 1) for free_number in free_numbers)
+            free_numbers: List[int] = peek_role_free_numbers(cur, l)
+            inserting_roles: Generator[tuple[int, int, Literal[1], int, int, int, int, Literal[1]], None, None] = ((free_number, r, 1, price, t, salary, salary_c, 1) for free_number in free_numbers)
             cur.executemany(
                 "INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                 inserting_roles
@@ -524,14 +545,14 @@ class RoleEditModal(ManageRoleModalBase):
         elif r_type == 1:
             roles_amount_change: int = l - l_prev
             if roles_amount_change > 0:
-                free_numbers: list[int] = peek_role_free_numbers(cur, roles_amount_change)
+                free_numbers: List[int] = peek_role_free_numbers(cur, roles_amount_change)
                 inserting_roles = ((free_number, r, 1, price, t, salary, salary_c, 1) for free_number in free_numbers)
                 cur.executemany("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                                 inserting_roles)
             elif not roles_amount_change:
                 cur.execute("UPDATE store SET price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (price, t, salary, salary_c, r))
             else:
-                sorted_rls_to_delete: list[tuple[int]] = cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r,)).fetchall()[:-roles_amount_change]
+                sorted_rls_to_delete: List[tuple[int]] = cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r,)).fetchall()[:-roles_amount_change]
                 rows: str = ", ".join({str(x[0]) for x in sorted_rls_to_delete})
                 cur.execute(f"DELETE FROM store WHERE rowid IN ({rows})")
 
@@ -663,7 +684,7 @@ class ManageMemberCashXpModal(Modal):
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         errors_bit_mask: int = self.verify_user_input()
         if errors_bit_mask:
-            report: list[str] = []
+            report: List[str] = []
             if errors_bit_mask & 0b01:
                 report.append(self.mng_membs_text[lng][14])
             if errors_bit_mask & 0b10:
@@ -750,7 +771,7 @@ class XpSettingsModal(Modal):
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         errors_bit_mask: int = self.verify_user_input()
         if errors_bit_mask:
-            report: list[str] = []
+            report: List[str] = []
             if errors_bit_mask & 0b01:
                 report.append(ranking_text[lng][12])
             if errors_bit_mask & 0b10:
@@ -762,7 +783,7 @@ class XpSettingsModal(Modal):
         xp: int = self.new_xp
         xp_border: int = self.new_xp_b
         if self.old_xp != xp or self.old_xpb != xp_border:
-            rep: list[str] = []
+            rep: List[str] = []
             with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     if self.old_xp != xp:

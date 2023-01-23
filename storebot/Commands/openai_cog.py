@@ -3,8 +3,13 @@ import openai
 from asyncio import Lock
 from typing import Literal
 
-from nextcord import slash_command, \
-    Locale, Interaction, SlashOption, Embed
+from nextcord import (
+    slash_command,
+    Locale,
+    Interaction,
+    SlashOption,
+    Embed
+)
 from nextcord.ext.commands import Cog
 
 from storebot import StoreBot

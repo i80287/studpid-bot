@@ -5,34 +5,38 @@ from typing import Literal
 from asyncio import sleep
 from time import time
 
-from nextcord import slash_command, Message, Interaction, Embed, \
-    ButtonStyle, Colour, Locale, SlashOption, NotFound, Guild, TextChannel
+from nextcord import (
+    slash_command,
+    Message,
+    Interaction,
+    Embed,
+    ButtonStyle,
+    Colour,
+    Locale,
+    SlashOption,
+    NotFound,
+    Guild,
+    TextChannel
+)
 from nextcord.ext.commands import Cog
-from nextcord.ui import Button, View
+from nextcord.ui import (
+    Button,
+    View
+)
 
 from Commands.mod_commands import ModCommandsCog
 from storebot import StoreBot
 from Variables.vars import CWD_PATH
 
 
-class cutom_button_with_row(Button):
-    def __init__(self, label: str, disabled: bool, style: ButtonStyle, row: int) -> None:
+class poll_custom_button(Button):
+    def __init__(self, label: str, disabled: bool, style: ButtonStyle, row: int | None = None) -> None:
         super().__init__(label=label, disabled=disabled, style=style, row=row)
 
     async def callback(self, interaction: Interaction) -> None:
         assert self.label is not None
         assert isinstance(self.view, Poll)
-        await self.view.click_row_button(interaction=interaction, label=self.label)
-
-
-class custom_button(Button):
-    def __init__(self, label: str, disabled: bool, style: ButtonStyle) -> None:
-        super().__init__(label=label, disabled=disabled, style=style)
-    
-    async def callback(self, interaction: Interaction) -> None:
-        assert self.label is not None
-        assert isinstance(self.view, Poll)
-        await self.view.click(interaction=interaction, label=self.label)
+        await self.view.click_button(interaction=interaction, label=self.label)
 
 
 class Poll(View):
@@ -69,7 +73,6 @@ class Poll(View):
         }
     }
 
-
     def __init__(self, bot: StoreBot) -> None:
         self.thesis: str = ""
         self.n: int = 12
@@ -88,14 +91,20 @@ class Poll(View):
 
     def init_buttons(self) -> None:
         for i in range(1, self.n + 1):
-            self.add_item(custom_button(label=str(i), disabled=True, style=ButtonStyle.blurple))
-        self.add_item(cutom_button_with_row(label="approve", disabled=False, style=ButtonStyle.green, row=(self.n + 4) // 5 + 1))
-        self.add_item(cutom_button_with_row(label="disapprove", disabled=False, style=ButtonStyle.red, row=(self.n + 4) // 5 + 1))
+            self.add_item(poll_custom_button(label=str(i), disabled=True, style=ButtonStyle.blurple))
+        self.add_item(poll_custom_button(label="approve", disabled=False, style=ButtonStyle.green, row=(self.n + 4) // 5 + 1))
+        self.add_item(poll_custom_button(label="disapprove", disabled=False, style=ButtonStyle.red, row=(self.n + 4) // 5 + 1))
 
     def init_ans(self) -> None:
         self.voters: list[set] = [set() for _ in range(self.n)]      
 
-    async def click_row_button(self, interaction: Interaction, label: str) -> None:
+    async def click_button(self, interaction: Interaction, label: str) -> None:
+        if label.isdigit():
+            await self.process_vote_button(interaction=interaction, label=int(label))
+        else:
+            await self.process_approvement(interaction=interaction, label=label)
+    
+    async def process_approvement(self, interaction: Interaction, label: str) -> None:
         assert interaction.guild is not None
         assert interaction.message is not None
         assert interaction.user is not None
@@ -144,11 +153,58 @@ class Poll(View):
                         self.bot.current_polls.append(self)
                 else:
                     await interaction.response.send_message(self.poll_class_text[lng][2])
-    
-    async def update_votes(self, interaction: Interaction, L: int, val: bool) -> None:
+
+    async def process_vote_button(self, interaction: Interaction, label: int) -> None:
+        assert interaction.user is not None
+        u_id: int = interaction.user.id
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+
+        if u_id in self.voters[label-1]:
+            await self.update_votes(interaction=interaction, label=label, val=False)
+            self.voters[label-1].remove(u_id)
+
+            try:
+                await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][4].format(label)), ephemeral=True)
+            except NotFound:
+                await sleep(1)
+                try:
+                    await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][4].format(label)), ephemeral=True)
+                except:
+                    pass
+                
+        else:    
+            fl: int = -1
+            for x in range(self.n):
+                if u_id in self.voters[x]:
+                    fl = x
+            await self.update_votes(interaction=interaction, label=label, val=True)
+            self.voters[label-1].add(u_id)
+            if fl != -1 and not self.mult:
+                await self.update_votes(interaction=interaction, label=fl+1, val=False)
+                self.voters[fl].remove(u_id)
+                try:
+                    await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][5].format(label, fl+1)), ephemeral=True)
+                except NotFound:
+                    await sleep(1.0)
+                    try:
+                        await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][5].format(label, fl+1)), ephemeral=True)
+                    except:
+                        pass
+                return
+            try:
+                await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][3].format(label)), ephemeral=True)
+            except NotFound:
+                await sleep(1.0)
+                try:
+                    await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][3].format(label)), ephemeral=True)
+                except:
+                    pass
+        return
+
+    async def update_votes(self, interaction: Interaction, label: int, val: bool) -> None:
         assert interaction.message is not None
         emb: Embed = interaction.message.embeds[0]
-        field = emb.fields[L-1]
+        field = emb.fields[label-1]
         assert emb.author.name is not None
         text1: str = emb.author.name
         t1: int = text1.rfind(": ")
@@ -167,59 +223,9 @@ class Poll(View):
         
         emb.remove_author()\
             .set_author(name=text1[:t1+2]+f"{total_votes}")\
-            .set_field_at(index=L-1, name=field.name, value=text2[:t2+2]+f"{cur_votes}")
+            .set_field_at(index=label-1, name=field.name, value=text2[:t2+2]+f"{cur_votes}")
         
         await interaction.message.edit(embed=emb)
-    
-    async def click(self, interaction: Interaction, label: str) -> None:
-        assert interaction.user is not None
-        if not label.isdigit():
-            return
-
-        L: int = int(label)
-        u_id: int = interaction.user.id
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-
-        if u_id in self.voters[L-1]:
-            await self.update_votes(interaction=interaction, L=L, val=False)
-            self.voters[L-1].remove(u_id)
-
-            try:
-                await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][4].format(L)), ephemeral=True)
-            except NotFound:
-                await sleep(1)
-                try:
-                    await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][4].format(L)), ephemeral=True)
-                except:
-                    pass
-                
-        else:    
-            fl: int = -1
-            for x in range(self.n):
-                if u_id in self.voters[x]:
-                    fl = x
-            await self.update_votes(interaction=interaction, L=L, val=True)
-            self.voters[L-1].add(u_id)
-            if fl != -1 and not self.mult:
-                await self.update_votes(interaction=interaction, L=fl+1, val=False)
-                self.voters[fl].remove(u_id)
-                try:
-                    await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][5].format(L, fl+1)), ephemeral=True)
-                except NotFound:
-                    await sleep(1.0)
-                    try:
-                        await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][5].format(L, fl+1)), ephemeral=True)
-                    except:
-                        pass
-                return
-            try:
-                await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][3].format(L)), ephemeral=True)
-            except NotFound:
-                await sleep(1.0)
-                try:
-                    await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][3].format(L)), ephemeral=True)
-                except:
-                    pass
             
     async def on_timeout(self) -> None:
         if not self.verified:
@@ -303,7 +309,6 @@ class PollCog(Cog):
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
     
-
     @slash_command(
         name="poll",
         description="creates new poll",

@@ -1,9 +1,16 @@
 from random import randint
 
-from nextcord import Embed, Interaction, TextInputStyle
-from nextcord.ui import TextInput, Modal
+from nextcord import (
+    Embed,
+    Interaction,
+    TextInputStyle
+)
+from nextcord.ui import (
+    TextInput,
+    Modal
+)
 
-from Tools import db_commands
+from Tools.db_commands import update_server_info_table
 
 
 class SalePriceModal(Modal):
@@ -48,6 +55,7 @@ class SalePriceModal(Modal):
         return sale_role_percent
 
     async def callback(self, interaction: Interaction) -> None:
+        assert interaction.guild_id is not None
         if not (sale_role_percent := self.check_ans(self.sell_price_percent_textinput.value)):
             await interaction.response.send_message(
                 embed=Embed(
@@ -57,7 +65,7 @@ class SalePriceModal(Modal):
             )
             self.stop()
             return
-        db_commands.update_server_info_table(interaction.guild_id, "sale_price_perc", sale_role_percent)
+        update_server_info_table(interaction.guild_id, "sale_price_perc", sale_role_percent)
         self.new_sale_role_percent = sale_role_percent
         await interaction.response.send_message(
             embed=Embed(

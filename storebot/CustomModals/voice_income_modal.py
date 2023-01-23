@@ -1,7 +1,14 @@
 from random import randint
 
-from nextcord import Embed, Interaction, TextInputStyle
-from nextcord.ui import TextInput, Modal
+from nextcord import (
+    Embed,
+    Interaction,
+    TextInputStyle
+)
+from nextcord.ui import (
+    TextInput,
+    Modal
+)
 
 from Tools.db_commands import update_server_info_table
 
@@ -53,6 +60,7 @@ class VoiceIncomeModal(Modal):
         return None
 
     async def callback(self, interaction: Interaction) -> None:
+        assert interaction.guild_id is not None
         if (voice_income := self.check_ans(self.voice_income_textinput.value)) is not None:
             if voice_income != self.voice_income:
                 update_server_info_table(interaction.guild_id, "mn_for_voice", voice_income)

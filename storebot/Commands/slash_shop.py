@@ -5,13 +5,35 @@ from random import randint
 from typing import Literal
 from time import time
 
-from nextcord import Embed, Colour, ButtonStyle, SlashOption, Interaction,\
-        Locale, SelectOption, slash_command, Role, Member, Guild, TextChannel
-from nextcord.ui import Button, View, Select
+from nextcord import (
+    Embed,
+    Colour,
+    ButtonStyle,
+    SlashOption,
+    Interaction,
+    Locale,
+    SelectOption,
+    slash_command,
+    Role,
+    Member,
+    Guild,
+    TextChannel
+)
+from nextcord.ui import (
+    Button,
+    Select
+)
 from nextcord.ext.commands import Bot, Cog
 from nextcord.abc import GuildChannel
 
-from Tools.db_commands import check_member_async, peek_role_free_number, peek_free_request_id, delete_role_from_db
+from CustomComponents.view_base import ViewBase
+from CustomComponents.custom_button import CustomButton
+from Tools.db_commands import (
+    check_member_async,
+    peek_role_free_number,
+    peek_free_request_id,
+    delete_role_from_db
+)
 from Variables.vars import CWD_PATH
 from config import in_row
 
@@ -215,23 +237,16 @@ rating_text: dict[int, dict[int, str]] = {
 }
 
 
-class CustomButton(Button):
-    def __init__(self, label: str, custom_id: str, style=ButtonStyle.secondary, emoji=None) -> None:
-        super().__init__(style=style, label=label, custom_id=custom_id, emoji=emoji)
-
-    async def callback(self, interaction: Interaction) -> None:
-        await self.view.click_b(interaction, self.custom_id)
-
-
 class CustomSelect(Select):
     def __init__(self, custom_id: str, placeholder: str, opts: list) -> None:
         super().__init__(custom_id=custom_id, placeholder=placeholder, options=opts)
 
     async def callback(self, interaction: Interaction) -> None:
-        await self.view.click_menu(interaction, self.custom_id, self.values)
+        assert isinstance(self.view, ViewBase)
+        await self.view.click_select_menu(interaction, self.custom_id, self.values)
 
 
-class BetView(View):
+class BetView(ViewBase):
     def __init__(self, timeout: int, lng: int, auth_id: int, bet: int, currency: str) -> None:
         super().__init__(timeout=timeout)
         self.bet: int = bet
@@ -252,13 +267,13 @@ class BetView(View):
             emoji="❌"
         ))
 
-    async def click_b(self, interaction: Interaction, c_id: str) -> None:
+    async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.locale is not None
         assert isinstance(interaction.user, Member)
         memb_id: int = interaction.user.id
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
 
-        if c_id.startswith("36_"):
+        if custom_id.startswith("36_"):
             if memb_id == self.auth_id:
                 await interaction.response.send_message(embed=Embed(description=bet_text[lng][2]), ephemeral=True)
                 return
@@ -291,7 +306,7 @@ class BetView(View):
             self.stop()
 
 
-class StoreView(View):
+class StoreView(ViewBase):
     def __init__(self, timeout: int, db_store: list[tuple[int, int, int, int, int, int, int, int]],
                  auth_id: int, lng: int, in_row: int, currency: str, tz: int) -> None:
         super().__init__(timeout=timeout)
@@ -429,9 +444,9 @@ class StoreView(View):
             else:
                 await interaction.response.edit_message(embed=emb)
 
-    async def click_b(self, interaction: Interaction, c_id: str) -> None:
+    async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         click: int
-        match int(c_id[:2]):
+        match int(custom_id[:2]):
             case 32:
                 click = 1
             case 33:
@@ -445,8 +460,8 @@ class StoreView(View):
 
         await self.update_menu(interaction=interaction, click=click)
 
-    async def click_menu(self, interaction: Interaction, c_id: str, values: list[str]) -> None:
-        if c_id.startswith("102_"):
+    async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
+        if custom_id.startswith("102_"):
             if values[0].isdigit() and int(values[0]):
                 self.sort_by_price = False
                 self.children[4].options[0].default = False # type: ignore
@@ -455,8 +470,7 @@ class StoreView(View):
                 self.sort_by_price = True
                 self.children[4].options[0].default = True # type: ignore
                 self.children[4].options[1].default = False # type: ignore
-
-        elif c_id.startswith("103_"):
+        elif custom_id.startswith("103_"):
             if values[0].isdigit() and int(values[0]):
                 self.sort_reversed = True
                 self.children[5].options[0].default = False # type: ignore
@@ -479,7 +493,7 @@ class StoreView(View):
         return True
 
 
-class BuyView(View):
+class BuyView(ViewBase):
     def __init__(self, timeout: int, auth_id: int, lng: int) -> None:
         super().__init__(timeout=timeout)
         self.auth_id: int = auth_id
@@ -495,11 +509,11 @@ class BuyView(View):
             style=ButtonStyle.red, emoji="❌"
         ))
 
-    async def click_b(self, _, c_id: str) -> None:
-        if c_id.startswith("30_"):
+    async def click_button(self, interaction: Interaction, custom_id: str) -> None:
+        if custom_id.startswith("30_"):
             self.value = True
             self.stop()
-        elif c_id.startswith("31_"):
+        elif custom_id.startswith("31_"):
             self.stop()
 
     async def interaction_check(self, interaction: Interaction) -> bool:
@@ -512,7 +526,7 @@ class BuyView(View):
         return True
 
 
-class RatingView(View):
+class RatingView(ViewBase):
     def __init__(self, timeout: int, lng: int, auth_id: int, l: int, cash_list: list[tuple[int, int]], 
                  xp_list: list[tuple[int, int]], xp_b: int, in_row: int, ec_status: int, rnk_status: int, currency: str) -> None:
         super().__init__(timeout=timeout)
@@ -601,20 +615,24 @@ class RatingView(View):
         else:
             await interaction.response.edit_message(embed=emb)
 
-    async def click_b(self, interaction: Interaction, c_id: str) -> None:
-        if c_id.startswith("38_"):
-            click: int = 1
-        elif c_id.startswith("39_"):
-            click: int = 2
-        elif c_id.startswith("40_"):
-            click: int = 3
-        else:
-            click: int = 4
+    async def click_button(self, interaction: Interaction, custom_id: str) -> None:
+        int_custom_id: int = int(custom_id[:2])
+        match int_custom_id:
+            case 38:
+                click: int = 1
+            case 39:
+                click: int = 2
+            case 40:
+                click: int = 3
+            case 41:
+                click: int = 4
+            case _:
+                click: int = 0
 
         await self.update_menu(interaction=interaction, click=click)
 
-    async def click_menu(self, interaction: Interaction, c_id: str, values: list[str]) -> None:
-        if c_id.startswith("104_"):
+    async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
+        if custom_id.startswith("104_"):
             if values[0].isdigit() and int(values[0]):
                 self.sort_value = False
                 self.children[4].options[0].default = False # type: ignore

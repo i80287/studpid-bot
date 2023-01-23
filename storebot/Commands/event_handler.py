@@ -6,8 +6,16 @@ from typing import Literal
 from asyncio import sleep
 from time import time
 
-from nextcord import Game, Message, User, Embed, \
-    Guild, Interaction, Role, TextChannel, Member
+from nextcord import (
+    Game,
+    Message,
+    Embed,
+    Guild,
+    Interaction,
+    Role,
+    TextChannel,
+    Member
+)
 from nextcord.errors import ApplicationCheckFailure
 from nextcord.ext.commands import Cog, Context
 from nextcord.ext import tasks
@@ -204,10 +212,8 @@ class EventsHandlerCog(Cog):
 
     @Cog.listener()
     async def on_message(self, message: Message) -> None:
-        user: User | Member = message.author
-
         #or message.type is MessageType.chat_input_command
-        if user.bot or not isinstance(user, Member) or not (guild := message.guild):
+        if (member := message.author).bot or not isinstance(member, Member) or not (guild := message.guild):
             return
         
         g_id: int = guild.id
@@ -217,7 +223,7 @@ class EventsHandlerCog(Cog):
             elif message.channel.id in self.bot.ignored_text_channels[g_id]:
                 return
 
-        new_level: int = await db_commands.check_member_level_async(guild_id=g_id, member_id=user.id)
+        new_level: int = await db_commands.check_member_level_async(guild_id=g_id, member_id=member.id)
         if not new_level:
             return
 
@@ -226,7 +232,7 @@ class EventsHandlerCog(Cog):
                 channel_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
                 if channel_id and isinstance(channel := guild.get_channel(channel_id), TextChannel):
                     lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
-                    emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(user.mention, new_level))
+                    emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(member.mention, new_level))
                     await channel.send(embed=emb)
 
                 db_lvl_rls: list[tuple[int, int]] | list = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level").fetchall()
@@ -238,18 +244,18 @@ class EventsHandlerCog(Cog):
         del db_lvl_rls
         if new_level in lvl_rls:
             guild_roles: dict[int, Role] = guild._roles
-            memb_roles: set[int] = {role_id for role_id in user._roles if role_id in guild_roles}
+            memb_roles: set[int] = {role_id for role_id in member._roles if role_id in guild_roles}
             new_level_role_id: int = lvl_rls[new_level]
             if new_level_role_id not in memb_roles and (role := guild_roles.get(new_level_role_id)):
                 try: 
-                    await user.add_roles(role, reason=f"Member gained new level {new_level}")
+                    await member.add_roles(role, reason=f"Member gained new level {new_level}")
                 except: 
                     pass
             levels: list[int] = sorted(lvl_rls.keys())
             new_level_index: int = levels.index(new_level)
             if new_level_index and ((old_role_id := lvl_rls[levels[new_level_index-1]]) in memb_roles) and (role := guild_roles.get(old_role_id)):
                 try: 
-                    await user.remove_roles(role, reason=f"Member gained new level {new_level}")
+                    await member.remove_roles(role, reason=f"Member gained new level {new_level}")
                 except: 
                     pass
 

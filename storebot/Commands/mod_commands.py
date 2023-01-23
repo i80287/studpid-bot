@@ -2,8 +2,17 @@ from typing import Literal
 from sqlite3 import connect
 from contextlib import closing
 
-from nextcord import Embed, Locale, Interaction, User, Member, slash_command
-from nextcord.ui import Button, StringSelect
+from nextcord import (
+    Embed,
+    Locale,
+    Interaction,
+    Member,
+    slash_command
+)
+from nextcord.ui import (
+    Button,
+    StringSelect
+)
 from nextcord.ext import application_checks
 from nextcord.ext.commands import Cog
 

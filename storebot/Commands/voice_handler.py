@@ -2,8 +2,15 @@ import asyncio
 from typing import NoReturn
 from time import time
 
-from nextcord import VoiceState, VoiceChannel, \
-    StageChannel, TextChannel, Member, Guild, Embed
+from nextcord import (
+    VoiceState,
+    VoiceChannel,
+    StageChannel,
+    TextChannel,
+    Member,
+    Guild,
+    Embed
+)
 from nextcord.ext import tasks
 from nextcord.ext.commands import Cog
 

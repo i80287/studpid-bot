@@ -1,16 +1,21 @@
 from typing import Literal
 from os import urandom
 
-from nextcord import ButtonStyle, Interaction, Embed, Member
-from nextcord.ui import View
+from nextcord import (
+    ButtonStyle,
+    Interaction,
+    Embed,
+    Member
+)
 
 from Tools.db_commands import get_ignored_channels
+from CustomComponents.view_base import ViewBase
 from CustomComponents.custom_button import CustomButton
 from CustomComponents.ignored_channels_view import IgnoredChannelsView
 from storebot import StoreBot
 
 
-class SelectICView(View):
+class SelectICView(ViewBase):
     select_ignored_channels_text: dict[int, dict[int, str]] = {
         0: {
             0: "> Press <:ignored_text:1064976269038583808> to see and manage `text channels` where members can't get money and xp\n\n\
@@ -42,7 +47,7 @@ class SelectICView(View):
         self.bot: StoreBot = bot
         self.lng: int = lng
 
-    async def click(self, interaction: Interaction, c_id: str) -> None:
+    async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.guild is not None
         guild_id: int = self.g_id
         db_ignored_channels: list[tuple[int, int, int]] = await get_ignored_channels(guild_id=guild_id)
@@ -56,7 +61,7 @@ class SelectICView(View):
             self.bot.ignored_voice_channels[guild_id] = guild_voice_ignored_channels_ids
 
         lng: int = self.lng
-        match int(c_id[:2]):
+        match int(custom_id[:2]):
             case 55:
                 if guild_text_ignored_channels_ids:
                     dsc: list[str] = [IgnoredChannelsView.ignored_channels_text[lng][4]] + \

@@ -3,16 +3,21 @@ from contextlib import closing
 from sqlite3 import connect
 from random import randint
 
-from nextcord import ButtonStyle, Interaction, Embed, Member
-from nextcord.ui import View
+from nextcord import (
+    ButtonStyle,
+    Interaction,
+    Embed,
+    Member
+)
 
 from Variables.vars import CWD_PATH
+from CustomComponents.view_base import ViewBase
 from CustomComponents.custom_select import CustomSelect
 from CustomComponents.custom_button import CustomButton
 from storebot import StoreBot
 
 
-class IgnoredChannelsView(View):
+class IgnoredChannelsView(ViewBase):
     ignored_channels_text: dict[int, dict[int, str]] = {
         0: {
             0: "Add channel",
@@ -51,7 +56,7 @@ class IgnoredChannelsView(View):
             self.add_item(CustomSelect(
                 custom_id=f"{1100+i}_{auth_id}_{randint(1, 100)}",
                 placeholder=self.ignored_channels_text[lng][2],
-                opts=[(self.ignored_channels_text[lng][3], "0")] + chnls[i*24:min((i+1)*24, l)]
+                options=[(self.ignored_channels_text[lng][3], "0")] + chnls[i*24:min((i+1)*24, l)]
             ))
         self.add_item(CustomButton(
             style=ButtonStyle.green,
@@ -142,7 +147,7 @@ class IgnoredChannelsView(View):
         await interaction.response.send_message(embed=Embed(description=self.ignored_channels_text[lng][7].format(channel_id)), ephemeral=True)
         self.chnl = None
 
-    async def click(self, interaction: Interaction, c_id: str) -> None:
+    async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.locale is not None
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         channel_id: int | None = self.chnl
@@ -157,19 +162,20 @@ class IgnoredChannelsView(View):
             async with self.bot.voice_lock:
                 guild_ignored_channels: set[int] = self.bot.ignored_voice_channels[self.g_id]
         
-        if c_id.startswith("25_"):
+        int_custom_id: int = int(custom_id[:2])
+        if int_custom_id == 25:
             if channel_id in guild_ignored_channels:
                 await interaction.response.send_message(embed=Embed(description=self.ignored_channels_text[lng][9]), ephemeral=True)
                 return
             await self.add_chnl(interaction=interaction, lng=lng, channel_id=channel_id)
-        elif c_id.startswith("26_"):
+        elif int_custom_id == 26:
             if channel_id not in guild_ignored_channels:
                 await interaction.response.send_message(embed=Embed(description=self.ignored_channels_text[lng][10]), ephemeral=True)
                 return
             await self.rem_chnl(interaction=interaction, lng=lng, channel_id=channel_id)           
 
-    async def click_menu(self, _, c_id: str, values: list[str]) -> None:
-        if c_id.startswith("11"):
+    async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
+        if custom_id.startswith("11"):
             self.chnl = int(values[0])
 
     async def interaction_check(self, interaction: Interaction) -> bool:
