@@ -1318,12 +1318,8 @@ class SettingsView(ViewBase):
                     g_id=interaction.guild_id,
                     member=memb
                 )
-
-                try:
-                    await interaction.edit_original_message(embeds=[emb1, emb2, emb3], view=mng_v)
-                except:
-                    pass
                 
+                await interaction.send(embeds=[emb1, emb2, emb3], view=mng_v)
                 await mng_v.wait()
                 for c in mng_v.children:
                     c.disabled = True # type: ignore
