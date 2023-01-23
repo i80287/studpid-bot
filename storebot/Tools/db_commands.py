@@ -160,6 +160,10 @@ def delete_role_from_db(guild_id: int, str_role_id: str) -> None:
                     )
                     base.commit()
 
+async def get_ignored_channels(guild_id: int) -> list[tuple[int, int, int]]:
+    async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+        return await base.execute_fetchall("SELECT chnl_id, is_text, is_voice FROM ignored_channels;") # type: ignore
+
 def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, int]]:
     with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
         with closing(base.cursor()) as cur:
