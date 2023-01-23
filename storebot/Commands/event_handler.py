@@ -59,9 +59,8 @@ class EventsHandlerCog(Cog):
 
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
-        self.salary_roles.start()
-        self._backup.start()
-        
+        self.salary_roles_Task.start()
+        self.backup_task.start()
     
     @classmethod
     async def send_first_message(cls, guild: Guild, lng: int) -> None:
@@ -171,7 +170,7 @@ class EventsHandlerCog(Cog):
             del self.bot.ignored_text_channels[guild_id]
     
     @tasks.loop(seconds=60)
-    async def salary_roles(self) -> None:
+    async def salary_roles_Task(self) -> None:
         guild_ids: list[int] = [guild.id for guild in self.bot.guilds.copy()]
         for guild_id in guild_ids: 
             with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
@@ -193,12 +192,12 @@ class EventsHandlerCog(Cog):
             await sleep(0.5)
 
     
-    @salary_roles.before_loop
+    @salary_roles_Task.before_loop
     async def before_timer(self) -> None:
         await self.bot.wait_until_ready()
 
     @tasks.loop(minutes=30)
-    async def _backup(self) -> None:
+    async def backup_task(self) -> None:
         guild_ids: frozenset[int] = frozenset(guild.id for guild in self.bot.guilds.copy())
         for guild_id in guild_ids:
             with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as src:
@@ -206,7 +205,7 @@ class EventsHandlerCog(Cog):
                     src.backup(bck)
             await sleep(0.5)        
 
-    @_backup.before_loop
+    @backup_task.before_loop
     async def before_timer_backup(self) -> None:
         await self.bot.wait_until_ready()
 
@@ -276,6 +275,7 @@ class EventsHandlerCog(Cog):
     async def on_command_error(self, ctx: Context, error) -> None:
         guild_report: str = f"[{guild.id}] [{guild.name}" if (guild := ctx.guild) else ""
         await Logger.write_log_async("error.log", ctx.author.id, guild_report, str(error))
-    
+
+
 def setup(bot: StoreBot) -> None:
     bot.add_cog(EventsHandlerCog(bot))
