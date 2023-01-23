@@ -111,7 +111,7 @@ class EventsHandlerCog(Cog):
             async with self.bot.text_lock:
                 self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
 
-            await Logger.write_log_async("guild.log", "correct_db func", str(guild_id), str(guild.name))
+            await Logger.write_log_async("common_logs.log", "correct_db func", str(guild_id), str(guild.name))
 
         if DEBUG:
             from colorama import Fore
@@ -136,7 +136,10 @@ class EventsHandlerCog(Cog):
                 mkdir(f"{CWD_PATH}/logs/logs_{guild_id}/")
 
         guild_locale: str = str(guild.preferred_locale)
-        db_ignored_channels_data: list[tuple[int, int, int]] =  db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
+        db_ignored_channels_data: list[tuple[int, int, int]] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
+        str_guild_id: str = str(guild_id)
+        guild_name: str = guild.name
+        await Logger.write_log_async("common_logs.log", "correct_db func", str_guild_id, guild_name)
         async with self.bot.voice_lock:
             self.bot.members_in_voice[guild_id] = {}
             self.bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
@@ -152,12 +155,12 @@ class EventsHandlerCog(Cog):
                 report=f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [FATAL] [ERROR] [send_first_message] [guild: {guild_id}:{guild.name}] [{str(ex)}]\n"
             )
 
-        await Logger.write_log_async("guild.log", "guild_join", str(guild_id), str(guild.name))
-        await Logger.write_log_async("common_logs.log", "guild_join", str(guild_id), str(guild.name))
+        await Logger.write_log_async("guild.log", "guild_join", str_guild_id, guild_name)
+        await Logger.write_log_async("common_logs.log", "guild_join", str_guild_id, guild_name)
         await Logger.write_guild_log_async(
             filename="guild.log",
             guild_id=guild_id,
-            report=f"[guild_join] [guild: {guild_id}:{guild.name}]"
+            report=f"[guild_join] [guild: {guild_id}:{guild_name}]"
         )
 
         await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"))
