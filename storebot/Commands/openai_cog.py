@@ -1,7 +1,10 @@
 import re
 import openai
 from asyncio import Lock
-from typing import Literal
+from typing import (
+    Literal,
+    Dict
+)
 
 from nextcord import (
     slash_command,
@@ -20,7 +23,7 @@ from config import OPENAI_API_KEY
 
 class OpenAICog(Cog):
     openai_lock: Lock = Lock()
-    openai_cog_text: dict[int, dict[int, str]] = {
+    openai_cog_text: Dict[int, Dict[int, str]] = {
         0: {
             0: "**`Your query contains strange words...`**",
             1: "**`Question:`**\n{0}\n**`OpenAI thinks what to respond...`**",

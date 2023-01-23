@@ -3,10 +3,17 @@ from asyncio import (
     sleep,
     TimeoutError
 )
+from typing import (
+    Literal,
+    Optional,
+    Union,
+    Tuple,
+    Dict
+)
+
 from contextlib import closing
 from sqlite3 import connect
-from typing import Literal
-from random import randint
+from random import randint 
 
 from nextcord import (
     Embed,
@@ -15,9 +22,10 @@ from nextcord import (
     ButtonStyle,
     Message,
     Member,
-    Guild,
-    Role
+    Guild    
 )
+if __debug__:
+    from nextcord import Role
 
 from storebot import StoreBot
 from Tools import db_commands
@@ -61,7 +69,7 @@ languages = {
     "русский" : 1
 }
 
-system_status: dict[int, dict[int, str]] = {
+system_status: Dict[int, Dict[int, str]] = {
     0 : {
         0 : "`disabled`",
         1 : "`enabled`",
@@ -80,7 +88,7 @@ system_status: dict[int, dict[int, str]] = {
     }
 }
 
-settings_text: dict[int, dict[int, str]] = {
+settings_text: Dict[int, Dict[int, str]] = {
     0 : {
         2 : "Select role",
         3 : "Adding role",
@@ -113,7 +121,7 @@ settings_text: dict[int, dict[int, str]] = {
     }
 }
 
-gen_settings_text: dict[int, dict[int, str]] = {
+gen_settings_text: Dict[int, Dict[int, str]] = {
     0 : {
         0 : "🗣️ language for new level announcements: {}",
         1 : "⏱ time zone: UTC{}",
@@ -162,7 +170,7 @@ gen_settings_text: dict[int, dict[int, str]] = {
     }
 }
 
-mod_roles_text: dict[int, dict[int, str]] = {
+mod_roles_text: Dict[int, Dict[int, str]] = {
     0 : {
         0 : "Current mod roles",
         1 : "No roles selected",
@@ -185,7 +193,7 @@ mod_roles_text: dict[int, dict[int, str]] = {
     }
 }
 
-ec_text: dict[int, dict[int, str]] = {
+ec_text: Dict[int, Dict[int, str]] = {
     0 : {
         0 : "Economy settings",
         1: "💸 Money gained for message:\n**`{}`** {}",
@@ -243,7 +251,7 @@ ec_text: dict[int, dict[int, str]] = {
     }
 }
 
-ec_mr_text: dict[int, dict[int, str]] = { 
+ec_mr_text: Dict[int, Dict[int, str]] = { 
     0 : {
         0 : "Edit role",
         1 : "Yes",
@@ -270,7 +278,7 @@ ec_mr_text: dict[int, dict[int, str]] = {
     }
 }
 
-mng_membs_text: dict[int, dict[int, str]] = {
+mng_membs_text: Dict[int, Dict[int, str]] = {
     0 : {
         0 : "Change cash/xp",
         1 : "Cash",
@@ -318,7 +326,7 @@ mng_membs_text: dict[int, dict[int, str]] = {
     }
 }
 
-poll_text: dict[int, dict[int, str]] = {
+poll_text: Dict[int, Dict[int, str]] = {
     0 : {
         0 : "🔎 Polls verification channel:\n{}",
         1 : "📰 Channel for publishing polls:\n{}",
@@ -342,7 +350,7 @@ poll_text: dict[int, dict[int, str]] = {
     }
 }
 
-ranking_text: dict[int, dict[int, str]] = {
+ranking_text: Dict[int, Dict[int, str]] = {
     0 : {
         0 : "✨ Xp gained per message:\n**`{}`**",
         1 : "✨ Amount of xp between adjacent levels:\n**`{}`**",
@@ -392,8 +400,8 @@ class GenSettingsView(ViewBase):
         super().__init__(timeout=t_out)
         self.bot: StoreBot = bot
         self.auth_id: int = auth_id
-        self.lang: int | None = None
-        self.tz: int | None = None
+        self.lang: Optional[int] = None
+        self.tz: Optional[int] = None
         self.ec_status: int = ec_status
         self.rnk_status: int = rnk_status
         tzs: list[tuple[str, str]] = [(f"UTC{i}", str(i)) for i in range(-12, 0)] + [(f"UTC+{i}", str(i)) for i in range(0, 13)]
@@ -407,7 +415,7 @@ class GenSettingsView(ViewBase):
         
     async def select_lng(self, interaction: Interaction, lng: int) -> None:
         assert interaction.guild_id is not None
-        s_lng: int | None = self.lang
+        s_lng: Optional[int] = self.lang
         if s_lng is None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][22]), ephemeral=True)
             return
@@ -435,7 +443,7 @@ class GenSettingsView(ViewBase):
         self.lang = None
     
     async def digit_tz(self, interaction: Interaction, lng: int) -> None:
-        tz: int | None = self.tz
+        tz: Optional[int] = self.tz
         if tz is None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][23]), ephemeral=True)
             return
@@ -464,7 +472,7 @@ class GenSettingsView(ViewBase):
             return
         else:
             user_ans_content: str = user_ans.content
-            emoji: Emoji | str | None = parse_emoji(self.bot, user_ans_content)
+            emoji: Optional[Union[Emoji, str]] = parse_emoji(self.bot, user_ans_content)
             if emoji is None:
                 emoji_str: str = user_ans_content
             elif isinstance(emoji, Emoji):
@@ -566,7 +574,7 @@ class ModRolesView(ViewBase):
         super().__init__(timeout=t_out)
         self.auth_id: int = auth_id
         self.m_rls: set[int] = m_rls
-        self.role: int | None = None
+        self.role: Optional[int] = None
         for i in range((len(rls)+24)//25):
             self.add_item(CustomSelect(
                 custom_id=f"{200+i}_{auth_id}_{randint(1, 100)}",
@@ -674,7 +682,7 @@ class ModRolesView(ViewBase):
 
 
 class EconomyView(ViewBase):
-    r_types: dict[int, dict[int, str]] = {
+    r_types: Dict[int, Dict[int, str]] = {
         0 : {
             1 : "Nonstacking, displayed separated",
             2 : "Stacking, countable",
@@ -690,7 +698,7 @@ class EconomyView(ViewBase):
     def __init__(self, t_out: int, auth_id: int, sale_price_percent: int, voice_income: int, currency: str) -> None:
         super().__init__(timeout=t_out)
         self.auth_id: int = auth_id
-        self.channel: int | None = None
+        self.channel: Optional[int] = None
         self.sale_price_percent: int = sale_price_percent
         self.voice_income: int = voice_income
         self.currency: str = currency
@@ -913,7 +921,7 @@ class EconomyView(ViewBase):
                         if role[4] == 1:
                             cnt: str = str(cur.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,)).fetchone()[0])
                         else:
-                            quantity_in_store: tuple[int] | None = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,)).fetchone()
+                            quantity_in_store: Optional[tuple[int]] = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,)).fetchone()
                             if not quantity_in_store:
                                 cnt: str = "0"
                             elif role[4] == 2:
@@ -1007,7 +1015,7 @@ class EconomyRolesManageView(ViewBase):
         super().__init__(timeout=t_out)
         self.auth_id: int = auth_id
         self.s_rls: set[int] = s_rls
-        self.role: int | None = None
+        self.role: Optional[int] = None
         length: int = len(rls)
         for i in range((length+24)//25):
             self.add_item(CustomSelect(
@@ -1132,7 +1140,7 @@ class SettingsView(ViewBase):
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"5_{auth_id}_{randint(1, 100)}", emoji="📊", row=3))
     
     @classmethod
-    def check_ans(cls, guild: Guild, ans: str) -> tuple[Member | None, bool]:
+    def check_ans(cls, guild: Guild, ans: str) -> Tuple[Optional[Member], bool]:
         for member_id in cls.member_id_pattern.findall(ans):
             if member := guild.get_member(int(member_id)):
                 return member, False
@@ -1217,7 +1225,7 @@ class SettingsView(ViewBase):
                 await interaction.response.send_message(embed=Embed(description=settings_text[lng][7]))
                 author_id: int = interaction.user.id
                 try_get_member_flag: bool = True
-                memb: Member | None = None
+                memb: Optional[Member] = None
                 while try_get_member_flag:
                     try:
                         message_answer: Message = await interaction.client.wait_for(
@@ -1481,7 +1489,7 @@ class PollSettingsView(ViewBase):
         await v_c.wait()
         await interaction.delete_original_message()
 
-        new_channel_id: int | None = v_c.channel_id
+        new_channel_id: Optional[int] = v_c.channel_id
         if new_channel_id is None:
             return
 
@@ -1553,7 +1561,7 @@ class RankingView(ViewBase):
         self.cur_xp_pm: int = cur_xp_pm
         self.cur_xpb: int = cur_xpb
         self.g_id: int = g_id
-        self.lvl_chnl: int | None = None
+        self.lvl_chnl: Optional[int] = None
         self.bot: StoreBot = bot
     
     async def xp_change(self, lng: int, interaction: Interaction) -> None:
@@ -1682,7 +1690,7 @@ class PollsChannelsView(ViewBase):
             ))
         self.select_menus_id_start: int = view_id_base // 100
         self.auth_id: int = auth_id
-        self.channel_id: int | None = None
+        self.channel_id: Optional[int] = None
     
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         if int(custom_id[:2]) == self.select_menus_id_start:
@@ -1706,7 +1714,7 @@ class LevelRolesView(ViewBase):
         self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"28_{auth_id}_{randint(1, 100)}", emoji="<:remove01:999663428689997844>", disabled=disabled))
         self.auth_id: int = auth_id
         self.g_id: int = g_id
-        self.role: int | None = None
+        self.role: Optional[int] = None
     
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.guild is not None
@@ -1834,7 +1842,7 @@ class ManageMemberView(ViewBase):
             ))
         self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"19_{auth_id}_{randint(1, 100)}"))
         self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"20_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
-        self.role: int | None = None
+        self.role: Optional[int] = None
         self.memb_id: int = memb_id
         self.memb_rls: set[int] = memb_rls
         self.cash: int = cur_money
@@ -1856,12 +1864,12 @@ class ManageMemberView(ViewBase):
             with closing(base.cursor()) as cur:
                 m_rls: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
                 cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls + f"#{self.role}", self.memb_id))
-                membs: tuple[str] | None = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
+                membs: Optional[tuple[str]] = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
                 if membs:
                     cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0] + f"#{self.memb_id}", self.role))
                 base.commit()
 
-        role: Role | None = interaction.guild.get_role(self.role)
+        role: Optional[Role] = interaction.guild.get_role(self.role)
         assert role is not None
         await self.member.add_roles(role)
         
@@ -1898,12 +1906,12 @@ class ManageMemberView(ViewBase):
             with closing(base.cursor()) as cur:
                 m_rls: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
                 cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls.replace(f"#{self.role}", ""), self.memb_id))
-                membs: tuple[str] | None = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
+                membs: Optional[tuple[str]] = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
                 if membs:
                     cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"#{self.memb_id}", ""), self.role))
                 base.commit()
 
-        role: Role | None = interaction.guild.get_role(self.role)
+        role: Optional[Role] = interaction.guild.get_role(self.role)
         assert role is not None
         await self.member.remove_roles(role)
         

@@ -1,9 +1,13 @@
 from sqlite3 import connect
 from contextlib import closing
 from datetime import datetime
-from typing import Literal
 from asyncio import sleep
 from time import time
+from typing import (
+    Literal,
+    Optional,
+    Dict
+)
 
 from nextcord import (
     slash_command,
@@ -30,7 +34,7 @@ from Variables.vars import CWD_PATH
 
 
 class poll_custom_button(Button):
-    def __init__(self, label: str, disabled: bool, style: ButtonStyle, row: int | None = None) -> None:
+    def __init__(self, label: str, disabled: bool, style: ButtonStyle, row: Optional[int] = None) -> None:
         super().__init__(label=label, disabled=disabled, style=style, row=row)
 
     async def callback(self, interaction: Interaction) -> None:
@@ -40,7 +44,7 @@ class poll_custom_button(Button):
 
 
 class Poll(View):
-    poll_class_text: dict[int, dict[int, str]] = {
+    poll_class_text: Dict[int, Dict[int, str]] = {
         0 : {
             0 : "❌**`Disapproved by `**",
             1 : "✅**`Approved by `**",
@@ -78,8 +82,8 @@ class Poll(View):
         self.n: int = 12
         self.questions: list[str] = []
         self.timeout: int = 0
-        self.poll_final_message: Message | None = None
-        self.timestamp: datetime | None = None
+        self.poll_final_message: Optional[Message] = None
+        self.timestamp: Optional[datetime] = None
         self.verified: bool = False
         self.anon: bool = True
         self.mult: bool = True
@@ -279,7 +283,7 @@ class Poll(View):
 
 
 class PollCog(Cog):
-    polls_text: dict[int, dict[int, str]] = {
+    polls_text: Dict[int, Dict[int, str]] = {
         0 : {               
             0 : "**`Poll creation was cancelled because polls verification channel isn't configured`**",
             1 : "**`You can't select time for the poll less than it's now`**",

@@ -1,20 +1,45 @@
-from typing import Literal
 from random import randint
 from asyncio import sleep
 from os import path
+from typing import (
+    Literal,
+    Optional,
+    Union,
+    Tuple,
+    Dict,
+    List
+)
 
-from nextcord import Embed, Locale, Interaction, Game, Status, slash_command, \
-    TextInputStyle, Permissions, TextChannel, Thread, PartialMessageable, Guild
+from nextcord import (
+    Embed,
+    Locale,
+    Interaction,
+    Game,
+    Status,
+    slash_command,
+    TextInputStyle,
+    Permissions,
+    TextChannel
+)
 from nextcord.ext.commands import command, is_owner, Context, Cog
 from nextcord.ui import Modal, TextInput
-from nextcord.abc import GuildChannel, PrivateChannel
+if __debug__:
+    from nextcord import (
+        Guild,
+        Thread,
+        PartialMessageable
+    )
+    from nextcord.abc import (
+        GuildChannel,
+        PrivateChannel
+    )
 
 from storebot import StoreBot
 from Variables.vars import CWD_PATH
 
 
 class FeedbackModal(Modal):
-    feedback_text: dict[int, dict[int, str]] = {
+    feedback_text: Dict[int, Dict[int, str]] = {
         0 : {
             0 : "Feedback",
             1 : "What problems did you get while using the bot? What new would you want to see in bot's functional?",
@@ -53,7 +78,7 @@ class FeedbackModal(Modal):
         )
 
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        chnl: GuildChannel | Thread | PrivateChannel | PartialMessageable | None = \
+        chnl: Optional[Union[GuildChannel, Thread, PrivateChannel, PartialMessageable]] = \
             self.bot.get_channel(self.bot.bot_feedback_channel)
         if isinstance(chnl, TextChannel):
             await chnl.send(embed=Embed(description="\n".join(dsc)))
@@ -66,7 +91,7 @@ class FeedbackModal(Modal):
 
 
 class BasicComandsCog(Cog):
-    u_ec_cmds: dict[int, list[tuple[str, str]]] = {
+    u_ec_cmds: Dict[int, List[Tuple[str, str]]] = {
         0 : [
             ("`/store`", "Show store"),
             ("`/buy`", "Make a role purchase"),
@@ -88,7 +113,7 @@ class BasicComandsCog(Cog):
             ("`/leaders`", "Показывет топ пользователей по балансу/опыту"),
         ],
     }
-    u_pers_cmds: dict[int, list[tuple[str, str]]] = {
+    u_pers_cmds: Dict[int, List[Tuple[str, str]]] = {
         0 : [
             ("`/profile`", "Show your profile"), 
             ("`/work`", "Start working, so you get salary"),
@@ -102,7 +127,7 @@ class BasicComandsCog(Cog):
             ("`/duel`", "Делает ставку"),
         ]
     }
-    u_other_cmds: dict[int, list[tuple[str, str]]] = {
+    u_other_cmds: Dict[int, List[Tuple[str, str]]] = {
         0 : [
             ("`/poll`", "Make a poll"), 
             ("`/server`", "Show information about the server"),
@@ -114,7 +139,7 @@ class BasicComandsCog(Cog):
             ("`/emoji`", "Показывает информацию о эмодзи"),
         ]
     }
-    m_cmds: dict[int, list[tuple[str, str]]] = {
+    m_cmds: Dict[int, List[Tuple[str, str]]] = {
         0 : [
             ("`/guide`", "Show guide about bot's system"), 
             ("`/settings`", "Call bot's settings menu"),
@@ -124,7 +149,7 @@ class BasicComandsCog(Cog):
             ("`/settings`", "Вызывает меню настроек бота"),
         ]
     }
-    guide_text: dict[int, dict[int, str]] = {
+    guide_text: Dict[int, Dict[int, str]] = {
         0 : {
             0 : "The guide",
             1 : "Economic operations with the roles",
@@ -188,7 +213,7 @@ class BasicComandsCog(Cog):
                 канал для публикаций, установленный в меню  **`/settings`** -> \"📊\" -> \"📰\""
         }
     }
-    text_help_view: dict[int, dict[int, str]] = {
+    text_help_view: Dict[int, Dict[int, str]] = {
         0 : {
             0 : "User's commands",
             1 : "Mod's commands",
@@ -334,7 +359,7 @@ class BasicComandsCog(Cog):
     @is_owner()
     async def shutdown(self, ctx: Context) -> None:
         from Commands.voice_handler import VoiceHandlerCog
-        cog: Cog | None = self.bot.cogs.get("VoiceHandlerCog")
+        cog: Optional[Cog] = self.bot.cogs.get("VoiceHandlerCog")
         
         if not isinstance(cog, VoiceHandlerCog):
             return
@@ -342,7 +367,7 @@ class BasicComandsCog(Cog):
         k: int = 0
         async with self.bot.voice_lock:
             for guild_id, members_dict in self.bot.members_in_voice.items():
-                guild: Guild | None = self.bot.get_guild(guild_id)
+                guild: Optional[Guild] = self.bot.get_guild(guild_id)
                 if not guild:
                     continue
                 for member_id, member in members_dict.items():

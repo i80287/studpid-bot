@@ -1,6 +1,13 @@
-from typing import Literal
 from sqlite3 import connect
 from contextlib import closing
+from typing import (
+    Literal,
+    Union,
+    Tuple,
+    List,
+    Dict,
+    Set
+)
 
 from nextcord import (
     Embed,
@@ -22,7 +29,7 @@ from CustomComponents.custom_views import SettingsView
 
 
 class ModCommandsCog(Cog):
-    settings_text: dict[int, dict[int, str | list[str]]] = {
+    settings_text: Dict[int, Dict[int, Union[str, List[str]]]] = {
         0 : {
             0 : "Choose section",
             1: [
@@ -61,9 +68,9 @@ class ModCommandsCog(Cog):
 
         with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
-                mod_roles_ids_list: list[tuple[int]] | list = cur.execute("SELECT * FROM mod_roles").fetchall()
+                mod_roles_ids_list: Union[List[Tuple[int]], List] = cur.execute("SELECT * FROM mod_roles").fetchall()
                 if mod_roles_ids_list:
-                    mod_roles_ids_set: set[int] = {x[0] for x in mod_roles_ids_list}
+                    mod_roles_ids_set: Set[int] = {x[0] for x in mod_roles_ids_list}
                     del mod_roles_ids_list
                     return any(role.id in mod_roles_ids_set for role in member.roles)
                 return False

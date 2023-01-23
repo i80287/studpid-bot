@@ -1,12 +1,16 @@
-from typing import Literal
 from os import urandom
+from typing import (
+    Literal,
+    Dict
+)
 
 from nextcord import (
     ButtonStyle,
     Interaction,
-    Embed,
-    Member
+    Embed
 )
+if __debug__:
+    from nextcord import Member
 
 from Tools.db_commands import get_ignored_channels
 from CustomComponents.view_base import ViewBase
@@ -16,7 +20,7 @@ from storebot import StoreBot
 
 
 class SelectICView(ViewBase):
-    select_ignored_channels_text: dict[int, dict[int, str]] = {
+    select_ignored_channels_text: Dict[int, Dict[int, str]] = {
         0: {
             0: "> Press <:ignored_text:1064976269038583808> to see and manage `text channels` where members can't get money and xp\n\n\
                 > Press :mute: to see and manage `voice channels` where members can't get money and xp",

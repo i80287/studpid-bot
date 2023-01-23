@@ -3,14 +3,15 @@ from sqlite3 import (
     Connection,
     Cursor
 )
-from typing import (
-    List,
-    Generator
-)
 from contextlib import closing
 from random import randint
 from typing import Literal
 from time import time
+from typing import (
+    Generator,
+    Dict,
+    List
+)
 
 from nextcord import (
     Embed,
@@ -29,7 +30,7 @@ from Tools.db_commands import (
 )
 from Variables.vars import CWD_PATH
 
-r_types: dict[int, dict[int, str]] = {
+r_types: Dict[int, Dict[int, str]] = {
     0: {
         1: "Nonstacking, displayed separated",
         2: "Stacking, countable",
@@ -42,7 +43,7 @@ r_types: dict[int, dict[int, str]] = {
     }
 }
 
-ranking_text: dict[int, dict[int, str]] = {
+ranking_text: Dict[int, Dict[int, str]] = {
     0: {
         7: "Managing xp settings",
         8: "Xp per message",
@@ -76,7 +77,7 @@ ranking_text: dict[int, dict[int, str]] = {
 }
 
 class ManageRoleModalBase(Modal):
-    manage_role_modals_text: dict[int, dict[int, str]] = { 
+    manage_role_modals_text: Dict[int, Dict[int, str]] = { 
         0: {
             0: "Adding role",
             10: "Role's price",
@@ -130,7 +131,7 @@ class ManageRoleModalBase(Modal):
 
 
 class RoleAddModal(ManageRoleModalBase):
-    partial_ec_text: dict[int, dict[int, str]] = {
+    partial_ec_text: Dict[int, Dict[int, str]] = {
         0: {
             18: "__**role - role id - price - salary - cooldown for salary - type - how much in the store - additional income from /work**__",
             20: "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
@@ -584,7 +585,7 @@ class RoleEditModal(ManageRoleModalBase):
 
 
 class ManageMemberCashXpModal(Modal):
-    mng_membs_text: dict[int, dict[int, str]] = {
+    mng_membs_text: Dict[int, Dict[int, str]] = {
         0: {
             0: "Change cash/xp",
             1: "Cash",

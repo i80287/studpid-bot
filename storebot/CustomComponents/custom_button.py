@@ -11,7 +11,8 @@ from nextcord import (
 )
 from nextcord.ui import Button
 
-from CustomComponents.view_base import ViewBase
+if __debug__:
+    from CustomComponents.view_base import ViewBase
 
 
 class CustomButton(Button):    

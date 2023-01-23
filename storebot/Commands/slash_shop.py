@@ -2,8 +2,13 @@ from datetime import datetime, timedelta, timezone
 from sqlite3 import connect, Cursor
 from contextlib import closing
 from random import randint
-from typing import Literal
 from time import time
+from typing import (
+    Literal,
+    Optional,
+    Tuple,
+    Dict
+)
 
 from nextcord import (
     Embed,
@@ -16,15 +21,12 @@ from nextcord import (
     slash_command,
     Role,
     Member,
-    Guild,
     TextChannel
 )
-from nextcord.ui import (
-    Button,
-    Select
-)
+from nextcord.ui import StringSelect
 from nextcord.ext.commands import Bot, Cog
-from nextcord.abc import GuildChannel
+if __debug__:
+    from nextcord import Guild
 
 from CustomComponents.view_base import ViewBase
 from CustomComponents.custom_button import CustomButton
@@ -37,7 +39,7 @@ from Tools.db_commands import (
 from Variables.vars import CWD_PATH
 from config import in_row
 
-common_text: dict[int, dict[int, str]] = {
+common_text: Dict[int, Dict[int, str]] = {
     0: {
         0: "**`Sorry, but you can't manage menu called by another member`**",
         1: "**`Economy system and leveling system are disabled on this server`**",
@@ -50,7 +52,7 @@ common_text: dict[int, dict[int, str]] = {
     }
 }
 
-text_slash: dict[int, dict[int, str]] = {
+text_slash: Dict[int, Dict[int, str]] = {
     0: {
         0: "Error",
         1: "**`I don't have permission to manage roles on the server`**",
@@ -153,7 +155,7 @@ text_slash: dict[int, dict[int, str]] = {
     }
 }
 
-buy_approve_text: dict[int, dict[int, str]] = {
+buy_approve_text: Dict[int, Dict[int, str]] = {
     0: {
         0: "Yes",
         1: "No, cancel purchase"
@@ -164,7 +166,7 @@ buy_approve_text: dict[int, dict[int, str]] = {
     }
 }
 
-store_text: dict[int, dict[int, str]] = {
+store_text: Dict[int, Dict[int, str]] = {
     0: {
         0: "{} **•** <@&{}>\n`Price` - `{}` {}\n`Left` - `1`\n`Listed for sale:`\n*{}*\n",
         1: "{} **•** <@&{}>\n`Price` - `{}` {}\n`Left` - `{}`\n`Last listed for sale:`\n*{}*\n",
@@ -194,7 +196,7 @@ store_text: dict[int, dict[int, str]] = {
     }
 }
 
-bet_text: dict[int, dict[int, str]] = {
+bet_text: Dict[int, Dict[int, str]] = {
     0: {
         0: "Make a counter bet",
         1: "Cancel bet",
@@ -213,7 +215,7 @@ bet_text: dict[int, dict[int, str]] = {
     }
 }
 
-rating_text: dict[int, dict[int, str]] = {
+rating_text: Dict[int, Dict[int, str]] = {
     0: {
         0: "Top members by balance",
         1: "Top members by xp",
@@ -237,7 +239,7 @@ rating_text: dict[int, dict[int, str]] = {
 }
 
 
-class CustomSelect(Select):
+class CustomSelect(StringSelect):
     def __init__(self, custom_id: str, placeholder: str, opts: list) -> None:
         super().__init__(custom_id=custom_id, placeholder=placeholder, options=opts)
 
@@ -251,7 +253,7 @@ class BetView(ViewBase):
         super().__init__(timeout=timeout)
         self.bet: int = bet
         self.auth_id: int = auth_id
-        self.dueler: int | None = None
+        self.dueler: Optional[int] = None
         self.declined: bool = False
         self.currency: str = currency
         self.add_item(CustomButton(
@@ -279,7 +281,7 @@ class BetView(ViewBase):
                 return
             with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    db_cash: tuple[int] | None = cur.execute("SELECT money FROM users WHERE memb_id = ?", (memb_id,)).fetchone()
+                    db_cash: Optional[tuple[int]] = cur.execute("SELECT money FROM users WHERE memb_id = ?", (memb_id,)).fetchone()
                     if not db_cash:
                         cur.execute(
                             "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
@@ -424,7 +426,7 @@ class StoreView(ViewBase):
         tzinfo: timezone = timezone(timedelta(hours=self.tz))
         for role_number, r, q, p, d, s, s_t, tp in self.db_store[(page - 1) * self.in_row:min(page * self.in_row, self.l)]:
             date: str = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
-            role_info: str | None = None
+            role_info: Optional[str] = None
             if tp == 1:
                 role_info = store_text[self.lng][0].format(role_number, r, p, self.currency, date)
             elif tp == 2:
@@ -655,7 +657,7 @@ class RatingView(ViewBase):
 
 
 class SlashCommandsCog(Cog):
-    sell_to_text: dict[int, dict[int, str]] = {
+    sell_to_text: Dict[int, Dict[int, str]] = {
         0 : {
             0: "**`You can't sell role to yourself`**",
             1: "**`You are already selling role`** <@&{}>",
@@ -671,7 +673,7 @@ class SlashCommandsCog(Cog):
             4: "**`Вы сделали запрос о продаже роли`** <@&{}> **`пользователю`** <@{}> **`за {}`** {}"
         }
     }
-    profile_text: dict[int, dict[int, str]] = {
+    profile_text: Dict[int, Dict[int, str]] = {
         0: {
             1: "Cash",
             2: "Xp",
@@ -693,7 +695,7 @@ class SlashCommandsCog(Cog):
             8: "**`id предложения: {} роль:`** <@&{}> **`цена: {}`** {} **`продавец:`** <@{}>",
         }
     }
-    code_blocks: dict[int, dict[int, str]] = {
+    code_blocks: Dict[int, Dict[int, str]] = {
         0: {
             0: "```\nMember's personal roles\n```",
             1: "```fix\nRole sale requests made by you\n```",
@@ -709,7 +711,7 @@ class SlashCommandsCog(Cog):
             2: "```c\n{}\n```",
         }       
     }
-    manage_requests_text: dict[int, dict[int, str]] = {
+    manage_requests_text: Dict[int, Dict[int, str]] = {
         0: {
             0: "**`You have not received role purchase/sale request with such id`**",
             1: "**`You have not received role purchase request with sush id`**",
@@ -755,9 +757,9 @@ class SlashCommandsCog(Cog):
         return True
 
     @classmethod
-    async def verify_request_id(cls, cur: Cursor, request_id: int, interaction: Interaction, memb_id: int) -> tuple[int, int, int, int] | None:        
+    async def verify_request_id(cls, cur: Cursor, request_id: int, interaction: Interaction, memb_id: int) -> Optional[Tuple[int, int, int, int]]:        
         assert interaction.locale is not None
-        request: tuple[int, int, int, int] | None = cur.execute(
+        request: Optional[Tuple[int, int, int, int]] = cur.execute(
             "SELECT seller_id, target_id, role_id, price FROM sale_requests WHERE request_id = ? AND (seller_id = ? OR target_id = ?)",
             (request_id, memb_id, memb_id)
         ).fetchone()
@@ -787,9 +789,7 @@ class SlashCommandsCog(Cog):
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
 
-        if not isinstance(member_buyer := interaction.user, Member):
-            return
-
+        member_buyer: Member = interaction.user
         memb_id: int = member_buyer.id
         r_id: int = role.id
         guild_id: int = interaction.guild_id
@@ -799,7 +799,7 @@ class SlashCommandsCog(Cog):
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=common_text[lng][2])
                     return
 
-                store: tuple[int, int, int, int] | None = cur.execute(
+                store: Optional[Tuple[int, int, int, int]] = cur.execute(
                     "SELECT quantity, price, salary, type FROM store WHERE role_id = ?",
                     (r_id,)
                 ).fetchone()
@@ -856,7 +856,7 @@ class SlashCommandsCog(Cog):
                         cur.execute("DELETE FROM store WHERE role_id = ?", (r_id,))
 
                 if store[2]:
-                    role_members: tuple[str] | None = cur.execute(
+                    role_members: Optional[Tuple[str]] = cur.execute(
                         "SELECT members FROM salary_roles WHERE role_id = ?",
                         (r_id,)
                     ).fetchone()
@@ -886,17 +886,14 @@ class SlashCommandsCog(Cog):
             )
         except:
             pass
-
-        if chnl_id:
-            guild_log_channel: GuildChannel | None = interaction.guild.get_channel(chnl_id)
-            if isinstance(guild_log_channel, TextChannel):
-                try:
-                    await guild_log_channel.send(embed=Embed(
-                        title=text_slash[server_lng][13],
-                        description=text_slash[server_lng][14].format(f"<@{memb_id}>", f"<@&{r_id}>", cost, currency)
-                    ))
-                except:
-                    return
+        if chnl_id and isinstance(guild_log_channel := interaction.guild.get_channel(chnl_id), TextChannel):
+            try:
+                await guild_log_channel.send(embed=Embed(
+                    title=text_slash[server_lng][13],
+                    description=text_slash[server_lng][14].format(f"<@{memb_id}>", f"<@&{r_id}>", cost, currency)
+                ))
+            except:
+                return
 
     async def store(self, interaction: Interaction) -> None:
         assert interaction.guild_id is not None
@@ -932,7 +929,7 @@ class SlashCommandsCog(Cog):
         tz_info: timezone = timezone(timedelta(hours=tz))
         for role_number, r, q, p, d, s, s_t, tp in db_store[:min(in_row, db_l)]:
             date: str = datetime.fromtimestamp(d, tz=tz_info).strftime("%H:%M %d-%m-%Y")
-            role_info: str | None = None
+            role_info: Optional[str] = None
             if tp == 1:
                 role_info = store_text[lng][0].format(role_number, r, p, currency, date)
             elif tp == 2:
@@ -994,7 +991,7 @@ class SlashCommandsCog(Cog):
                         ephemeral=True
                     )
                     return
-                role_info: tuple[int, int, int, int, int] | None = \
+                role_info: Optional[Tuple[int, int, int, int, int]] = \
                     cur.execute("SELECT role_id, price, salary, salary_cooldown, type FROM server_roles WHERE role_id = ?", (r_id,)).fetchone()
                 if not role_info:
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][17])
@@ -1061,7 +1058,7 @@ class SlashCommandsCog(Cog):
                 base.commit()
 
                 if r_sal:
-                    role_members: tuple[str] | None = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (r_id,)).fetchone()
+                    role_members: Optional[Tuple[str]] = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (r_id,)).fetchone()
                     if role_members:
                         cur.execute(
                             "UPDATE salary_roles SET members = ? WHERE role_id = ?",
@@ -1090,16 +1087,14 @@ class SlashCommandsCog(Cog):
             )
         except:
             pass
-        if chnl_id:
-            guild_log_channel: GuildChannel | None = interaction.guild.get_channel(chnl_id)
-            if isinstance(guild_log_channel, TextChannel):
-                try:
-                    await guild_log_channel.send(embed=Embed(
-                        title=text_slash[server_lng][22],
-                        description=text_slash[server_lng][23].format(f"<@{memb_id}>", f"<@&{r_id}>", sale_price, currency)
-                    ))
-                except:
-                    return
+        if chnl_id and isinstance(guild_log_channel := interaction.guild.get_channel(chnl_id), TextChannel):
+            try:
+                await guild_log_channel.send(embed=Embed(
+                    title=text_slash[server_lng][22],
+                    description=text_slash[server_lng][23].format(f"<@{memb_id}>", f"<@&{r_id}>", sale_price, currency)
+                ))
+            except:
+                return
 
     async def sell_to(self, interaction: Interaction, role: Role, price: int, target: Member) -> None:
         assert interaction.guild_id is not None
@@ -1285,7 +1280,7 @@ class SlashCommandsCog(Cog):
                         # roles to remove from db
                         for role_id in memb_roles.difference(memb_server_db_roles):
                             if cur.execute("SELECT salary FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()[0]:
-                                membs: tuple[str] | None = cur.execute(
+                                membs: Optional[Tuple[str]] = cur.execute(
                                     "SELECT members FROM salary_roles WHERE role_id = ?",
                                     (role_id,)
                                 ).fetchone()
@@ -1298,7 +1293,7 @@ class SlashCommandsCog(Cog):
                         # roles to add in db
                         for role_id in memb_server_db_roles.difference(memb_roles):
                             if cur.execute("SELECT salary FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()[0]:
-                                membs: tuple[str] | None = cur.execute(
+                                membs: Optional[Tuple[str]] = cur.execute(
                                     "SELECT members FROM salary_roles WHERE role_id = ?",
                                     (role_id,)
                                 ).fetchone()
@@ -1338,7 +1333,7 @@ class SlashCommandsCog(Cog):
 
         with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                purchase_request: tuple[int, int, int, int] | None = await self.verify_request_id(
+                purchase_request: Optional[Tuple[int, int, int, int]] = await self.verify_request_id(
                     cur=cur,
                     request_id=request_id,
                     interaction=interaction,
@@ -1363,7 +1358,7 @@ class SlashCommandsCog(Cog):
         
         role_id: int = purchase_request[2]
         guild: Guild = interaction.guild
-        role: Role | None = guild.get_role(role_id)
+        role: Optional[Role] = guild.get_role(role_id)
         if not role:
             await self.respond_with_error_report(
                 interaction=interaction,
@@ -1396,7 +1391,7 @@ class SlashCommandsCog(Cog):
             )
             return
 
-        seller: Member | None = guild.get_member(seller_id)
+        seller: Optional[Member] = guild.get_member(seller_id)
         if not seller:
             await self.respond_with_error_report(
                 interaction=interaction,
@@ -1467,7 +1462,7 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
         with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                request: tuple[int, int, int, int] | None = await self.verify_request_id(
+                request: Optional[Tuple[int, int, int, int]] = await self.verify_request_id(
                     cur=cur,
                     request_id=request_id,
                     interaction=interaction,
@@ -1540,24 +1535,19 @@ class SlashCommandsCog(Cog):
         
         descr: str = text_slash[lng][28].format(salary, currency) if not additional_income \
             else text_slash[lng][47].format(salary - additional_income, currency, additional_income, currency)
-        await interaction.response.send_message(
-            embed=Embed(
-                title=text_slash[lng][27],
-                description=descr,
-                colour=Colour.gold()
-            )
-        )
-
-        if chnl_id:
-            guild_log_channel: GuildChannel | None = interaction.guild.get_channel(chnl_id)
-            if isinstance(guild_log_channel, TextChannel):
-                try:
-                    await guild_log_channel.send(embed=Embed(
-                        title=text_slash[server_lng][29],
-                        description=text_slash[server_lng][30].format(f"<@{memb_id}>", salary, currency)
-                    ))
-                except:
-                    return
+        await interaction.response.send_message(embed=Embed(
+            title=text_slash[lng][27],
+            description=descr,
+            colour=Colour.gold()
+        ))
+        if chnl_id and isinstance(guild_log_channel := interaction.guild.get_channel(chnl_id), TextChannel):
+            try:
+                await guild_log_channel.send(embed=Embed(
+                    title=text_slash[server_lng][29],
+                    description=text_slash[server_lng][30].format(f"<@{memb_id}>", salary, currency)
+                ))
+            except:
+                return
 
     async def bet(self, interaction: Interaction, amount: int) -> None:
         assert interaction.guild_id is not None
@@ -1821,10 +1811,10 @@ class SlashCommandsCog(Cog):
                 ephemeral=True
             )
             return
-        role: Role | None = None
+        role: Optional[Role] = None
         with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                role_id_tuple: tuple[int] | None = cur.execute(
+                role_id_tuple: Optional[Tuple[int]] = cur.execute(
                     "SELECT role_id FROM store WHERE role_number = ?",
                     (role_number,)
                 ).fetchone()

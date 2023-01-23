@@ -2,7 +2,14 @@ from sqlite3 import connect
 from datetime import datetime, timedelta
 from contextlib import closing
 from os import path, mkdir
-from typing import Literal
+from typing import (
+    Optional,
+    Literal,
+    Union,
+    Tuple,
+    Dict,
+    List,
+)
 from asyncio import sleep
 from time import time
 
@@ -28,7 +35,7 @@ from config import DEBUG
 
 
 class EventsHandlerCog(Cog):
-    event_handl_text: dict[int, dict[int, str]] = {
+    event_handl_text: Dict[int, Dict[int, str]] = {
         0: {
             0: "**`Sorry, but you don't have enough permissions to use this command`**",
         },
@@ -46,7 +53,7 @@ class EventsHandlerCog(Cog):
             **`/settings`** для управления ботом\n\
             и **`/help`** для просмотра доступных команд",
     }
-    new_level_text: dict[int, dict[int, str]] = {
+    new_level_text: Dict[int, Dict[int, str]] = {
         0: {
             0: "New level!",
             1: "{}, you raised level to **{}**!",
@@ -64,8 +71,8 @@ class EventsHandlerCog(Cog):
     
     @classmethod
     async def send_first_message(cls, guild: Guild, lng: int) -> None:
-        channel_to_send_greet: TextChannel | None = None
-        system_channel: TextChannel | None = guild.system_channel
+        channel_to_send_greet: Optional[TextChannel] = None
+        system_channel: Optional[TextChannel] = guild.system_channel
         guild_me: Member = guild.me
         if system_channel and system_channel.permissions_for(guild_me).send_messages:
             channel_to_send_greet = system_channel
@@ -175,7 +182,7 @@ class EventsHandlerCog(Cog):
         for guild_id in guild_ids: 
             with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    r: list[tuple[int, str, int, int, int]] | list = \
+                    r: Union[List[Tuple[int, str, int, int, int]], List] = \
                         cur.execute(
                             "SELECT role_id, members, salary, salary_cooldown, last_time FROM salary_roles"
                         ).fetchall()
@@ -234,7 +241,7 @@ class EventsHandlerCog(Cog):
                     emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(member.mention, new_level))
                     await channel.send(embed=emb)
 
-                db_lvl_rls: list[tuple[int, int]] | list = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level").fetchall()
+                db_lvl_rls: Union[List[Tuple[int, int]], List] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level").fetchall()
                 
         if not db_lvl_rls:
             return

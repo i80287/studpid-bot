@@ -1,14 +1,16 @@
+from typing import (
+    Optional,
+    List,
+    Tuple
+)
 from nextcord import (
     SelectOption,
     Interaction
 )
 from nextcord.ui import StringSelect
 
-from typing import (
-    Optional,
-    List
-)
-from CustomComponents.view_base import ViewBase
+if __debug__:
+    from CustomComponents.view_base import ViewBase
 
 
 class CustomSelect(StringSelect):
@@ -17,7 +19,7 @@ class CustomSelect(StringSelect):
         *,
         custom_id: str,
         placeholder: str,
-        options: List[tuple[str, str]],
+        options: List[Tuple[str, str]],
         min_values: int = 1,
         max_values: int = 1,
         disabled: bool = False,

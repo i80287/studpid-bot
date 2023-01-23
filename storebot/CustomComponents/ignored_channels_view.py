@@ -1,14 +1,19 @@
-from typing import Literal
 from contextlib import closing
 from sqlite3 import connect
 from random import randint
+from typing import (
+    Literal,
+    Optional,
+    Dict
+)
 
 from nextcord import (
     ButtonStyle,
     Interaction,
-    Embed,
-    Member
+    Embed
 )
+if __debug__:
+    from nextcord import Member
 
 from Variables.vars import CWD_PATH
 from CustomComponents.view_base import ViewBase
@@ -18,7 +23,7 @@ from storebot import StoreBot
 
 
 class IgnoredChannelsView(ViewBase):
-    ignored_channels_text: dict[int, dict[int, str]] = {
+    ignored_channels_text: Dict[int, Dict[int, str]] = {
         0: {
             0: "Add channel",
             1: "Remove channel",
@@ -71,7 +76,7 @@ class IgnoredChannelsView(ViewBase):
             custom_id=f"26_{auth_id}_{randint(1, 100)}",
             disabled=rem_dis
         ))
-        self.chnl: int | None = None
+        self.chnl: Optional[int] = None
         self.g_id: int = g_id
         self.auth_id: int = auth_id
         self.bot: StoreBot = bot
@@ -150,7 +155,7 @@ class IgnoredChannelsView(ViewBase):
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.locale is not None
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-        channel_id: int | None = self.chnl
+        channel_id: Optional[int] = self.chnl
         if not channel_id:
             await interaction.response.send_message(embed=Embed(description=self.ignored_channels_text[lng][8]), ephemeral=True)
             return

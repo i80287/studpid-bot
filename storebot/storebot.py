@@ -1,5 +1,10 @@
 from asyncio import Lock
 from time import time
+from typing import (
+    List,
+    Dict,
+    Set
+)
 
 from nextcord import Intents, Member
 from nextcord.ext.commands import Bot, when_mentioned_or
@@ -18,18 +23,18 @@ class StoreBot(Bot):
         
         self.statistic_lock: Lock = Lock()
         self.bot_feedback_channel: int = FEEDBACK_CHANNEL
-        self.current_polls: list[polls.Poll] = []
+        self.current_polls: List[polls.Poll] = []
         
         self.text_lock: Lock = Lock()
         # guild_id: {text_channel_id}
-        self.ignored_text_channels: dict[int, set[int]] = {}
+        self.ignored_text_channels: Dict[int, Set[int]] = {}
 
         self.voice_lock: Lock = Lock()
         self.startup_time: int = int(time())
         # guild_id: member_id: Member
-        self.members_in_voice: dict[int, dict[int, Member]] = {}
+        self.members_in_voice: Dict[int, Dict[int, Member]] = {}
         # guild_id: {voice_channel_id}
-        self.ignored_voice_channels: dict[int, set[int]] = {}
+        self.ignored_voice_channels: Dict[int, Set[int]] = {}
 
     # just because if i put handler only in the cog i get an error message in the cmd every time
     async def on_application_command_error(*args) -> None:

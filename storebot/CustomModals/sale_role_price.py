@@ -1,4 +1,5 @@
 from random import randint
+from typing import Dict
 
 from nextcord import (
     Embed,
@@ -14,7 +15,7 @@ from Tools.db_commands import update_server_info_table
 
 
 class SalePriceModal(Modal):
-    sale_price_modal_text: dict[int, dict[int, str]] = {
+    sale_price_modal_text: Dict[int, Dict[int, str]] = {
         0: {
             0: "Change role price for sale",
             1: "Percentage of the role price for sale",
@@ -58,9 +59,7 @@ class SalePriceModal(Modal):
         assert interaction.guild_id is not None
         if not (sale_role_percent := self.check_ans(self.sell_price_percent_textinput.value)):
             await interaction.response.send_message(
-                embed=Embed(
-                    description=self.sale_price_modal_text[self.lng][3]
-                ),
+                embed=Embed(description=self.sale_price_modal_text[self.lng][3]),
                 ephemeral=True
             )
             self.stop()
