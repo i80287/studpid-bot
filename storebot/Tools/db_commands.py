@@ -257,3 +257,8 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
             base.commit()
 
             return cur.execute("SELECT chnl_id, is_text, is_voice FROM ignored_channels;").fetchall()
+
+async def make_backup(guild_id: int) -> None:
+    async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as src:
+        async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}_backup.db") as dst:
+            await src.backup(dst)

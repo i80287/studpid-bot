@@ -182,10 +182,9 @@ class EventsHandlerCog(Cog):
         for guild_id in guild_ids: 
             with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    r: Union[List[Tuple[int, str, int, int, int]], List] = \
-                        cur.execute(
-                            "SELECT role_id, members, salary, salary_cooldown, last_time FROM salary_roles"
-                        ).fetchall()
+                    r: Union[List[Tuple[int, str, int, int, int]], List] = cur.execute(
+                        "SELECT role_id, members, salary, salary_cooldown, last_time FROM salary_roles"
+                    ).fetchall()
                     if r:
                         time_now: int = int(time())
                         for role, role_owners, salary, t, last_time in r:
@@ -197,7 +196,6 @@ class EventsHandlerCog(Cog):
                                     cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, member_id))
                                     base.commit()
             await sleep(0.5)
-
     
     @salary_roles_Task.before_loop
     async def before_timer(self) -> None:
@@ -205,12 +203,10 @@ class EventsHandlerCog(Cog):
 
     @tasks.loop(minutes=30)
     async def backup_task(self) -> None:
-        guild_ids: frozenset[int] = frozenset(guild.id for guild in self.bot.guilds.copy())
+        guild_ids: List[int] = [guild.id for guild in self.bot.guilds.copy()]
         for guild_id in guild_ids:
-            with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as src:
-                with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}_backup.db")) as bck:
-                    src.backup(bck)
-            await sleep(0.5)        
+            await db_commands.make_backup(guild_id=guild_id)
+            await sleep(0.5)
 
     @backup_task.before_loop
     async def before_timer_backup(self) -> None:
@@ -219,9 +215,11 @@ class EventsHandlerCog(Cog):
     @Cog.listener()
     async def on_message(self, message: Message) -> None:
         #or message.type is MessageType.chat_input_command
-        if (member := message.author).bot or not isinstance(member, Member) or not (guild := message.guild):
+        if not isinstance(member := message.author, Member) or member.bot:
             return
         
+        guild: Optional[Guild] = message.guild
+        assert guild is not None
         g_id: int = guild.id
         async with self.bot.text_lock:
             if g_id not in self.bot.ignored_text_channels:
