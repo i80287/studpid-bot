@@ -309,11 +309,12 @@ class BasicComandsCog(Cog):
     @command(aliases=["statistic", "statistics"])
     @is_owner()
     async def _statistic(self, ctx: Context) -> None:
-        async with self.bot.lock:
+        async with self.bot.statistic_lock:
+            guilds: list[Guild] = self.bot.guilds.copy()
             description: list[str] = \
                 ["```guild - id - member_count```"] + \
-                [fr"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}" for guild in self.bot.guilds.copy()] + \
-                [f"\n**`Total guilds: {len(self.bot.guilds)}`**", f"\n**`Currently active polls: {len(self.bot.current_polls)}`**"]
+                [fr"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}" for guild in guilds] + \
+                [f"\n**`Total guilds: {len(guilds)}`**", f"\n**`Currently active polls: {len(self.bot.current_polls)}`**"]
         emb: Embed = Embed(description='\n'.join(description))
         await ctx.reply(embed=emb, mention_author=False, delete_after=15)
 
@@ -336,7 +337,7 @@ class BasicComandsCog(Cog):
             return
         
         k: int = 0
-        async with self.bot.lock:
+        async with self.bot.voice_lock:
             for guild_id, members_dict in self.bot.members_in_voice.items():
                 guild: Guild | None = self.bot.get_guild(guild_id)
                 if not guild:

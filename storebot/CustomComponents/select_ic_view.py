@@ -6,6 +6,7 @@ from os import urandom
 from nextcord import ButtonStyle, Interaction, Embed
 from nextcord.ui import View
 
+from Tools.db_commands import get_ignored_channels
 from Variables.vars import CWD_PATH
 from CustomComponents.custom_button import CustomButton
 from CustomComponents.ignored_channels_view import IgnoredChannelsView
@@ -46,17 +47,15 @@ class SelectICView(View):
 
     async def click(self, interaction: Interaction, c_id: str) -> None:
         guild_id: int = self.g_id
-        with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
-            with closing(base.cursor()) as cur:
-                db_text_chnls: list[tuple[int]] = cur.execute("SELECT chnl_id FROM ignored_channels WHERE is_text = 1").fetchall()
-                db_voice_chnls: list[tuple[int]] = cur.execute("SELECT chnl_id FROM ignored_channels WHERE is_voice = 1").fetchall()
-        
-        guild_text_ignored_channels_ids: set[int] = {tup[0] for tup in db_text_chnls}
-        guild_voice_ignored_channels_ids: set[int] = {tup[0] for tup in db_voice_chnls}
-        del db_text_chnls
-        del db_voice_chnls
-        async with self.bot.lock:
+
+        db_ignored_channels: list[tuple[int, int, int]] = await get_ignored_channels(guild_id=guild_id)
+        guild_text_ignored_channels_ids: set[int] = {tup[0] for tup in db_ignored_channels if tup[1]}
+        guild_voice_ignored_channels_ids: set[int] = {tup[0] for tup in db_ignored_channels if tup[2]}
+        del db_ignored_channels
+
+        async with self.bot.text_lock:
             self.bot.ignored_text_channels[guild_id] = guild_text_ignored_channels_ids
+        async with self.bot.voice_lock:
             self.bot.ignored_voice_channels[guild_id] = guild_voice_ignored_channels_ids
 
         lng: int = self.lng

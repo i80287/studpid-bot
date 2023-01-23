@@ -79,14 +79,14 @@ class IgnoredChannelsView(View):
                 with closing(base.cursor()) as cur:
                     cur.execute("INSERT OR IGNORE INTO ignored_channels (chnl_id, is_text, is_voice) VALUES(?, 1, 0)", (channel_id,))
                     base.commit()
-            async with self.bot.lock:
+            async with self.bot.text_lock:
                 self.bot.ignored_text_channels[guild_id].add(channel_id)
         else:
             with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("INSERT OR IGNORE INTO ignored_channels (chnl_id, is_text, is_voice) VALUES(?, 0, 1)", (channel_id,))
                     base.commit()
-            async with self.bot.lock:
+            async with self.bot.voice_lock:
                 self.bot.ignored_voice_channels[guild_id].add(channel_id)
 
         emb: Embed = interaction.message.embeds[0]
@@ -109,13 +109,13 @@ class IgnoredChannelsView(View):
                 cur.execute("DELETE FROM ignored_channels WHERE chnl_id = ?", (channel_id,))
                 base.commit()
         if self.is_text:
-            async with self.bot.lock:
+            async with self.bot.text_lock:
                 try:
                     self.bot.ignored_text_channels[self.g_id].remove(channel_id)
                 except KeyError:
                     pass
         else:
-            async with self.bot.lock:
+            async with self.bot.voice_lock:
                 try:
                     self.bot.ignored_voice_channels[self.g_id].remove(channel_id)
                 except KeyError:
@@ -147,10 +147,10 @@ class IgnoredChannelsView(View):
             return
         
         if self.is_text:
-            async with self.bot.lock:
+            async with self.bot.text_lock:
                 guild_ignored_channels: set[int] = self.bot.ignored_text_channels[self.g_id]
         else:
-            async with self.bot.lock:
+            async with self.bot.voice_lock:
                 guild_ignored_channels: set[int] = self.bot.ignored_voice_channels[self.g_id]
         
         if c_id.startswith("25_"):

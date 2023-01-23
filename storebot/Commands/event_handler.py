@@ -81,7 +81,8 @@ class EventsHandlerCog(Cog):
         if not path.exists(f"{CWD_PATH}/logs/"):
             mkdir(f"{CWD_PATH}/logs/")
 
-        for guild in self.bot.guilds.copy():
+        guilds: list[Guild] = self.bot.guilds.copy()
+        for guild in guilds:
             guild_id: int = guild.id
             
             if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
@@ -89,11 +90,12 @@ class EventsHandlerCog(Cog):
             if not path.exists(f"{CWD_PATH}/logs/logs_{guild_id}/"):
                 mkdir(f"{CWD_PATH}/logs/logs_{guild_id}/")
 
-            async with self.bot.lock:
+            db_ignored_channels_data: list[tuple[int, int, int]] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
+            async with self.bot.voice_lock:
                 self.bot.members_in_voice[guild_id] = {}
-                db_ignored_channels_data: list[tuple[int, int, int]] =  db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
-                self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
                 self.bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
+            async with self.bot.text_lock:
+                self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
 
             await Logger.write_log_async("guild.log", "correct_db func", str(guild_id), str(guild.name))
 
@@ -106,7 +108,7 @@ class EventsHandlerCog(Cog):
                 f'{Fore.RED}\n[>>>]Enter command:'
             print(opt, end=' ')
 
-        guilds_len: int = len(self.bot.guilds)
+        guilds_len: int = len(guilds)
         await self.bot.change_presence(activity=Game(f"/help on {guilds_len} servers"))
         await Logger.write_log_async("common_logs.log", "on_ready", f"total {guilds_len} guilds")
 
@@ -120,11 +122,12 @@ class EventsHandlerCog(Cog):
                 mkdir(f"{CWD_PATH}/logs/logs_{guild_id}/")
 
         guild_locale: str = str(guild.preferred_locale)
-        async with self.bot.lock:
+        db_ignored_channels_data: list[tuple[int, int, int]] =  db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
+        async with self.bot.voice_lock:
             self.bot.members_in_voice[guild_id] = {}
-            db_ignored_channels_data: list[tuple[int, int, int]] =  db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
-            self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
             self.bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
+        async with self.bot.text_lock:
+            self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
         
         lng: int = 1 if "ru" in guild_locale else 0
         try:
@@ -153,10 +156,11 @@ class EventsHandlerCog(Cog):
         await Logger.write_log_async("common_logs", "guild_remove", str(guild_id), str(guild.name))
         
         await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"))
-        async with self.bot.lock:
+        async with self.bot.voice_lock:
             del self.bot.members_in_voice[guild_id]
-            del self.bot.ignored_text_channels[guild_id]
             del self.bot.ignored_voice_channels[guild_id]
+        async with self.bot.text_lock:
+            del self.bot.ignored_text_channels[guild_id]
     
     @tasks.loop(seconds=60)
     async def salary_roles(self) -> None:
@@ -207,7 +211,7 @@ class EventsHandlerCog(Cog):
             return
         
         g_id: int = guild.id
-        async with self.bot.lock:
+        async with self.bot.text_lock:
             if g_id not in self.bot.ignored_text_channels:
                 self.bot.ignored_text_channels[g_id] = set()
             elif message.channel.id in self.bot.ignored_text_channels[g_id]:

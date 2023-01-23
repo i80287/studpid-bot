@@ -130,8 +130,9 @@ class Poll(View):
                 self.poll_final_message = await chnl.send(view=self, embed=emb)
                 
                 self.verified = True
-                self.bot.current_polls.append(self)
 
+                async with self.bot.statistic_lock:
+                    self.bot.current_polls.append(self)
             else:
                 await interaction.response.send_message(self.poll_class_text[lng][2])
     
@@ -253,7 +254,7 @@ class Poll(View):
             c.disabled = True
         await self.poll_final_message.edit(view=self, embed=emb)
         
-        async with self.bot.lock:
+        async with self.bot.statistic_lock:
             self.bot.current_polls.remove(self)
 
         self.stop()

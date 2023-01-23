@@ -44,7 +44,7 @@ class VoiceHandlerCog(Cog):
 
             guild: Guild = member.guild
             guild_id: int = guild.id
-            async with self.bot.lock:
+            async with self.bot.voice_lock:
                 if guild_id not in self.bot.ignored_voice_channels:
                     self.bot.ignored_voice_channels[guild_id] = set()
 
@@ -116,7 +116,7 @@ class VoiceHandlerCog(Cog):
 
     async def process_left_member(self, member_id: int, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str, voice_left_time: int) -> None:
         guild_id: int = guild.id
-        async with self.bot.lock:
+        async with self.bot.voice_lock:
             if member_id in self.bot.members_in_voice[guild_id]:
                 member_name: str = self.bot.members_in_voice[guild_id].pop(member_id).name
                 voice_join_time: int = 0
@@ -170,7 +170,7 @@ class VoiceHandlerCog(Cog):
     
     async def process_joined_member(self, member_id: int, member: Member, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str, voice_join_time: int) -> None:
         guild_id: int = guild.id
-        async with self.bot.lock:
+        async with self.bot.voice_lock:
             self.bot.members_in_voice[guild_id][member_id] = member
 
         await db_commands.register_user_voice_channel_join(
@@ -179,7 +179,7 @@ class VoiceHandlerCog(Cog):
             time_join=voice_join_time
         )
 
-        async with self.bot.lock:
+        async with self.bot.voice_lock:
             if channel_id in self.bot.ignored_voice_channels[guild_id]:
                 await Logger.write_guild_log_async(
                     filename="voice_logs.log",
@@ -215,7 +215,7 @@ class VoiceHandlerCog(Cog):
         channel_id: int = current_channel.id
         guild_id: int = guild.id
         
-        # self.bot.lock is already locked.
+        # self.bot.voice_lock is already locked.
         if channel_id not in self.bot.ignored_voice_channels[guild_id]:
             money_for_voice: int = await db_commands.get_server_info_value_async(guild_id=guild_id, key_name="mn_for_voice")
         else:

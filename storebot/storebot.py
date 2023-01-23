@@ -15,14 +15,20 @@ class StoreBot(Bot):
             intents=Intents.all(), 
             help_command=None
         )
-        self.lock: Lock = Lock()
+        
+        self.statistic_lock: Lock = Lock()
         self.bot_feedback_channel: int = FEEDBACK_CHANNEL
         self.current_polls: list[polls.Poll] = []
+        
+        self.text_lock: Lock = Lock()
+        # guild_id: {text_channel_id}
+        self.ignored_text_channels: dict[int, set[int]] = {}
+
+        self.voice_lock: Lock = Lock()
         self.startup_time: int = int(time())
         # guild_id: member_id: Member
         self.members_in_voice: dict[int, dict[int, Member]] = {}
-        # guild_id: {channel_id}
-        self.ignored_text_channels: dict[int, set[int]] = {}
+        # guild_id: {voice_channel_id}
         self.ignored_voice_channels: dict[int, set[int]] = {}
 
     # just because if i put handler only in the cog i get an error message in the cmd every time
