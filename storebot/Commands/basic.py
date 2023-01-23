@@ -3,11 +3,11 @@ from random import randint
 from asyncio import sleep
 from os import path
 
-from nextcord import Embed, Locale, Interaction, Game, Status, \
-    slash_command, TextInputStyle, Permissions, TextChannel, Guild
+from nextcord import Embed, Locale, Interaction, Game, Status, slash_command, \
+    TextInputStyle, Permissions, TextChannel, Thread, PartialMessageable, Guild
 from nextcord.ext.commands import command, is_owner, Context, Cog
 from nextcord.ui import Modal, TextInput
-from nextcord.abc import GuildChannel
+from nextcord.abc import GuildChannel, PrivateChannel
 
 from storebot import StoreBot
 from Variables.vars import CWD_PATH
@@ -44,7 +44,8 @@ class FeedbackModal(Modal):
         
     
     async def callback(self, interaction: Interaction) -> None:    
-
+        assert interaction.guild is not None
+        assert interaction.user is not None
         dsc: tuple[str, str, str] = (
             f"`Guild: {interaction.guild.name} - {interaction.guild_id}`",
             f"`Author: {interaction.user.name} - {interaction.user.id}`",
@@ -52,8 +53,9 @@ class FeedbackModal(Modal):
         )
 
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        chnl: GuildChannel = self.bot.get_channel(self.bot.bot_feedback_channel)
-        if chnl:
+        chnl: GuildChannel | Thread | PrivateChannel | PartialMessageable | None = \
+            self.bot.get_channel(self.bot.bot_feedback_channel)
+        if isinstance(chnl, TextChannel):
             await chnl.send(embed=Embed(description="\n".join(dsc)))
         else:
             await interaction.response.send_message(embed=Embed(description=self.feedback_text[lng][3]), content="https://discord.gg/4kxkPStDaG", ephemeral=True)
@@ -255,6 +257,7 @@ class BasicComandsCog(Cog):
         default_member_permissions=Permissions.administrator.flag
     )
     async def feedback(self, interaction: Interaction) -> None:
+        assert interaction.user is not None
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         mdl: FeedbackModal = FeedbackModal(bot=self.bot, lng=lng, auth_id=interaction.user.id)
         await interaction.response.send_modal(modal=mdl)

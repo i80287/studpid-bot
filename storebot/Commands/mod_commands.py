@@ -45,10 +45,8 @@ class ModCommandsCog(Cog):
 
     @staticmethod
     def mod_check(interaction: Interaction) -> bool:
-        member: User | Member | None = interaction.user
-        if not isinstance(member, Member):
-            return False
-        
+        assert isinstance(interaction.user, Member)
+        member: Member = interaction.user
         if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
             return True
 
@@ -71,7 +69,9 @@ class ModCommandsCog(Cog):
     )
     @application_checks.check(mod_check)
     async def settings(self, interaction: Interaction) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.locale is not None
+        assert interaction.user is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         st_view: SettingsView = SettingsView(t_out=120, auth_id=interaction.user.id, bot=self.bot)
         emb: Embed = Embed(title=self.settings_text[lng][0], description="\n".join(self.settings_text[lng][1]))
         await interaction.response.send_message(embed=emb, view=st_view)

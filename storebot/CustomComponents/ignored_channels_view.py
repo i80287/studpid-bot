@@ -3,7 +3,7 @@ from contextlib import closing
 from sqlite3 import connect
 from random import randint
 
-from nextcord import ButtonStyle, Interaction, Embed
+from nextcord import ButtonStyle, Interaction, Embed, Member
 from nextcord.ui import View
 
 from Variables.vars import CWD_PATH
@@ -89,11 +89,13 @@ class IgnoredChannelsView(View):
             async with self.bot.voice_lock:
                 self.bot.ignored_voice_channels[guild_id].add(channel_id)
 
+        assert interaction.message is not None
         emb: Embed = interaction.message.embeds[0]
+        assert emb.description is not None
         dsc: list[str] = emb.description.split("\n")
         if len(dsc) == 1:
             emb.description = self.ignored_channels_text[lng][4] + f"\n<#{channel_id}>**` - {channel_id}`**"
-            self.children[-1].disabled = False
+            self.children[-1].disabled = False # type: ignore
             await interaction.message.edit(embed=emb, view=self)
         else:
             dsc.append(f"<#{channel_id}>**` - {channel_id}`**")
@@ -120,11 +122,12 @@ class IgnoredChannelsView(View):
                     self.bot.ignored_voice_channels[self.g_id].remove(channel_id)
                 except KeyError:
                     pass
-
+        assert interaction.message is not None
         emb: Embed = interaction.message.embeds[0]
+        assert emb.description is not None
         dsc: list[str] = emb.description.split('\n')
         if len(dsc) <= 2:
-            self.children[-1].disabled = True
+            self.children[-1].disabled = True # type: ignore
             emb.description = self.ignored_channels_text[lng][5]
             await interaction.message.edit(embed=emb, view=self)
         else:
@@ -140,7 +143,8 @@ class IgnoredChannelsView(View):
         self.chnl = None
 
     async def click(self, interaction: Interaction, c_id: str) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.locale is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         channel_id: int | None = self.chnl
         if not channel_id:
             await interaction.response.send_message(embed=Embed(description=self.ignored_channels_text[lng][8]), ephemeral=True)
@@ -169,8 +173,10 @@ class IgnoredChannelsView(View):
             self.chnl = int(values[0])
 
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=self.ignored_channels_text[lng][11]), ephemeral=True)
             return False
         return True

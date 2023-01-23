@@ -5,7 +5,8 @@ from typing import Literal
 from asyncio import sleep
 from time import time
 
-from nextcord import slash_command, Message, Interaction, Embed, ButtonStyle, Colour, Locale, SlashOption, NotFound
+from nextcord import slash_command, Message, Interaction, Embed, \
+    ButtonStyle, Colour, Locale, SlashOption, NotFound, Guild, TextChannel
 from nextcord.ext.commands import Cog
 from nextcord.ui import Button, View
 
@@ -19,7 +20,9 @@ class cutom_button_with_row(Button):
         super().__init__(label=label, disabled=disabled, style=style, row=row)
 
     async def callback(self, interaction: Interaction) -> None:
-        await super().view.click_row_button(interaction=interaction, label=super().label)
+        assert self.label is not None
+        assert isinstance(self.view, Poll)
+        await self.view.click_row_button(interaction=interaction, label=self.label)
 
 
 class custom_button(Button):
@@ -27,7 +30,9 @@ class custom_button(Button):
         super().__init__(label=label, disabled=disabled, style=style)
     
     async def callback(self, interaction: Interaction) -> None:
-        await super().view.click(interaction=interaction, label=super().label)
+        assert self.label is not None
+        assert isinstance(self.view, Poll)
+        await self.view.click(interaction=interaction, label=self.label)
 
 
 class Poll(View):
@@ -75,75 +80,80 @@ class Poll(View):
         self.verified: bool = False
         self.anon: bool = True
         self.mult: bool = True
-        self.lng: int = 0
+        self.lng: Literal[1, 0] = 0
         self.bot: StoreBot = bot    
 
     def init_timeout(self) -> None:
         super().__init__(timeout=self.timeout)
 
     def init_buttons(self) -> None:
-        for i in range(self.n):
-            self.add_item(custom_button(label=f"{i+1}", disabled=True, style=ButtonStyle.blurple))
+        for i in range(1, self.n + 1):
+            self.add_item(custom_button(label=str(i), disabled=True, style=ButtonStyle.blurple))
         self.add_item(cutom_button_with_row(label="approve", disabled=False, style=ButtonStyle.green, row=(self.n + 4) // 5 + 1))
         self.add_item(cutom_button_with_row(label="disapprove", disabled=False, style=ButtonStyle.red, row=(self.n + 4) // 5 + 1))
 
     def init_ans(self) -> None:
         self.voters: list[set] = [set() for _ in range(self.n)]      
 
-    async def click_row_button(self, interaction: Interaction, label) -> None:
-        g = interaction.guild
+    async def click_row_button(self, interaction: Interaction, label: str) -> None:
+        assert interaction.guild is not None
+        assert interaction.message is not None
+        assert interaction.user is not None
+        guild: Guild = interaction.guild
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
 
-        with closing(connect(f"{CWD_PATH}/bases/bases_{g.id}/{g.id}.db")) as base:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{guild.id}/{guild.id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if not ModCommandsCog.mod_check(interaction=interaction):
                     await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][11]), ephemeral=True)
                     return
                 chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
 
-        if label == "disapprove":
-            for i in self.children:
-                i.disabled = True
-            emb: Embed = interaction.message.embeds[0]
-            emb.description = f"{self.poll_class_text[lng][0]}{interaction.user.mention}\n" + emb.description
-            await interaction.message.edit(view=self, embed=emb)
-            self.stop()
+        emb: Embed = interaction.message.embeds[0]
+        assert emb.description is not None
+        match label:
+            case "disapprove":
+                for item in self.children:
+                    item.disabled = True # type: ignore
 
-        elif label == "approve":
-            if chnl_id and (chnl := g.get_channel(chnl_id)):
-                emb = interaction.message.embeds[0]
-                o_dsc: str = emb.description
-                emb.description = f"{self.poll_class_text[lng][1]}{interaction.user.mention}\n" + emb.description
-                self.children[-1].disabled = True
-                self.children[-2].disabled = True
+                emb.description = f"{self.poll_class_text[lng][0]}{interaction.user.mention}\n" + emb.description
                 await interaction.message.edit(view=self, embed=emb)
+                self.stop()
+            case "approve":
+                if chnl_id and isinstance(chnl := guild.get_channel(chnl_id), TextChannel):
+                    o_dsc: str = emb.description
+                    emb.description = f"{self.poll_class_text[lng][1]}{interaction.user.mention}\n" + emb.description
+                    self.children[-1].disabled = True # type: ignore
+                    self.children[-2].disabled = True # type: ignore
+                    await interaction.message.edit(view=self, embed=emb)
 
-                i: int = 0
-                while i < len(self.children):
-                    if "prove" in self.children[i].label:
-                        self.remove_item(self.children[i])
-                    else:
-                        self.children[i].disabled = False
-                        i += 1
+                    i: int = 0
+                    while i < len(self.children):
+                        if "prove" in self.children[i].label: # type: ignore
+                            self.remove_item(self.children[i])
+                        else:
+                            self.children[i].disabled = False # type: ignore
+                            i += 1
 
-                emb.description = o_dsc
-                self.poll_final_message = await chnl.send(view=self, embed=emb)
-                
-                self.verified = True
+                    emb.description = o_dsc
+                    self.poll_final_message = await chnl.send(view=self, embed=emb)
+                    
+                    self.verified = True
 
-                async with self.bot.statistic_lock:
-                    self.bot.current_polls.append(self)
-            else:
-                await interaction.response.send_message(self.poll_class_text[lng][2])
+                    async with self.bot.statistic_lock:
+                        self.bot.current_polls.append(self)
+                else:
+                    await interaction.response.send_message(self.poll_class_text[lng][2])
     
     async def update_votes(self, interaction: Interaction, L: int, val: bool) -> None:
+        assert interaction.message is not None
         emb: Embed = interaction.message.embeds[0]
         field = emb.fields[L-1]
-
+        assert emb.author.name is not None
         text1: str = emb.author.name
         t1: int = text1.rfind(": ")
         total_votes: int = int(text1[t1+2:])
-
+        assert field.value is not None
         text2: str = field.value
         t2: int = text2.rfind(": ")
         cur_votes: int = int(text2[t2+2:])
@@ -162,6 +172,7 @@ class Poll(View):
         await interaction.message.edit(embed=emb)
     
     async def click(self, interaction: Interaction, label: str) -> None:
+        assert interaction.user is not None
         if not label.isdigit():
             return
 
@@ -251,7 +262,8 @@ class Poll(View):
         emb: Embed = Embed(description="\n".join(dsc))
         
         for c in self.children:
-            c.disabled = True
+            c.disabled = True # type: ignore
+        assert self.poll_final_message is not None
         await self.poll_final_message.edit(view=self, embed=emb)
         
         async with self.bot.statistic_lock:
@@ -523,12 +535,16 @@ class PollCog(Cog):
             default=""
         )
     ) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild_id is not None
+        assert interaction.locale is not None
+        assert interaction.guild is not None
+        assert interaction.user is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         g_id: int = interaction.guild_id
         with closing(connect(f"{CWD_PATH}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
-                if not chnl_id or not (chnl := interaction.guild.get_channel(chnl_id)):
+                if not chnl_id or not isinstance(chnl := interaction.guild.get_channel(chnl_id), TextChannel):
                     await interaction.response.send_message(embed=Embed(description=self.polls_text[lng][0], colour=Colour.red()), ephemeral=True)
                     return                    
         

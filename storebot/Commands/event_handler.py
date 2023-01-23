@@ -256,7 +256,8 @@ class EventsHandlerCog(Cog):
     @Cog.listener()
     async def on_application_command_error(self, interaction: Interaction, exception) -> None:
         if isinstance(exception, ApplicationCheckFailure):
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            assert interaction.locale is not None
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=self.event_handl_text[lng][0]), ephemeral=True)
             return
 

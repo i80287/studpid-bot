@@ -253,8 +253,10 @@ class BetView(View):
         ))
 
     async def click_b(self, interaction: Interaction, c_id: str) -> None:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         memb_id: int = interaction.user.id
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
 
         if c_id.startswith("36_"):
             if memb_id == self.auth_id:
@@ -376,6 +378,8 @@ class StoreView(View):
             self.db_store.sort(key=lambda tup: tup[4], reverse=True)
 
     async def update_menu(self, interaction: Interaction, click: int) -> None:
+        assert interaction.message is not None
+        assert interaction.message.embeds[0].footer.text is not None
         text: str = interaction.message.embeds[0].footer.text
 
         if not self.lng:
@@ -445,29 +449,31 @@ class StoreView(View):
         if c_id.startswith("102_"):
             if values[0].isdigit() and int(values[0]):
                 self.sort_by_price = False
-                self.children[4].options[0].default = False
-                self.children[4].options[1].default = True
+                self.children[4].options[0].default = False # type: ignore
+                self.children[4].options[1].default = True # type: ignore
             else:
                 self.sort_by_price = True
-                self.children[4].options[0].default = True
-                self.children[4].options[1].default = False
+                self.children[4].options[0].default = True # type: ignore
+                self.children[4].options[1].default = False # type: ignore
 
         elif c_id.startswith("103_"):
             if values[0].isdigit() and int(values[0]):
                 self.sort_reversed = True
-                self.children[5].options[0].default = False
-                self.children[5].options[1].default = True
+                self.children[5].options[0].default = False # type: ignore
+                self.children[5].options[1].default = True # type: ignore
             else:
                 self.sort_reversed = False
-                self.children[5].options[0].default = True
-                self.children[5].options[1].default = False
+                self.children[5].options[0].default = True # type: ignore
+                self.children[5].options[1].default = False # type: ignore
 
         self.sort_store()
         await self.update_menu(interaction=interaction, click=0)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
             return False
         return True
@@ -497,8 +503,10 @@ class BuyView(View):
             self.stop()
 
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
             return False
         return True
@@ -526,13 +534,13 @@ class RatingView(View):
             opts: list[SelectOption] = [
                 SelectOption(
                     label=rating_text[lng][6],
-                    value=0,
+                    value="0",
                     emoji="💰",
                     default=True
                 ),
                 SelectOption(
                     label=rating_text[lng][7],
-                    value=1,
+                    value="1",
                     emoji="✨",
                     default=False
                 )
@@ -550,7 +558,8 @@ class RatingView(View):
         #     t1 = page_text.find("Ст")
         #     t2 = page_text.find("из", t1)
         #     page = int(page_text[t1+9:t2-1])
-
+        assert interaction.message is not None
+        assert interaction.message.embeds[0].footer.text is not None
         page: int = int(interaction.message.embeds[0].footer.text.split(" ")[1])
 
         if click in {1, 2} and page <= 1:
@@ -608,18 +617,20 @@ class RatingView(View):
         if c_id.startswith("104_"):
             if values[0].isdigit() and int(values[0]):
                 self.sort_value = False
-                self.children[4].options[0].default = False
-                self.children[4].options[1].default = True
+                self.children[4].options[0].default = False # type: ignore
+                self.children[4].options[1].default = True # type: ignore
             else:
                 self.sort_value = True
-                self.children[4].options[0].default = True
-                self.children[4].options[1].default = False
+                self.children[4].options[0].default = True # type: ignore
+                self.children[4].options[1].default = False # type: ignore
 
         await self.update_menu(interaction=interaction, click=0)
 
     async def interaction_check(self, interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
             return False
         return True
@@ -715,6 +726,7 @@ class SlashCommandsCog(Cog):
     @classmethod
     async def can_role(cls, interaction: Interaction, role: Role, lng: int) -> bool:
         # if not interaction.permissions.manage_roles:
+        assert interaction.guild is not None
         if not interaction.guild.me.guild_permissions.manage_roles:
             await cls.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][1])
             return False
@@ -725,13 +737,14 @@ class SlashCommandsCog(Cog):
         return True
 
     @classmethod
-    async def verify_request_id(cls, cur: Cursor, request_id: int, interaction: Interaction, memb_id: int) -> tuple[int, int, int, int] | None:
+    async def verify_request_id(cls, cur: Cursor, request_id: int, interaction: Interaction, memb_id: int) -> tuple[int, int, int, int] | None:        
+        assert interaction.locale is not None
         request: tuple[int, int, int, int] | None = cur.execute(
             "SELECT seller_id, target_id, role_id, price FROM sale_requests WHERE request_id = ? AND (seller_id = ? OR target_id = ?)",
             (request_id, memb_id, memb_id)
         ).fetchone()
         if not request:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await cls.respond_with_error_report(interaction=interaction, lng=lng, answer=cls.manage_requests_text[lng][0])
         return request
 
@@ -747,7 +760,11 @@ class SlashCommandsCog(Cog):
         )
 
     async def buy(self, interaction: Interaction, role: Role) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
 
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
@@ -777,7 +794,7 @@ class SlashCommandsCog(Cog):
         
         buyer: tuple[int, int, str, int, int, int] = await check_member_async(guild_id=guild_id, member_id=memb_id)
 
-        # if r_id in {int(x) for x in buyer[2].split("#") if x != ""}:
+        # if r_id in {int(x) for x in buyer[2].split("#") if x}:
         if str(r_id) in buyer[2]:
             await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][4])
             return
@@ -864,8 +881,11 @@ class SlashCommandsCog(Cog):
                     return
 
     async def store(self, interaction: Interaction) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild.id}/{interaction.guild.id}.db")) as base:
+        assert interaction.guild_id is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
+        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
                     await interaction.response.send_message(
@@ -927,14 +947,19 @@ class SlashCommandsCog(Cog):
 
         await store_view.wait()
         for button in store_view.children:
-            button.disabled = True
+            button.disabled = True # type: ignore
         try:
             await interaction.edit_original_message(view=store_view)
         except:
             return
 
     async def sell(self, interaction: Interaction, role: Role) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.user is not None
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
         
@@ -1059,7 +1084,10 @@ class SlashCommandsCog(Cog):
                     return
 
     async def sell_to(self, interaction: Interaction, role: Role, price: int, target: Member) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild_id is not None
+        assert interaction.locale is not None
+        assert interaction.user is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
         memb_id: int = interaction.user.id
@@ -1129,7 +1157,11 @@ class SlashCommandsCog(Cog):
         )
 
     async def profile(self, interaction: Interaction) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         memb_id: int = interaction.user.id
         guild_id: int = interaction.guild_id
 
@@ -1278,9 +1310,13 @@ class SlashCommandsCog(Cog):
         await interaction.response.send_message(embeds=embs)
 
     async def accept_request(self, interaction: Interaction, request_id: int) -> None:
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         guild_id: int = interaction.guild_id
         memb_id: int = interaction.user.id
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
 
         with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
@@ -1406,6 +1442,9 @@ class SlashCommandsCog(Cog):
             ))
 
     async def decline_request(self, interaction: Interaction, request_id: int) -> None:
+        assert interaction.guild_id is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         guild_id: int = interaction.guild_id
         memb_id: int = interaction.user.id
         with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
@@ -1420,7 +1459,7 @@ class SlashCommandsCog(Cog):
                     return
                 cur.execute("DELETE FROM sale_requests WHERE request_id = ?", (request_id,))
                 base.commit()
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         decr: str = self.manage_requests_text[lng][9] \
             if memb_id == request[0] else self.manage_requests_text[lng][10]
         await interaction.response.send_message(
@@ -1432,7 +1471,11 @@ class SlashCommandsCog(Cog):
         )
 
     async def work(self, interaction: Interaction) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
         memb_id: int = interaction.user.id
 
@@ -1499,7 +1542,11 @@ class SlashCommandsCog(Cog):
                     return
 
     async def bet(self, interaction: Interaction, amount: int) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         memb_id: int = interaction.user.id
         guild_id: int = interaction.guild_id
 
@@ -1526,7 +1573,7 @@ class SlashCommandsCog(Cog):
             emb.description = text_slash[lng][34]
 
         for c in bet_view.children:
-            c.disabled = True
+            c.disabled = True # type: ignore
 
         if not bet_view.dueler:
             if bet_view.declined:
@@ -1575,9 +1622,13 @@ class SlashCommandsCog(Cog):
                 return
 
     async def transfer(self, interaction: Interaction, value: int, target: Member) -> None:
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         memb_id: int = interaction.user.id
         t_id: int = target.id
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
 
         act: tuple[int, int, str, int, int, int] = await check_member_async(guild_id=guild_id, member_id=memb_id)
@@ -1617,7 +1668,10 @@ class SlashCommandsCog(Cog):
                 return
 
     async def leaders(self, interaction: Interaction) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild_id is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
 
         await check_member_async(guild_id=guild_id, member_id=interaction.user.id)
@@ -1684,7 +1738,7 @@ class SlashCommandsCog(Cog):
         await rate_view.wait()
 
         for c in rate_view.children:
-            c.disabled = True
+            c.disabled = True # type: ignore
         try:
             await interaction.edit_original_message(view=rate_view)
         except:
@@ -1738,7 +1792,10 @@ class SlashCommandsCog(Cog):
             required=True
         )
     ) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         if role_number < 1:
             await interaction.response.send_message(
                 embed=Embed(colour=Colour.red(),

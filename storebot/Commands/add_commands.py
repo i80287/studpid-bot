@@ -198,6 +198,8 @@ class AdditionalCommandsCog(Cog):
             required=True
         )
     ) -> None:
+        assert interaction.guild_id is not None
+        assert interaction.user is not None
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
 
@@ -232,6 +234,9 @@ class AdditionalCommandsCog(Cog):
         dm_permission=False
     )
     async def server(self, interaction: Interaction) -> None:
+        assert interaction.guild is not None
+        assert interaction.guild_id is not None
+        assert interaction.user is not None
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
 
@@ -262,13 +267,13 @@ class AdditionalCommandsCog(Cog):
         lc_s: dict[int, str] = self.server_info_text[lng]
         for i in (0,):
             emb.add_field(name=lc_s[i * 4], value=f"{self.emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{self.emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\
-            \n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`")
+            \n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`") # type: ignore
 
         emb.add_field(name=lc_s[12], value=f"{self.emojis[9]}`{lc_s[13]}` - `{onl}`\n{self.emojis[10]}`{lc_s[14]}` - `{idl}`\n{self.emojis[11]}`{lc_s[15]}` - `{dnd}`\n{self.emojis[12]}`{lc_s[16]}` - `{ofl}`")
 
         for i in (1, 2):
             emb.add_field(name=lc_s[i * 4], value=f"{self.emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{self.emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\
-            \n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`")
+            \n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`") # type: ignore
         
         for i in (17, 18):
             emb.add_field(name=lc_s[i], value=f"`{vls[i - 11]}`")

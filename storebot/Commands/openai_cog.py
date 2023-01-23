@@ -61,6 +61,8 @@ class OpenAICog(Cog):
             max_length=420
         )
     ) -> None:
+        assert interaction.user is not None
+        assert interaction.guild is not None
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         if self.words_filter.findall(question):
             await interaction.response.send_message(embed=Embed(description=self.openai_cog_text[lng][0]))
@@ -77,7 +79,7 @@ class OpenAICog(Cog):
                 frequency_penalty=0.5,
                 presence_penalty=0.0
             )
-        answer: str = response.choices[0].text.strip('\n')
+        answer: str = response.choices[0].text.strip('\n') # type: ignore
         await interaction.followup.send(embed=Embed(description=self.openai_cog_text[lng][2].format(answer)))
         await Logger.write_log_async(
             "openai_logs.log",

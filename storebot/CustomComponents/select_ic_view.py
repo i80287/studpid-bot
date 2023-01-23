@@ -1,13 +1,10 @@
 from typing import Literal
-from contextlib import closing
-from sqlite3 import connect
 from os import urandom
 
-from nextcord import ButtonStyle, Interaction, Embed
+from nextcord import ButtonStyle, Interaction, Embed, Member
 from nextcord.ui import View
 
 from Tools.db_commands import get_ignored_channels
-from Variables.vars import CWD_PATH
 from CustomComponents.custom_button import CustomButton
 from CustomComponents.ignored_channels_view import IgnoredChannelsView
 from storebot import StoreBot
@@ -46,8 +43,8 @@ class SelectICView(View):
         self.lng: int = lng
 
     async def click(self, interaction: Interaction, c_id: str) -> None:
+        assert interaction.guild is not None
         guild_id: int = self.g_id
-
         db_ignored_channels: list[tuple[int, int, int]] = await get_ignored_channels(guild_id=guild_id)
         guild_text_ignored_channels_ids: set[int] = {tup[0] for tup in db_ignored_channels if tup[1]}
         guild_voice_ignored_channels_ids: set[int] = {tup[0] for tup in db_ignored_channels if tup[2]}
@@ -118,8 +115,10 @@ class SelectICView(View):
                     return
 
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=IgnoredChannelsView.ignored_channels_text[lng][11]), ephemeral=True)
             return False
         return True

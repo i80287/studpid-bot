@@ -1,3 +1,4 @@
+import re
 from asyncio import sleep, TimeoutError
 from contextlib import closing
 from sqlite3 import connect
@@ -5,7 +6,7 @@ from typing import Literal
 from random import randint
 
 from nextcord import Embed, Emoji, Interaction,\
-    ButtonStyle, Message, Member
+    ButtonStyle, Message, Member, Guild, Role
 from nextcord.ui import View
 
 from storebot import StoreBot
@@ -389,10 +390,12 @@ class GenSettingsView(View):
         self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"44_{auth_id}_{randint(1, 100)}", emoji="📈", row=2))
         
     async def select_lng(self, interaction: Interaction, lng: int) -> None:
+        assert interaction.guild_id is not None
         s_lng: int | None = self.lang
         if s_lng is None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][22]), ephemeral=True)
             return
+
         g_id: int = interaction.guild_id
         with closing(connect(f"{CWD_PATH}/bases/bases_{g_id}/{g_id}.db")) as base:
             with closing(base.cursor()) as cur:
@@ -404,7 +407,9 @@ class GenSettingsView(View):
         
         s_lng_nm: str = languages[lng][s_lng]
         
+        assert interaction.message is not None
         emb: Embed = interaction.message.embeds[0]
+        assert emb.description is not None
         dsc: list[str] = emb.description.split("\n")
         dsc[0] = gen_settings_text[lng][0].format(s_lng_nm)
         emb.description = "\n".join(dsc)
@@ -422,8 +427,11 @@ class GenSettingsView(View):
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (tz,))
                 base.commit()
+        
+        assert interaction.message is not None
         formatted_tz: str =  f"+{tz}" if tz >= 0 else str(tz)
         emb: Embed = interaction.message.embeds[0]
+        assert emb.description is not None
         dsc: list[str] = emb.description.split("\n")
         dsc[1] = gen_settings_text[lng][1].format(formatted_tz)
         emb.description = "\n".join(dsc)
@@ -453,7 +461,9 @@ class GenSettingsView(View):
                     cur.execute("UPDATE server_info SET str_value = ? WHERE settings = 'currency'", (emoji_str,))
                     base.commit()
 
+            assert interaction.message is not None
             emb: Embed = interaction.message.embeds[0]
+            assert emb.description is not None
             dsc: list[str] = emb.description.split("\n")
             dsc[2] = gen_settings_text[lng][2].format(emoji_str)
             emb.description = "\n".join(dsc)
@@ -473,7 +483,9 @@ class GenSettingsView(View):
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_for_voice'", (self.ec_status*6,))
                 base.commit()
 
+        assert interaction.message is not None
         emb: Embed = interaction.message.embeds[0]
+        assert emb.description is not None
         dsc: list[str] = emb.description.split("\n")
         dsc[3] = gen_settings_text[lng][3].format(system_status[lng][self.ec_status])
         dsc[8] = gen_settings_text[lng][8].format(system_status[lng][self.ec_status+2])
@@ -491,7 +503,9 @@ class GenSettingsView(View):
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_for_voice'", (self.rnk_status*6,))
                 base.commit()
         
+        assert interaction.message is not None
         emb: Embed = interaction.message.embeds[0]
+        assert emb.description is not None
         dsc: list[str] = emb.description.split("\n")
         dsc[4] = gen_settings_text[lng][4].format(system_status[lng][self.rnk_status])
         dsc[9] = gen_settings_text[lng][9].format(system_status[lng][self.rnk_status+2])
@@ -501,7 +515,8 @@ class GenSettingsView(View):
         await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][28].format(system_status[lng][self.rnk_status+4])), ephemeral=True)
 
     async def click(self, interaction: Interaction, c_id: str) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0        
+        assert interaction.locale is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0        
         if c_id.startswith("6_"):
             await self.select_lng(interaction=interaction, lng=lng)
         elif c_id.startswith("7_"):
@@ -520,8 +535,10 @@ class GenSettingsView(View):
             self.tz = int(values[0])
     
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
@@ -540,6 +557,8 @@ class ModRolesView(View):
     
 
     async def add_role(self, interaction: Interaction, lng: int) -> None:
+        assert interaction.message is not None
+        assert self.role is not None
         rl_id: int = self.role
         if rl_id in self.m_rls:
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][7]), ephemeral=True)
@@ -553,11 +572,12 @@ class ModRolesView(View):
         self.m_rls.add(rl_id)
         
         emb: Embed = interaction.message.embeds[0]
+        assert emb.description is not None
         dsc: list[str] = emb.description.split("\n")
         if len(self.m_rls) == 1:
             for c in self.children:
-                if c.custom_id.startswith("9_"):
-                    c.disabled = False
+                if c.custom_id.startswith("9_"): # type: ignore
+                    c.disabled = False # type: ignore
             emb.description = f"{mod_roles_text[lng][2]}\n<@&{rl_id}> - {rl_id}"
             await interaction.message.edit(view=self, embed=emb)
         else:
@@ -570,6 +590,8 @@ class ModRolesView(View):
     
 
     async def rem_role(self, interaction: Interaction, lng: int) -> None:
+        assert interaction.message is not None
+        assert self.role is not None
         rl_id: int = self.role
         if not rl_id in self.m_rls:
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][9]), ephemeral=True)
@@ -583,14 +605,15 @@ class ModRolesView(View):
         emb: Embed = interaction.message.embeds[0]
 
         if self.m_rls:
+            assert emb.description is not None
             dsc: list[str] = emb.description.split("\n")
             dsc.remove(f"<@&{rl_id}> - {rl_id}")
             emb.description = "\n".join(sorted(dsc))
             await interaction.message.edit(embed=emb)
         else:
             for c in self.children:
-                if c.custom_id.startswith("9_"):
-                    c.disabled = True
+                if c.custom_id.startswith("9_"): # type: ignore
+                    c.disabled = True # type: ignore
             emb.description = mod_roles_text[lng][1]
             await interaction.message.edit(embed=emb, view=self)
 
@@ -599,7 +622,9 @@ class ModRolesView(View):
 
 
     async def click(self, interaction: Interaction, c_id: str) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         if self.role is None:
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
             return
@@ -620,8 +645,10 @@ class ModRolesView(View):
             self.role = int(values[0])
     
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
@@ -668,7 +695,9 @@ class EconomyView(View):
             except:
                 pass
             
+            assert interaction.message is not None
             emb: Embed = interaction.message.embeds[0]
+            assert emb.description is not None
             dsc: list[str] = emb.description.split("\n\n")
             dsc[0] = ec_text[lng][1].format(ans, self.currency)
             emb.description = "\n\n".join(dsc)
@@ -689,7 +718,9 @@ class EconomyView(View):
             except:
                 pass
             
+            assert interaction.message is not None
             emb: Embed = interaction.message.embeds[0]
+            assert emb.description is not None
             dsc: list[str] = emb.description.split("\n\n")
             dsc[1] = ec_text[lng][2].format(ans)
             emb.description = "\n\n".join(dsc)
@@ -723,7 +754,9 @@ class EconomyView(View):
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_r'", (n2,))
                     base.commit()
             
+            assert interaction.message is not None
             emb: Embed = interaction.message.embeds[0]
+            assert emb.description is not None
             dsc: list[str] = emb.description.split("\n\n")
             if n1 == n2:
                 try:
@@ -757,7 +790,9 @@ class EconomyView(View):
         await voice_income_modal.wait()
         if (new_voice_income := voice_income_modal.voice_income) != self.voice_income:
             self.voice_income = new_voice_income
+            assert interaction.message is not None
             emb: Embed = interaction.message.embeds[0]
+            assert emb.description is not None
             descript_lines: list[str] = emb.description.split("\n\n")
             descript_lines[3] = ec_text[lng][5].format(new_voice_income, self.currency)
             emb.description = "\n\n".join(descript_lines)
@@ -775,13 +810,17 @@ class EconomyView(View):
         await sale_price_modal.wait()
         if (new_sale_percent := sale_price_modal.new_sale_role_percent) is not None:
             self.sale_price_percent = new_sale_percent
+            assert interaction.message is not None
             emb: Embed = interaction.message.embeds[0]
+            assert emb.description is not None
             descript_lines: list[str] = emb.description.split("\n\n")
             descript_lines[4] = ec_text[lng][6].format(new_sale_percent)
             emb.description = "\n\n".join(descript_lines)
             await interaction.message.edit(embed=emb)
 
     async def log_chnl(self, interaction: Interaction, lng: int) -> None:
+        assert interaction.guild is not None
+        assert interaction.message is not None
         channels: list[tuple[str, int]] = [(c.name, c.id) for c in interaction.guild.text_channels]
         for i in range(min((len(channels) + 23) // 24, 7)):
             opts: list[tuple[str, int]] = [(settings_text[lng][12], 0)] + channels[i*24:min((i+1)*24, len(channels))]
@@ -797,7 +836,7 @@ class EconomyView(View):
 
         i: int = 0
         while i < len(self.children):
-            if self.children[i].custom_id.startswith("5"):
+            if self.children[i].custom_id.startswith("5"): # type: ignore
                 self.remove_item(item=self.children[i])
             else:
                 i += 1
@@ -817,6 +856,7 @@ class EconomyView(View):
                 base.commit()
         
         emb: Embed = interaction.message.embeds[0]
+        assert emb.description is not None
         dsc: list[str] = emb.description.split("\n\n")
         if self.channel:
             dsc[5] = ec_text[lng][7].format(f"<#{self.channel}>")
@@ -864,6 +904,7 @@ class EconomyView(View):
                     descr: list[str] = [ec_text[lng][20]]
         descr.append('\n' + ec_text[lng][21])
         
+        assert interaction.guild is not None
         assignable_roles: list[tuple[str, int]] = [(r.name, r.id) for r in interaction.guild.roles if r.is_assignable()]
         remove_role_button_is_disabled: bool = False if assignable_roles else True
         ec_rls_view: EconomyRolesManageView = EconomyRolesManageView(
@@ -877,14 +918,15 @@ class EconomyView(View):
         await interaction.response.send_message(embed=Embed(description='\n'.join(descr)), view=ec_rls_view)
         await ec_rls_view.wait()
         for c in ec_rls_view.children:
-            c.disabled = True
+            c.disabled = True # type: ignore
         try:
             await interaction.edit_original_message(view=ec_rls_view)
         except:
             pass
     
     async def click(self, interaction: Interaction, c_id: str) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.locale is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         int_custom_id: int = int(c_id[:2])
         match int_custom_id:
             case 13:
@@ -900,24 +942,24 @@ class EconomyView(View):
                     return
                 await interaction.response.send_message(embed=Embed(description=ec_text[lng][10 + (int_custom_id - 10) * 2]), ephemeral=True)
                 flag: bool = True
+                author_id: int = self.auth_id
                 while flag:
                     try:
                         user_ans: Message = await interaction.client.wait_for(
                             event="message",
-                            check=lambda m: m.author.id == self.auth_id and m.channel.id == interaction.channel_id,
+                            check=lambda m: m.author.id == author_id and m.channel.id == interaction.channel_id,
                             timeout=40
                         )
                     except TimeoutError:
                         flag = False
                     else:
-                        ans: str = user_ans.content
-                        if int_custom_id == 10: 
-                            flag = await self.msg_salary(interaction=interaction, lng=lng, ans=ans)
-                        elif int_custom_id == 11: 
-                            flag = await self.work_cldwn(interaction=interaction, lng=lng, ans=ans)
-                        elif int_custom_id == 12: 
-                            flag = await self.work_salary(interaction=interaction, lng=lng, ans=ans)
-                        # try to delete user's ans
+                        match int_custom_id:
+                            case 10:
+                                flag = await self.msg_salary(interaction=interaction, lng=lng, ans=user_ans.content)
+                            case 11: 
+                                flag = await self.work_cldwn(interaction=interaction, lng=lng, ans=user_ans.content)
+                            case 12: 
+                                flag = await self.work_salary(interaction=interaction, lng=lng, ans=user_ans.content)
                         try:
                             await user_ans.delete()
                         except:
@@ -928,8 +970,10 @@ class EconomyView(View):
             self.channel = int(values[0])
 
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
@@ -948,100 +992,106 @@ class EconomyRolesManageView(View):
         self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_{randint(1, 100)}", disabled=rem_dis))
 
     async def click(self, interaction: Interaction, c_id: str) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.message is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
 
         if self.role is None:
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
             return
 
-        if c_id.startswith("17_"):
-            if not self.role in self.s_rls:
-                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
-                return
-            v_d: VerifyDeleteView = VerifyDeleteView(lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
-            await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(self.role)), view=v_d)
-            
-            if await v_d.wait():
-                for c in v_d.children:
-                    c.disabled = True
-                try:
-                    await interaction.edit_original_message(view=v_d)
-                except:
-                    pass
+        int_custom_id: int = int(c_id[:2])
+        match int_custom_id:
+            case 17:
+                if not self.role in self.s_rls:
+                    await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
+                    return
+                v_d: VerifyDeleteView = VerifyDeleteView(lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
+                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(self.role)), view=v_d)
+                
+                if await v_d.wait():
+                    for c in v_d.children:
+                        c.disabled = True # type: ignore
+                    try:
+                        await interaction.edit_original_message(view=v_d)
+                    except:
+                        pass
 
-            if v_d.deleted:
-                self.s_rls.remove(self.role)
-                self.role = None
-
-        elif c_id.startswith("15_"):
-            if self.role in self.s_rls:
-                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][9]), ephemeral=True)
-                return
-            add_mod: RoleAddModal = RoleAddModal(
-                timeout=90,
-                lng=lng,
-                role=self.role,
-                message=interaction.message,
-                auth_id=interaction.user.id
-            )
-            await interaction.response.send_modal(modal=add_mod)
-            
-            await add_mod.wait()
-            if add_mod.added:
-                self.s_rls.add(self.role)
-                self.role = None
-
-        elif c_id.startswith("16_"):
-            role_id: int = self.role
-            if role_id not in self.s_rls:
-                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][8]), ephemeral=True)
-                return
-            
-            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
-                with closing(base.cursor()) as cur:
-                    req: tuple[int, int, int, int, int, int] = cur.execute(
-                        "SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles WHERE role_id = ?", 
-                        (role_id,)
-                    ).fetchone()
-                    role_type: int = req[4]
-                    if role_type != 2:
-                        role_in_store_count: int = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,)).fetchone()[0]
-                    else:
-                        quantity: tuple[int] = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,)).fetchone()                        
-                        role_in_store_count: int = quantity[0] if quantity else 0
-            
-            edit_mod: RoleEditModal = RoleEditModal(
-                timeout=90,
-                role=role_id,
-                message=interaction.message,
-                lng=lng,
-                auth_id=interaction.user.id,
-                price=req[1],
-                salary=req[2],
-                salary_cooldown=req[3],
-                r_t=role_type,
-                additional_salary=req[5],
-                in_store=role_in_store_count
-            )
-            await interaction.response.send_modal(modal=edit_mod)
-            await edit_mod.wait()
-            if edit_mod.changed:
-                self.role = None
-            return
+                if v_d.deleted:
+                    self.s_rls.remove(self.role)
+                    self.role = None
+            case 15:
+                if self.role in self.s_rls:
+                    await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][9]), ephemeral=True)
+                    return
+                add_mod: RoleAddModal = RoleAddModal(
+                    timeout=90,
+                    lng=lng,
+                    role=self.role,
+                    message=interaction.message,
+                    auth_id=interaction.user.id
+                )
+                await interaction.response.send_modal(modal=add_mod)
+                
+                await add_mod.wait()
+                if add_mod.added:
+                    self.s_rls.add(self.role)
+                    self.role = None
+            case 16:
+                role_id: int = self.role
+                if role_id not in self.s_rls:
+                    await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][8]), ephemeral=True)
+                    return
+                
+                with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                    with closing(base.cursor()) as cur:
+                        req: tuple[int, int, int, int, int, int] = cur.execute(
+                            "SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles WHERE role_id = ?", 
+                            (role_id,)
+                        ).fetchone()
+                        role_type: int = req[4]
+                        if role_type != 2:
+                            role_in_store_count: int = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,)).fetchone()[0]
+                        else:
+                            quantity: tuple[int] = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,)).fetchone()                        
+                            role_in_store_count: int = quantity[0] if quantity else 0
+                
+                edit_mod: RoleEditModal = RoleEditModal(
+                    timeout=90,
+                    role=role_id,
+                    message=interaction.message,
+                    lng=lng,
+                    auth_id=interaction.user.id,
+                    price=req[1],
+                    salary=req[2],
+                    salary_cooldown=req[3],
+                    r_t=role_type,
+                    additional_salary=req[5],
+                    in_store=role_in_store_count
+                )
+                await interaction.response.send_modal(modal=edit_mod)
+                await edit_mod.wait()
+                if edit_mod.changed:
+                    self.role = None
 
     async def click_menu(self, _, c_id: str, values) -> None:
         if c_id.startswith("80"):
             self.role = int(values[0])
 
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
     
 
 class SettingsView(View):
+    member_id_pattern: re.Pattern[str] = re.compile(r"\d+", flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE)
+
     def __init__(self, t_out: int, auth_id: int, bot: StoreBot) -> None:
         super().__init__(timeout=t_out)
         self.auth_id: int = auth_id
@@ -1054,22 +1104,22 @@ class SettingsView(View):
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"54_{auth_id}_{randint(1, 100)}", emoji="🚫", row=3))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"5_{auth_id}_{randint(1, 100)}", emoji="📊", row=3))
     
-    @staticmethod
-    def check_ans(interaction: Interaction, ans: str):
+    @classmethod
+    def check_ans(cls, guild: Guild, ans: str) -> tuple[Member | None, bool]:
+        for member_id in cls.member_id_pattern.findall(ans):
+            if member := guild.get_member(int(member_id)):
+                return member, False
         if ans == "cancel":
-            return None, 1
-        if ans.startswith("<@") and len(ans) >= 4:
-            ans = ans[2:-1]
-        if ans.isdigit():
-            memb: Member | None = interaction.guild.get_member(int(ans))
-            if memb is None:
-                return None, 0
-            return memb, 2
-        else:
-            return None, 0
+            return None, False
+        return None, True
 
     async def click(self, interaction: Interaction, custom_id: str) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        interaction.user
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         int_custom_id: int = int(custom_id.split('_')[0])
         match int_custom_id:
             case 0:
@@ -1097,7 +1147,7 @@ class SettingsView(View):
                 await interaction.response.send_message(embed=Embed(description="\n".join(dsc)), view=gen_view)
                 await gen_view.wait()
                 for c in gen_view.children:
-                    c.disabled = True
+                    c.disabled = True # type: ignore
                 try:
                     await interaction.edit_original_message(view=gen_view)
                 except:
@@ -1130,7 +1180,7 @@ class SettingsView(View):
                 await interaction.response.send_message(embed=emb, view=m_rls_v)
                 await m_rls_v.wait()
                 for c in m_rls_v.children:
-                    c.disabled = True
+                    c.disabled = True # type: ignore
                 try:
                     await interaction.edit_original_message(view=m_rls_v)
                 except:
@@ -1138,27 +1188,30 @@ class SettingsView(View):
             
             case 2:
                 await interaction.response.send_message(embed=Embed(description=settings_text[lng][7]))
-                flag: int = 0
+                author_id: int = interaction.user.id
+                try_get_member_flag: bool = True
                 memb: Member | None = None
-                while not flag:
+                while try_get_member_flag:
                     try:
-                        m_ans = await interaction.client.wait_for(event="message", check=lambda m: m.author.id == interaction.user.id and m.channel.id == interaction.channel_id, timeout=30)
+                        message_answer: Message = await interaction.client.wait_for(
+                            event="message",
+                            check=lambda m: m.author.id == author_id and m.channel.id == interaction.channel_id,
+                            timeout=30
+                        )
                     except TimeoutError:
-                        await interaction.delete_original_message()
-                        flag = 1
+                        try_get_member_flag = False
                     else:
-                        ans: str = m_ans.content
+                        memb, try_get_member_flag = self.check_ans(guild=interaction.guild, ans=message_answer.content)
                         try: 
-                            await m_ans.delete()
+                            await message_answer.delete()
                         except:
                             pass
-                        memb, flag = self.check_ans(interaction=interaction, ans=ans)
-                        if flag == 1:
-                            try:
-                                await interaction.delete_original_message()
-                            except:
-                                pass
-                if flag != 2:
+                try:
+                    await interaction.delete_original_message()
+                except:
+                    pass
+                
+                if memb is None:
                     return
                 
                 memb_id: int = memb.id
@@ -1246,7 +1299,7 @@ class SettingsView(View):
                 
                 await mng_v.wait()
                 for c in mng_v.children:
-                    c.disabled = True
+                    c.disabled = True # type: ignore
                 try:
                     await interaction.edit_original_message(view=mng_v)
                 except:
@@ -1291,7 +1344,7 @@ class SettingsView(View):
                 await interaction.response.send_message(embed=emb, view=ec_v)
                 await ec_v.wait()
                 for c in ec_v.children:
-                    c.disabled = True
+                    c.disabled = True # type: ignore
                 try:
                     await interaction.edit_original_message(view=ec_v)
                 except:
@@ -1320,7 +1373,7 @@ class SettingsView(View):
 
                 await rnk_v.wait()
                 for c in rnk_v.children:
-                    c.disabled = True
+                    c.disabled = True # type: ignore
                 try:
                     await interaction.edit_original_message(view=rnk_v)
                 except:
@@ -1348,7 +1401,7 @@ class SettingsView(View):
                 
                 await p_v.wait()
                 for c in p_v.children:
-                    c.disabled = True
+                    c.disabled = True # type: ignore
                 try:
                     await interaction.edit_original_message(view=p_v)
                 except:
@@ -1372,8 +1425,10 @@ class SettingsView(View):
                     pass
 
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
@@ -1387,31 +1442,42 @@ class PollSettingsView(View):
         self.auth_id: int = auth_id
     
     async def click(self, interaction: Interaction, c_id: str) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         me: Member = interaction.guild.me
         chnls: list[tuple[str, int]] = [(c.name, c.id) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
 
-        if c_id.startswith("28_"):
-            v_c: PollsChannelsView = PollsChannelsView(timeout=25, lng=lng, view_id_base = 1400, auth_id=self.auth_id, chnls=chnls)
-            await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=v_c)
-            
-            await v_c.wait()
-            await interaction.delete_original_message()
-            if v_c.c is None:
-                return
-            
-            emb: Embed = interaction.message.embeds[0]
-            dsc: list[str] = emb.description.split("\n\n")
-            if v_c.c:
+        int_custom_id: int = int(c_id[:2])
+        if int_custom_id == 28:
+            v_c: PollsChannelsView = PollsChannelsView(timeout=25, lng=lng, view_id_base=1400, auth_id=self.auth_id, chnls=chnls)
+        else:
+            v_c: PollsChannelsView = PollsChannelsView(timeout=25, lng=lng, view_id_base=1500, auth_id=self.auth_id, chnls=chnls)
+
+        await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=v_c)
+        await v_c.wait()
+        await interaction.delete_original_message()
+
+        new_channel_id: int | None = v_c.channel_id
+        if new_channel_id is None:
+            return
+
+        assert interaction.message is not None
+        emb: Embed = interaction.message.embeds[0]
+        assert emb.description is not None
+        dsc: list[str] = emb.description.split("\n\n")
+
+        if int_custom_id == 28:            
+            if new_channel_id:
                 with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                     with closing(base.cursor()) as cur:
-                        cur.execute("UPDATE server_info SET value = ? WHERE settings = 'poll_v_c'", (v_c.c,))
+                        cur.execute("UPDATE server_info SET value = ? WHERE settings = 'poll_v_c'", (new_channel_id,))
                         base.commit()                
-                dsc[0] = poll_text[lng][0].format(f"<#{v_c.c}>")
+                dsc[0] = poll_text[lng][0].format(f"<#{new_channel_id}>")
                 emb.description = "\n\n".join(dsc)
                 await interaction.message.edit(embed=emb)
 
-                await interaction.send(embed=Embed(description=poll_text[lng][4].format(v_c.c)), ephemeral=True)         
+                await interaction.send(embed=Embed(description=poll_text[lng][4].format(new_channel_id)), ephemeral=True)         
             else:
                 with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                     with closing(base.cursor()) as cur:
@@ -1422,29 +1488,17 @@ class PollSettingsView(View):
                 await interaction.message.edit(embed=emb)
 
                 await interaction.send(embed=Embed(description=poll_text[lng][5]), ephemeral=True)
-
         elif c_id.startswith("29_"):
-            v_c = PollsChannelsView(timeout=25, lng=lng, view_id_base = 1500, auth_id=self.auth_id, chnls=chnls)
-            await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=v_c)
-            
-            await v_c.wait()
-            await interaction.delete_original_message()
-            if v_c.c is None:
-                return
-
-            emb: Embed = interaction.message.embeds[0]
-            dsc: list[str] = emb.description.split("\n\n")
-            if v_c.c:
+            if new_channel_id:
                 with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                     with closing(base.cursor()) as cur:
-                        cur.execute("UPDATE server_info SET value = ? WHERE settings = 'poll_c'", (v_c.c,))
+                        cur.execute("UPDATE server_info SET value = ? WHERE settings = 'poll_c'", (new_channel_id,))
                         base.commit()                
-                dsc[1] = poll_text[lng][1].format(f"<#{v_c.c}>")
+                dsc[1] = poll_text[lng][1].format(f"<#{new_channel_id}>")
                 emb.description = "\n\n".join(dsc)
                 await interaction.message.edit(embed=emb)
 
-                await interaction.send(embed=Embed(description=poll_text[lng][6].format(v_c.c)), ephemeral=True)
-                       
+                await interaction.send(embed=Embed(description=poll_text[lng][6].format(new_channel_id)), ephemeral=True)
             else:
                 with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
                     with closing(base.cursor()) as cur:
@@ -1457,8 +1511,10 @@ class PollSettingsView(View):
                 await interaction.send(embed=Embed(description=poll_text[lng][7]), ephemeral=True)
 
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
@@ -1486,7 +1542,9 @@ class RankingView(View):
             self.cur_xp_pm = xp_m.new_xp
             self.cur_xpb = xp_m.new_xp_b
 
+            assert interaction.message is not None
             emb: Embed = interaction.message.embeds[0]
+            assert emb.description is not None
             dsc: list[str] = emb.description.split("\n\n")
             dsc[0] = ranking_text[lng][0].format(self.cur_xp_pm)
             dsc[1] = ranking_text[lng][1].format(self.cur_xpb)
@@ -1494,6 +1552,8 @@ class RankingView(View):
             await interaction.message.edit(embed=emb)
 
     async def level_channel(self, lng: int, interaction: Interaction) -> None:
+        assert interaction.guild is not None
+        assert interaction.message is not None
         me: Member = interaction.guild.me
         chnls: list[tuple[str, int]] = [(c.name, c.id) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
         l: int = len(chnls)
@@ -1512,7 +1572,7 @@ class RankingView(View):
 
         i: int = 0
         while i < len(self.children):
-            if self.children[i].custom_id.startswith("12"):
+            if self.children[i].custom_id.startswith("12"): # type: ignore
                 self.remove_item(self.children[i])
             else:
                 i += 1
@@ -1528,6 +1588,7 @@ class RankingView(View):
                 base.commit()
         
         emb: Embed = interaction.message.embeds[0]
+        assert emb.description is not None
         dsc: list[str] = emb.description.split("\n\n")
         if self.lvl_chnl:
             dsc[2] = ranking_text[lng][2].format(f"<#{self.lvl_chnl}>")
@@ -1540,6 +1601,7 @@ class RankingView(View):
         await interaction.message.edit(embed=emb, view=self)
             
     async def lvl_roles(self, lng: int, interaction: Interaction) -> None:
+        assert isinstance(interaction.user, Member)
         with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 lvl_rls: list[tuple[int, int]] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level ASC").fetchall()
@@ -1557,7 +1619,8 @@ class RankingView(View):
         await interaction.delete_original_message()
 
     async def click(self, interaction: Interaction, c_id: str) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.locale is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         if c_id.startswith("21_"):
             await self.xp_change(lng=lng, interaction=interaction)
         elif c_id.startswith("22_"):
@@ -1570,15 +1633,17 @@ class RankingView(View):
             self.lvl_chnl = int(values[0])
 
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
 
 
 class PollsChannelsView(View):
-    def __init__(self, timeout: int, lng: int, view_id_base: int,  auth_id: int, chnls: list) -> None:
+    def __init__(self, timeout: int, lng: int, view_id_base: int, auth_id: int, chnls: list) -> None:
         super().__init__(timeout=timeout)
         for i in range(min((len(chnls) + 23) // 24, 20)):
             self.add_item(CustomSelect(
@@ -1587,16 +1652,18 @@ class PollsChannelsView(View):
                 opts=[(settings_text[lng][12], 0)] + chnls[i*24:min(len(chnls), (i+1)*24)]
             ))
         self.auth_id: int = auth_id
-        self.c: int | None = None
+        self.channel_id: int | None = None
         
     async def click_menu(self, _, c_id: str, values) -> None:
         if c_id.startswith("14") or c_id.startswith("15"):
-            self.c = int(values[0])
+            self.channel_id = int(values[0])
             self.stop()
 
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
@@ -1612,7 +1679,11 @@ class LevelRolesView(View):
         self.role: int | None = None
     
     async def click(self, interaction: Interaction, c_id: str) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        assert interaction.message is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         lvl_modal: SelectLevelModal = SelectLevelModal(lng=lng, auth_id=interaction.user.id, timeout=60)
         await interaction.response.send_modal(modal=lvl_modal)
         await lvl_modal.wait()
@@ -1642,7 +1713,7 @@ class LevelRolesView(View):
             if self.role is None:
                 i: int = 0
                 while i < len(self.children):
-                    if self.children[i].custom_id.startswith("13"):
+                    if self.children[i].custom_id.startswith("13"): # type: ignore
                         self.remove_item(self.children[i])
                     else:
                         i += 1
@@ -1661,7 +1732,7 @@ class LevelRolesView(View):
 
             i = 0
             while i < len(self.children):
-                if self.children[i].custom_id.startswith("13"):
+                if self.children[i].custom_id.startswith("13"): # type: ignore
                     self.remove_item(self.children[i])
                 else:
                     i += 1
@@ -1670,8 +1741,8 @@ class LevelRolesView(View):
             dsc.append(ranking_text[lng][27])
             emb: Embed = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
             
-            if self.children[1].disabled:
-                self.children[1].disabled = False
+            if self.children[1].disabled: # type: ignore
+                self.children[1].disabled = False # type: ignore
 
             await interaction.message.edit(embed=emb, view=self)
             await interaction.send(embed=Embed(description=ranking_text[lng][31].format(ans, self.role)), ephemeral=True)
@@ -1692,7 +1763,7 @@ class LevelRolesView(View):
                 dsc = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]
                 fl: bool = False
             else:
-                self.children[1].disabled = True
+                self.children[1].disabled = True # type: ignore
                 fl: bool = True
                 dsc = [ranking_text[lng][25]]
 
@@ -1711,8 +1782,10 @@ class LevelRolesView(View):
             self.role = int(values[0])
     
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if self.auth_id != interaction.user.id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
@@ -1737,9 +1810,12 @@ class ManageMemberView(View):
         self.member: Member=member
 
     async def add_r(self, lng: int, interaction: Interaction) -> None:
+        assert interaction.guild is not None
+        assert self.role is not None
         if self.role in self.memb_rls:
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][7]), ephemeral=True)
             return
+        
         self.memb_rls.add(self.role)
 
         with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
@@ -1751,14 +1827,18 @@ class ManageMemberView(View):
                     cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0] + f"#{self.memb_id}", self.role))
                 base.commit()
 
-        await self.member.add_roles(interaction.guild.get_role(self.role))
-
+        role: Role | None = interaction.guild.get_role(self.role)
+        assert role is not None
+        await self.member.add_roles(role)
+        
+        assert interaction.message is not None
         embs: list[Embed] = interaction.message.embeds
         emb3: Embed = embs[2]
+        assert emb3.description is not None
         dsc: list[str] = emb3.description.split("\n")
         if len(dsc) == 1:
             dsc = [code_blocks[lng*5], f"<@&{self.role}>**` - {self.role}`**"]
-            self.children[-1].disabled = False
+            self.children[-1].disabled = False # type: ignore
             emb3.description = "\n".join(dsc)
             embs[2] = emb3
             await interaction.message.edit(embeds=embs, view=self)
@@ -1773,9 +1853,12 @@ class ManageMemberView(View):
         
 
     async def rem_r(self, lng: int, interaction: Interaction) -> None:
+        assert interaction.guild is not None
+        assert self.role is not None
         if not self.role in self.memb_rls:
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][9]), ephemeral=True)
             return
+        
         self.memb_rls.remove(self.role)
 
         with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
@@ -1786,14 +1869,19 @@ class ManageMemberView(View):
                 if membs:
                     cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"#{self.memb_id}", ""), self.role))
                 base.commit()
-        await self.member.remove_roles(interaction.guild.get_role(self.role))
+
+        role: Role | None = interaction.guild.get_role(self.role)
+        assert role is not None
+        await self.member.remove_roles(role)
         
+        assert interaction.message is not None
         embs: list[Embed] = interaction.message.embeds
         emb3: Embed = embs[2]
+        assert emb3.description is not None
         dsc: list[str] = emb3.description.split("\n")
         if len(dsc) <= 4:
             emb3.description = mng_membs_text[lng][6]
-            self.children[-1].disabled = True
+            self.children[-1].disabled = True # type: ignore
             embs[2] = emb3
             await interaction.message.edit(embeds=embs, view=self)
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)            
@@ -1812,7 +1900,9 @@ class ManageMemberView(View):
         self.role = None
 
     async def click(self, interaction: Interaction, c_id: str) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.locale is not None
+        assert interaction.message is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
 
         if c_id.startswith("18_"):
             edit_modl: ManageMemberCashXpModal = ManageMemberCashXpModal(timeout=90, title=mng_membs_text[lng][19], lng=lng, memb_id=self.memb_id, cur_money=self.cash, cur_xp=self.xp, auth_id=self.auth_id)
@@ -1885,8 +1975,10 @@ class ManageMemberView(View):
             self.role = int(values[0])
     
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
@@ -1903,7 +1995,9 @@ class VerifyDeleteView(View):
         self.add_item(CustomButton(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_{randint(1, 100)}"))
 
     async def click(self, interaction: Interaction, c_id: str) -> None:
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         if c_id.startswith("1001_"):
             if interaction.message:
                 await interaction.message.delete()
@@ -1922,6 +2016,7 @@ class VerifyDeleteView(View):
                 await interaction.message.delete()
 
             emb: Embed = self.m.embeds[0]
+            assert emb.description is not None
             dsc: list[str] = emb.description.split("\n")
             i: int = 0
             while i < len(dsc):
@@ -1937,8 +2032,10 @@ class VerifyDeleteView(View):
             self.stop()
     
     async def interaction_check(self, interaction: Interaction) -> bool:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][11]), ephemeral=True)
             return False
         return True
