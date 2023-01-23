@@ -35,8 +35,8 @@ class StoreBot(Bot):
         self.members_in_voice: Dict[int, Dict[int, Member]] = {}
         # guild_id: {voice_channel_id}
         self.ignored_voice_channels: Dict[int, Set[int]] = {}
-
-    # just because if i put handler only in the cog i get an error message in the cmd every time
+    
+    # Dummy listener.
     async def on_application_command_error(*args) -> None:
         return
 
