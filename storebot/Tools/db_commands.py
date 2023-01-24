@@ -188,7 +188,8 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
                 price INTEGER NOT NULL DEFAULT 0,
                 salary INTEGER NOT NULL DEFAULT 0,
                 salary_cooldown INTEGER NOT NULL DEFAULT 0,
-                type INTEGER NOT NULL DEFAULT 0
+                type INTEGER NOT NULL DEFAULT 0,
+                additional_salary INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS store (
                 role_number INTEGER PRIMARY KEY,
@@ -205,8 +206,7 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
                 members TEXT NOT NULL DEFAULT '',
                 salary INTEGER NOT NULL DEFAULT 0,
                 salary_cooldown INTEGER NOT NULL DEFAULT 0,
-                last_time INTEGER NOT NULL DEFAULT 0,
-                additional_salary INTEGER NOT NULL DEFAULT 0
+                last_time INTEGER NOT NULL DEFAULT 0
             );
             CREATE TABLE IF NOT EXISTS server_info (
                 settings TEXT PRIMARY KEY,
