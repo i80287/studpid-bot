@@ -23,15 +23,17 @@ from nextcord import (
     Member,
     TextChannel
 )
-from nextcord.ui import StringSelect
 from nextcord.ext.commands import Bot, Cog
 if __debug__:
     from nextcord import Guild
+    from CustomComponents.custom_select import CustomSelect
 
 from CustomComponents.view_base import ViewBase
 from CustomComponents.custom_button import CustomButton
+from CustomComponents.custom_select import CustomSelectWithOptions
+from CustomComponents.slots_view import SlotsView
 from Tools.db_commands import (
-    check_member_async,
+    get_member_async,
     peek_role_free_number,
     peek_free_request_id,
     delete_role_from_db,
@@ -240,15 +242,6 @@ rating_text: Dict[int, Dict[int, str]] = {
 }
 
 
-class CustomSelect(StringSelect):
-    def __init__(self, custom_id: str, placeholder: str, opts: list) -> None:
-        super().__init__(custom_id=custom_id, placeholder=placeholder, options=opts)
-
-    async def callback(self, interaction: Interaction) -> None:
-        assert isinstance(self.view, ViewBase)
-        await self.view.click_select_menu(interaction, self.custom_id, self.values)
-
-
 class BetView(ViewBase):
     def __init__(self, timeout: int, lng: int, auth_id: int, bet: int, currency: str) -> None:
         super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
@@ -344,7 +337,7 @@ class StoreView(ViewBase):
                 default=False
             )
         ]
-        self.add_item(CustomSelect(
+        self.add_item(CustomSelectWithOptions(
             custom_id=f"102_{auth_id}_{randint(1, 100)}",
             placeholder=store_text[lng][4],
             opts=sort_by_what_options
@@ -363,7 +356,7 @@ class StoreView(ViewBase):
                 default=False
             )
         ]
-        self.add_item(CustomSelect(
+        self.add_item(CustomSelectWithOptions(
             custom_id=f"103_{auth_id}_{randint(1, 100)}",
             placeholder=store_text[lng][7],
             opts=sort_how_options
@@ -545,8 +538,9 @@ class RatingView(ViewBase):
                     default=False
                 )
             ]
-            self.add_item(
-                CustomSelect(custom_id=f"104_{auth_id}_{randint(1, 100)}", placeholder=rating_text[lng][3], opts=opts))
+            self.add_item(item=CustomSelectWithOptions(
+                custom_id=f"104_{auth_id}_{randint(1, 100)}", placeholder=rating_text[lng][3], opts=opts
+            ))
 
     async def update_menu(self, interaction: Interaction, click: int) -> None:
         assert interaction.message is not None
@@ -776,7 +770,7 @@ class SlashCommandsCog(Cog):
                 
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
         
-        buyer: tuple[int, int, str, int, int, int] = await check_member_async(guild_id=guild_id, member_id=memb_id)
+        buyer: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
 
         # if r_id in {int(x) for x in buyer[2].split("#") if x}:
         if str(r_id) in buyer[2]:
@@ -928,7 +922,8 @@ class SlashCommandsCog(Cog):
 
         await store_view.wait()
         for button in store_view.children:
-            button.disabled = True # type: ignore
+            assert isinstance(button, CustomButton)
+            button.disabled = True
         try:
             await interaction.edit_original_message(view=store_view)
         except:
@@ -948,7 +943,7 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
         guild_id: int = interaction.guild_id
 
-        user_owned_roles: list[str] = ((await check_member_async(guild_id=guild_id, member_id=memb_id))[2]).split("#")
+        user_owned_roles: list[str] = ((await get_member_async(guild_id=guild_id, member_id=memb_id))[2]).split("#")
         with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
@@ -1078,8 +1073,8 @@ class SlashCommandsCog(Cog):
         role_id: int = role.id
         guild_id: int = interaction.guild_id
 
-        user_owned_roles: list[str] = ((await check_member_async(guild_id=guild_id, member_id=memb_id))[2]).split("#")
-        target_owned_roles: list[str] = ((await check_member_async(guild_id=guild_id, member_id=target_id))[2]).split("#")
+        user_owned_roles: list[str] = ((await get_member_async(guild_id=guild_id, member_id=memb_id))[2]).split("#")
+        target_owned_roles: list[str] = ((await get_member_async(guild_id=guild_id, member_id=target_id))[2]).split("#")
         with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
@@ -1144,7 +1139,7 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
         guild_id: int = interaction.guild_id
 
-        member: tuple[int, int, str, int, int, int] = await check_member_async(guild_id=guild_id, member_id=memb_id)
+        member: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
         with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
@@ -1335,7 +1330,7 @@ class SlashCommandsCog(Cog):
             return
         
         price: int = purchase_request[3]
-        member_info: tuple[int, int, str, int, int, int] = await check_member_async(guild_id=guild_id, member_id=memb_id)
+        member_info: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
         if member_info[1] < price:
             await self.respond_with_error_report(
                 interaction=interaction,
@@ -1458,7 +1453,7 @@ class SlashCommandsCog(Cog):
         guild_id: int = interaction.guild_id
         memb_id: int = interaction.user.id
 
-        member: tuple[int, int, str, int, int, int] = await check_member_async(guild_id=guild_id, member_id=memb_id)
+        member: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
         with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
@@ -1524,7 +1519,7 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
         guild_id: int = interaction.guild_id
 
-        member: tuple[int, int, str, int, int, int] = await check_member_async(guild_id=guild_id, member_id=memb_id)
+        member: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
         with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
@@ -1547,7 +1542,8 @@ class SlashCommandsCog(Cog):
             emb.description = text_slash[lng][34]
 
         for c in bet_view.children:
-            c.disabled = True # type: ignore
+            assert isinstance(c, CustomButton)
+            c.disabled = True
 
         if not bet_view.dueler:
             if bet_view.declined:
@@ -1605,8 +1601,8 @@ class SlashCommandsCog(Cog):
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
 
-        act: tuple[int, int, str, int, int, int] = await check_member_async(guild_id=guild_id, member_id=memb_id)
-        await check_member_async(guild_id=guild_id, member_id=t_id)
+        act: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
+        await get_member_async(guild_id=guild_id, member_id=t_id)
         with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
@@ -1648,7 +1644,7 @@ class SlashCommandsCog(Cog):
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
 
-        await check_member_async(guild_id=guild_id, member_id=interaction.user.id)
+        await get_member_async(guild_id=guild_id, member_id=interaction.user.id)
         with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 ec_status: int = \
@@ -1712,7 +1708,8 @@ class SlashCommandsCog(Cog):
         await rate_view.wait()
 
         for c in rate_view.children:
-            c.disabled = True # type: ignore
+            assert isinstance(c, (CustomButton, CustomSelectWithOptions))
+            c.disabled = True
         try:
             await interaction.edit_original_message(view=rate_view)
         except:
@@ -1724,11 +1721,35 @@ class SlashCommandsCog(Cog):
         assert isinstance(interaction.user, Member)
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
+        member_id: int = interaction.user.id
+        await get_member_async(guild_id=guild_id, member_id=member_id)
         if not (await get_server_info_value_async(guild_id=guild_id, key_name="slots_on")):
-            # await self.respond_with_error_report(interaction=interaction, lng=lng, answer=)
+            await self.respond_with_error_report(
+                interaction=interaction,
+                lng=lng,
+                answer=SlotsView.slots_view_text[lng][0]
+            )
             return
         
-        
+        slots_view: SlotsView = SlotsView(
+            lng=lng,
+            author_id=member_id,
+            timeout=180,
+            guild_id=guild_id
+        )
+        await interaction.response.send_message(
+            embed=Embed(description=SlotsView.slots_panel.format(0, 0, 0)),
+            view=slots_view
+        )
+
+        await slots_view.wait()
+        for c in slots_view.children:
+            assert isinstance(c, (CustomButton, CustomSelect))
+            c.disabled = True
+        try:
+            await interaction.edit_original_message(view=slots_view)
+        except:
+            return
 
     @slash_command(
         name="buy",

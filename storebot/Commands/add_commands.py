@@ -215,7 +215,7 @@ class AdditionalCommandsCog(Cog):
         assert interaction.guild_id is not None
         assert interaction.user is not None
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
+        await db_commands.get_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
 
         emoji: Emoji | str | None = parse_emoji(self.bot, emoji_str)        
         if emoji is None:
@@ -252,7 +252,7 @@ class AdditionalCommandsCog(Cog):
         assert interaction.guild_id is not None
         assert interaction.user is not None
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
+        await db_commands.get_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
 
         emb: Embed = Embed(title=self.text_slash[lng][13], colour=Colour.dark_purple())
         guild: Guild = interaction.guild

@@ -1225,7 +1225,7 @@ class SettingsView(ViewBase):
                 
                 memb_id: int = memb.id
                 guild_id: int = interaction.guild_id
-                memb_info: tuple[int, int, str, int, int, int] = await db_commands.check_member_async(guild_id=guild_id, member_id=memb_id)
+                memb_info: tuple[int, int, str, int, int, int] = await db_commands.get_member_async(guild_id=guild_id, member_id=memb_id)
                 
                 with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
                     with closing(base.cursor()) as cur:

@@ -31,3 +31,12 @@ class CustomSelect(StringSelect):
     async def callback(self, interaction: Interaction) -> None:
         assert isinstance(self.view, ViewBase)
         await self.view.click_select_menu(interaction, self.custom_id, self.values)
+
+
+class CustomSelectWithOptions(StringSelect):
+    def __init__(self, custom_id: str, placeholder: str, opts: List[SelectOption]) -> None:
+        super().__init__(custom_id=custom_id, placeholder=placeholder, options=opts)
+
+    async def callback(self, interaction: Interaction) -> None:
+        assert isinstance(self.view, ViewBase)
+        await self.view.click_select_menu(interaction, self.custom_id, self.values)
