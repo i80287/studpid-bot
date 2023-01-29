@@ -341,7 +341,7 @@ class BasicComandsCog(Cog):
             guilds: list[Guild] = self.bot.guilds.copy()
             description: list[str] = \
                 ["```guild - id - member_count```"] + \
-                [fr"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}" for guild in guilds] + \
+                [fr"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}-{{{guild.owner_id}}}" for guild in guilds] + \
                 [f"\n**`Total guilds: {len(guilds)}`**", f"\n**`Currently active polls: {len(self.bot.current_polls)}`**"]
         emb: Embed = Embed(description='\n'.join(description))
         await ctx.reply(embed=emb, mention_author=False, delete_after=15)
