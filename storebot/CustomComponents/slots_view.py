@@ -143,6 +143,15 @@ class SlotsView(ViewBase):
         self.slot_runs_queue.put_nowait(interaction)
     
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
+        match self.bet:
+            case 100:
+                self.bet_select.options[0].default = False
+            case 200:
+                self.bet_select.options[1].default = False
+            case 500:
+                self.bet_select.options[2].default = False
+            case 1000:
+                self.bet_select.options[3].default = False
         bet: int = int(values[0])
         match bet:
             case 100:
