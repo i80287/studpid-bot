@@ -8,7 +8,8 @@ from nextcord import (
     ButtonStyle,
     Interaction,
     Guild,
-    Embed
+    Embed,
+    SelectOption
 )
 from nextcord.ext import tasks
 
@@ -19,7 +20,7 @@ from Tools.db_commands import (
 )
 from CustomComponents.view_base import ViewBase
 from CustomComponents.custom_button import CustomButton
-from CustomComponents.custom_select import CustomSelect
+from CustomComponents.custom_select import CustomSelectWithOptions
 
 
 class SlotsView(ViewBase):
@@ -38,22 +39,28 @@ class SlotsView(ViewBase):
         1: {
             0: "**`Слоты отключены на этом сервере`**",
             1: "Выберите ставку",
-            2: "**`You have not chose the bet yet`**",
-            3: "**`Sorry, but to make this bet you need at least {0}`** {1} **`more`**",
-            4: "**`Now bet is {0}`** {1}",
-            5: "**`You made bet {0}`** {1} **`and won {2}`** {1}",
+            2: "**`Вы ещё не выбрали ставку`**",
+            3: "**`Извините, но для того, чтобы сделать эту ставку, Вам нужно ещё хотя бы {0}`** {1}",
+            4: "**`Теперь ставка - {0}`** {1}",
+            5: "**`Вы сделали ставку {0}`** {1} **`и выиграли {2}`** {1}",
             6: "Slots bet",
-            7: "<@{0}> **`made bet {1}`** {2} **`and won {3}`** {2}"
+            7: "<@{0}> **`сделал(а, о) ставку {1}`** {2} **`и выиграл(а, о) {3}`** {2}"
         }
     }
 
     def __init__(self, lng: int, author_id: int, timeout: int, guild: Guild, slots_table: dict[int, int], currency: str) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout, auto_defer=False)
-        self.add_item(item=CustomSelect(
+        self.bet_select: CustomSelectWithOptions = CustomSelectWithOptions(
             custom_id=f"120_{author_id}_{urandom(4).hex()}",
             placeholder=self.slots_view_text[lng][1],
-            options=[("100", "100"), ("200", "200"), ("500", "500"), ("1000", "1000")]
-        ))
+            opts=[
+                SelectOption(label="100", value="100"),
+                SelectOption(label="200", value="200"),
+                SelectOption(label="500", value="500"),
+                SelectOption(label="1000", value="1000"),
+            ]
+        )
+        self.add_item(item=self.bet_select)
         self.add_item(item=CustomButton(
             style=ButtonStyle.green,
             custom_id=f"60_{author_id}_{urandom(4).hex()}",
@@ -117,7 +124,7 @@ class SlotsView(ViewBase):
             n2: int = (result // 100) % 10
             n3: int = result % 10
             assert interaction.message is not None
-            await interaction.message.edit(embed=Embed(description=self.slots_panel.format(n1, n2, n3)))
+            await interaction.message.edit(embed=Embed(description=self.slots_panel.format(n1, n2, n3)), view=self)
             await interaction.response.send_message(
                 embed=Embed(description=slot_run_text.format(bet, currency, win_sum)),
                 ephemeral=True
@@ -137,6 +144,15 @@ class SlotsView(ViewBase):
     
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         bet: int = int(values[0])
+        match bet:
+            case 100:
+                self.bet_select.options[0].default = True
+            case 200:
+                self.bet_select.options[1].default = True
+            case 500:
+                self.bet_select.options[2].default = True
+            case 1000:
+                self.bet_select.options[3].default = True
         self.bet = bet
         if await self.check_bet(interaction=interaction):
             await interaction.response.send_message(

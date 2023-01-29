@@ -39,7 +39,7 @@ from Tools.db_commands import (
     delete_role_from_db,
     get_server_info_value_async,
     get_server_currency_async,
-    get_server_slots_table
+    get_server_slots_table_async
 )
 from Variables.vars import CWD_PATH
 from config import in_row
@@ -1734,7 +1734,7 @@ class SlashCommandsCog(Cog):
             )
             return
         
-        slots_table: dict[int, int] = await get_server_slots_table(guild_id=guild_id)
+        slots_table: dict[int, int] = await get_server_slots_table_async(guild_id=guild_id)
         currency: str = await get_server_currency_async(guild_id=guild_id)
         slots_view: SlotsView = SlotsView(
             lng=lng,

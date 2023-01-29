@@ -239,7 +239,7 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
             );
             CREATE TABLE IF NOT EXISTS slots_table (
                 bet INTEGER PRIMARY KEY,
-                win_sum INTEGER NOT NULL DEFAULT 0
+                income INTEGER NOT NULL DEFAULT 0
             );""")
             base.commit()
             
@@ -279,7 +279,7 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
                 (500, 400),
                 (1000, 800)
             ]
-            cur.executemany("INSERT OR IGNORE INTO slots_table (bet, win_sum) VALUES(?, ?)", default_slot_sums)
+            cur.executemany("INSERT OR IGNORE INTO slots_table (bet, income) VALUES(?, ?)", default_slot_sums)
             base.commit()
 
             return cur.execute("SELECT chnl_id, is_text, is_voice FROM ignored_channels;").fetchall()
@@ -289,8 +289,14 @@ async def make_backup(guild_id: int) -> None:
         async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}_backup.db") as dst:
             await src.backup(dst)
 
-async def get_server_slots_table(guild_id: int) -> dict[int, int]:
+async def get_server_slots_table_async(guild_id: int) -> dict[int, int]:
     async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
-        async with base.execute("SELECT bet, win_sum FROM slots_table;") as cur:
+        async with base.execute("SELECT bet, income FROM slots_table;") as cur:
             pairs: Iterable[Row] = await cur.fetchall()
-            return {bet: win_sum for bet, win_sum in pairs}
+            return {bet: income for bet, income in pairs}
+
+async def update_server_slots_table_async(guild_id: int, slots_table: dict[int, int]) -> None:
+    async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+        await base.executemany("UPDATE slots_table SET income = ? WHERE bet = ?", slots_table.items())        
+        await base.commit()
+
