@@ -88,7 +88,12 @@ class ModCommandsCog(Cog):
         assert interaction.locale is not None
         assert interaction.user is not None
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-        st_view: SettingsView = SettingsView(t_out=120, auth_id=interaction.user.id, bot=self.bot)
+        st_view: SettingsView = SettingsView(
+            lng=lng,
+            author_id=interaction.user.id,
+            timeout=120,
+            bot=self.bot
+        )
         emb: Embed = Embed(title=self.settings_text[lng][0], description="\n".join(self.settings_text[lng][1]))
         await interaction.response.send_message(embed=emb, view=st_view)
 

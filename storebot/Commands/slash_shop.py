@@ -34,7 +34,8 @@ from Tools.db_commands import (
     check_member_async,
     peek_role_free_number,
     peek_free_request_id,
-    delete_role_from_db
+    delete_role_from_db,
+    get_server_info_value_async
 )
 from Variables.vars import CWD_PATH
 from config import in_row
@@ -250,9 +251,8 @@ class CustomSelect(StringSelect):
 
 class BetView(ViewBase):
     def __init__(self, timeout: int, lng: int, auth_id: int, bet: int, currency: str) -> None:
-        super().__init__(timeout=timeout)
+        super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
         self.bet: int = bet
-        self.auth_id: int = auth_id
         self.dueler: Optional[int] = None
         self.declined: bool = False
         self.currency: str = currency
@@ -270,13 +270,11 @@ class BetView(ViewBase):
         ))
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
-        assert interaction.locale is not None
         assert isinstance(interaction.user, Member)
         memb_id: int = interaction.user.id
-        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-
+        lng: int = self.lng
         if custom_id.startswith("36_"):
-            if memb_id == self.auth_id:
+            if memb_id == self.author_id:
                 await interaction.response.send_message(embed=Embed(description=bet_text[lng][2]), ephemeral=True)
                 return
             with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
@@ -301,26 +299,30 @@ class BetView(ViewBase):
             self.dueler = memb_id
             self.stop()
         else:
-            if interaction.user.id != self.auth_id:
+            if interaction.user.id != self.author_id:
                 await interaction.response.send_message(embed=Embed(description=bet_text[lng][4]), ephemeral=True)
                 return
             self.declined = True
             self.stop()
 
+    async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
+        return
+    
+    async def interaction_check(self, interaction: Interaction) -> bool:
+        return True
+
 
 class StoreView(ViewBase):
     def __init__(self, timeout: int, db_store: list[tuple[int, int, int, int, int, int, int, int]],
                  auth_id: int, lng: int, in_row: int, currency: str, tz: int) -> None:
-        super().__init__(timeout=timeout)
+        super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
         self.db_store: list[tuple[int, int, int, int, int, int, int, int]] = db_store
         self.l: int = len(db_store)
-        self.auth_id: int = auth_id
         self.in_row: int = in_row
         self.currency: str = currency
         self.tz: int = tz  # time zone of the guild
         self.sort_by_price: bool = True  # True - sort by price, False - sort by date (time)
         self.sort_reversed: bool = False  # возрастание / убывание при сортировке, False - возрастание
-        self.lng: int = lng
         self.pages: int = max(1, (self.l + in_row - 1) // in_row)
 
         self.add_item(CustomButton(label="", custom_id=f"32_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
@@ -397,9 +399,9 @@ class StoreView(ViewBase):
     async def update_menu(self, interaction: Interaction, click: int) -> None:
         assert interaction.message is not None
         assert interaction.message.embeds[0].footer.text is not None
+        lng: int = self.lng
         text: str = interaction.message.embeds[0].footer.text
-
-        if not self.lng:
+        if not lng:
             t1: int = text.find('Pa')
             t2: int = text.find('fr', t1)
             page: int = int(text[t1 + 5:t2 - 1])
@@ -428,19 +430,19 @@ class StoreView(ViewBase):
             date: str = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
             role_info: Optional[str] = None
             if tp == 1:
-                role_info = store_text[self.lng][0].format(role_number, r, p, self.currency, date)
+                role_info = store_text[lng][0].format(role_number, r, p, self.currency, date)
             elif tp == 2:
-                role_info = store_text[self.lng][1].format(role_number, r, p, self.currency, q, date)
+                role_info = store_text[lng][1].format(role_number, r, p, self.currency, q, date)
             elif tp == 3:
-                role_info = store_text[self.lng][1].format(role_number, r, p, self.currency, "∞", date)
+                role_info = store_text[lng][1].format(role_number, r, p, self.currency, "∞", date)
             if role_info:
                 if s:
-                    role_info += store_text[self.lng][2].format(s * 604800 // s_t, self.currency)
+                    role_info += store_text[lng][2].format(s * 604800 // s_t, self.currency)
                 store_list.append(role_info)
 
         if store_list:
-            emb: Embed = Embed(title=store_text[self.lng][10], colour=Colour.dark_gray(), description='\n'.join(store_list))
-            emb.set_footer(text=store_text[self.lng][3].format(page, self.pages))
+            emb: Embed = Embed(title=store_text[lng][10], colour=Colour.dark_gray(), description='\n'.join(store_list))
+            emb.set_footer(text=store_text[lng][3].format(page, self.pages))
             if click == 0:
                 await interaction.response.edit_message(embed=emb, view=self)
             else:
@@ -485,20 +487,10 @@ class StoreView(ViewBase):
         self.sort_store()
         await self.update_menu(interaction=interaction, click=0)
 
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        assert interaction.locale is not None
-        assert isinstance(interaction.user, Member)
-        if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-            await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
-            return False
-        return True
-
 
 class BuyView(ViewBase):
     def __init__(self, timeout: int, auth_id: int, lng: int) -> None:
-        super().__init__(timeout=timeout)
-        self.auth_id: int = auth_id
+        super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
         self.value: bool = False
         self.add_item(CustomButton(
             label=buy_approve_text[lng][0],
@@ -517,29 +509,21 @@ class BuyView(ViewBase):
             self.stop()
         elif custom_id.startswith("31_"):
             self.stop()
-
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        assert interaction.locale is not None
-        assert isinstance(interaction.user, Member)
-        if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-            await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
-            return False
-        return True
+    
+    async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
+        return
 
 
 class RatingView(ViewBase):
     def __init__(self, timeout: int, lng: int, auth_id: int, l: int, cash_list: list[tuple[int, int]], 
                  xp_list: list[tuple[int, int]], xp_b: int, in_row: int, ec_status: int, rnk_status: int, currency: str) -> None:
-        super().__init__(timeout=timeout)
+        super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
         self.xp_b: int = xp_b
         self.cash_list: list[tuple[int, int]] = cash_list
         self.xp_list: list[tuple[int, int]] = xp_list
         self.pages: int = max(1, (l + in_row - 1) // in_row)
         self.currency: str = currency
         self.in_row: int = in_row
-        self.auth_id: int = auth_id
-        self.lng: int = lng
         # True - show ranking by cash, False - by xp
         self.sort_value: bool = True if ec_status else False        
         self.add_item(CustomButton(label="", custom_id=f"38_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
@@ -565,15 +549,6 @@ class RatingView(ViewBase):
                 CustomSelect(custom_id=f"104_{auth_id}_{randint(1, 100)}", placeholder=rating_text[lng][3], opts=opts))
 
     async def update_menu(self, interaction: Interaction, click: int) -> None:
-        # page_text = interaction.message.embeds[0].footer.text
-        # if not self.lng:
-        #     t1 = page_text.find("Pa")
-        #     t2 = page_text.find("fr", t1)
-        #     page = int(page_text[t1+5:t2-1])
-        # else:
-        #     t1 = page_text.find("Ст")
-        #     t2 = page_text.find("из", t1)
-        #     page = int(page_text[t1+9:t2-1])
         assert interaction.message is not None
         assert interaction.message.embeds[0].footer.text is not None
         page: int = int(interaction.message.embeds[0].footer.text.split(" ")[1])
@@ -593,25 +568,25 @@ class RatingView(ViewBase):
             page = self.pages
 
         counter: int = (page - 1) * self.in_row + 1
-
+        lng: int = self.lng
         if self.sort_value:
-            emb: Embed = Embed(title=rating_text[self.lng][0], colour=Colour.dark_gray())
+            emb: Embed = Embed(title=rating_text[lng][0], colour=Colour.dark_gray())
             for r in self.cash_list[(page - 1) * self.in_row:min(page * self.in_row, len(self.cash_list))]:
-                emb.add_field(name=rating_text[self.lng][3].format(counter), value=f"<@{r[0]}>\n{r[1]} {self.currency}",
+                emb.add_field(name=rating_text[lng][3].format(counter), value=f"<@{r[0]}>\n{r[1]} {self.currency}",
                               inline=False)
                 counter += 1
         else:
-            emb: Embed = Embed(title=rating_text[self.lng][1], colour=Colour.dark_gray())
+            emb: Embed = Embed(title=rating_text[lng][1], colour=Colour.dark_gray())
             for r in self.xp_list[(page - 1) * self.in_row:min(page * self.in_row, len(self.xp_list))]:
                 level: int = (r[1] - 1) // self.xp_b + 1
                 emb.add_field(
-                    name=rating_text[self.lng][3].format(counter),
-                    value=f"<@{r[0]}>\n{rating_text[self.lng][4].format(level)}",
+                    name=rating_text[lng][3].format(counter),
+                    value=f"<@{r[0]}>\n{rating_text[lng][4].format(level)}",
                     inline=False
                 )
                 counter += 1
 
-        emb.set_footer(text=rating_text[self.lng][2].format(page, self.pages))
+        emb.set_footer(text=rating_text[lng][2].format(page, self.pages))
         if not click:
             await interaction.response.edit_message(embed=emb, view=self)
         else:
@@ -645,15 +620,6 @@ class RatingView(ViewBase):
                 self.children[4].options[1].default = False # type: ignore
 
         await self.update_menu(interaction=interaction, click=0)
-
-    async def interaction_check(self, interaction) -> bool:
-        assert interaction.locale is not None
-        assert isinstance(interaction.user, Member)
-        if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-            await interaction.response.send_message(embed=Embed(description=common_text[lng][0]), ephemeral=True)
-            return False
-        return True
 
 
 class SlashCommandsCog(Cog):
@@ -774,7 +740,7 @@ class SlashCommandsCog(Cog):
             embed=Embed(
                 title=text_slash[lng][0],
                 description=answer, 
-                colour=Colour.red()
+                colour=Colour.dark_grey()
             ),
             ephemeral=True
         )
@@ -1752,6 +1718,18 @@ class SlashCommandsCog(Cog):
         except:
             return
 
+    async def slots(self, interaction: Interaction) -> None:
+        assert interaction.guild_id is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
+        guild_id: int = interaction.guild_id
+        if not (await get_server_info_value_async(guild_id=guild_id, key_name="slots_on")):
+            # await self.respond_with_error_report(interaction=interaction, lng=lng, answer=)
+            return
+        
+        
+
     @slash_command(
         name="buy",
         description="Makes a role purchase from the store",
@@ -2074,6 +2052,16 @@ class SlashCommandsCog(Cog):
     async def leaders_e(self, interaction: Interaction) -> None:
         await self.leaders(interaction=interaction)
 
+    @slash_command(
+        name="slots",
+        description="Starts 'slots' game",
+        description_localizations={
+            Locale.ru: "Начинает игру в 'слоты'"
+        },
+        dm_permission=False
+    )
+    async def slots_cmd(self, interaction: Interaction) -> None:
+        await self.slots(interaction=interaction)
 
 def setup(bot: Bot) -> None:
     bot.add_cog(SlashCommandsCog(bot))

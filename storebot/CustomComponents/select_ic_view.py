@@ -1,16 +1,11 @@
 from os import urandom
-from typing import (
-    Literal,
-    Dict
-)
+from typing import Dict
 
 from nextcord import (
     ButtonStyle,
     Interaction,
     Embed
 )
-if __debug__:
-    from nextcord import Member
 
 from Tools.db_commands import get_ignored_channels
 from CustomComponents.view_base import ViewBase
@@ -31,23 +26,22 @@ class SelectICView(ViewBase):
         },
     }
 
-    def __init__(self, timeout: int, lng: int, auth_id: int, g_id: int, bot: StoreBot) -> None:
-        super().__init__(timeout=timeout)
+    def __init__(self, lng: int, author_id: int, timeout: int, g_id: int, bot: StoreBot) -> None:
+        super().__init__(lng=lng, author_id=author_id, timeout=timeout)
         
         self.add_item(CustomButton(
             style=ButtonStyle.green,
             label="",
             emoji="<:ignored_text:1064976269038583808>",
-            custom_id=f"55_{auth_id}_{urandom(4).hex()}"
+            custom_id=f"55_{author_id}_{urandom(4).hex()}"
         ))
         self.add_item(CustomButton(
             style=ButtonStyle.green,
             label="",
             emoji="🔇",
-            custom_id=f"56_{auth_id}_{urandom(4).hex()}",
+            custom_id=f"56_{author_id}_{urandom(4).hex()}",
         ))
         self.g_id: int = g_id
-        self.auth_id: int = auth_id
         self.bot: StoreBot = bot
         self.lng: int = lng
 
@@ -80,7 +74,7 @@ class SelectICView(ViewBase):
                 text_ic_v: IgnoredChannelsView = IgnoredChannelsView(
                     timeout=80,
                     lng=lng,
-                    auth_id=self.auth_id,
+                    auth_id=self.author_id,
                     chnls=guild_text_channels,
                     rem_dis=rd,
                     g_id=guild_id,
@@ -108,7 +102,7 @@ class SelectICView(ViewBase):
                 voice_ic_v: IgnoredChannelsView = IgnoredChannelsView(
                     timeout=80,
                     lng=lng,
-                    auth_id=self.auth_id,
+                    auth_id=self.author_id,
                     chnls=guild_voice_channels,
                     rem_dis=rd,
                     g_id=guild_id,
@@ -123,11 +117,5 @@ class SelectICView(ViewBase):
                 except:
                     return
 
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        assert interaction.locale is not None
-        assert isinstance(interaction.user, Member)
-        if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-            await interaction.response.send_message(embed=Embed(description=IgnoredChannelsView.ignored_channels_text[lng][11]), ephemeral=True)
-            return False
-        return True
+    async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
+        return

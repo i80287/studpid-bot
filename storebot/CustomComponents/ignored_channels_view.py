@@ -12,8 +12,6 @@ from nextcord import (
     Interaction,
     Embed
 )
-if __debug__:
-    from nextcord import Member
 
 from Variables.vars import CWD_PATH
 from CustomComponents.view_base import ViewBase
@@ -55,7 +53,7 @@ class IgnoredChannelsView(ViewBase):
     }
 
     def __init__(self, timeout: int, lng: int, auth_id: int, chnls: list[tuple[str, str]], rem_dis: bool, g_id: int, bot: StoreBot, is_text: bool) -> None:
-        super().__init__(timeout=timeout)
+        super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
         l: int = len(chnls)
         for i in range(min((l + 23) // 24, 20)):
             self.add_item(CustomSelect(
@@ -182,12 +180,3 @@ class IgnoredChannelsView(ViewBase):
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         if custom_id.startswith("11"):
             self.chnl = int(values[0])
-
-    async def interaction_check(self, interaction: Interaction) -> bool:
-        assert interaction.locale is not None
-        assert isinstance(interaction.user, Member)
-        if interaction.user.id != self.auth_id:
-            lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-            await interaction.response.send_message(embed=Embed(description=self.ignored_channels_text[lng][11]), ephemeral=True)
-            return False
-        return True
