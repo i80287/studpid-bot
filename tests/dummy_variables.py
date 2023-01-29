@@ -25,18 +25,18 @@ GUILD_OWNER_ID: Literal[23480234] = 23480234
 GUILD_AFK_CHANNEL_ID: Literal[2342390940] = 2342390940
 GUILD_AFK_TIMEOUT: Literal[32348] = 32348
 GUILD_SYSTEM_CHANNEL_ID: Literal[5943004505] = 5943004505
-GUILD_SYSTEM_CHANNEL_FLAGS: Literal[21] = 0b10101
+GUILD_SYSTEM_CHANNEL_FLAGS: Literal[0b10101] = 0b10101
 GUILD_RULES_CHANNEL_ID: Literal[3218990234] = 3218990234
 GUILD_PUBLIC_UPDATES_CHANNEL_ID: Literal[32982394089] = 32982394089
 
-GUILD_ROLES_COLOR: Literal[66] = 0x42
+GUILD_ROLES_COLOR: Literal[42] = 42
 GUILD_ROLES_PERMISSIONS: Literal['65536'] = "65536"
 GUILD_ROLES_COUNT: Literal[16] = 16
 GUILD_ROLES_IDS: list[int] = [i + 42 for i in range(GUILD_ROLES_COUNT)]
 
 GUILD_MEMBER_AVATAR: Literal['https://unix.png'] = "https://unix.png"
 GUILD_MEMBER_NICK: Literal['3423989072384'] = "3423989072384"
-GUILD_MEMBER_ROLES: list[int]
+GUILD_MEMBER_ROLES: list[int | str]
 GUILD_MEMBER_ROLES_COUNT: Literal[4] = 4
 
 INTERACTION_ID: Literal[3298900234] = 3298900234
@@ -101,7 +101,7 @@ dummy_roles_payloads: list[RolePayloads] = [
 
 dummy_roles: list[Role] = [Role(guild=dummy_guild, state=dummy_conn_state, data=role_payload) for role_payload in dummy_roles_payloads]
 dummy_guild._roles = {role.id: role for role in dummy_roles}
-GUILD_MEMBER_ROLES = [role.id for role in dummy_roles[:GUILD_MEMBER_ROLES_COUNT]]
+GUILD_MEMBER_ROLES: list[int | str] = [role.id for role in dummy_roles[:GUILD_MEMBER_ROLES_COUNT]]
 
 dummy_user_payloads: UserPayloads = UserPayloads(
     id=USER_ID,

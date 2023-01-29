@@ -2,12 +2,12 @@ import asyncio
 import os
 from nextcord.ext.commands import Cog
 
-from Variables.vars import CWD_PATH
 from dummy_variables import GUILD_ID, dummy_guild, dummy_roles, dummy_interaction
-from Commands.slash_shop import SlashCommandsCog
-from storebot import StoreBot
+from storebot.Variables.vars import CWD_PATH
+from storebot.Commands.slash_shop import SlashCommandsCog
+from storebot.storebot import StoreBot
 
-from Tools import db_commands
+from storebot.Tools import db_commands
 
 async def main() -> None:
     guild_id: int = GUILD_ID
@@ -21,7 +21,7 @@ async def main() -> None:
     if not Cog:
         return
 
-    await cog.bet(interaction=dummy_interaction, amount=42)
+    await cog.bet(interaction=dummy_interaction, amount=42) # type: ignore
 
     os.remove(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")
     
