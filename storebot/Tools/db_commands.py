@@ -1,6 +1,8 @@
 from sqlite3 import connect, Cursor, Row
 from aiosqlite import connect as connect_async
 from contextlib import closing
+if __debug__:
+    from collections.abc import Iterable
 
 from Variables.vars import CWD_PATH
 
@@ -45,6 +47,11 @@ async def get_member_nocheck_async(guild_id: int, member_id: int) -> tuple[int, 
     async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
         async with base.execute("SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = ?", (member_id,)) as cur:
             return tuple(await cur.fetchone()) # type: ignore
+
+async def update_member_cash_async(guild_id: int, member_id: int, cash: int) -> None:
+    async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+        await base.execute("UPDATE users SET money = ? WHERE memb_id = ?", (cash, member_id))
+        await base.commit()
 
 async def check_member_level_async(guild_id: int, member_id: int) -> int:
     async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
@@ -229,6 +236,10 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
             );
             CREATE TABLE IF NOT EXISTS mod_roles (
                 role_id INTEGER PRIMARY KEY
+            );
+            CREATE TABLE IF NOT EXISTS slots_table (
+                bet INTEGER PRIMARY KEY,
+                win_sum INTEGER NOT NULL DEFAULT 0
             );""")
             base.commit()
             
@@ -262,9 +273,24 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
             cur.executemany("INSERT OR IGNORE INTO server_info (settings, value, str_value) VALUES(?, ?, ?)", settings_params)
             base.commit()
 
+            default_slot_sums: list[tuple[int, int]] = [
+                (100, 80),
+                (200, 160),
+                (500, 400),
+                (1000, 800)
+            ]
+            cur.executemany("INSERT OR IGNORE INTO slots_table (bet, win_sum) VALUES(?, ?)", default_slot_sums)
+            base.commit()
+
             return cur.execute("SELECT chnl_id, is_text, is_voice FROM ignored_channels;").fetchall()
 
 async def make_backup(guild_id: int) -> None:
     async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as src:
         async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}_backup.db") as dst:
             await src.backup(dst)
+
+async def get_server_slots_table(guild_id: int) -> dict[int, int]:
+    async with connect_async(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db") as base:
+        async with base.execute("SELECT bet, win_sum FROM slots_table;") as cur:
+            pairs: Iterable[Row] = await cur.fetchall()
+            return {bet: win_sum for bet, win_sum in pairs}

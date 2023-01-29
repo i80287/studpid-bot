@@ -37,7 +37,9 @@ from Tools.db_commands import (
     peek_role_free_number,
     peek_free_request_id,
     delete_role_from_db,
-    get_server_info_value_async
+    get_server_info_value_async,
+    get_server_currency_async,
+    get_server_slots_table
 )
 from Variables.vars import CWD_PATH
 from config import in_row
@@ -1717,6 +1719,7 @@ class SlashCommandsCog(Cog):
 
     async def slots(self, interaction: Interaction) -> None:
         assert interaction.guild_id is not None
+        assert interaction.guild is not None
         assert interaction.locale is not None
         assert isinstance(interaction.user, Member)
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
@@ -1731,11 +1734,15 @@ class SlashCommandsCog(Cog):
             )
             return
         
+        slots_table: dict[int, int] = await get_server_slots_table(guild_id=guild_id)
+        currency: str = await get_server_currency_async(guild_id=guild_id)
         slots_view: SlotsView = SlotsView(
             lng=lng,
             author_id=member_id,
             timeout=180,
-            guild_id=guild_id
+            guild=interaction.guild,
+            slots_table=slots_table,
+            currency=currency
         )
         await interaction.response.send_message(
             embed=Embed(description=SlotsView.slots_panel.format(0, 0, 0)),

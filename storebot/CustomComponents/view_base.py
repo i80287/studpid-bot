@@ -15,8 +15,8 @@ class ViewBase(ABC, View):
         1: "**`Извините, но Вы не можете управлять меню, которое вызвано другим пользователем`**",
     }
 
-    def __init__(self, *, lng: int, author_id: int, timeout: Optional[Union[int, float]]  = 180) -> None:
-        super().__init__(timeout=timeout, auto_defer=True)
+    def __init__(self, *, lng: int, author_id: int, timeout: Optional[Union[int, float]] = 180, auto_defer: bool = True) -> None:
+        super().__init__(timeout=timeout, auto_defer=auto_defer)
         self.lng: int = lng
         self.author_id: int = author_id
     
