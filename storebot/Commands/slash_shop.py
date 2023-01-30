@@ -1745,7 +1745,7 @@ class SlashCommandsCog(Cog):
             currency=currency
         )
         await interaction.response.send_message(
-            embed=Embed(description=SlotsView.slots_panel.format(0, 0, 0)),
+            embed=Embed(description=SlotsView.slots_panels[lng].format(0, 0, 0)),
             view=slots_view
         )
 

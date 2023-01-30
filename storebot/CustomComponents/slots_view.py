@@ -1,7 +1,7 @@
 import asyncio
 from random import randrange
 from os import urandom
-from typing import LiteralString
+from typing import LiteralString, final
 
 from nextcord import (
     TextChannel,
@@ -24,7 +24,10 @@ from CustomComponents.custom_select import CustomSelectWithOptions
 
 
 class SlotsView(ViewBase):
-    slots_panel: LiteralString = "```\n┌───────┬───────┬───────┐\n│ Slot 1│ Slot 2│ Slot 3│\n├───────┼───────┼───────┤\n│  >{0}<  │  >{1}<  │  >{2}<  │\n└───────┴───────┴───────┘```"
+    slots_panels: dict[int, LiteralString] = {
+        0: "```fix\n┌───────┬───────┬───────┐\n│ Slot 1│ Slot 2│ Slot 3│\n├───────┼───────┼───────┤\n│  >{0}<  │  >{1}<  │  >{2}<  │\n└───────┴───────┴───────┘```",
+        1: "```fix\n┌───────┬───────┬───────┐\n│ Слот 1│ Слот 2│ Слот 3│\n├───────┼───────┼───────┤\n│  >{0}<  │  >{1}<  │  >{2}<  │\n└───────┴───────┴───────┘```",
+    }
     slots_view_text: dict[int, dict[int, str]] = {
         0: {
             0: "**`Slots are disabled on this server`**",
@@ -73,31 +76,30 @@ class SlotsView(ViewBase):
         self.slot_runs_queue: asyncio.Queue[Interaction] = asyncio.Queue()        
         self.slot_runs_handler.start(guild=guild, slots_table=slots_table)
     
-    async def check_bet(self, interaction: Interaction) -> int:
-        bet: int = self.bet
+    async def check_bet(self, interaction: Interaction, bet: int, member_cash: int) -> bool:
         if not bet:
             await interaction.response.send_message(
                 embed=Embed(description=self.slots_view_text[self.lng][2]),
                 ephemeral=True
             )
-            return 0
+            return False
         
-        member_cash: int = (await get_member_nocheck_async(guild_id=self.guild_id, member_id=self.author_id))[1]
         if member_cash < bet:
             await interaction.response.send_message(
                 embed=Embed(description=self.slots_view_text[self.lng][3].format(bet - member_cash, self.currency)),
                 ephemeral=True
             )
-            return 0
+            return False
         
-        return member_cash
+        return True
 
     @tasks.loop(count=None)
     async def slot_runs_handler(self, guild: Guild, slots_table: dict[int, int]) -> None:
         guild_id: int = self.guild_id
         member_id: int = self.author_id
-        slot_run_text: str = self.slots_view_text[self.lng][5]
+        local_text: dict[int, str] = self.slots_view_text[self.lng]
         currency: str = self.currency
+        slot_panel: str = self.slots_panels[self.lng]
 
         log_channel_id: int = await get_server_info_value_async(guild_id=guild_id, key_name="log_c")
         guild_log_channel: TextChannel | None = None
@@ -108,11 +110,11 @@ class SlotsView(ViewBase):
 
         while self.is_running:
             interaction: Interaction = await self.slot_runs_queue.get()
-            member_cash: int = await self.check_bet(interaction=interaction)
-            if not member_cash:
+            bet: int = self.bet            
+            member_cash: int = (await get_member_nocheck_async(guild_id=guild_id, member_id=member_id))[1]
+            if not await self.check_bet(interaction=interaction, bet=bet, member_cash=member_cash):
                 continue
             
-            bet: int = self.bet
             result: int = randrange(1000)
             win_sum: int = int(slots_table[bet] * (result + 500) / 1000)            
             member_cash += win_sum - bet
@@ -120,13 +122,42 @@ class SlotsView(ViewBase):
                 member_cash = 0
             await update_member_cash_async(guild_id=guild_id, member_id=member_id, cash=member_cash)
 
-            n1: int = result // 100
-            n2: int = (result // 100) % 10
-            n3: int = result % 10
+            n1: int
+            n2: int
+            n3: int
+            if result < 500:
+                n1 = randrange(4)
+                n2 = randrange(4)
+                n3 = randrange(4)
+            elif result == 500:
+                if randrange(2):
+                    n1 = 4
+                    n2 = 3
+                else:
+                    n1 = 3
+                    n2 = 4
+                n3 = 4
+            elif result < 750:
+                n1 = randrange(4, 6)
+                n2 = randrange(3, 5)
+                n3 = randrange(3, 6)
+            elif result < 900:
+                n1 = randrange(5, 7)
+                n2 = randrange(4, 7)
+                n3 = randrange(4, 6)
+            elif result < 950:
+                n1 = 6
+                n2 = 6
+                n3 = 6
+            else:
+                n1 = 7
+                n2 = 7
+                n3 = 7
+                
             assert interaction.message is not None
-            await interaction.message.edit(embed=Embed(description=self.slots_panel.format(n1, n2, n3)), view=self)
+            await interaction.message.edit(embed=Embed(description=slot_panel.format(n1, n2, n3)), view=self)
             await interaction.response.send_message(
-                embed=Embed(description=slot_run_text.format(bet, currency, win_sum)),
+                embed=Embed(description=local_text[5].format(bet, currency, win_sum)),
                 ephemeral=True
             )
 
@@ -163,7 +194,8 @@ class SlotsView(ViewBase):
             case 1000:
                 self.bet_select.options[3].default = True
         self.bet = bet
-        if await self.check_bet(interaction=interaction):
+        member_cash: int = (await get_member_nocheck_async(guild_id=self.guild_id, member_id=self.author_id))[1]
+        if await self.check_bet(interaction=interaction, bet=bet, member_cash=member_cash):
             await interaction.response.send_message(
                 embed=Embed(description=self.slots_view_text[self.lng][4].format(bet, self.currency)),
                 ephemeral=True
