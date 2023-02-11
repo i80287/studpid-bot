@@ -45,7 +45,7 @@ class EventsHandlerCog(Cog):
     greetings: dict[int, str] = {
         0: "Thanks for adding bot!\n\
             Use **`/guide`** to see guide about bot's system\n\
-            *`/settings`** to manage bot\n\
+            **`/settings`** to manage bot\n\
             and **`/help`** to see available commands",
         1: "Благодарим за добавление бота!\n\
             Используйте **`/guide`** для просмотра гайда о системе бота\n\
