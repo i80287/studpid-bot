@@ -337,14 +337,26 @@ class BasicComandsCog(Cog):
     @command(aliases=["statistic", "statistics"])
     @is_owner()
     async def _statistic(self, ctx: Context) -> None:
+        
         async with self.bot.statistic_lock:
             guilds: list[Guild] = self.bot.guilds.copy()
-            description: list[str] = \
+            lines: list[str] = \
                 ["```guild - id - member_count```"] + \
                 [fr"{{{guild.name}}}-{{{guild.id}}}-{{{guild.member_count}}}-{{{guild.owner_id}}}" for guild in guilds] + \
                 [f"\n**`Total guilds: {len(guilds)}`**", f"\n**`Currently active polls: {len(self.bot.current_polls)}`**"]
-        emb: Embed = Embed(description='\n'.join(description))
-        await ctx.reply(embed=emb, mention_author=False, delete_after=15)
+        
+        half_size: int = len(lines) >> 1
+        description1: str = '\n'.join(lines[:half_size])
+        description2: str = '\n'.join(lines[half_size:])
+
+        # if (len(description1) + len(description2)) >= 4096
+        if (len(description1) + len(description2)) & ~4095:
+            emb1: Embed = Embed(description=description1)
+            emb2: Embed = Embed(description=description2)
+            await ctx.reply(embeds=[emb1, emb2], mention_author=False, delete_after=20.0)
+        else:
+            emb: Embed = Embed(description=description1 + '\n' + description2)
+            await ctx.reply(embed=emb, mention_author=False, delete_after=20.0)
 
     @command(name="update_status")
     @is_owner()

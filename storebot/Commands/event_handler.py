@@ -1,5 +1,4 @@
 from sqlite3 import connect
-from datetime import datetime, timedelta
 from contextlib import closing
 from os import path, mkdir
 from typing import (
@@ -130,10 +129,15 @@ class EventsHandlerCog(Cog):
     async def on_guild_join(self, guild: Guild) -> None:
         guild_id: int = guild.id
         
+        # discord abusers
+        if guild_id in {260978723455631373, 1068135541360578590}:
+            await guild.leave()
+            return
+
         if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
             mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
         if not path.exists(f"{CWD_PATH}/logs/logs_{guild_id}/"):
-                mkdir(f"{CWD_PATH}/logs/logs_{guild_id}/")
+            mkdir(f"{CWD_PATH}/logs/logs_{guild_id}/")
 
         guild_locale: str = str(guild.preferred_locale)
         db_ignored_channels_data: list[tuple[int, int, int]] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
@@ -152,7 +156,7 @@ class EventsHandlerCog(Cog):
         except Exception as ex:
             await Logger.write_one_log_async(
                 filename="error.log",
-                report=f"[{datetime.utcnow().__add__(timedelta(hours=3))}] [FATAL] [ERROR] [send_first_message] [guild: {guild_id}:{guild.name}] [{str(ex)}]\n"
+                report=f"[FATAL] [ERROR] [send_first_message] [guild: {guild_id}:{guild.name}] [{str(ex)}]\n"
             )
 
         await Logger.write_log_async("guild.log", "guild_join", str_guild_id, guild_name)
@@ -168,6 +172,10 @@ class EventsHandlerCog(Cog):
     @Cog.listener()
     async def on_guild_remove(self, guild: Guild) -> None:
         guild_id: int = guild.id
+
+        # discord abusers
+        if guild_id in {260978723455631373, 1068135541360578590}:
+            return
 
         await Logger.write_log_async("guild", "guild_remove", str(guild_id), str(guild.name))
         await Logger.write_log_async("common_logs", "guild_remove", str(guild_id), str(guild.name))
@@ -281,8 +289,14 @@ class EventsHandlerCog(Cog):
 
     @Cog.listener()
     async def on_command_error(self, ctx: Context, error) -> None:
-        guild_report: str = f"[{guild.id}] [{guild.name}" if (guild := ctx.guild) else ""
-        await Logger.write_log_async("error.log", ctx.author.id, guild_report, str(error))
+        lines: list[str] = [f"[ERROR]"]
+        if (member := ctx.author):
+            lines.append(f"[member: {member.id}:{member.name}]")
+        if (guild := ctx.guild):
+            lines.append(f"[guild: {guild.id}:{guild.name}]")
+        lines.append('[' + str(error) + ']')
+        
+        await Logger.write_one_log_async(filename="error.log", report=' '.join(lines))
 
 
 def setup(bot: StoreBot) -> None:
