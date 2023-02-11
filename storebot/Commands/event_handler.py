@@ -289,7 +289,7 @@ class EventsHandlerCog(Cog):
 
     @Cog.listener()
     async def on_command_error(self, ctx: Context, error) -> None:
-        lines: list[str] = [f"[ERROR]"]
+        lines: list[str] = ["[ERROR]"]
         if (member := ctx.author):
             lines.append(f"[member: {member.id}:{member.name}]")
         if (guild := ctx.guild):
