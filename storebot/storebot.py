@@ -9,7 +9,8 @@ from typing import (
 from nextcord import Intents, Member
 from nextcord.ext.commands import Bot, when_mentioned_or
 
-from Commands import polls
+if __debug__:
+    from Commands import polls
 from config import prefix, DEBUG_TOKEN, TOKEN, DEBUG, FEEDBACK_CHANNEL
 
 class StoreBot(Bot):
