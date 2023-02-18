@@ -331,23 +331,23 @@ class AdditionalCommandsCog(Cog):
         member_id: int = member.id
         description_lines: list[str] = [
 f"""\
-**User:** <@{member_id}> `{member_id}`
+**User:** <@{member_id}> **`{member_id}`**
 **Pfp url is:** [Link to php]({member.display_avatar.url})
-**Creation date:** `{member.created_at.strftime("%d/%m/%Y %H:%M:%S")}`\
+**Creation date: `{member.created_at.strftime("%d/%m/%Y %H:%M:%S")}`**\
 """
         ]
         if (joined_at := member.joined_at):
-            description_lines.append(f"**Join at: ** `{joined_at.strftime('%d/%m/%Y %H:%M:%S')}`")
-        description_lines.append(f"**Nick on the server:** `{member.display_name}`")
-        description_lines.append(f"**Status is:** `{status}`" if isinstance(status := member.status, Status) else f"**Status is:** {status}")
+            description_lines.append(f"**Join at: `{joined_at.strftime('%d/%m/%Y %H:%M:%S')}`**")
+        description_lines.append(f"**Nick on the server: `{member.display_name}`**")
+        description_lines.append(f"**Status: `{status}`**" if isinstance(status := member.status, Status) else f"**Status:** {status}")
         if (activities := member.activities):
-            description_lines.extend(f"**Activity:** `{activity.name}`" for activity in activities)
-        description_lines.append("**User is a bot**" if member.bot else "**User is not a bot**")
+            description_lines.extend(f"**Activity: `{name}`**" for activity in activities if (name := activity.name))
+        description_lines.append("**`User is a bot`**" if member.bot else "**`User is not a bot`**")
         
         g: Guild = interaction.guild
         roles: list[Role] = sorted([role for role_id in member._roles if (role := g.get_role(role_id))])
         if roles:
-            description_lines.append("**Member's roles:**")
+            description_lines.append("**`Member's roles:`**")
             description_lines.extend("<@&" + str(role.id) + ">" for role in roles)
         
         emb: Embed = Embed(
@@ -393,9 +393,9 @@ f"""\
         user_name: str = user.name
         avatar_url: str = user.display_avatar.url
         description: str = f"""\
-**User:** <@{user_id}> `{user_id}`
+**User:** <@{user_id}> **`{user_id}`**
 **Pfp url is:** [Link to php]({avatar_url})
-**Creation date: `{user.created_at.strftime("%d/%m/%Y %H:%M:%S")}`**""" + ("**\nUser is a bot**" if user.bot else "**\nUser is not a bot**")
+**Creation date: `{user.created_at.strftime("%d/%m/%Y %H:%M:%S")}`**""" + ("\n**`User is a bot`**" if user.bot else "\n**`User is not a bot`**")
         emb: Embed = Embed(
             title=user_name + "#" + user.discriminator,
             description=description,
