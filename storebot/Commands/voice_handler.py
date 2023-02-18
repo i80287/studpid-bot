@@ -129,13 +129,20 @@ class VoiceHandlerCog(Cog):
     async def process_left_member(self, member_id: int, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str, voice_left_time: int) -> None:
         guild_id: int = guild.id
         async with self.bot.voice_lock:
-            if member_id in self.bot.members_in_voice[guild_id]:
-                member_name: str = self.bot.members_in_voice[guild_id].pop(member_id).name
-                voice_join_time: int = 0
-                was_in_dict: bool = True
+            if guild_id in self.bot.members_in_voice:
+                if member_id in self.bot.members_in_voice[guild_id]:
+                    member_name: str = self.bot.members_in_voice[guild_id].pop(member_id).name
+                    voice_join_time: int = 0
+                    was_in_dict: bool = True
+                else:
+                    # If member joined voice channel before the bot startup.
+                    member_name: str = "not in dict;"
+                    voice_join_time: int = self.bot.startup_time
+                    was_in_dict: bool = False
             else:
-                # If member joined voice channel before the bot startup.
-                member_name: str = "not in dict;"
+                # If member left in time bot startuped
+                self.bot.members_in_voice[guild_id] = {}
+                member_name: str = "guild not in dict;"
                 voice_join_time: int = self.bot.startup_time
                 was_in_dict: bool = False
 
@@ -183,7 +190,10 @@ class VoiceHandlerCog(Cog):
     async def process_joined_member(self, member_id: int, member: Member, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str, voice_join_time: int) -> None:
         guild_id: int = guild.id
         async with self.bot.voice_lock:
-            self.bot.members_in_voice[guild_id][member_id] = member
+            if guild_id in self.bot.members_in_voice:
+                self.bot.members_in_voice[guild_id][member_id] = member
+            else:
+                self.bot.members_in_voice[guild_id] = {member_id: member}
 
         await db_commands.register_user_voice_channel_join(
             guild_id=guild_id,
