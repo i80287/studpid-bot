@@ -18,13 +18,15 @@ from nextcord import (
     Embed,
     Emoji,
     Interaction,
+    Permissions,
     ButtonStyle,
     Message,
     Member,
-    Guild    
+    Guild
 )
 if __debug__:
     from nextcord import Role
+    from typing import Callable
 
 from storebot import StoreBot
 from Tools.db_commands import (
@@ -47,6 +49,7 @@ from CustomModals.custom_modals import (
     SelectLevelModal,
     ManageMemberCashXpModal
 )
+from CustomComponents.select_channel_view import SelectChannelView
 from CustomModals.sale_role_price import SalePriceModal
 from CustomModals.voice_income_modal import VoiceIncomeModal
 from CustomComponents.slots_manage_view import SlotsManageView
@@ -685,7 +688,6 @@ class EconomyView(ViewBase):
 
     def __init__(self, lng: int, author_id: int, timeout: int, sale_price_percent: int, voice_income: int, currency: str) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
-        self.channel: Optional[int] = None
         self.sale_price_percent: int = sale_price_percent
         self.voice_income: int = voice_income
         self.currency: str = currency
@@ -841,69 +843,48 @@ class EconomyView(ViewBase):
             await interaction.message.edit(embed=emb)
 
     async def log_chnl(self, interaction: Interaction) -> None:
+        assert interaction.guild_id is not None
         assert interaction.guild is not None
         assert interaction.message is not None
         lng: int = self.lng
-        channels: list[tuple[str, str]] = [(c.name, "c.id") for c in interaction.guild.text_channels]
-        for i in range(min((len(channels) + 23) // 24, 7)):
-            opts: list[tuple[str, str]] = [(settings_text[lng][12], "0")] + channels[i*24:min((i+1)*24, len(channels))]
-            self.add_item(CustomSelect(
-                custom_id=f"{500+i}_{self.author_id}_{randrange(1000)}",
-                placeholder=settings_text[lng][10],
-                options=opts
-            ))
-            
-        await interaction.message.edit(view=self)
-        await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), ephemeral=True)
+        
+        guild_self_bot: Member = interaction.guild.me
+        verify_permissions: Callable[[Permissions], bool] = \
+            lambda permissions: permissions.read_message_history and permissions.read_messages and permissions.send_messages
+        channels_options: list[tuple[str, str]] = [(c.name, c.id.__str__()) for c in interaction.guild.text_channels if verify_permissions(c.permissions_for(guild_self_bot))]
 
-        cnt: int = 0
-        while self.channel is None and cnt < 40:
-            cnt += 1
-            await sleep(1)
+        select_channel_view: SelectChannelView = SelectChannelView(lng, self.author_id, 40, channels_options)
+        await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=select_channel_view, ephemeral=True)
+        await select_channel_view.wait()
 
-        i: int = 7
-        while i < len(self.children):
-            select_menu = self.children[i]
-            assert isinstance(select_menu, CustomSelect)
-            if select_menu.custom_id.startswith("5"):
-                self.remove_item(select_menu)
-            else:
-                i += 1
-        del i
+        try:
+            await interaction.delete_original_message()
+        except:
+            pass
 
-        if cnt >= 40:
-            await interaction.message.edit(view=self)
-            try:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][18]))
-            except:
-                pass
-            self.channel = None
+        if (channel_id := select_channel_view.channel_id) is None:
             return
 
-        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+        guild_id: str = str(interaction.guild_id)
+        with closing(connect(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_c'", (self.channel,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_c'", (channel_id,))
                 base.commit()
         
         emb: Embed = interaction.message.embeds[0]
         assert emb.description is not None
         dsc: list[str] = emb.description.split("\n\n")
-        if self.channel:
-            dsc[5] = ec_text[lng][7].format(f"<#{self.channel}>")
-        else:
-            dsc[5] = ec_text[lng][7].format(settings_text[lng][13])
+        dsc[5] = ec_text[lng][7].format(f"<#{channel_id}>") if channel_id else ec_text[lng][7].format(settings_text[lng][13])
         emb.description = "\n\n".join(dsc)
-        await interaction.message.edit(embed=emb, view=self)
+        await interaction.message.edit(embed=emb)
 
         try:
-            if self.channel:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][17].format(f"<#{self.channel}>")))
+            if channel_id:
+                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][17].format(f"<#{channel_id}>")))
             else:
                 await interaction.edit_original_message(embed=Embed(description=ec_text[lng][22]))
         except:
-            pass
-            
-        self.channel = None
+            return
 
     async def manage_economy_roles(self, interaction: Interaction) -> None:
         lng: int = self.lng
@@ -936,7 +917,8 @@ class EconomyView(ViewBase):
         descr.append('\n' + ec_text[lng][21])
         
         assert interaction.guild is not None
-        assignable_roles: list[tuple[str, str]] = [(r.name, str(r.id)) for r in interaction.guild.roles if r.is_assignable()]
+        guild: Guild = interaction.guild
+        assignable_roles: list[tuple[str, str]] = [(r.name, str(r.id)) for r in guild.roles if r.is_assignable()]
         remove_role_button_is_disabled: bool = False if assignable_roles else True
         ec_rls_view: EconomyRolesManageView = EconomyRolesManageView(
             t_out=155,
@@ -996,8 +978,7 @@ class EconomyView(ViewBase):
                             pass
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
-        if custom_id.startswith("50"):
-            self.channel = int(values[0])
+        return
 
 
 class EconomyRolesManageView(ViewBase):
@@ -1489,14 +1470,17 @@ class PollSettingsView(ViewBase):
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.guild is not None
         lng: int = self.lng
-        me: Member = interaction.guild.me
-        chnls: list[tuple[str, str]] = [(c.name, str(c.id)) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
+
+        guild_self_bot: Member = interaction.guild.me
+        verify_permissions: Callable[[Permissions], bool] = \
+            lambda permissions: permissions.read_message_history and permissions.read_messages and permissions.send_messages
+        channels_options: list[tuple[str, str]] = [(c.name, c.id.__str__()) for c in interaction.guild.text_channels if verify_permissions(c.permissions_for(guild_self_bot))]
 
         int_custom_id: int = int(custom_id[:2])
         if int_custom_id == 28:
-            v_c: PollsChannelsView = PollsChannelsView(timeout=25, lng=lng, view_id_base=1400, auth_id=self.author_id, chnls=chnls)
+            v_c: PollsChannelsView = PollsChannelsView(timeout=25, lng=lng, view_id_base=1400, auth_id=self.author_id, chnls=channels_options)
         else:
-            v_c: PollsChannelsView = PollsChannelsView(timeout=25, lng=lng, view_id_base=1500, auth_id=self.author_id, chnls=chnls)
+            v_c: PollsChannelsView = PollsChannelsView(timeout=25, lng=lng, view_id_base=1500, auth_id=self.author_id, chnls=channels_options)
 
         await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=v_c)
         await v_c.wait()
@@ -1595,62 +1579,44 @@ class RankingView(ViewBase):
         assert interaction.guild is not None
         assert interaction.message is not None
         lng: int = self.lng
-        me: Member = interaction.guild.me
-        chnls: list[tuple[str, str]] = [(c.name, str(c.id)) for c in interaction.guild.text_channels if c.permissions_for(me).send_messages]
-        l: int = len(chnls)
-        for i in range(min((l + 23) // 24, 20)):
-            self.add_item(CustomSelect(
-                custom_id=f"{1200+i}_{self.author_id}_{randrange(1000)}",
-                placeholder=settings_text[lng][10],
-                options=[(settings_text[lng][12], "0")] + chnls[(i * 24):min((i + 1) * 24, l)]
-            ))
-            
-        await interaction.message.edit(view=self)
+        
+        guild_self_bot: Member = interaction.guild.me
+        verify_permissions: Callable[[Permissions], bool] = \
+            lambda permissions: permissions.read_message_history and permissions.read_messages and permissions.send_messages
+        channels_options: list[tuple[str, str]] = [(c.name, c.id.__str__()) for c in interaction.guild.text_channels if verify_permissions(c.permissions_for(guild_self_bot))]
 
-        await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), ephemeral=True)
+        level_channel_select_view: SelectChannelView = SelectChannelView(lng, self.author_id, 30, channels_options)
+        await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=level_channel_select_view, ephemeral=True)
+        await level_channel_select_view.wait()
 
-        cnt: int = 0
-        while self.lvl_chnl is None and cnt < 30:
-            cnt += 1
-            await sleep(1)
+        try:
+            await interaction.delete_original_message()
+        except:
+            pass
 
-        i: int = 3
-        while i < len(self.children):
-            select_menu = self.children[i]
-            assert isinstance(select_menu, CustomSelect)
-            if select_menu.custom_id.startswith("12"):
-                self.remove_item(select_menu)
-            else:
-                i += 1
-        del i
-
-        if cnt >= 30:
-            await interaction.message.edit(view=self)
-            self.lvl_chnl = None
+        if (level_channel_id := level_channel_select_view.channel_id) is None:
             return
         
-        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        with closing(connect(CWD_PATH + f"/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lvl_c'", (self.lvl_chnl,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lvl_c'", (level_channel_id,))
                 base.commit()
         
         emb: Embed = interaction.message.embeds[0]
         assert emb.description is not None
         dsc: list[str] = emb.description.split("\n\n")
-        if self.lvl_chnl:
-            dsc[2] = ranking_text[lng][2].format(f"<#{self.lvl_chnl}>")
-        else:
-            dsc[2] = ranking_text[lng][2].format(settings_text[lng][13])
+        dsc[2] = ranking_text[lng][2].format(f"<#{level_channel_id}>") if level_channel_id else ranking_text[lng][2].format(settings_text[lng][13])
         emb.description = "\n\n".join(dsc)
 
-        self.lvl_chnl = None
-
-        await interaction.message.edit(embed=emb, view=self)
+        try:
+            await interaction.message.edit(embed=emb)
+        except:
+            return
             
     async def lvl_roles(self, interaction: Interaction) -> None:
         assert isinstance(interaction.user, Member)
         lng: int = self.lng
-        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        with closing(connect(CWD_PATH + f"/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 lvl_rls: list[tuple[int, int]] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level ASC").fetchall()
         if lvl_rls:
@@ -1685,8 +1651,7 @@ class RankingView(ViewBase):
                 await self.lvl_roles(interaction=interaction)
     
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
-        if custom_id.startswith("12"):
-            self.lvl_chnl = int(values[0])
+        return
 
 
 class PollsChannelsView(ViewBase):
