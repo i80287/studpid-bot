@@ -573,11 +573,11 @@ class ModRolesView(ViewBase):
         super().__init__(lng=lng, author_id=auth_id, timeout=t_out)
         self.m_rls: set[int] = m_rls
         self.role: Optional[int] = None
-        for i in range((len(rls)+24)//25):
+        for i in range((len(rls) + 24) // 25):
             self.add_item(CustomSelect(
                 custom_id=f"{200+i}_{auth_id}_{randrange(1000)}",
                 placeholder=settings_text[lng][2],
-                options=rls[i*25:min(len(rls), (i+1)*25)]
+                options=rls[(i * 25):(min(len(rls), (i + 1) * 25))]
             ))
         self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"8_{auth_id}_{randrange(1000)}"))
         self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_{randrange(1000)}", disabled=rem_dis))
@@ -603,9 +603,8 @@ class ModRolesView(ViewBase):
         assert emb.description is not None
         dsc: list[str] = emb.description.split("\n")
         if len(self.m_rls) == 1:
-            for c in self.children:
-                if c.custom_id.startswith("9_"): # type: ignore
-                    c.disabled = False # type: ignore
+            assert isinstance(self.children[-1], CustomButton)
+            self.children[-1].disabled = False
             emb.description = f"{mod_roles_text[lng][2]}\n<@&{rl_id}> - {rl_id}"
             await interaction.message.edit(view=self, embed=emb)
         else:
@@ -639,9 +638,8 @@ class ModRolesView(ViewBase):
             emb.description = "\n".join(sorted(dsc))
             await interaction.message.edit(embed=emb)
         else:
-            for c in self.children:
-                if c.custom_id.startswith("9_"): # type: ignore
-                    c.disabled = True # type: ignore
+            assert isinstance(self.children[-1], CustomButton)
+            self.children[-1].disabled = True
             emb.description = mod_roles_text[lng][1]
             await interaction.message.edit(embed=emb, view=self)
 
@@ -863,12 +861,15 @@ class EconomyView(ViewBase):
             cnt += 1
             await sleep(1)
 
-        i: int = 0
+        i: int = 7
         while i < len(self.children):
-            if self.children[i].custom_id.startswith("5"): # type: ignore
-                self.remove_item(item=self.children[i])
+            select_menu = self.children[i]
+            assert isinstance(select_menu, CustomSelect)
+            if select_menu.custom_id.startswith("5"):
+                self.remove_item(select_menu)
             else:
                 i += 1
+        del i
 
         if cnt >= 40:
             await interaction.message.edit(view=self)
@@ -947,8 +948,9 @@ class EconomyView(ViewBase):
         )
         await interaction.response.send_message(embed=Embed(description='\n'.join(descr)), view=ec_rls_view)
         await ec_rls_view.wait()
-        for c in ec_rls_view.children:
-            c.disabled = True # type: ignore
+        for child_component in ec_rls_view.children:
+            assert isinstance(child_component, (CustomButton, CustomSelect))
+            child_component.disabled = True
         try:
             await interaction.edit_original_message(view=ec_rls_view)
         except:
@@ -968,7 +970,7 @@ class EconomyView(ViewBase):
             case _:
                 if int_custom_id not in {10, 11, 12}:
                     return
-                await interaction.response.send_message(embed=Embed(description=ec_text[self.lng][10 + (int_custom_id - 10) * 2]), ephemeral=True)
+                await interaction.response.send_message(embed=Embed(description=ec_text[self.lng][10 + ((int_custom_id - 10) << 1)]), ephemeral=True)
                 flag: bool = True
                 author_id: int = self.author_id
                 while flag:
@@ -1032,8 +1034,9 @@ class EconomyRolesManageView(ViewBase):
                 await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(self.role)), view=v_d)
                 
                 if await v_d.wait():
-                    for c in v_d.children:
-                        c.disabled = True # type: ignore
+                    for child_component in v_d.children:
+                        assert isinstance(child_component, CustomButton)
+                        child_component.disabled = True
                     try:
                         await interaction.edit_original_message(view=v_d)
                     except:
@@ -1165,8 +1168,9 @@ class SettingsView(ViewBase):
                 )
                 await interaction.response.send_message(embed=Embed(description="\n".join(dsc)), view=gen_view)
                 await gen_view.wait()
-                for c in gen_view.children:
-                    c.disabled = True # type: ignore
+                for child_component in gen_view.children:
+                    assert isinstance(child_component, (CustomSelect, CustomButton))
+                    child_component.disabled = True
                 try:
                     await interaction.edit_original_message(view=gen_view)
                 except:
@@ -1198,8 +1202,9 @@ class SettingsView(ViewBase):
                 )
                 await interaction.response.send_message(embed=emb, view=m_rls_v)
                 await m_rls_v.wait()
-                for c in m_rls_v.children:
-                    c.disabled = True # type: ignore
+                for child_component in m_rls_v.children:
+                    assert isinstance(child_component, (CustomSelect, CustomButton))
+                    child_component.disabled = True
                 try:
                     await interaction.edit_original_message(view=m_rls_v)
                 except:
@@ -1311,8 +1316,9 @@ class SettingsView(ViewBase):
                 
                 await interaction.send(embeds=[emb1, emb2, emb3], view=mng_v)
                 await mng_v.wait()
-                for c in mng_v.children:
-                    c.disabled = True # type: ignore
+                for child_component in mng_v.children:
+                    assert isinstance(child_component, (CustomButton, CustomSelect))
+                    child_component.disabled = True
                 try:
                     await interaction.edit_original_message(view=mng_v)
                 except:
@@ -1357,8 +1363,9 @@ class SettingsView(ViewBase):
                 )
                 await interaction.response.send_message(embed=emb, view=ec_v)
                 await ec_v.wait()
-                for c in ec_v.children:
-                    c.disabled = True # type: ignore
+                for child_component in ec_v.children:
+                    assert isinstance(child_component, (CustomButton, CustomSelect))
+                    child_component.disabled = True
                 try:
                     await interaction.edit_original_message(view=ec_v)
                 except:
@@ -1394,8 +1401,9 @@ class SettingsView(ViewBase):
                 await interaction.response.send_message(embed=emb, view=rnk_v)
 
                 await rnk_v.wait()
-                for c in rnk_v.children:
-                    c.disabled = True # type: ignore
+                for child_component in rnk_v.children:
+                    assert isinstance(child_component, (CustomButton, CustomSelect))
+                    child_component.disabled = True
                 try:
                     await interaction.edit_original_message(view=rnk_v)
                 except:
@@ -1422,8 +1430,9 @@ class SettingsView(ViewBase):
                 await interaction.response.send_message(embed=Embed(description="\n\n".join(dsc)), view=p_v)
                 
                 await p_v.wait()
-                for c in p_v.children:
-                    c.disabled = True # type: ignore
+                for child_component in p_v.children:
+                    assert isinstance(child_component, CustomButton)
+                    child_component.disabled = True
                 try:
                     await interaction.edit_original_message(view=p_v)
                 except:
@@ -1491,7 +1500,10 @@ class PollSettingsView(ViewBase):
 
         await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=v_c)
         await v_c.wait()
-        await interaction.delete_original_message()
+        try:
+            await interaction.delete_original_message()
+        except:
+            return
 
         new_channel_id: Optional[int] = v_c.channel_id
         if new_channel_id is None:
@@ -1590,7 +1602,7 @@ class RankingView(ViewBase):
             self.add_item(CustomSelect(
                 custom_id=f"{1200+i}_{self.author_id}_{randrange(1000)}",
                 placeholder=settings_text[lng][10],
-                options=[(settings_text[lng][12], "0")] + chnls[i*24:min((i+1)*24, l)]
+                options=[(settings_text[lng][12], "0")] + chnls[(i * 24):min((i + 1) * 24, l)]
             ))
             
         await interaction.message.edit(view=self)
@@ -1602,12 +1614,15 @@ class RankingView(ViewBase):
             cnt += 1
             await sleep(1)
 
-        i: int = 0
+        i: int = 3
         while i < len(self.children):
-            if self.children[i].custom_id.startswith("12"): # type: ignore
-                self.remove_item(self.children[i])
+            select_menu = self.children[i]
+            assert isinstance(select_menu, CustomSelect)
+            if select_menu.custom_id.startswith("12"):
+                self.remove_item(select_menu)
             else:
                 i += 1
+        del i
 
         if cnt >= 30:
             await interaction.message.edit(view=self)
@@ -1655,7 +1670,10 @@ class RankingView(ViewBase):
         )
         await interaction.response.send_message(embed=emb, view=lr_v)
         await lr_v.wait()
-        await interaction.delete_original_message()
+        try:
+            await interaction.delete_original_message()
+        except:
+            return
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         match int(custom_id[:2]):
@@ -1701,103 +1719,111 @@ class LevelRolesView(ViewBase):
         self.g_id: int = g_id
         self.role: Optional[int] = None
     
-    async def click_button(self, interaction: Interaction, custom_id: str) -> None:
+    async def add_role(self, interaction: Interaction, lng: int, level: int) -> None:
         assert interaction.guild is not None
-        assert isinstance(interaction.user, Member)
-        assert interaction.message is not None
-        lng: int = self.lng
-        lvl_modal: SelectLevelModal = SelectLevelModal(lng=lng, auth_id=interaction.user.id, timeout=60)
-        await interaction.response.send_modal(modal=lvl_modal)
-        await lvl_modal.wait()
-        if not (ans := lvl_modal.level):
+        rls: list[tuple[str, str]] = [(r.name, str(r.id)) for r in interaction.guild.roles if r.is_assignable()]
+        if not rls:
+            await interaction.send(embed=Embed(description = ranking_text[lng][30]), ephemeral=True)
             return
         
-        if custom_id.startswith("27_"):
-            rls: list[tuple[str, str]] = [(r.name, str(r.id)) for r in interaction.guild.roles if r.is_assignable()]
-            if not rls:
-                await interaction.send(embed=Embed(description = ranking_text[lng][30]), ephemeral=True)
-                return
-            
-            length: int = len(rls)
-            for i in range((length + 24) // 25):
-                self.add_item(CustomSelect(
-                    custom_id=f"{1300+i}_{self.author_id}_{randrange(1000)}", 
-                    placeholder=settings_text[lng][2], 
-                    options=rls[i*25:min(length, (i+1) * 25)]
-                ))
+        length: int = len(rls)
+        for i in range((length + 24) // 25):
+            self.add_item(CustomSelect(
+                custom_id=f"{1300+i}_{self.author_id}_{randrange(1000)}", 
+                placeholder=settings_text[lng][2], 
+                options=rls[(i * 25):min(length, (i + 1) * 25)]
+            ))
+        assert interaction.message is not None
+        await interaction.message.edit(view=self)
+        await interaction.send(embed=Embed(description = ranking_text[lng][29].format(level)), ephemeral=True)
+
+        cnt: int = 0
+        while self.role is None and cnt < 25:
+            cnt += 1
+            await sleep(1)
+        
+        i: int = 2
+        while i < len(self.children):
+            select_menu = self.children[i]
+            assert isinstance(select_menu, CustomSelect)
+            if select_menu.custom_id.startswith("13"):
+                self.remove_item(select_menu)
+            else:
+                i += 1
+        del i
+
+        if self.role is None:
             await interaction.message.edit(view=self)
-            await interaction.send(embed=Embed(description = ranking_text[lng][29].format(ans)), ephemeral=True)
+            await interaction.send(embed=Embed(description=ranking_text[lng][32]), ephemeral=True)
+            return
 
-            cnt: int = 0
-            while self.role is None and cnt < 25:
-                cnt += 1
-                await sleep(1)
-            if self.role is None:
-                i: int = 0
-                while i < len(self.children):
-                    if self.children[i].custom_id.startswith("13"): # type: ignore
-                        self.remove_item(self.children[i])
-                    else:
-                        i += 1
-                await interaction.message.edit(view=self)
-                await interaction.send(embed=Embed(description=ranking_text[lng][32]), ephemeral=True)
-                return
+        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                if cur.execute("SELECT role_id FROM rank_roles WHERE level = ?", (level,)).fetchone() is None:
+                    cur.execute("INSERT INTO rank_roles(level, role_id) VALUES(?, ?)", (level, self.role))
+                else:
+                    cur.execute("UPDATE rank_roles SET role_id = ? WHERE level = ?", (self.role, level))
+                base.commit()
+                lvl_rls: list[tuple[int, int]] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level ASC").fetchall()
+        
+        dsc: list[str] = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls] + [ranking_text[lng][27]]
+        emb: Embed = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
+        
+        assert isinstance(self.children[1], CustomButton)
+        if self.children[1].disabled:
+            self.children[1].disabled = False
 
-            with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
-                with closing(base.cursor()) as cur:
-                    if cur.execute("SELECT role_id FROM rank_roles WHERE level = ?", (ans,)).fetchone() is None:
-                        cur.execute("INSERT INTO rank_roles(level, role_id) VALUES(?, ?)", (ans, self.role))
-                    else:
-                        cur.execute("UPDATE rank_roles SET role_id = ? WHERE level = ?", (self.role, ans))
+        await interaction.message.edit(embed=emb, view=self)
+        await interaction.send(embed=Embed(description=ranking_text[lng][31].format(level, self.role)), ephemeral=True)
+        self.role = None
+
+    async def remove_role(self, interaction: Interaction, lng: int, level: int) -> None:
+        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+            with closing(base.cursor()) as cur:
+                if cur.execute("SELECT count() FROM rank_roles WHERE level = ?", (level,)).fetchone()[0]:
+                    cur.execute("DELETE FROM rank_roles WHERE level = ?", (level,))
                     base.commit()
                     lvl_rls: list[tuple[int, int]] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level ASC").fetchall()
-
-            i = 0
-            while i < len(self.children):
-                if self.children[i].custom_id.startswith("13"): # type: ignore
-                    self.remove_item(self.children[i])
                 else:
-                    i += 1
-            
-            dsc: list[str] = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]  
-            dsc.append(ranking_text[lng][27])
-            emb: Embed = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
-            
-            if self.children[1].disabled: # type: ignore
-                self.children[1].disabled = False # type: ignore
+                    await interaction.send(embed=Embed(description=ranking_text[lng][34].format(level)), ephemeral=True)
+                    return
 
-            await interaction.message.edit(embed=emb, view=self)
-            await interaction.send(embed=Embed(description=ranking_text[lng][31].format(ans, self.role)), ephemeral=True)
-            self.role = None    
+        if lvl_rls:
+            dsc: list[str] = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]
+            fl: bool = False
+        else:
+            assert isinstance(self.children[1], CustomButton)
+            self.children[1].disabled = True
+            fl: bool = True
+            dsc: list[str] = [ranking_text[lng][25]]
 
-        elif custom_id.startswith("28_"):
-            with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
-                with closing(base.cursor()) as cur:
-                    if cur.execute("SELECT count() FROM rank_roles WHERE level = ?", (ans,)).fetchone()[0]:
-                        cur.execute("DELETE FROM rank_roles WHERE level = ?", (ans,))
-                        base.commit()
-                        lvl_rls: list[tuple[int, int]] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level ASC").fetchall()
-                    else:
-                        await interaction.send(embed=Embed(description=ranking_text[lng][34].format(ans)), ephemeral=True)
-                        return
-
-            if lvl_rls:
-                dsc = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]
-                fl: bool = False
-            else:
-                self.children[1].disabled = True # type: ignore
-                fl: bool = True
-                dsc = [ranking_text[lng][25]]
-
-            dsc.append(ranking_text[lng][27])
-            emb = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
-            
+        dsc.append(ranking_text[lng][27])
+        emb: Embed = Embed(title=ranking_text[lng][26], description="\n".join(dsc))
+        
+        try:
+            assert interaction.message is not None
             if fl:
                 await interaction.message.edit(embed=emb, view=self)
             else:
                 await interaction.message.edit(embed=emb)
+        except:
+            pass
 
-            await interaction.send(embed=Embed(description=ranking_text[lng][33].format(ans)), ephemeral=True)
+        await interaction.send(embed=Embed(description=ranking_text[lng][33].format(level)), ephemeral=True)
+
+    async def click_button(self, interaction: Interaction, custom_id: str) -> None:
+        assert isinstance(interaction.user, Member)
+        lng: int = self.lng
+        lvl_modal: SelectLevelModal = SelectLevelModal(lng=lng, auth_id=interaction.user.id, timeout=60)
+        await interaction.response.send_modal(modal=lvl_modal)
+        await lvl_modal.wait()
+        if not (role_level := lvl_modal.level):
+            return
+        
+        if custom_id.startswith("27"):
+            await self.add_role(interaction, lng, role_level)
+        else:
+            await self.remove_role(interaction, lng, role_level)                
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         if custom_id.startswith("13"):
@@ -1809,14 +1835,14 @@ class ManageMemberView(ViewBase):
                 rls: list[tuple[str, str]], cur_money: int, cur_xp: int, rem_dis: bool, g_id: int, member: Member) -> None:
         super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
         self.add_item(CustomButton(style=ButtonStyle.blurple, label=mng_membs_text[lng][0], emoji="🔧", custom_id=f"18_{auth_id}_{randrange(1000)}"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"19_{auth_id}_{randrange(1000)}"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"20_{auth_id}_{randrange(1000)}", disabled=rem_dis))
         for i in range((len(rls)+24)//25):
             self.add_item(CustomSelect(
                 custom_id=f"{300+i}_{auth_id}_{randrange(1000)}",
                 placeholder=settings_text[lng][2],
                 options=rls[i*25:min(len(rls), (i+1)*25)]
             ))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"19_{auth_id}_{randrange(1000)}"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"20_{auth_id}_{randrange(1000)}", disabled=rem_dis))
         self.role: Optional[int] = None
         self.memb_id: int = memb_id
         self.memb_rls: set[int] = memb_rls
@@ -1855,7 +1881,8 @@ class ManageMemberView(ViewBase):
         dsc: list[str] = emb3.description.split("\n")
         if len(dsc) == 1:
             dsc = [code_blocks[lng*5], f"<@&{self.role}>**` - {self.role}`**"]
-            self.children[-1].disabled = False # type: ignore
+            assert isinstance(self.children[2], CustomButton)
+            self.children[2].disabled = False
             emb3.description = "\n".join(dsc)
             embs[2] = emb3
             await interaction.message.edit(embeds=embs, view=self)
@@ -1898,7 +1925,8 @@ class ManageMemberView(ViewBase):
         dsc: list[str] = emb3.description.split("\n")
         if len(dsc) <= 4:
             emb3.description = mng_membs_text[lng][6]
-            self.children[-1].disabled = True # type: ignore
+            assert isinstance(self.children[2], CustomButton)
+            self.children[2].disabled = True
             embs[2] = emb3
             await interaction.message.edit(embeds=embs, view=self)
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)            
