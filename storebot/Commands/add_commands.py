@@ -6,9 +6,11 @@ from typing import (
 )
 
 from nextcord import (
+    User,
     Embed,
     Emoji,
     Colour,
+    Member,
     SlashOption,
     Interaction,
     Status,
@@ -17,7 +19,7 @@ from nextcord import (
 )
 from nextcord.ext.commands import Bot, Cog
 if __debug__:
-    from nextcord import Guild
+    from nextcord import Guild, Role, Asset
 
 from Tools import db_commands
 from Tools.parse_tools import parse_emoji
@@ -295,6 +297,113 @@ class AdditionalCommandsCog(Cog):
         emb.add_field(name=lc_s[19], value=f"`{vls[8]} mb`")
         emb.add_field(name=lc_s[20], value=vls[9])
         emb.set_footer(text=f"{self.text_slash[lng][14]}{guild.id}")
+
+        await interaction.response.send_message(embed=emb)
+
+    @slash_command(
+        name="member_info",
+        description="Shows info about server member",
+        description_localizations={
+            Locale.ru: "Показывает информацию об участнике сервера"
+        },
+        dm_permission=False
+    )
+    async def member_info(
+        self,
+        interaction: Interaction,
+        member: Member | None = SlashOption(
+            name="member",
+            description="Member to show info about",
+            description_localizations={
+                Locale.ru: "Пользователь, о котором надо показать информацию"
+            },
+            required=False,
+            default=None
+        )
+    ) -> None:
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        if not member:
+            member = interaction.user
+
+        member_id: int = member.id
+        description_lines: list[str] = [
+f"""\
+**User:** <@{member_id}> `{member_id}`
+**Pfp url is:** [Link to php]({member.display_avatar.url})
+**Creation date:** `{member.created_at.strftime("%d/%m/%Y %H:%M:%S")}`\
+"""
+        ]
+        if (joined_at := member.joined_at):
+            description_lines.append(f"**Join at: ** `{joined_at.strftime('%d/%m/%Y %H:%M:%S')}`")
+        description_lines.append(f"**Nick on the server:** `{member.display_name}`")
+        description_lines.append(f"**Status is:** `{status}`" if isinstance(status := member.status, Status) else f"**Status is:** {status}")
+        if (activities := member.activities):
+            description_lines.extend(f"**Activity:** `{activity.name}`" for activity in activities)
+        description_lines.append("**User is a bot**" if member.bot else "**User is not a bot**")
+        
+        g: Guild = interaction.guild
+        roles: list[Role] = sorted([role for role_id in member._roles if (role := g.get_role(role_id))])
+        if roles:
+            description_lines.append("**Member's roles:**")
+            description_lines.extend("<@&" + str(role.id) + ">" for role in roles)
+        
+        emb: Embed = Embed(
+            title=member.name + "#" + member.discriminator,
+            description = '\n'.join(description_lines),
+            colour = member.color
+        )
+        avatar_url: str = member.display_avatar.url
+        emb.set_author(name=member.display_name, url=avatar_url, icon_url=avatar_url)
+        emb.set_thumbnail(banner.url if (banner := member.banner) is not None else avatar_url)
+        
+        await interaction.response.send_message(embed=emb)
+    
+    @slash_command(
+        name="user_info",
+        description="Shows info about anu discord user",
+        description_localizations={
+            Locale.ru: "Показывает информацию о произвольном пользователе"
+        },
+        dm_permission=False
+    )
+    async def user_info(
+        self,
+        interaction: Interaction,
+        user: User | None = SlashOption(
+            name="user",
+            description="User or user id to show info about",
+            description_localizations={
+                Locale.ru: "Пользователь или его id, о котором надо показать информацию"
+            },
+            required=False,
+            default=None
+        )
+    ) -> None:
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+ 
+        if not user:
+            await self.member_info(interaction, interaction.user)
+            return
+
+        user_id: int = user.id
+        user_name: str = user.name
+        avatar_url: str = user.display_avatar.url
+        description: str = f"""\
+**User:** <@{user_id}> `{user_id}`
+**Pfp url is:** [Link to php]({avatar_url})
+**Creation date: `{user.created_at.strftime("%d/%m/%Y %H:%M:%S")}`**""" + ("**\nUser is a bot**" if user.bot else "**\nUser is not a bot**")
+        emb: Embed = Embed(
+            title=user_name + "#" + user.discriminator,
+            description=description,
+            colour=user.color
+        )
+
+        emb.set_author(name=user_name, url=avatar_url, icon_url=avatar_url)
+        emb.set_thumbnail(banner.url if (banner := user.banner) is not None else avatar_url)
 
         await interaction.response.send_message(embed=emb)
 

@@ -1141,7 +1141,7 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
         guild_id: int = interaction.guild_id
 
-        member: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
+        db_member_info: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
         with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
             with closing(base.cursor()) as cur:
                 xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
@@ -1179,7 +1179,7 @@ class SlashCommandsCog(Cog):
         l: int = len(membs_cash) if ec_status else len(membs_xp)
         if ec_status:
             # cnt_cash is a place in the rating sorted by cash
-            cash: int = member[1]
+            cash: int = db_member_info[1]
             if membs_cash[l >> 1][1] < cash:
                 cnt_cash: int = 1
                 while cnt_cash < l and memb_id != membs_cash[cnt_cash - 1][0]:
@@ -1196,7 +1196,7 @@ class SlashCommandsCog(Cog):
 
         if rnk_status:
             # cnt_cash is a place in the rating sorted by xp
-            xp: int = member[4]
+            xp: int = db_member_info[4]
             if membs_xp[l >> 1][1] < xp:
                 cnt_xp: int = 1
                 while cnt_xp < l and memb_id != membs_xp[cnt_xp - 1][0]:
@@ -1221,7 +1221,7 @@ class SlashCommandsCog(Cog):
             on_server_roles: list[Role] = interaction.user.roles
             on_server_roles.remove(interaction.guild.default_role)
             memb_server_db_roles: set[int] | set = set(role.id for role in on_server_roles) & db_roles
-            memb_roles: set[int] | set = {int(role_id) for role_id in member[2].split("#") if role_id} if member[2] else set()
+            memb_roles: set[int] | set = {int(role_id) for role_id in db_member_info[2].split("#") if role_id} if db_member_info[2] else set()
 
             embed_3_description: str = '\n'.join(
                 [self.code_blocks[lng][0]] + [f"<@&{r}>" for r in memb_server_db_roles]
@@ -1230,10 +1230,9 @@ class SlashCommandsCog(Cog):
 
             # in case role(s) was(were) removed from user manually, we should update database
             if memb_roles != memb_server_db_roles:
-                with closing(
-                        connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+                with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
                     with closing(base.cursor()) as cur:
-                        new_owned_roles: str = '#' + '#'.join(str(role_id) for role_id in memb_server_db_roles)\
+                        new_owned_roles: str = '#' + '#'.join(str(role_id) for role_id in memb_server_db_roles) \
                             if memb_server_db_roles else ""
                         cur.execute(
                             "UPDATE users SET owned_roles = ? WHERE memb_id = ?",
@@ -1269,20 +1268,26 @@ class SlashCommandsCog(Cog):
 
             embs.append(emb3)
 
-        if sale_role_requests:
-            embed_4_description: str = self.code_blocks[lng][1] + \
-                '\n'.join(self.profile_text[lng][7].format(request_id, role_id, price, currency, target_id) \
-                    for request_id, target_id, role_id, price in sale_role_requests
-                )
-            embs.append(Embed(description=embed_4_description))
+            if sale_role_requests:
+                embed_4_description: str = self.code_blocks[lng][1] + \
+                    '\n'.join(self.profile_text[lng][7].format(request_id, role_id, price, currency, target_id) \
+                        for request_id, target_id, role_id, price in sale_role_requests
+                    )
+                embs.append(Embed(description=embed_4_description))
 
-        if buy_role_requests:
-            embed_5_description: str = self.code_blocks[lng][2] + \
-                '\n'.join(self.profile_text[lng][8].format(request_id, role_id, price, currency, seller_id) \
-                    for request_id, seller_id, role_id, price in buy_role_requests
-                )
-            embs.append(Embed(description=embed_5_description))
+            if buy_role_requests:
+                embed_5_description: str = self.code_blocks[lng][2] + \
+                    '\n'.join(self.profile_text[lng][8].format(request_id, role_id, price, currency, seller_id) \
+                        for request_id, seller_id, role_id, price in buy_role_requests
+                    )
+                embs.append(Embed(description=embed_5_description))
 
+        member: Member = interaction.user
+        if (avatar := member.display_avatar) is not None:
+            avatar_url: str = avatar.url
+            embs[0].set_thumbnail(avatar_url)
+            embs[0].set_author(name=member.display_name, url=avatar_url, icon_url=avatar_url)
+        
         await interaction.response.send_message(embeds=embs)
 
     async def accept_request(self, interaction: Interaction, request_id: int) -> None:

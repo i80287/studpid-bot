@@ -125,6 +125,7 @@ class BasicComandsCog(Cog):
             ("`/work`", "Начинает работу, за которую Вы полчите заработок"),
             ("`/transfer`", "Совершает перевод валюты другому пользователю"), 
             ("`/duel`", "Делает ставку"),
+            
         ]
     }
     u_other_cmds: Dict[int, List[Tuple[str, str]]] = {
@@ -132,11 +133,17 @@ class BasicComandsCog(Cog):
             ("`/poll`", "Make a poll"), 
             ("`/server`", "Show information about the server"),
             ("`/emoji`", "Show information about the emoji"),
+            ("`/ask`", "Asks OpenAI anything"),
+            ("`/member_info`", "Shows information about selected member or command caller"),
+            ("`/user_info`", "Shows brief information about any Discord user or command caller"),
         ],
         1 : [
             ("`/poll`", "Создаёт полл (опрос)"), 
             ("`/server`", "Показывает информацию о сервере"),
             ("`/emoji`", "Показывает информацию о эмодзи"),
+            ("`/ask`", "Спрашивает OpenAI о чём угодно"),
+            ("`/member_info`", "Показывает информацию о выбранном участнике сервера или участнике, вызвавшем команду"),
+            ("`/user_info`", "Показывает краткую информацию о любом пользователе Дискорда или пользователе, вызвавшем команду"),
         ]
     }
     m_cmds: Dict[int, List[Tuple[str, str]]] = {
