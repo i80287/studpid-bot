@@ -190,6 +190,34 @@ class AdditionalCommandsCog(Cog):
             20: "Бустеры сервера и уровень буста"
         }
     }
+    member_info_description_lines: Dict[int, Dict[int, str]] = {
+        0: {
+            0: "**User:** <@{0}> **`{0}`**",
+            1: "**Pfp url is:** [Link to php]({0})",
+            2: "**Creation date: `{0}`**",
+            3: "**Join server at: `{0}`**",
+            4: "**Nick on the server: `{0}`**",
+            5: "**Status: `{0}`**",
+            6: "**Status:** {0}",
+            7: "**Activity: `{0}`**",
+            8: "**`User is a bot`**",
+            9: "**`User is not a bot`**",
+            10: "**`Member's roles:`**"
+        },
+        1: {
+            0: "**Пользователь:** <@{0}> **`{0}`**",
+            1: "**URL аватарки:** [Ссылка]({0})",
+            2: "**Дата создания: `{0}`**",
+            3: "**Присоединился к серверу: `{0}`**",
+            4: "**Ник на сервере: `{0}`**",
+            5: "**Статус: `{0}`**",
+            6: "**Статус:** {0}",
+            7: "**Активность: `{0}`**",
+            8: "**`Пользователь - бот`**",
+            9: "**`Пользователь не бот`**",
+            10: "**`Роли участника сервера:`**"
+        }
+    }
 
     def __init__(self, bot: Bot) -> None:
         self.bot: Bot = bot
@@ -215,9 +243,11 @@ class AdditionalCommandsCog(Cog):
         )
     ) -> None:
         assert interaction.guild_id is not None
-        assert interaction.user is not None
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        await db_commands.get_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
+        await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
 
         emoji: Emoji | str | None = parse_emoji(self.bot, emoji_str)        
         if emoji is None:
@@ -250,11 +280,12 @@ class AdditionalCommandsCog(Cog):
         dm_permission=False
     )
     async def server(self, interaction: Interaction) -> None:
-        assert interaction.guild is not None
         assert interaction.guild_id is not None
-        assert interaction.user is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        await db_commands.get_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
+        await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
 
         emb: Embed = Embed(title=self.text_slash[lng][13], colour=Colour.dark_purple())
         guild: Guild = interaction.guild
@@ -325,29 +356,41 @@ class AdditionalCommandsCog(Cog):
         assert interaction.guild is not None
         assert interaction.locale is not None
         assert isinstance(interaction.user, Member)
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         if not member:
             member = interaction.user
+        
+        if isinstance(member, User):
+            await self.user_info(interaction, member)
+            return
 
         member_id: int = member.id
+        await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=member_id)
+        info_description_lines: Dict[int, str] = self.member_info_description_lines[lng]
         description_lines: list[str] = [
-f"""\
-**User:** <@{member_id}> **`{member_id}`**
-**Pfp url is:** [Link to php]({member.display_avatar.url})
-**Creation date: `{member.created_at.strftime("%d/%m/%Y %H:%M:%S")}`**\
-"""
+            info_description_lines[0].format(member_id),
+            info_description_lines[1].format(member.display_avatar.url),
+            info_description_lines[2].format(member.created_at.strftime("%d/%m/%Y %H:%M:%S"))
         ]
         if (joined_at := member.joined_at):
-            description_lines.append(f"**Join at: `{joined_at.strftime('%d/%m/%Y %H:%M:%S')}`**")
-        description_lines.append(f"**Nick on the server: `{member.display_name}`**")
-        description_lines.append(f"**Status: `{status}`**" if isinstance(status := member.status, Status) else f"**Status:** {status}")
+            description_lines.append(info_description_lines[3].format(joined_at.strftime('%d/%m/%Y %H:%M:%S')))
+        description_lines.append(info_description_lines[4].format(member.display_name))
+        if isinstance(status := member.status, Status):
+            description_lines.append(info_description_lines[5].format(status))
+        else:
+            description_lines.append(info_description_lines[6].format(status))
         if (activities := member.activities):
-            description_lines.extend(f"**Activity: `{name}`**" for activity in activities if (name := activity.name))
-        description_lines.append("**`User is a bot`**" if member.bot else "**`User is not a bot`**")
+            activity_report: str = info_description_lines[7]
+            description_lines.extend(activity_report.format(name) for activity in activities if (name := activity.name))
+        if member.bot:
+            description_lines.append(info_description_lines[8])
+        else:
+            description_lines.append(info_description_lines[9])
         
         g: Guild = interaction.guild
         roles: list[Role] = sorted([role for role_id in member._roles if (role := g.get_role(role_id))])
         if roles:
-            description_lines.append("**`Member's roles:`**")
+            description_lines.append(info_description_lines[10])
             description_lines.extend("<@&" + str(role.id) + ">" for role in roles)
         
         emb: Embed = Embed(
@@ -384,21 +427,24 @@ f"""\
     ) -> None:
         assert interaction.locale is not None
         assert isinstance(interaction.user, Member)
- 
-        if not user:
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
+        if user is None:
             await self.member_info(interaction, interaction.user)
             return
 
+        info_description_lines: Dict[int, str] = self.member_info_description_lines[lng]
         user_id: int = user.id
         user_name: str = user.name
         avatar_url: str = user.display_avatar.url
-        description: str = f"""\
-**User:** <@{user_id}> **`{user_id}`**
-**Pfp url is:** [Link to php]({avatar_url})
-**Creation date: `{user.created_at.strftime("%d/%m/%Y %H:%M:%S")}`**""" + ("\n**`User is a bot`**" if user.bot else "\n**`User is not a bot`**")
+        description_lines: list[str] = [
+            info_description_lines[0].format(user_id),
+            info_description_lines[1].format(avatar_url),
+            info_description_lines[2].format(user.created_at.strftime("%d/%m/%Y %H:%M:%S"))
+        ]
+        description_lines.append(info_description_lines[8] if user.bot else info_description_lines[9])
         emb: Embed = Embed(
             title=user_name + "#" + user.discriminator,
-            description=description,
+            description='\n'.join(description_lines),
             colour=user.color
         )
 

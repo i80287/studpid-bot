@@ -34,6 +34,7 @@ from CustomComponents.custom_select import CustomSelectWithOptions
 from CustomComponents.slots_view import SlotsView
 from Tools.db_commands import (
     get_member_async,
+    check_member_async,
     peek_role_free_number,
     peek_free_request_id,
     delete_role_from_db,
@@ -1609,7 +1610,7 @@ class SlashCommandsCog(Cog):
         guild_id: int = interaction.guild_id
 
         act: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
-        await get_member_async(guild_id=guild_id, member_id=t_id)
+        await check_member_async(guild_id=guild_id, member_id=t_id)
         with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
@@ -1651,7 +1652,7 @@ class SlashCommandsCog(Cog):
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
 
-        await get_member_async(guild_id=guild_id, member_id=interaction.user.id)
+        await check_member_async(guild_id=guild_id, member_id=interaction.user.id)
         with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 ec_status: int = \
@@ -1730,7 +1731,7 @@ class SlashCommandsCog(Cog):
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
         member_id: int = interaction.user.id
-        await get_member_async(guild_id=guild_id, member_id=member_id)
+        await check_member_async(guild_id=guild_id, member_id=member_id)
         if not (await get_server_info_value_async(guild_id=guild_id, key_name="slots_on")):
             await self.respond_with_error_report(
                 interaction=interaction,
