@@ -16,11 +16,10 @@ def parse_emoji(bot: Bot, str string) -> Emoji | str | None:
     cdef:
         list finds = _CUSTOM_EMOJI_ID_PATTERN.findall(string)
         size_t length = len(finds)
-        size_t i
+        size_t i = 0
     
     if length:
-        i = 0
-        while i < length:
+        while (i < length):
             emoji = bot.get_emoji(int(finds[i]))
             if emoji:
                 return emoji
