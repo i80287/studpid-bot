@@ -216,7 +216,7 @@ ec_text: Dict[int, Dict[int, str]] = {
         9: "> To see and manage roles available for purchase/sale in the bot press 🛠️",
         10: "**`Write amount of money gained for message (non negative integer number)`**",
         11: "Amount of money gained from messages set to: **`{}`** {}",
-        12: "Write cooldown for `/work` command **in seconds** (integer at least 60)\nFor example, to make cooldown equalt to 240 seconds, write `240` in the chat",
+        12: "Write cooldown for `/work` command **in seconds** (integer from 60 to 604800)\nFor example, to make cooldown equalt to 240 seconds, write `240` in the chat",
         13: "Cooldown for `/work` set to: **`{}`** seconds",
         14: "Write salary from `/work`:\nTwo non-negative numbers, second at least as much as first\nSalary will be random integer \
             between them\nIf you want salary to constant write one number\nFor example, if you write `1` `100` then salary \
@@ -243,7 +243,7 @@ ec_text: Dict[int, Dict[int, str]] = {
         9: "> Для просмотра и управления ролями, доступными для покупки/продажи у бота, нажмите 🛠️",
         10: "**`Укажите количество денег, получаемых за сообщение\n(неотрицательное целое число)`**",
         11: "Количество денег, получаемых за одно сообщение, теперь равно: **`{}`** {}",
-        12: "Укажите кулдаун для команды `/work` **в секундах** (целое число не менее 60)\nНапример, чтобы поставить кулдаун 240 секунд, напишите в чат `240`",
+        12: "Укажите кулдаун для команды `/work` **в секундах** (целое число от 60 до 604800)\nНапример, чтобы поставить кулдаун 240 секунд, напишите в чат `240`",
         13: "Кулдаун для команды `/work` теперь равен: **`{}`** секунд",
         14: "Укажите заработок от команды `/work`:\nДва неотрицательных числа, второе не менее первого\nЗаработок будет \
             рандомным целым числом между ними\nЕсли Вы хотите сделать заработок постоянным, укажите одно число\nНапример, \
@@ -726,7 +726,7 @@ class EconomyView(ViewBase):
             return True
 
     async def work_cldwn(self, interaction: Interaction, ans: str) -> bool:
-        if ans.isdigit() and (work_command_cooldown := int(ans)) >= 60:
+        if ans.isdigit() and 60 <= (work_command_cooldown := int(ans)) <= 604800:
             lng: int = self.lng
 
             with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
