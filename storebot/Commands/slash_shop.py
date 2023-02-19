@@ -5,9 +5,7 @@ from random import randint
 from time import time
 from typing import (
     Literal,
-    Optional,
-    Tuple,
-    Dict
+    Optional
 )
 
 from nextcord import (
@@ -45,7 +43,7 @@ from Tools.db_commands import (
 from Variables.vars import CWD_PATH
 from config import in_row
 
-common_text: Dict[int, Dict[int, str]] = {
+common_text: dict[int, dict[int, str]] = {
     0: {
         0: "**`Sorry, but you can't manage menu called by another member`**",
         1: "**`Economy system and leveling system are disabled on this server`**",
@@ -58,7 +56,7 @@ common_text: Dict[int, Dict[int, str]] = {
     }
 }
 
-text_slash: Dict[int, Dict[int, str]] = {
+text_slash: dict[int, dict[int, str]] = {
     0: {
         0: "Error",
         1: "**`I don't have permission to manage roles on the server`**",
@@ -161,7 +159,7 @@ text_slash: Dict[int, Dict[int, str]] = {
     }
 }
 
-buy_approve_text: Dict[int, Dict[int, str]] = {
+buy_approve_text: dict[int, dict[int, str]] = {
     0: {
         0: "Yes",
         1: "No, cancel purchase"
@@ -172,7 +170,7 @@ buy_approve_text: Dict[int, Dict[int, str]] = {
     }
 }
 
-store_text: Dict[int, Dict[int, str]] = {
+store_text: dict[int, dict[int, str]] = {
     0: {
         0: "{0} **•** <@&{1}>\n`Price` - `{2:0,}` {3}\n`Left` - `1`\n`Listed for sale:`\n*{4}*\n",
         1: "{0} **•** <@&{1}>\n`Price` - `{2:0,}` {3}\n`Left` - `{4}`\n`Last listed for sale:`\n*{5}*\n",
@@ -202,7 +200,7 @@ store_text: Dict[int, Dict[int, str]] = {
     }
 }
 
-bet_text: Dict[int, Dict[int, str]] = {
+bet_text: dict[int, dict[int, str]] = {
     0: {
         0: "Make a counter bet",
         1: "Cancel bet",
@@ -221,7 +219,7 @@ bet_text: Dict[int, Dict[int, str]] = {
     }
 }
 
-rating_text: Dict[int, Dict[int, str]] = {
+rating_text: dict[int, dict[int, str]] = {
     0: {
         0: "Top members by balance",
         1: "Top members by xp",
@@ -623,7 +621,7 @@ class RatingView(ViewBase):
 
 
 class SlashCommandsCog(Cog):
-    sell_to_text: Dict[int, Dict[int, str]] = {
+    sell_to_text: dict[int, dict[int, str]] = {
         0 : {
             0: "**`You can't sell role to yourself`**",
             1: "**`You are already selling role`** <@&{}>",
@@ -639,7 +637,7 @@ class SlashCommandsCog(Cog):
             4: "**`Вы сделали запрос о продаже роли`** <@&{}> **`пользователю`** <@{}> **`за {}`** {}"
         }
     }
-    profile_text: Dict[int, Dict[int, str]] = {
+    profile_text: dict[int, dict[int, str]] = {
         0: {
             1: "Cash",
             2: "Xp",
@@ -661,7 +659,7 @@ class SlashCommandsCog(Cog):
             8: "**`id предложения: {} роль:`** <@&{}> **`цена: {}`** {} **`продавец:`** <@{}>",
         }
     }
-    code_blocks: Dict[int, Dict[int, str]] = {
+    code_blocks: dict[int, dict[int, str]] = {
         0: {
             0: "```\nMember's personal roles\n```",
             1: "```yaml\nRole sale requests made by you\n```",
@@ -677,7 +675,7 @@ class SlashCommandsCog(Cog):
             2: "```fix\n{}\n```",
         }       
     }
-    manage_requests_text: Dict[int, Dict[int, str]] = {
+    manage_requests_text: dict[int, dict[int, str]] = {
         0: {
             0: "**`You have not received role purchase/sale request with such id`**",
             1: "**`You have not received role purchase request with sush id`**",
@@ -723,9 +721,9 @@ class SlashCommandsCog(Cog):
         return True
 
     @classmethod
-    async def verify_request_id(cls, cur: Cursor, request_id: int, interaction: Interaction, memb_id: int) -> Optional[Tuple[int, int, int, int]]:        
+    async def verify_request_id(cls, cur: Cursor, request_id: int, interaction: Interaction, memb_id: int) -> Optional[tuple[int, int, int, int]]:        
         assert interaction.locale is not None
-        request: Optional[Tuple[int, int, int, int]] = cur.execute(
+        request: Optional[tuple[int, int, int, int]] = cur.execute(
             "SELECT seller_id, target_id, role_id, price FROM sale_requests WHERE request_id = ? AND (seller_id = ? OR target_id = ?)",
             (request_id, memb_id, memb_id)
         ).fetchone()
@@ -765,7 +763,7 @@ class SlashCommandsCog(Cog):
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=common_text[lng][2])
                     return
 
-                store: Optional[Tuple[int, int, int, int]] = cur.execute(
+                store: Optional[tuple[int, int, int, int]] = cur.execute(
                     "SELECT quantity, price, salary, type FROM store WHERE role_id = ?",
                     (r_id,)
                 ).fetchone()
@@ -825,7 +823,7 @@ class SlashCommandsCog(Cog):
                         cur.execute("DELETE FROM store WHERE role_id = ?", (r_id,))
 
                 if store[2]:
-                    role_members: Optional[Tuple[str]] = cur.execute(
+                    role_members: Optional[tuple[str]] = cur.execute(
                         "SELECT members FROM salary_roles WHERE role_id = ?",
                         (r_id,)
                     ).fetchone()
@@ -963,7 +961,7 @@ class SlashCommandsCog(Cog):
                         ephemeral=True
                     )
                     return
-                role_info: Optional[Tuple[int, int, int, int, int]] = \
+                role_info: Optional[tuple[int, int, int, int, int]] = \
                     cur.execute("SELECT role_id, price, salary, salary_cooldown, type FROM server_roles WHERE role_id = ?", (r_id,)).fetchone()
                 if not role_info:
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][17])
@@ -1030,7 +1028,7 @@ class SlashCommandsCog(Cog):
                 base.commit()
 
                 if r_sal:
-                    role_members: Optional[Tuple[str]] = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (r_id,)).fetchone()
+                    role_members: Optional[tuple[str]] = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (r_id,)).fetchone()
                     if role_members:
                         cur.execute(
                             "UPDATE salary_roles SET members = ? WHERE role_id = ?",
@@ -1253,7 +1251,7 @@ class SlashCommandsCog(Cog):
                         # roles to remove from db
                         for role_id in memb_roles.difference(memb_server_db_roles):
                             if cur.execute("SELECT salary FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()[0]:
-                                membs: Optional[Tuple[str]] = cur.execute(
+                                membs: Optional[tuple[str]] = cur.execute(
                                     "SELECT members FROM salary_roles WHERE role_id = ?",
                                     (role_id,)
                                 ).fetchone()
@@ -1266,7 +1264,7 @@ class SlashCommandsCog(Cog):
                         # roles to add in db
                         for role_id in memb_server_db_roles.difference(memb_roles):
                             if cur.execute("SELECT salary FROM server_roles WHERE role_id = ?", (role_id,)).fetchone()[0]:
-                                membs: Optional[Tuple[str]] = cur.execute(
+                                membs: Optional[tuple[str]] = cur.execute(
                                     "SELECT members FROM salary_roles WHERE role_id = ?",
                                     (role_id,)
                                 ).fetchone()
@@ -1312,7 +1310,7 @@ class SlashCommandsCog(Cog):
 
         with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                purchase_request: Optional[Tuple[int, int, int, int]] = await self.verify_request_id(
+                purchase_request: Optional[tuple[int, int, int, int]] = await self.verify_request_id(
                     cur=cur,
                     request_id=request_id,
                     interaction=interaction,
@@ -1441,7 +1439,7 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
         with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                request: Optional[Tuple[int, int, int, int]] = await self.verify_request_id(
+                request: Optional[tuple[int, int, int, int]] = await self.verify_request_id(
                     cur=cur,
                     request_id=request_id,
                     interaction=interaction,
@@ -1839,7 +1837,7 @@ class SlashCommandsCog(Cog):
         role: Optional[Role] = None
         with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                role_id_tuple: Optional[Tuple[int]] = cur.execute(
+                role_id_tuple: Optional[tuple[int]] = cur.execute(
                     "SELECT role_id FROM store WHERE role_number = ?",
                     (role_number,)
                 ).fetchone()

@@ -1,14 +1,12 @@
 from random import randint
 from asyncio import sleep
 from os import path
-from typing import (
-    Literal,
-    Optional,
-    Union,
-    Tuple,
-    Dict,
-    List
-)
+if __debug__:
+    from typing import (
+        Literal,
+        Optional,
+        Union
+    )
 
 from nextcord import (
     Embed,
@@ -39,7 +37,7 @@ from Variables.vars import CWD_PATH
 
 
 class FeedbackModal(Modal):
-    feedback_text: Dict[int, Dict[int, str]] = {
+    feedback_text: dict[int, dict[int, str]] = {
         0 : {
             0 : "Feedback",
             1 : "What problems did you get while using the bot? What new would you want to see in bot's functional?",
@@ -91,7 +89,7 @@ class FeedbackModal(Modal):
 
 
 class BasicComandsCog(Cog):
-    u_ec_cmds: Dict[int, List[Tuple[str, str]]] = {
+    u_ec_cmds: dict[int, list[tuple[str, str]]] = {
         0 : [
             ("`/store`", "Show store"),
             ("`/buy`", "Make a role purchase"),
@@ -113,7 +111,7 @@ class BasicComandsCog(Cog):
             ("`/leaders`", "Показывет топ пользователей по балансу/опыту"),
         ],
     }
-    u_pers_cmds: Dict[int, List[Tuple[str, str]]] = {
+    u_pers_cmds: dict[int, list[tuple[str, str]]] = {
         0 : [
             ("`/profile`", "Show your profile"), 
             ("`/work`", "Start working, so you get salary"),
@@ -128,7 +126,7 @@ class BasicComandsCog(Cog):
             
         ]
     }
-    u_other_cmds: Dict[int, List[Tuple[str, str]]] = {
+    u_other_cmds: dict[int, list[tuple[str, str]]] = {
         0 : [
             ("`/poll`", "Make a poll"), 
             ("`/server`", "Show information about the server"),
@@ -146,7 +144,7 @@ class BasicComandsCog(Cog):
             ("`/user_info`", "Показывает краткую информацию о любом пользователе Дискорда или пользователе, вызвавшем команду"),
         ]
     }
-    m_cmds: Dict[int, List[Tuple[str, str]]] = {
+    m_cmds: dict[int, list[tuple[str, str]]] = {
         0 : [
             ("`/guide`", "Show guide about bot's system"), 
             ("`/settings`", "Call bot's settings menu"),
@@ -156,7 +154,7 @@ class BasicComandsCog(Cog):
             ("`/settings`", "Вызывает меню настроек бота"),
         ]
     }
-    guide_text: Dict[int, Dict[int, str]] = {
+    guide_text: dict[int, dict[int, str]] = {
         0 : {
             0 : "The guide",
             1 : "Economic operations with the roles",
@@ -220,7 +218,7 @@ class BasicComandsCog(Cog):
                 канал для публикаций, установленный в меню  **`/settings`** -> \"📊\" -> \"📰\""
         }
     }
-    text_help_view: Dict[int, Dict[int, str]] = {
+    text_help_view: dict[int, dict[int, str]] = {
         0 : {
             0 : "User's commands",
             1 : "Mod's commands",
@@ -250,9 +248,10 @@ class BasicComandsCog(Cog):
     )
     async def guide(self, interaction: Interaction) -> None:
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        emb: Embed = Embed(title=self.guide_text[lng][0])
+        local_guide_text: dict[int, str] = self.guide_text[lng]
+        emb: Embed = Embed(title=local_guide_text[0])
         for i in range(1, 20, 2):
-            emb.add_field(name=self.guide_text[lng][i], value=self.guide_text[lng][i+1], inline=False)
+            emb.add_field(name=local_guide_text[i], value=local_guide_text[i + 1], inline=False)
         await interaction.response.send_message(embed=emb)
 
     @slash_command(
@@ -290,9 +289,10 @@ class BasicComandsCog(Cog):
     )
     async def feedback(self, interaction: Interaction) -> None:
         assert interaction.user is not None
-        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        mdl: FeedbackModal = FeedbackModal(bot=self.bot, lng=lng, auth_id=interaction.user.id)
-        await interaction.response.send_modal(modal=mdl)
+        assert interaction.locale is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
+        feedback_modal: FeedbackModal = FeedbackModal(bot=self.bot, lng=lng, auth_id=interaction.user.id)
+        await interaction.response.send_modal(modal=feedback_modal)
 
     @command(aliases=["sunload_access_level_two", "s_a_l_2"])
     @is_owner()
@@ -303,8 +303,10 @@ class BasicComandsCog(Cog):
     @command(name="load")
     @is_owner()
     async def _load(self, ctx: Context, extension) -> None:
-        if path.exists(f"{CWD_PATH}/Commands/{extension}.py"):
-            self.bot.load_extension(f"Commands.{extension}")
+        if path.exists(CWD_PATH + f"/Commands/{extension}.py"):
+            async with self.bot.text_lock:
+                async with self.bot.voice_lock:
+                    self.bot.load_extension(f"Commands.{extension}")
             await sleep(1)
             await self.bot.sync_all_application_commands()
             await sleep(1)
@@ -316,27 +318,31 @@ class BasicComandsCog(Cog):
     @command(name="unload")
     @is_owner()
     async def _unload(self, ctx: Context, extension) -> None:
-        if path.exists(f"{CWD_PATH}/Commands/{extension}.py"):
-            self.bot.unload_extension(f"Commands.{extension}")
+        if path.exists(CWD_PATH + f"/Commands/{extension}.py"):
+            async with self.bot.text_lock:
+                async with self.bot.voice_lock:
+                    self.bot.unload_extension(f"Commands.{extension}")
             await sleep(1)
             await self.bot.sync_all_application_commands()
             await sleep(1)
-            emb: Embed = Embed(description=f"**Unloaded `{extension}`**")
+            emb: Embed = Embed(description=f"**`Unloaded {extension}`**")
         else:
-            emb: Embed = Embed(description=f"**`{extension}` not found**")
+            emb: Embed = Embed(description=f"**`{extension} not found`**")
         await ctx.reply(embed=emb, mention_author=False, delete_after=5)
 
     @command(name="reload")
     @is_owner()
     async def _reload(self, ctx: Context, extension) -> None:
-        if path.exists(f"{CWD_PATH}/Commands/{extension}.py"):
-            await ctx.reply(embed=Embed(description="**`Started reloading`**"), mention_author=False, delete_after=5)
-            self.bot.unload_extension(f"Commands.{extension}")
-            self.bot.load_extension(f"Commands.{extension}")
+        if path.exists(CWD_PATH + f"/Commands/{extension}.py"):
+            await ctx.reply(embed=Embed(description="**`Started reloading`**"), mention_author=False, delete_after=5.0)
+            async with self.bot.text_lock:
+                async with self.bot.voice_lock:
+                    self.bot.unload_extension(f"Commands.{extension}")
+                    self.bot.load_extension(f"Commands.{extension}")
             await sleep(1)
             await self.bot.sync_all_application_commands()
             await sleep(1)
-            emb: Embed = Embed(description=f"**Reloaded `{extension}`**")
+            emb: Embed = Embed(description=f"**`Reloaded {extension}`**")
         else:
             emb: Embed = Embed(description=f"**`{extension}` not found**")
         await ctx.reply(embed=emb, mention_author=False, delete_after=5)
@@ -344,7 +350,6 @@ class BasicComandsCog(Cog):
     @command(aliases=["statistic", "statistics"])
     @is_owner()
     async def _statistic(self, ctx: Context) -> None:
-        
         async with self.bot.statistic_lock:
             guilds: list[Guild] = self.bot.guilds.copy()
             lines: list[str] = \
@@ -360,7 +365,8 @@ class BasicComandsCog(Cog):
         if (len(description1) + len(description2)) & ~4095:
             emb1: Embed = Embed(description=description1)
             emb2: Embed = Embed(description=description2)
-            await ctx.reply(embeds=[emb1, emb2], mention_author=False, delete_after=20.0)
+            await ctx.reply(embed=emb1, mention_author=False, delete_after=20.0)
+            await ctx.reply(embed=emb2, mention_author=False, delete_after=20.0)
         else:
             emb: Embed = Embed(description=description1 + '\n' + description2)
             await ctx.reply(embed=emb, mention_author=False, delete_after=20.0)
