@@ -155,20 +155,23 @@ class SlotsView(ViewBase):
                 n3 = 7
                 
             assert interaction.message is not None
-            await interaction.message.edit(embed=Embed(description=slot_panel.format(n1, n2, n3)), view=self)
-            await interaction.response.send_message(
-                embed=Embed(description=local_text[5].format(bet, currency, win_sum)),
-                ephemeral=True
-            )
-
-            if guild_log_channel:
-                try:
-                    await guild_log_channel.send(embed=Embed(
-                        title=self.slots_view_text[guild_lng][6],
-                        description=self.slots_view_text[guild_lng][7].format(member_id, bet, currency, win_sum)
-                    ))
-                except:
-                    continue
+            try:
+                await interaction.message.edit(embed=Embed(description=slot_panel.format(n1, n2, n3)), view=self)
+            except:
+                pass
+            finally:
+                await interaction.response.send_message(
+                    embed=Embed(description=local_text[5].format(bet, currency, win_sum)),
+                    ephemeral=True
+                )
+                if guild_log_channel:
+                    try:
+                        await guild_log_channel.send(embed=Embed(
+                            title=self.slots_view_text[guild_lng][6],
+                            description=self.slots_view_text[guild_lng][7].format(member_id, bet, currency, win_sum)
+                        ))
+                    except:
+                        continue
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         self.slot_runs_queue.put_nowait(interaction)

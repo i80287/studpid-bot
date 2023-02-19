@@ -55,11 +55,11 @@ class IgnoredChannelsView(ViewBase):
     def __init__(self, timeout: int, lng: int, auth_id: int, chnls: list[tuple[str, str]], rem_dis: bool, g_id: int, bot: StoreBot, is_text: bool) -> None:
         super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
         l: int = len(chnls)
-        for i in range(min((l + 23) // 24, 20)):
+        for i in range(min((l + 23) // 24, 4)):
             self.add_item(CustomSelect(
                 custom_id=f"{1100+i}_{auth_id}_{randint(1, 100)}",
                 placeholder=self.ignored_channels_text[lng][2],
-                options=[(self.ignored_channels_text[lng][3], "0")] + chnls[i*24:min((i+1)*24, l)]
+                options=[(self.ignored_channels_text[lng][3], "0")] + chnls[(i * 24):min((i + 1) * 24, l)]
             ))
         self.add_item(CustomButton(
             style=ButtonStyle.green,
@@ -104,30 +104,37 @@ class IgnoredChannelsView(ViewBase):
         if len(dsc) == 1:
             emb.description = self.ignored_channels_text[lng][4] + f"\n<#{channel_id}>**` - {channel_id}`**"
             self.children[-1].disabled = False # type: ignore
-            await interaction.message.edit(embed=emb, view=self)
+            try:
+                await interaction.message.edit(embed=emb, view=self)
+            except:
+                pass
         else:
             dsc.append(f"<#{channel_id}>**` - {channel_id}`**")
             emb.description = '\n'.join(dsc)
-            await interaction.message.edit(embed=emb)
+            try:
+                await interaction.message.edit(embed=emb)
+            except:
+                pass
 
         await interaction.response.send_message(embed=Embed(description=self.ignored_channels_text[lng][6].format(channel_id)), ephemeral=True)
         self.chnl = None
     
     async def rem_chnl(self, interaction: Interaction, lng: int, channel_id: int) -> None:
-        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        guild_id: int = self.g_id
+        with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("DELETE FROM ignored_channels WHERE chnl_id = ?", (channel_id,))
                 base.commit()
         if self.is_text:
             async with self.bot.text_lock:
                 try:
-                    self.bot.ignored_text_channels[self.g_id].remove(channel_id)
+                    self.bot.ignored_text_channels[guild_id].remove(channel_id)
                 except KeyError:
                     pass
         else:
             async with self.bot.voice_lock:
                 try:
-                    self.bot.ignored_voice_channels[self.g_id].remove(channel_id)
+                    self.bot.ignored_voice_channels[guild_id].remove(channel_id)
                 except KeyError:
                     pass
         assert interaction.message is not None

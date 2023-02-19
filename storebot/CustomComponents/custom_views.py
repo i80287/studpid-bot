@@ -1508,7 +1508,10 @@ class PollSettingsView(ViewBase):
                         base.commit()                
                 dsc[0] = poll_text[lng][0].format(f"<#{new_channel_id}>")
                 emb.description = "\n\n".join(dsc)
-                await interaction.message.edit(embed=emb)
+                try:
+                    await interaction.message.edit(embed=emb)
+                except:
+                    pass
 
                 await interaction.send(embed=Embed(description=poll_text[lng][4].format(new_channel_id)), ephemeral=True)         
             else:
@@ -1518,7 +1521,10 @@ class PollSettingsView(ViewBase):
                         base.commit()
                 dsc[0] = poll_text[lng][0].format(settings_text[lng][13])
                 emb.description = "\n\n".join(dsc)
-                await interaction.message.edit(embed=emb)
+                try:
+                    await interaction.message.edit(embed=emb)
+                except:
+                    pass
 
                 await interaction.send(embed=Embed(description=poll_text[lng][5]), ephemeral=True)
         elif int_custom_id == 29:
@@ -1529,7 +1535,10 @@ class PollSettingsView(ViewBase):
                         base.commit()                
                 dsc[1] = poll_text[lng][1].format(f"<#{new_channel_id}>")
                 emb.description = "\n\n".join(dsc)
-                await interaction.message.edit(embed=emb)
+                try:
+                    await interaction.message.edit(embed=emb)
+                except:
+                    pass
 
                 await interaction.send(embed=Embed(description=poll_text[lng][6].format(new_channel_id)), ephemeral=True)
             else:
@@ -1539,7 +1548,10 @@ class PollSettingsView(ViewBase):
                         base.commit()
                 dsc[1] = poll_text[lng][1].format(settings_text[lng][13])
                 emb.description = "\n\n".join(dsc)
-                await interaction.message.edit(embed=emb)
+                try:
+                    await interaction.message.edit(embed=emb)
+                except:
+                    pass
 
                 await interaction.send(embed=Embed(description=poll_text[lng][7]), ephemeral=True)
 
@@ -1575,7 +1587,10 @@ class RankingView(ViewBase):
             dsc[0] = ranking_text[lng][0].format(self.cur_xp_pm)
             dsc[1] = ranking_text[lng][1].format(self.cur_xpb)
             emb.description = "\n\n".join(dsc)
-            await interaction.message.edit(embed=emb)
+            try:
+                await interaction.message.edit(embed=emb)
+            except:
+                pass
 
     async def level_channel(self, interaction: Interaction) -> None:
         assert interaction.guild is not None
@@ -1701,7 +1716,10 @@ class LevelRolesView(ViewBase):
                 options=rls[(i * 25):min(length, (i + 1) * 25)]
             ))
         assert interaction.message is not None
-        await interaction.message.edit(view=self)
+        try:
+            await interaction.message.edit(view=self)
+        except:
+            pass
         await interaction.send(embed=Embed(description = ranking_text[lng][29].format(level)), ephemeral=True)
 
         cnt: int = 0
@@ -1720,7 +1738,10 @@ class LevelRolesView(ViewBase):
         del i
 
         if self.role is None:
-            await interaction.message.edit(view=self)
+            try:
+                await interaction.message.edit(view=self)
+            except:
+                pass
             await interaction.send(embed=Embed(description=ranking_text[lng][32]), ephemeral=True)
             return
 
@@ -1740,7 +1761,10 @@ class LevelRolesView(ViewBase):
         if self.children[1].disabled:
             self.children[1].disabled = False
 
-        await interaction.message.edit(embed=emb, view=self)
+        try:
+            await interaction.message.edit(embed=emb, view=self)
+        except:
+            pass
         await interaction.send(embed=Embed(description=ranking_text[lng][31].format(level, self.role)), ephemeral=True)
         self.role = None
 
@@ -1853,13 +1877,19 @@ class ManageMemberView(ViewBase):
             self.children[2].disabled = False
             emb3.description = '\n'.join(dsc)
             embs[2] = emb3
-            await interaction.message.edit(embeds=embs, view=self)
+            try:
+                await interaction.message.edit(embeds=embs, view=self)
+            except:
+                pass
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(role_id, member_id)), ephemeral=True)
         else:
             dsc.append(f"<@&{role_id}>**` - {role_id}`**")
             emb3.description = '\n'.join(dsc)
             embs[2] = emb3
-            await interaction.message.edit(embeds=embs)
+            try:
+                await interaction.message.edit(embeds=embs)
+            except:
+                pass
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(role_id, member_id)), ephemeral=True)
         self.role = None
     
@@ -1896,7 +1926,10 @@ class ManageMemberView(ViewBase):
             assert isinstance(self.children[2], CustomButton)
             self.children[2].disabled = True
             embs[2] = emb3
-            await interaction.message.edit(embeds=embs, view=self)
+            try:
+                await interaction.message.edit(embeds=embs, view=self)
+            except:
+                pass
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)            
         else:
             i: int = 0
@@ -1908,7 +1941,10 @@ class ManageMemberView(ViewBase):
                 i += 1
             emb3.description = "\n".join(dsc)
             embs[2] = emb3
-            await interaction.message.edit(embeds=embs)
+            try:
+                await interaction.message.edit(embeds=embs)
+            except:
+                pass
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)
         self.role = None
 
@@ -1978,9 +2014,11 @@ class ManageMemberView(ViewBase):
                     embs[1].set_field_at(index=0, name=mng_membs_text[lng][2], value=code_blocks[2].format(f"{self.xp}/{level * xp_b + 1}"))
                     embs[1].set_field_at(index=1, name=mng_membs_text[lng][3], value=code_blocks[2].format(level))
                     embs[1].set_field_at(index=2, name=mng_membs_text[lng][4], value=code_blocks[2].format(cnt_xp))
-                    
-                await interaction.message.edit(embeds=embs)
-
+                
+                try:
+                    await interaction.message.edit(embeds=embs)
+                except:
+                    return
             return
 
         if self.role is None:
@@ -2043,7 +2081,10 @@ class VerifyDeleteView(ViewBase):
             if len(dsc) == 3:
                 dsc[0] = ec_text[lng][20]
             emb.description = '\n'.join(dsc)
-            await self.m.edit(embed=emb)
+            try:
+                await self.m.edit(embed=emb)
+            except:
+                pass
             self.deleted = True
             self.stop()
 
