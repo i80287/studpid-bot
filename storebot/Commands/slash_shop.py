@@ -551,7 +551,7 @@ class RatingView(ViewBase):
     async def update_menu(self, interaction: Interaction, click: int) -> None:
         assert interaction.message is not None
         assert interaction.message.embeds[0].footer.text is not None
-        page: int = int(interaction.message.embeds[0].footer.text.split(" ")[1])
+        page: int = int(interaction.message.embeds[0].footer.text.split(' ')[1])
 
         if click in {1, 2} and page <= 1:
             return
@@ -567,24 +567,24 @@ class RatingView(ViewBase):
         elif click == 4:
             page = self.pages
 
-        counter: int = (page - 1) * self.in_row + 1
+        counter_start: int = (page - 1) * self.in_row + 1
         lng: int = self.lng
         if self.sort_value:
             emb: Embed = Embed(title=rating_text[lng][0], colour=Colour.dark_gray())
-            for r in self.cash_list[(page - 1) * self.in_row:min(page * self.in_row, len(self.cash_list))]:
-                emb.add_field(name=rating_text[lng][3].format(counter), value=f"<@{r[0]}>\n{r[1]} {self.currency}",
-                              inline=False)
-                counter += 1
-        else:
-            emb: Embed = Embed(title=rating_text[lng][1], colour=Colour.dark_gray())
-            for r in self.xp_list[(page - 1) * self.in_row:min(page * self.in_row, len(self.xp_list))]:
-                level: int = (r[1] - 1) // self.xp_b + 1
+            for counter, role_info in enumerate(self.cash_list[((page - 1) * self.in_row):min((page * self.in_row), len(self.cash_list))], start=counter_start):
                 emb.add_field(
                     name=rating_text[lng][3].format(counter),
-                    value=f"<@{r[0]}>\n{rating_text[lng][4].format(level)}",
+                    value=f"<@{role_info[0]}>\n{role_info[1]:0,} {self.currency}",
                     inline=False
                 )
-                counter += 1
+        else:
+            emb: Embed = Embed(title=rating_text[lng][1], colour=Colour.dark_gray())
+            for counter, member_info in enumerate(self.xp_list[((page - 1) * self.in_row):min((page * self.in_row), len(self.xp_list))], start=counter_start):
+                emb.add_field(
+                    name=rating_text[lng][3].format(counter),
+                    value=f"<@{member_info[0]}>\n{rating_text[lng][4].format((member_info[1] - 1) // self.xp_b + 1)}",
+                    inline=False
+                )
 
         emb.set_footer(text=rating_text[lng][2].format(page, self.pages))
         if not click:
@@ -664,17 +664,17 @@ class SlashCommandsCog(Cog):
     code_blocks: Dict[int, Dict[int, str]] = {
         0: {
             0: "```\nMember's personal roles\n```",
-            1: "```fix\nRole sale requests made by you\n```",
+            1: "```yaml\nRole sale requests made by you\n```",
             2: "```yaml\nRole purchase requests made for you\n```",
         },
         1: {
             0: "```\nЛичные роли пользователя\n```",
-            1: "```fix\n`Запросы продажи роли, сделанные вами\n```",
+            1: "```yaml\n`Запросы продажи роли, сделанные вами\n```",
             2: "```yaml\nЗапросы покупки роли, сделанные вам\n```",
         },
         2: {
             1: "```fix\n{}\n```",
-            2: "```c\n{}\n```",
+            2: "```fix\n{}\n```",
         }       
     }
     manage_requests_text: Dict[int, Dict[int, str]] = {
@@ -865,9 +865,9 @@ class SlashCommandsCog(Cog):
                 return
 
     async def store(self, interaction: Interaction) -> None:
-        assert interaction.guild_id is not None
-        assert interaction.locale is not None
-        assert isinstance(interaction.user, Member)
+        assert interaction.guild_id is not None, "guild_id"
+        assert interaction.locale is not None, "locale"
+        assert isinstance(interaction.user, Member), "isinstance Member"
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
@@ -896,19 +896,21 @@ class SlashCommandsCog(Cog):
 
         store_list: list[str] = []
         tz_info: timezone = timezone(timedelta(hours=tz))
-        for role_number, r, q, p, d, s, s_t, tp in db_store[:min(in_row, db_l)]:
+        for role_number, r, q, p, d, salary, salary_cooldown, role_type in db_store[:min(in_row, db_l)]:
             date: str = datetime.fromtimestamp(d, tz=tz_info).strftime("%H:%M %d-%m-%Y")
-            role_info: Optional[str] = None
-            if tp == 1:
-                role_info = store_text[lng][0].format(role_number, r, p, currency, date)
-            elif tp == 2:
-                role_info = store_text[lng][1].format(role_number, r, p, currency, q, date)
-            elif tp == 3:
-                role_info = store_text[lng][1].format(role_number, r, p, currency, "∞", date)
-            if role_info:
-                if s:
-                    role_info += store_text[lng][2].format(s * 604800 // s_t, currency)
-                store_list.append(role_info)
+            role_info: str
+            match role_type:
+                case 1:
+                    role_info = store_text[lng][0].format(role_number, r, p, currency, date)
+                case 2:
+                    role_info = store_text[lng][1].format(role_number, r, p, currency, q, date)
+                case 3:
+                    role_info = store_text[lng][1].format(role_number, r, p, currency, "∞", date)
+                case _:
+                    continue
+            if salary:
+                role_info += store_text[lng][2].format(salary * 604800 // salary_cooldown, currency)
+            store_list.append(role_info)
 
         emb: Embed = Embed(title=text_slash[lng][15], colour=Colour.dark_gray(), description='\n'.join(store_list))
 
@@ -931,7 +933,7 @@ class SlashCommandsCog(Cog):
 
         await store_view.wait()
         for button in store_view.children:
-            assert isinstance(button, CustomButton)
+            assert isinstance(button, (CustomButton, CustomSelect)), "CustomButton, CustomSelect"
             button.disabled = True
         try:
             await interaction.edit_original_message(view=store_view)
@@ -1197,7 +1199,7 @@ class SlashCommandsCog(Cog):
                     cnt_cash -= 1
 
             emb1: Embed = Embed(description=self.profile_text[lng][5].format(memb_id, memb_id))
-            emb1.add_field(name=self.profile_text[lng][1], value=self.code_blocks[2][1].format(cash), inline=True)
+            emb1.add_field(name=self.profile_text[lng][1], value=self.code_blocks[2][1].format("{0:0,}".format(cash)), inline=True)
             emb1.add_field(name=self.profile_text[lng][4], value=self.code_blocks[2][1].format(cnt_cash), inline=True)
             embs.append(emb1)
 
@@ -1218,9 +1220,12 @@ class SlashCommandsCog(Cog):
             emb2: Embed = Embed()
             if not len(embs):
                 emb2.description = self.profile_text[lng][5].format(memb_id, memb_id)
-            emb2.add_field(name=self.profile_text[lng][2], value=self.code_blocks[2][2].format(f"{xp}/{level * xp_b + 1}"),
-                           inline=True)
-            emb2.add_field(name=self.profile_text[lng][3], value=self.code_blocks[2][2].format(level), inline=True)
+            emb2.add_field(
+                name=self.profile_text[lng][2],
+                value=self.code_blocks[2][2].format(f"{xp:0,}/{(level * xp_b + 1):0,}"),
+                inline=True
+            )
+            emb2.add_field(name=self.profile_text[lng][3], value=self.code_blocks[2][2].format("{0:0,}".format(level)), inline=True)
             emb2.add_field(name=self.profile_text[lng][4], value=self.code_blocks[2][2].format(cnt_xp), inline=True)
             embs.append(emb2)
 
@@ -1684,20 +1689,23 @@ class SlashCommandsCog(Cog):
 
         l: int = len(membs_cash) if ec_status else len(membs_xp)
         end: int = min(in_row, l)
-        counter: int = 1
         if ec_status:
             emb: Embed = Embed(title=rating_text[lng][0], colour=Colour.dark_gray())
-            for r in membs_cash[0:end]:
-                emb.add_field(name=rating_text[lng][3].format(counter), value=f"<@{r[0]}>\n{r[1]} {currency}",
-                              inline=False)
-                counter += 1
+            for counter, role_info in enumerate(membs_cash[0:end], start=1):
+                emb.add_field(
+                    name=rating_text[lng][3].format(counter),
+                    value=f"<@{role_info[0]}>\n{role_info[1]:0,} " + currency,
+                    inline=False
+                )
+                
         else:
             emb: Embed = Embed(title=rating_text[lng][1], colour=Colour.dark_gray())
-            for r in membs_xp[0:end]:
-                level: int = (r[1] - 1) // xp_b + 1
-                emb.add_field(name=rating_text[lng][3].format(counter),
-                              value=f"<@{r[0]}>\n{rating_text[lng][4].format(level)}", inline=False)
-                counter += 1
+            for counter, role_info in enumerate(membs_xp[0:end], start=1):
+                emb.add_field(
+                    name=rating_text[lng][3].format(counter),
+                    value=f"<@{role_info[0]}>\n{rating_text[lng][4].format((role_info[1] - 1) // xp_b + 1)}",
+                    inline=False
+                )
 
         if l:
             emb.set_footer(text=rating_text[lng][2].format(1, (l + in_row - 1) // in_row))
