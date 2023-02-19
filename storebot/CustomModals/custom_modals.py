@@ -26,7 +26,9 @@ from nextcord.ui import (
 
 from Tools.db_commands import (
     peek_role_free_number,
-    peek_role_free_numbers
+    peek_role_free_numbers,
+    add_role_async,
+    RoleInfo
 )
 from Variables.vars import CWD_PATH
 
@@ -235,6 +237,8 @@ class RoleAddModal(ManageRoleModalBase):
         return errors_bit_mask
 
     async def callback(self, interaction: Interaction) -> None:
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
         lng: int = 1 if "ru" in str(interaction.locale) else 0
  
         errors_bit_mask: int = self.verify_user_input()
@@ -266,19 +270,11 @@ class RoleAddModal(ManageRoleModalBase):
         salary_cooldown: int = self.salary_cooldown if salary else 0
         role_type: int = self.role_type
         additional_salary: int = self.additional_salary
-        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
-            with closing(base.cursor()) as cur:
-                cur.execute(
-                    "INSERT OR IGNORE INTO server_roles (role_id, price, salary, salary_cooldown, type, additional_salary) VALUES(?, ?, ?, ?, ?, ?)", 
-                    (role_id, price, salary, salary_cooldown, role_type, additional_salary)
-                )
-                base.commit()
-                if salary:
-                    cur.execute(
-                        "INSERT OR IGNORE INTO salary_roles (role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, ?)", 
-                        (role_id, "", salary, salary_cooldown, 0)
-                    )
-                    base.commit()
+        
+        role_info: RoleInfo = RoleInfo(role_id, price, salary, salary_cooldown, role_type, additional_salary)
+        members_id_with_role: set[int] = {member.id for member in interaction.guild.members if role_id in member._roles}
+        await add_role_async(interaction.guild_id, role_info, members_id_with_role)
+        del members_id_with_role
 
         emb: Embed = self.m.embeds[0]
         assert emb.description is not None
