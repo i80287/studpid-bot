@@ -208,17 +208,17 @@ class RoleAddModal(ManageRoleModalBase):
                 errors_bit_mask |= 0b000010
             else:
                 salary: str = s_ans[0]
-                if salary.isdigit() and (salary_int := int(salary)) > 0:
+                if salary.isdigit() and (salary_int := int(salary)) >= 0:
                     self.salary = salary_int
+
+                    salary_cooldown: str = s_ans[1]
+                    if salary_cooldown.isdigit() and ((1 if salary_int else 0) <= (salary_cooldown_int := int(salary_cooldown)) <= 1008):
+                        self.salary_cooldown = salary_cooldown_int * 3600
+                    else:
+                        errors_bit_mask |= 0b001000
                 else:
                     errors_bit_mask |= 0b000100
-                
-                salary_cooldown: str = s_ans[1]
-                if salary_cooldown.isdigit() and (1 <= (salary_cooldown_int := int(salary_cooldown)) <= 1008):
-                    self.salary_cooldown = salary_cooldown_int * 3600
-                else:
-                    errors_bit_mask |= 0b001000
-        
+
         role_type: str | None = self.r_type_text_input.value
         if role_type and role_type.isdigit() and (role_type_int := int(role_type)) in {1, 2, 3}:
             self.role_type = role_type_int
@@ -263,7 +263,7 @@ class RoleAddModal(ManageRoleModalBase):
         role_id: int = self.role_id
         price: int = self.price
         salary: int = self.salary
-        salary_cooldown: int = self.salary_cooldown
+        salary_cooldown: int = self.salary_cooldown if salary else 0
         role_type: int = self.role_type
         additional_salary: int = self.additional_salary
         with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
@@ -398,16 +398,17 @@ class RoleEditModal(ManageRoleModalBase):
                 errors_bit_mask |= 0b0000010
             else:
                 salary: str = s_ans[0]
-                if salary.isdigit() and (salary_int := int(salary)) > 0:
+                if salary.isdigit() and (salary_int := int(salary)) >= 0:
                     self.new_salary = salary_int
+                    
+                    salary_cooldown: str = s_ans[1]
+                    if salary_cooldown.isdigit() and ((1 if salary_int else 0) <= (salary_cooldown_int := int(salary_cooldown)) <= 1008):
+                        self.new_salary_cooldown = salary_cooldown_int * 3600
+                    else:
+                        errors_bit_mask |= 0b0001000
                 else:
+                    self.new_salary = -1
                     errors_bit_mask |= 0b0000100
-
-                salary_cooldown: str =  s_ans[1]
-                if salary_cooldown.isdigit() and (1 <= (salary_cooldown_int := int(salary_cooldown)) <= 1008):
-                    self.new_salary_cooldown = salary_cooldown_int * 3600
-                else:
-                    errors_bit_mask |= 0b0001000
         
         role_type: str | None = self.r_type_text_input.value
         if role_type and role_type.isdigit() and (role_type_int := int(role_type)) in {1, 2, 3}:
@@ -417,7 +418,7 @@ class RoleEditModal(ManageRoleModalBase):
 
         additional_salary: str | None = self.additional_salary_text_input.value
         if additional_salary:
-            if additional_salary.isdigit() and (additional_salary_int := int(additional_salary)) > 0:
+            if additional_salary.isdigit() and (additional_salary_int := int(additional_salary)) >= 0:
                 self.new_additional_salary = additional_salary_int
             else:
                 errors_bit_mask |= 0b0100000
@@ -456,7 +457,7 @@ class RoleEditModal(ManageRoleModalBase):
         
         price: int = self.new_price
         salary: int = self.new_salary
-        salary_c: int = self.new_salary_cooldown
+        salary_c: int = self.new_salary_cooldown if salary else 0
         r_type: int = self.new_role_type
         l: int = self.new_in_store_amount
         r: int = self.role_id
@@ -533,8 +534,8 @@ class RoleEditModal(ManageRoleModalBase):
             cur.execute("DELETE FROM store WHERE role_id = ?", (r,))
             base.commit()
             return
+
         t: int = int(time())
-        
         if r_type == 2:
             if not l_prev:
                 free_number: int = peek_role_free_number(cur)
@@ -542,7 +543,6 @@ class RoleEditModal(ManageRoleModalBase):
                             (free_number, r, l, price, t, salary, salary_c, 2))
             else:
                 cur.execute("UPDATE store SET quantity = ?, price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (l, price, t, salary, salary_c, r))
-        
         elif r_type == 1:
             roles_amount_change: int = l - l_prev
             if roles_amount_change > 0:
@@ -556,11 +556,15 @@ class RoleEditModal(ManageRoleModalBase):
                 sorted_rls_to_delete: List[tuple[int]] = cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r,)).fetchall()[:-roles_amount_change]
                 rows: str = ", ".join({str(x[0]) for x in sorted_rls_to_delete})
                 cur.execute(f"DELETE FROM store WHERE rowid IN ({rows})")
-
-        elif r_type == 3 and not l_prev:
-            free_number: int = peek_role_free_number(cur)
-            cur.execute("INSERT INTO store(role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
-                        (free_number, r, -404, price, t, salary, salary_c, 3))
+        elif r_type == 3:
+            if not l_prev:
+                free_number: int = peek_role_free_number(cur)
+                cur.execute(
+                    "INSERT INTO store(role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
+                    (free_number, r, -404, price, t, salary, salary_c, 3)
+                )
+            else:
+                cur.execute("UPDATE store SET price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (price, t, salary, salary_c, r))
 
         base.commit()   
 
