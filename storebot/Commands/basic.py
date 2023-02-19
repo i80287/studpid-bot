@@ -115,12 +115,14 @@ class BasicComandsCog(Cog):
         0 : [
             ("`/profile`", "Show your profile"), 
             ("`/work`", "Start working, so you get salary"),
+            ("`/collect`", "Same as `/work`"),
             ("`/transfer`", "Transfer money to another member"), 
             ("`/duel`", "Make a bet"),
         ],
         1 : [
             ("`/profile`", "Показывает меню Вашего профиля"), 
             ("`/work`", "Начинает работу, за которую Вы полчите заработок"),
+            ("`/collect`", "То же, что и `/work`"),
             ("`/transfer`", "Совершает перевод валюты другому пользователю"), 
             ("`/duel`", "Делает ставку"),
             

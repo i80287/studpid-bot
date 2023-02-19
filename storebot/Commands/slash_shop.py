@@ -2022,6 +2022,17 @@ class SlashCommandsCog(Cog):
     )
     async def work_e(self, interaction: Interaction) -> None:
         await self.work(interaction=interaction)
+    
+    @slash_command(
+        name="collect",
+        description="Allows to gain money",
+        description_localizations={
+            Locale.ru: "Позволяет заработать деньги"
+        },
+        dm_permission=False
+    )
+    async def collect(self, interaction: Interaction) -> None:
+        await self.work(interaction=interaction)
 
     @slash_command(
         name="duel",
