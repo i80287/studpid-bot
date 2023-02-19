@@ -20,6 +20,12 @@ class RoleInfo:
     def all_items(self) -> tuple[int, int, int, int, int, int]:
         return (self.role_id, self.price, self.salary, self.salary_cooldown, self.role_type, self.additional_salary)
 
+@dataclass(frozen=True)
+class PartialRoleInfo:
+    role_id: int
+    salary: int
+    salary_cooldown: int
+
 def update_server_info_table(guild_id: int, key_name: str, new_value: int) -> None:
     with closing(connect(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db")) as base:
         with closing(base.cursor()) as cur:
@@ -191,6 +197,51 @@ async def add_role_async(guild_id: int, role_info: RoleInfo, members_id_with_rol
                 )
 
             await base.commit()
+
+async def verify_role_members_async(guild_id: int, role_info: PartialRoleInfo, members_id_with_role: set[int]) -> None:
+    role_id: int = role_info.role_id
+    salary: int = role_info.salary
+    str_role_id: str = '#' + role_id.__str__()
+    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+        for member_id in members_id_with_role:
+            async with base.execute("SELECT owned_roles FROM users WHERE memb_id = ?", (member_id,)) as cur:
+                result: Row | None = await cur.fetchone()
+
+            if result is None:
+                await base.execute(
+                    "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
+                    (member_id, 0, str_role_id, 0, 0, 0)
+                )
+            else:
+                owned_roles: str = result[0]
+                if str_role_id not in owned_roles:
+                    owned_roles += str_role_id
+                    await base.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (owned_roles, member_id))
+        await base.commit()
+
+        if not salary:
+            return
+
+        async with base.execute("SELECT members FROM salary_roles WHERE role_id = ?", (role_id,)) as cur:
+            result: Row | None = await cur.fetchone()
+        
+        if result is None:
+            role_owners: str = '#' + '#'.join(map(str, members_id_with_role)) if members_id_with_role else ""
+            await base.execute(
+                "INSERT OR IGNORE INTO salary_roles (role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, ?)", 
+                (role_id, role_owners, salary, role_info.salary_cooldown, 0)
+            )
+        else:
+            role_owners: str = result[0]
+            owners_ids_in_db: set[int] = {int(owner_id) for owner_id in role_owners.split('#') if owner_id.isdigit()}
+            owners_ids_in_db |= members_id_with_role
+            role_owners: str = '#' + '#'.join(map(str, owners_ids_in_db)) if owners_ids_in_db else ""
+            await base.execute(
+                "UPDATE salary_roles SET members = ? WHERE role_id = ?",
+                (role_owners, role_id)
+            )
+
+        await base.commit()
 
 def peek_role_free_number(cur: Cursor) -> int:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
