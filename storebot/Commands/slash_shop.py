@@ -174,10 +174,10 @@ buy_approve_text: Dict[int, Dict[int, str]] = {
 
 store_text: Dict[int, Dict[int, str]] = {
     0: {
-        0: "{} **•** <@&{}>\n`Price` - `{}` {}\n`Left` - `1`\n`Listed for sale:`\n*{}*\n",
-        1: "{} **•** <@&{}>\n`Price` - `{}` {}\n`Left` - `{}`\n`Last listed for sale:`\n*{}*\n",
-        2: "`Average passive salary per week` - `{}` {}\n",
-        3: "Page {} from {}",
+        0: "{0} **•** <@&{1}>\n`Price` - `{2:0,}` {3}\n`Left` - `1`\n`Listed for sale:`\n*{4}*\n",
+        1: "{0} **•** <@&{1}>\n`Price` - `{2:0,}` {3}\n`Left` - `{4}`\n`Last listed for sale:`\n*{5}*\n",
+        2: "`Average passive salary per week` - `{0:0,}` {1}\n",
+        3: "Page {0} from {1}",
         4: "Sort by...",
         5: "Sort by price",
         6: "Sort by date",
@@ -188,10 +188,10 @@ store_text: Dict[int, Dict[int, str]] = {
 
     },
     1: {
-        0: "{} **•** <@&{}>\n`Цена` - `{}` {}\n`Осталось` - `1`\n`Выставленa на продажу:`\n*{}*\n",
-        1: "{} **•** <@&{}>\n`Цена` - `{}` {}\n`Осталось` - `{}`\n`Последний раз выставленa на продажу:`\n*{}*\n",
-        2: "`Средний пассивный доход за неделю` - `{}` {}\n",
-        3: "Страница {} из {}",
+        0: "{0} **•** <@&{1}>\n`Цена` - `{2:0,}` {3}\n`Осталось` - `1`\n`Выставленa на продажу:`\n*{4}*\n",
+        1: "{0} **•** <@&{1}>\n`Цена` - `{2:0,}` {3}\n`Осталось` - `{4}`\n`Последний раз выставленa на продажу:`\n*{5}*\n",
+        2: "`Средний пассивный доход за неделю` - `{0:0,}` {1}\n",
+        3: "Страница {0} из {1}",
         4: "Сортировать по...",
         5: "Сортировать по цене",
         6: "Сортировать по дате",
@@ -422,19 +422,22 @@ class StoreView(ViewBase):
 
         store_list: list[str] = []
         tzinfo: timezone = timezone(timedelta(hours=self.tz))
-        for role_number, r, q, p, d, s, s_t, tp in self.db_store[(page - 1) * self.in_row:min(page * self.in_row, self.l)]:
+        currency: str = self.currency
+        for role_number, role_id, q, price, d, salary, salary_cooldown, role_type in self.db_store[(page - 1) * self.in_row:min(page * self.in_row, self.l)]:
             date: str = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
-            role_info: Optional[str] = None
-            if tp == 1:
-                role_info = store_text[lng][0].format(role_number, r, p, self.currency, date)
-            elif tp == 2:
-                role_info = store_text[lng][1].format(role_number, r, p, self.currency, q, date)
-            elif tp == 3:
-                role_info = store_text[lng][1].format(role_number, r, p, self.currency, "∞", date)
-            if role_info:
-                if s:
-                    role_info += store_text[lng][2].format(s * 604800 // s_t, self.currency)
-                store_list.append(role_info)
+            role_info: str
+            match role_type:
+                case 1:
+                    role_info = store_text[lng][0].format(role_number, role_id, price, currency, date)
+                case 2:
+                    role_info = store_text[lng][1].format(role_number, role_id, price, currency, q, date)
+                case 3:
+                    role_info = store_text[lng][1].format(role_number, role_id, price, currency, "∞", date)
+                case _:
+                    continue
+            if salary:
+                role_info += store_text[lng][2].format(salary * 604800 // salary_cooldown, currency)
+            store_list.append(role_info)
 
         if store_list:
             emb: Embed = Embed(title=store_text[lng][10], colour=Colour.dark_gray(), description='\n'.join(store_list))
@@ -794,7 +797,10 @@ class SlashCommandsCog(Cog):
 
         c: bool = await view.wait()
         if c or not view.value:
-            await interaction.delete_original_message()
+            try:
+                await interaction.delete_original_message()
+            except:
+                return
             return
 
         role_type: int = store[3]
