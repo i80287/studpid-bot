@@ -1230,10 +1230,9 @@ class SlashCommandsCog(Cog):
             embs.append(emb2)
 
         if ec_status:
-            on_server_roles: list[Role] = interaction.user.roles
-            on_server_roles.remove(interaction.guild.default_role)
-            memb_server_db_roles: set[int] | set = set(role.id for role in on_server_roles) & db_roles
-            memb_roles: set[int] | set = {int(role_id) for role_id in db_member_info[2].split("#") if role_id} if db_member_info[2] else set()
+            # roles_ids_on_server & roles_ids_in_db
+            memb_server_db_roles: set[int] | set = set(interaction.user._roles) & db_roles
+            memb_roles: set[int] | set = {int(role_id) for role_id in db_member_info[2].split("#") if role_id.isdigit()} if db_member_info[2] else set()
 
             embed_3_description: str = '\n'.join(
                 [self.code_blocks[lng][0]] + [f"<@&{r}>" for r in memb_server_db_roles]
