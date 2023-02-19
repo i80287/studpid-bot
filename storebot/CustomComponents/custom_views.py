@@ -12,7 +12,7 @@ from typing import (
 
 from contextlib import closing
 from sqlite3 import connect
-from random import randrange 
+from os import urandom
 
 from nextcord import (
     Embed,
@@ -413,13 +413,13 @@ class GenSettingsView(ViewBase):
         self.ec_status: int = ec_status
         self.rnk_status: int = rnk_status
         tzs: list[tuple[str, str]] = [(f"UTC{i}", str(i)) for i in range(-12, 0)] + [(f"UTC+{i}", str(i)) for i in range(0, 13)]
-        self.add_item(CustomSelect(custom_id=f"100_{auth_id}_{randrange(1000)}", placeholder=gen_settings_text[lng][20], options=languages[2][lng]))
-        self.add_item(CustomSelect(custom_id=f"101_{auth_id}_{randrange(1000)}", placeholder=gen_settings_text[lng][21], options=tzs))
-        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"6_{auth_id}_{randrange(1000)}", emoji="🗣️"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"7_{auth_id}_{randrange(1000)}", emoji="⏱"))
-        self.add_item(CustomButton(style=ButtonStyle.gray, label="", custom_id=f"42_{auth_id}_{randrange(1000)}", emoji="💵"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"43_{auth_id}_{randrange(1000)}", emoji="💰", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"44_{auth_id}_{randrange(1000)}", emoji="📈", row=2))
+        self.add_item(CustomSelect(custom_id=f"100_{auth_id}_{urandom(6).hex()}", placeholder=gen_settings_text[lng][20], options=languages[2][lng]))
+        self.add_item(CustomSelect(custom_id=f"101_{auth_id}_{urandom(6).hex()}", placeholder=gen_settings_text[lng][21], options=tzs))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"6_{auth_id}_{urandom(6).hex()}", emoji="🗣️"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"7_{auth_id}_{urandom(6).hex()}", emoji="⏱"))
+        self.add_item(CustomButton(style=ButtonStyle.gray, label="", custom_id=f"42_{auth_id}_{urandom(6).hex()}", emoji="💵"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"43_{auth_id}_{urandom(6).hex()}", emoji="💰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"44_{auth_id}_{urandom(6).hex()}", emoji="📈", row=2))
         
     async def select_lng(self, interaction: Interaction) -> None:
         assert interaction.guild_id is not None
@@ -578,12 +578,12 @@ class ModRolesView(ViewBase):
         self.role: Optional[int] = None
         for i in range((len(rls) + 24) // 25):
             self.add_item(CustomSelect(
-                custom_id=f"{200+i}_{auth_id}_{randrange(1000)}",
+                custom_id=f"{200+i}_{auth_id}_{urandom(6).hex()}",
                 placeholder=settings_text[lng][2],
                 options=rls[(i * 25):(min(len(rls), (i + 1) * 25))]
             ))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"8_{auth_id}_{randrange(1000)}"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_{randrange(1000)}", disabled=rem_dis))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"8_{auth_id}_{urandom(6).hex()}"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_{urandom(6).hex()}", disabled=rem_dis))
     
 
     async def add_role(self, interaction: Interaction) -> None:
@@ -691,13 +691,13 @@ class EconomyView(ViewBase):
         self.sale_price_percent: int = sale_price_percent
         self.voice_income: int = voice_income
         self.currency: str = currency
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"10_{author_id}_{randrange(1000)}", emoji="💸"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"11_{author_id}_{randrange(1000)}", emoji="⏰"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"12_{author_id}_{randrange(1000)}", emoji="💹"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"45_{author_id}_{randrange(1000)}", emoji="🎤"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"46_{author_id}_{randrange(1000)}", emoji="🛍️"))
-        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"13_{author_id}_{randrange(1000)}", emoji="📙"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"14_{author_id}_{randrange(1000)}", emoji="🛠️"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"10_{author_id}_{urandom(6).hex()}", emoji="💸"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"11_{author_id}_{urandom(6).hex()}", emoji="⏰"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"12_{author_id}_{urandom(6).hex()}", emoji="💹"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"45_{author_id}_{urandom(6).hex()}", emoji="🎤"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"46_{author_id}_{urandom(6).hex()}", emoji="🛍️"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"13_{author_id}_{urandom(6).hex()}", emoji="📙"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"14_{author_id}_{urandom(6).hex()}", emoji="🛠️"))
         
     async def msg_salary(self, interaction: Interaction, ans: str) -> bool:
         if ans.isdigit() and (money_per_message := int(ans)) >= 0:
@@ -918,15 +918,15 @@ class EconomyView(ViewBase):
         
         assert interaction.guild is not None
         guild: Guild = interaction.guild
-        assignable_roles: list[tuple[str, str]] = [(r.name, str(r.id)) for r in guild.roles if r.is_assignable()]
-        remove_role_button_is_disabled: bool = False if assignable_roles else True
+        assignable_and_boost_roles: list[tuple[str, str]] = [(r.name, str(r.id)) for r in guild.roles if r.is_assignable() or r.is_premium_subscriber()]
+        remove_role_button_is_disabled: bool = False if assignable_and_boost_roles else True
         ec_rls_view: EconomyRolesManageView = EconomyRolesManageView(
             t_out=155,
             lng=lng,
             auth_id=self.author_id,
             rem_dis=remove_role_button_is_disabled,
-            rls=assignable_roles,
-            s_rls=server_roles_ids
+            assignable_and_boost_roles=assignable_and_boost_roles,
+            server_roles_ids=server_roles_ids
         )
         await interaction.response.send_message(embed=Embed(description='\n'.join(descr)), view=ec_rls_view)
         await ec_rls_view.wait()
@@ -982,20 +982,20 @@ class EconomyView(ViewBase):
 
 
 class EconomyRolesManageView(ViewBase):
-    def __init__(self, t_out: int, lng: int, auth_id: int, rem_dis: bool, rls: list[tuple[str, str]], s_rls: set[int]) -> None:
+    def __init__(self, t_out: int, lng: int, auth_id: int, rem_dis: bool, assignable_and_boost_roles: list[tuple[str, str]], server_roles_ids: set[int]) -> None:
         super().__init__(lng=lng, author_id=auth_id, timeout=t_out)
-        self.s_rls: set[int] = s_rls
+        self.server_roles_ids: set[int] = server_roles_ids
         self.role: Optional[int] = None
-        length: int = len(rls)
-        for i in range((length+24)//25):
+        length: int = len(assignable_and_boost_roles)
+        for i in range(min((length + 24) // 25, 4)):
             self.add_item(CustomSelect(
                 custom_id=f"{800+i}",
                 placeholder=settings_text[lng][2],
-                options=rls[i*25:min(length, (i+1)*25)]
+                options=assignable_and_boost_roles[(i * 25):min(length, (i + 1) * 25)]
             ))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"15_{auth_id}_{randrange(1000)}"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=ec_mr_text[lng][0], emoji="🔧", custom_id=f"16_{auth_id}_{randrange(1000)}", disabled=rem_dis))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_{randrange(1000)}", disabled=rem_dis))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"15_{auth_id}_{urandom(6).hex()}"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label=ec_mr_text[lng][0], emoji="🔧", custom_id=f"16_{auth_id}_{urandom(6).hex()}", disabled=rem_dis))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_{urandom(6).hex()}", disabled=rem_dis))
     
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.message is not None
@@ -1008,11 +1008,12 @@ class EconomyRolesManageView(ViewBase):
 
         match int(custom_id[:2]):
             case 17:
-                if not self.role in self.s_rls:
+                role_id: int = self.role
+                if role_id not in self.server_roles_ids:
                     await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
                     return
-                v_d: VerifyDeleteView = VerifyDeleteView(lng=lng, role=self.role, m=interaction.message, auth_id=interaction.user.id)
-                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(self.role)), view=v_d)
+                v_d: VerifyDeleteView = VerifyDeleteView(lng=lng, role=role_id, m=interaction.message, auth_id=interaction.user.id)
+                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(role_id)), view=v_d)
                 
                 if await v_d.wait():
                     for child_component in v_d.children:
@@ -1024,16 +1025,17 @@ class EconomyRolesManageView(ViewBase):
                         pass
 
                 if v_d.deleted:
-                    self.s_rls.remove(self.role)
+                    self.server_roles_ids.remove(role_id)
                     self.role = None
             case 15:
-                if self.role in self.s_rls:
+                role_id: int = self.role
+                if role_id in self.server_roles_ids:
                     await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][9]), ephemeral=True)
                     return
                 add_mod: RoleAddModal = RoleAddModal(
                     timeout=90,
                     lng=lng,
-                    role=self.role,
+                    role=role_id,
                     message=interaction.message,
                     auth_id=interaction.user.id
                 )
@@ -1041,11 +1043,11 @@ class EconomyRolesManageView(ViewBase):
                 
                 await add_mod.wait()
                 if add_mod.added:
-                    self.s_rls.add(self.role)
+                    self.server_roles_ids.add(role_id)
                     self.role = None
             case 16:
                 role_id: int = self.role
-                if role_id not in self.s_rls:
+                if not role_id in self.server_roles_ids:
                     await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][8]), ephemeral=True)
                     return
                 
@@ -1091,14 +1093,14 @@ class SettingsView(ViewBase):
     def __init__(self, lng: int, author_id: int, timeout: int, bot: StoreBot) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
         self.bot: StoreBot = bot
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"0_{author_id}_{randrange(1000)}", emoji="⚙️"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"1_{author_id}_{randrange(1000)}", emoji="<:moder:1000090629897998336>"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"2_{author_id}_{randrange(1000)}", emoji="<:user:1002245779089535006>"))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"3_{author_id}_{randrange(1000)}", emoji="💰", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"4_{author_id}_{randrange(1000)}", emoji="📈", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"64_{author_id}_{randrange(1000)}", emoji="🎰", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"54_{author_id}_{randrange(1000)}", emoji="🚫", row=3))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"5_{author_id}_{randrange(1000)}", emoji="📊", row=3))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"0_{author_id}_{urandom(6).hex()}", emoji="⚙️"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"1_{author_id}_{urandom(6).hex()}", emoji="<:moder:1000090629897998336>"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"2_{author_id}_{urandom(6).hex()}", emoji="<:user:1002245779089535006>"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"3_{author_id}_{urandom(6).hex()}", emoji="💰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"4_{author_id}_{urandom(6).hex()}", emoji="📈", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"64_{author_id}_{urandom(6).hex()}", emoji="🎰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"54_{author_id}_{urandom(6).hex()}", emoji="🚫", row=3))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"5_{author_id}_{urandom(6).hex()}", emoji="📊", row=3))
     
     @classmethod
     def check_ans(cls, guild: Guild, ans: str) -> Tuple[Optional[Member], bool]:
@@ -1464,8 +1466,8 @@ class SettingsView(ViewBase):
 class PollSettingsView(ViewBase):
     def __init__(self, lng: int, author_id: int, timeout: int) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
-        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"28_{author_id}_{randrange(1000)}", emoji="🔎"))
-        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"29_{author_id}_{randrange(1000)}", emoji="📰"))
+        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"28_{author_id}_{urandom(6).hex()}", emoji="🔎"))
+        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"29_{author_id}_{urandom(6).hex()}", emoji="📰"))
     
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.guild is not None
@@ -1547,9 +1549,9 @@ class PollSettingsView(ViewBase):
 class RankingView(ViewBase):
     def __init__(self, lng: int, author_id: int, timeout: int, g_id: int, cur_xp_pm: int, cur_xpb: int, bot: StoreBot) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
-        self.add_item(CustomButton(style=ButtonStyle.green, label="", emoji="✨", custom_id=f"21_{author_id}_{randrange(1000)}"))
-        self.add_item(CustomButton(style=ButtonStyle.grey, label="", emoji="📗", custom_id=f"22_{author_id}_{randrange(1000)}"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", emoji="🥇", custom_id=f"24_{author_id}_{randrange(1000)}"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", emoji="✨", custom_id=f"21_{author_id}_{urandom(6).hex()}"))
+        self.add_item(CustomButton(style=ButtonStyle.grey, label="", emoji="📗", custom_id=f"22_{author_id}_{urandom(6).hex()}"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", emoji="🥇", custom_id=f"24_{author_id}_{urandom(6).hex()}"))
         self.cur_xp_pm: int = cur_xp_pm
         self.cur_xpb: int = cur_xpb
         self.g_id: int = g_id
@@ -1660,7 +1662,7 @@ class PollsChannelsView(ViewBase):
         length: int = len(chnls)
         for i in range(min((length + 23) // 24, 20)):
             self.add_item(CustomSelect(
-                custom_id=f"{view_id_base+i}_{auth_id}_{randrange(1000)}", 
+                custom_id=f"{view_id_base+i}_{auth_id}_{urandom(6).hex()}", 
                 placeholder=settings_text[lng][10], 
                 options=[(settings_text[lng][12], "0")] + chnls[i*24:min(length, (i+1)*24)]
             ))
@@ -1679,8 +1681,8 @@ class PollsChannelsView(ViewBase):
 class LevelRolesView(ViewBase):
     def __init__(self, lng: int, author_id: int, timeout: int, g_id: int, disabled: bool) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
-        self.add_item(CustomButton(style=ButtonStyle.green, label="🔧", custom_id=f"27_{author_id}_{randrange(1000)}", emoji="<:add01:999663315804500078>"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"28_{author_id}_{randrange(1000)}", emoji="<:remove01:999663428689997844>", disabled=disabled))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="🔧", custom_id=f"27_{author_id}_{urandom(6).hex()}", emoji="<:add01:999663315804500078>"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"28_{author_id}_{urandom(6).hex()}", emoji="<:remove01:999663428689997844>", disabled=disabled))
         self.g_id: int = g_id
         self.role: Optional[int] = None
     
@@ -1694,7 +1696,7 @@ class LevelRolesView(ViewBase):
         length: int = len(rls)
         for i in range((length + 24) // 25):
             self.add_item(CustomSelect(
-                custom_id=f"{1300+i}_{self.author_id}_{randrange(1000)}", 
+                custom_id=f"{1300+i}_{self.author_id}_{urandom(6).hex()}", 
                 placeholder=settings_text[lng][2], 
                 options=rls[(i * 25):min(length, (i + 1) * 25)]
             ))
@@ -1799,12 +1801,12 @@ class ManageMemberView(ViewBase):
     def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set[int],\
                 rls: list[tuple[str, str]], cur_money: int, cur_xp: int, rem_dis: bool, g_id: int, member: Member) -> None:
         super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=mng_membs_text[lng][0], emoji="🔧", custom_id=f"18_{auth_id}_{randrange(1000)}"))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"19_{auth_id}_{randrange(1000)}"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"20_{auth_id}_{randrange(1000)}", disabled=rem_dis))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label=mng_membs_text[lng][0], emoji="🔧", custom_id=f"18_{auth_id}_{urandom(6).hex()}"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"19_{auth_id}_{urandom(6).hex()}"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"20_{auth_id}_{urandom(6).hex()}", disabled=rem_dis))
         for i in range((len(rls)+24)//25):
             self.add_item(CustomSelect(
-                custom_id=f"{300+i}_{auth_id}_{randrange(1000)}",
+                custom_id=f"{300+i}_{auth_id}_{urandom(6).hex()}",
                 placeholder=settings_text[lng][2],
                 options=rls[i*25:min(len(rls), (i+1)*25)]
             ))
@@ -1820,24 +1822,25 @@ class ManageMemberView(ViewBase):
         assert interaction.guild is not None
         assert self.role is not None
         lng: int = self.lng
-        if self.role in self.memb_rls:
+        role_id: int = self.role
+        if role_id in self.memb_rls:
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][7]), ephemeral=True)
             return
         
-        self.memb_rls.add(self.role)
-
+        self.memb_rls.add(role_id)
+        member_id: int = self.memb_id
         with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
             with closing(base.cursor()) as cur:
-                m_rls: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
-                cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls + f"#{self.role}", self.memb_id))
-                membs: Optional[tuple[str]] = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
+                member_owned_roles_ids: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(member_id,)).fetchone()[0]
+                cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (member_owned_roles_ids + '#' + role_id.__str__(), member_id))
+                membs: Optional[tuple[str]] = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (role_id,)).fetchone()
                 if membs:
-                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0] + f"#{self.memb_id}", self.role))
+                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0] + '#' + member_id.__str__(), role_id))
                 base.commit()
 
-        role: Optional[Role] = interaction.guild.get_role(self.role)
-        assert role is not None
-        await self.member.add_roles(role)
+        role: Optional[Role] = interaction.guild.get_role(role_id)
+        if role is not None:
+            await self.member.add_roles(role)
         
         assert interaction.message is not None
         embs: list[Embed] = interaction.message.embeds
@@ -1845,19 +1848,19 @@ class ManageMemberView(ViewBase):
         assert emb3.description is not None
         dsc: list[str] = emb3.description.split("\n")
         if len(dsc) == 1:
-            dsc = [code_blocks[lng*5], f"<@&{self.role}>**` - {self.role}`**"]
+            dsc = [code_blocks[lng*5], f"<@&{role_id}>**` - {role_id}`**"]
             assert isinstance(self.children[2], CustomButton)
             self.children[2].disabled = False
-            emb3.description = "\n".join(dsc)
+            emb3.description = '\n'.join(dsc)
             embs[2] = emb3
             await interaction.message.edit(embeds=embs, view=self)
-            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(self.role, self.memb_id)), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(role_id, member_id)), ephemeral=True)
         else:
-            dsc.append(f"<@&{self.role}>**` - {self.role}`**")
-            emb3.description = "\n".join(dsc)
+            dsc.append(f"<@&{role_id}>**` - {role_id}`**")
+            emb3.description = '\n'.join(dsc)
             embs[2] = emb3
             await interaction.message.edit(embeds=embs)
-            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(self.role, self.memb_id)), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(role_id, member_id)), ephemeral=True)
         self.role = None
     
     async def rem_r(self, interaction: Interaction) -> None:
@@ -1999,28 +2002,34 @@ class VerifyDeleteView(ViewBase):
         self.role_id: int = role
         self.m: Message = m
         self.deleted: bool = False
-        self.add_item(CustomButton(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_{randrange(1000)}"))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_{randrange(1000)}"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_{urandom(6).hex()}"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_{urandom(6).hex()}"))
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.guild is not None
+        assert interaction.guild_id is not None
         lng: int = self.lng
         if custom_id.startswith("1001_"):
             if interaction.message:
-                await interaction.message.delete()
+                try:
+                    await interaction.message.delete()
+                except:
+                    pass
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][3].format(self.role_id)), ephemeral=True)
             self.stop()
         elif custom_id.startswith("1000_"):
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][4]), ephemeral=True)
             str_role_id: str = str(self.role_id)
-            guild_id: int = g_id if (g_id := interaction.guild_id) else interaction.guild.id
-            delete_role_from_db(guild_id=guild_id, str_role_id=str_role_id)
+            delete_role_from_db(guild_id=interaction.guild_id, str_role_id=str_role_id)
             try:
                 await interaction.edit_original_message(embed=Embed(description=ec_mr_text[lng][5].format(str_role_id)))
             except:
                 pass
             if interaction.message:
-                await interaction.message.delete()
+                try:
+                    await interaction.message.delete()
+                except:
+                    pass
 
             emb: Embed = self.m.embeds[0]
             assert emb.description is not None
