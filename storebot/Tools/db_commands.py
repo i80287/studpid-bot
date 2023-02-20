@@ -246,37 +246,40 @@ async def verify_role_members_async(guild_id: int, role_info: PartialRoleInfo, m
 
         await base.commit()
 
-async def add_member_role_async(guild_id: int, member_id: int, role_id: int) -> None:
+async def add_member_role_async(guild_id: int, member_id: int, role_id: int) -> bool:
     async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         str_role_id: str = role_id.__str__()
         async with base.execute("SELECT salary, salary_cooldown FROM server_roles WHERE role_id = " + str_role_id) as cur:
             role_info_row: Row | None = await cur.fetchone()
         
         if not role_info_row:
-            return
+            return False
         
         str_member_id: str = member_id.__str__()
         # Update member's roles in users table.
         async with base.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id) as cur:
             result: Row | None = await cur.fetchone()
 
+        is_added: bool = False
         if result is None:
             await base.execute(
                 "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
                 (member_id, '#' + str_role_id)
             )
             await base.commit()
+            is_added = True
         else:
             str_member_roles_ids: str = result[0]
             if str_role_id not in str_member_roles_ids:
                 await base.execute("UPDATE users SET owned_roles = '" + str_member_roles_ids + '#' + str_role_id + "' WHERE memb_id = " + str_member_id)
                 await base.commit()
+                is_added = True
             del str_member_roles_ids
         del result
         
         salary: int = role_info_row[0]
         if not salary:
-            return
+            return is_added
         
         # If role has salary.
         async with base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id) as cur:
@@ -288,51 +291,56 @@ async def add_member_role_async(guild_id: int, member_id: int, role_id: int) -> 
                 (role_id, '#' + str_member_id, salary, role_info_row[1])
             )
             await base.commit()
-            return
-        
-        str_role_owners_ids: str = result[0]
-        if str_member_id not in str_role_owners_ids:
-            await base.execute("UPDATE salary_roles SET members = '" + str_role_owners_ids + '#' + str_member_id + "' WHERE role_id = " + str_role_id)
-            await base.commit()
+        else:        
+            str_role_owners_ids: str = result[0]
+            if str_member_id not in str_role_owners_ids:
+                await base.execute("UPDATE salary_roles SET members = '" + str_role_owners_ids + '#' + str_member_id + "' WHERE role_id = " + str_role_id)
+                await base.commit()
+            
+        return is_added
 
-async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) -> None:
+async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) -> bool:
     async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         str_role_id: str = role_id.__str__()
         async with base.execute("SELECT salary FROM server_roles WHERE role_id = " + str_role_id) as cur:
             role_info_row: Row | None = await cur.fetchone()
         
         if not role_info_row:
-            return
+            return False
         
         str_member_id: str = member_id.__str__()
         # Update member's roles in users table.
         async with base.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id) as cur:
             result: Row | None = await cur.fetchone()
         
+        is_added: bool = False
         if result is None:
             await base.execute(
                 "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
                 (member_id, "")
             )
             await base.commit()
+            is_added = True
         else:
             str_member_roles_ids: str = result[0]
             if str_role_id in str_member_roles_ids:
                 await base.execute("UPDATE users SET owned_roles = '" + str_member_roles_ids.replace('#' + str_role_id, "") + "' WHERE memb_id = " + str_member_id)
                 await base.commit()
+                is_added = True
             del str_member_roles_ids
         del result
 
         salary: int = role_info_row[0]
         if not salary:
-            return
+            return is_added
         
         # If role has salary.
         async with base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id) as cur:
             result = await cur.fetchone()
 
         if result is None:
-            return
+            return is_added
+        
         str_role_owners_ids: str = result[0]
         if str_member_id in str_role_owners_ids:
             str_role_owners_ids = str_role_owners_ids.replace('#' + str_member_id, "")
@@ -341,6 +349,8 @@ async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) 
             else:
                 await base.execute("DELETE FROM salary_roles WHERE role_id = " + str_role_id)
             await base.commit()
+        
+        return is_added
 
 def peek_role_free_number(cur: Cursor) -> int:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()

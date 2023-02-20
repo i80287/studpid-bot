@@ -61,23 +61,27 @@ class MembersHandlerCog(Cog):
             after_roles: SnowflakeList = tup[3]
             is_role_added: bool = tup[4]
             changed_role_id: int = 0
+            is_added: bool = False
             if is_role_added:
                 for role_id in after_roles:
                     if not before_roles.has(role_id):
-                        await add_member_role_async(guild.id, member_id, role_id)
+                        is_added = await add_member_role_async(guild.id, member_id, role_id)
                         changed_role_id = role_id
                         break
             else:
                 for role_id in before_roles:
                     if not after_roles.has(role_id):
-                        await remove_member_role_async(guild_id, member_id, role_id)
+                        is_added = await remove_member_role_async(guild_id, member_id, role_id)
                         changed_role_id = role_id
                         break
             
+            if not is_added:
+                continue
+
             await Logger.write_guild_log_async(
                 "guild.log",
                 guild_id,
-                f"[role_change] [is_added: {is_role_added}] [NoReturnguild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"
+                f"[role_change] [is_added: {is_role_added}] [guild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"
             )
 
             log_channel_id: int = await get_server_info_value_async(guild_id, "log_c") 
