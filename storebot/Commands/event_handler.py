@@ -1,14 +1,13 @@
 from sqlite3 import connect
 from contextlib import closing
 from os import path, mkdir
-from typing import (
-    Optional,
-    Literal,
-    Union,
-    Tuple,
-    Dict,
-    List,
-)
+if __debug__:
+    from typing import (
+        Generator,
+        Optional,
+        Literal,
+        Union
+    )
 from asyncio import sleep
 from time import time
 
@@ -34,7 +33,7 @@ from config import DEBUG
 
 
 class EventsHandlerCog(Cog):
-    event_handl_text: Dict[int, Dict[int, str]] = {
+    event_handl_text: dict[int, dict[int, str]] = {
         0: {
             0: "**`Sorry, but you don't have enough permissions to use this command`**",
         },
@@ -52,7 +51,7 @@ class EventsHandlerCog(Cog):
             **`/settings`** для управления ботом\n\
             и **`/help`** для просмотра доступных команд",
     }
-    new_level_text: Dict[int, Dict[int, str]] = {
+    new_level_text: dict[int, dict[int, str]] = {
         0: {
             0: "New level!",
             1: "{}, you raised level to **{}**!",
@@ -65,7 +64,7 @@ class EventsHandlerCog(Cog):
 
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
-        self.salary_roles_Task.start()
+        self.salary_roles_task.start()
         self.backup_task.start()
     
     @classmethod
@@ -187,13 +186,13 @@ class EventsHandlerCog(Cog):
         async with self.bot.text_lock:
             del self.bot.ignored_text_channels[guild_id]
     
-    @tasks.loop(seconds=60)
-    async def salary_roles_Task(self) -> None:
-        guild_ids: list[int] = [guild.id for guild in self.bot.guilds.copy()]
+    @tasks.loop(seconds=180.0)
+    async def salary_roles_task(self) -> None:
+        guild_ids: Generator[int, None, None] = (guild.id for guild in self.bot.guilds.copy())
         for guild_id in guild_ids: 
-            with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+            with closing(connect(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db")) as base:
                 with closing(base.cursor()) as cur:
-                    r: Union[List[Tuple[int, str, int, int, int]], List] = cur.execute(
+                    r: Union[list[tuple[int, str, int, int, int]], list] = cur.execute(
                         "SELECT role_id, members, salary, salary_cooldown, last_time FROM salary_roles"
                     ).fetchall()
                     if r:
@@ -206,18 +205,18 @@ class EventsHandlerCog(Cog):
                                 for member_id in member_ids:
                                     cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, member_id))
                                     base.commit()
-            await sleep(0.5)
+            await sleep(0.0)
     
-    @salary_roles_Task.before_loop
+    @salary_roles_task.before_loop
     async def before_timer(self) -> None:
         await self.bot.wait_until_ready()
 
-    @tasks.loop(minutes=30)
+    @tasks.loop(hours=2.0)
     async def backup_task(self) -> None:
-        guild_ids: List[int] = [guild.id for guild in self.bot.guilds.copy()]
+        guild_ids: Generator[int, None, None] = (guild.id for guild in self.bot.guilds.copy())
         for guild_id in guild_ids:
-            await db_commands.make_backup(guild_id=guild_id)
-            await sleep(0.5)
+            await db_commands.make_backup(guild_id)
+            await sleep(1.0)
 
     @backup_task.before_loop
     async def before_timer_backup(self) -> None:
@@ -228,15 +227,15 @@ class EventsHandlerCog(Cog):
         #or message.type is MessageType.chat_input_command
         if not isinstance(member := message.author, Member) or member.bot:
             return
-        
-        guild: Optional[Guild] = message.guild
-        assert guild is not None
+        assert message.guild is not None
+        guild: Guild = message.guild
         g_id: int = guild.id
         async with self.bot.text_lock:
-            if g_id not in self.bot.ignored_text_channels:
+            if g_id in self.bot.ignored_text_channels:
+                if message.channel.id in self.bot.ignored_text_channels[g_id]:
+                    return
+            else:
                 self.bot.ignored_text_channels[g_id] = set()
-            elif message.channel.id in self.bot.ignored_text_channels[g_id]:
-                return
 
         new_level: int = await db_commands.check_member_level_async(guild_id=g_id, member_id=member.id)
         if not new_level:
@@ -250,7 +249,7 @@ class EventsHandlerCog(Cog):
                     emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(member.mention, new_level))
                     await channel.send(embed=emb)
 
-                db_lvl_rls: Union[List[Tuple[int, int]], List] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level").fetchall()
+                db_lvl_rls: Union[list[tuple[int, int]], list] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level").fetchall()
                 
         if not db_lvl_rls:
             return
@@ -258,7 +257,7 @@ class EventsHandlerCog(Cog):
         lvl_rls: dict[int, int] = {k: v for k, v in db_lvl_rls}
         del db_lvl_rls
         if new_level in lvl_rls:
-            guild_roles: dict[int, Role] = guild._roles
+            guild_roles: dict[int, Role] = guild._roles.copy()
             memb_roles: set[int] = {role_id for role_id in member._roles if role_id in guild_roles}
             new_level_role_id: int = lvl_rls[new_level]
             if new_level_role_id not in memb_roles and (role := guild_roles.get(new_level_role_id)):
