@@ -100,9 +100,9 @@ class OpenAICog(Cog):
         answer: str = response.choices[0].text.strip('\n') # type: ignore
         length: int = len(answer)
         if length < 3900:
-            await interaction.followup.send(embed=Embed(description=self.openai_cog_text[lng][2].format(answer)))
+            await channel.send(embed=Embed(description=self.openai_cog_text[lng][2].format(answer)))
         else:
-            await interaction.followup.send(embed=Embed(description=self.openai_cog_text[lng][2].format(answer[:3900])))
+            await channel.send(embed=Embed(description=self.openai_cog_text[lng][2].format(answer[:3900])))
             await channel.send(embed=Embed(description=answer[3900:]))
 
         await Logger.write_log_async(
