@@ -475,7 +475,7 @@ class RoleEditModal(ManageRoleModalBase):
                 else:
                     self.update_store(base=base, cur=cur, r=role_id, price=price, salary=salary, salary_c=salary_c, r_type=r_type, l=l, l_prev = self.prev_in_store_amount)
                 if salary != self.prev_salary or salary_c != self.prev_salary_cooldown:
-                    self.update_salary(base=base, cur=cur, r=role_id, salary=salary, salary_c=salary_c)
+                    self.update_salary(base, cur, role_id, salary, salary_c)
         
         members_id_with_role: set[int] = {member.id for member in interaction.guild.members if role_id in member._roles}
         role_info: PartialRoleInfo = PartialRoleInfo(role_id=role_id, salary=salary, salary_cooldown=salary_c)
@@ -577,22 +577,24 @@ class RoleEditModal(ManageRoleModalBase):
         base.commit()   
 
     @staticmethod
-    def update_salary(base: Connection, cur: Cursor, r: int, salary: int, salary_c: int) -> None:
+    def update_salary(base: Connection, cur: Cursor, role_id: int, salary: int, salary_c: int) -> None:
         if not salary:
-            cur.execute("DELETE FROM salary_roles WHERE role_id = ?", (r,))
+            cur.execute("DELETE FROM salary_roles WHERE role_id = ?", (role_id,))
             base.commit()
             return
-        if not cur.execute("SELECT role_id FROM salary_roles WHERE role_id = ?", (r,)).fetchone():
-            ids: set[str] = set()
-            string_role_id: str = f"{r}"
-            for req in cur.execute("SELECT memb_id, owned_roles FROM users").fetchall():
-                if string_role_id in req[1]:
-                    ids.add(f"{req[0]}")
-            membs: str = "".join(f"#{memb_id}" for memb_id in ids) if ids else ""
-            cur.execute("INSERT INTO salary_roles(role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, ?)", (r, membs, salary, salary_c, 0))
+        if not cur.execute("SELECT rowid FROM salary_roles WHERE role_id = ?", (role_id,)).fetchone():
+            members_ids_list: list[tuple[int]] = \
+                cur.execute("SELECT memb_id FROM users WHERE owned_roles LIKE '%#" + role_id.__str__() + "%'").fetchall()
+            str_members_ids: str = \
+                ('#' + '#'.join(map(lambda memb_id_tup: memb_id_tup[0].__str__(), members_ids_list))) \
+                if members_ids_list else ""
+            cur.execute(
+                "INSERT INTO salary_roles(role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, 0)",
+                (role_id, str_members_ids, salary, salary_c)
+            )
             base.commit()
             return
-        cur.execute("UPDATE salary_roles SET salary = ?, salary_cooldown = ? WHERE role_id = ?", (salary, salary_c, r))
+        cur.execute("UPDATE salary_roles SET salary = ?, salary_cooldown = ? WHERE role_id = ?", (salary, salary_c, role_id))
         base.commit()
 
 

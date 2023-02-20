@@ -105,7 +105,7 @@ text_slash: dict[int, dict[int, str]] = {
         44: "**`Store role number can not be less than 1`**",
         45: "**`There is no role with such number in the store`**",
         46: "**`Role is not found on the server. May be it was deleted`**",
-        47: "**`You gained {}`** {} **`from the /work command and {}`** {} **`additionally from your roles`**",
+        47: "**`You gained {}`** {} **`from the /work command and {}`** {} **`from your roles`**",
     },
     1: {
         0: "Ошибка",  # title
@@ -155,7 +155,7 @@ text_slash: dict[int, dict[int, str]] = {
         44: "**`Номер роли в магазине не может быть меньше 1`**",
         45: "**`Роли с таким номером нет в магазине`**",
         46: "**`Роль не найдена на сервере. Возможно, она была удалена`**",
-        47: "**`Вы заработали {}`** {} **`от команды /work и {}`** {} **`дополнительно от ваших ролей`**",
+        47: "**`Вы заработали {}`** {} **`от команды /work и {}`** {} **`от Ваших ролей`**",
     }
 }
 
@@ -1498,7 +1498,7 @@ class SlashCommandsCog(Cog):
                     additional_income: int = sum(add_salary[0] for add_salary in memb_roles_add_salary)
                     salary += additional_income
                 else:
-                    additional_income = 0
+                    additional_income: int = 0
 
                 cur.execute(
                     "UPDATE users SET money = money + ?, work_date = ? WHERE memb_id = ?",
@@ -1512,11 +1512,7 @@ class SlashCommandsCog(Cog):
         
         descr: str = text_slash[lng][28].format(salary, currency) if not additional_income \
             else text_slash[lng][47].format(salary - additional_income, currency, additional_income, currency)
-        await interaction.response.send_message(embed=Embed(
-            title=text_slash[lng][27],
-            description=descr,
-            colour=Colour.gold()
-        ))
+        await interaction.response.send_message(embed=Embed(description=descr, colour=Colour.gold()))
         if chnl_id and isinstance(guild_log_channel := interaction.guild.get_channel(chnl_id), TextChannel):
             try:
                 await guild_log_channel.send(embed=Embed(

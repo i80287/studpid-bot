@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from sqlite3 import connect, Cursor, Row
 from aiosqlite import connect as connect_async
 from contextlib import closing
+from itertools import pairwise
 if __debug__:
     from collections.abc import Iterable
 
@@ -27,66 +28,68 @@ class PartialRoleInfo:
     salary_cooldown: int
 
 def update_server_info_table(guild_id: int, key_name: str, new_value: int) -> None:
-    with closing(connect(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db")) as base:
+    with closing(connect(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id))) as base:
         with closing(base.cursor()) as cur:
-            cur.execute("UPDATE server_info SET value = ? WHERE settings = ?", (new_value, key_name))
+            cur.execute("UPDATE server_info SET value = " + new_value.__str__() + " WHERE settings = '" + key_name + "';")
             base.commit()
 
 def get_server_info_value(guild_id: int, key_name: str) -> int:
-    with closing(connect(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db")) as base:
+    with closing(connect(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id))) as base:
         with closing(base.cursor()) as cur:
             return cur.execute("SELECT value FROM server_info WHERE settings = '" + key_name + "';").fetchone()[0]
 
 async def get_server_info_value_async(guild_id: int, key_name: str) -> int:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         async with base.execute("SELECT value FROM server_info WHERE settings = '" + key_name + "';") as cur:
             return (await cur.fetchone())[0] # type: ignore
 
 async def get_server_currency_async(guild_id: int) -> str:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         async with base.execute("SELECT str_value FROM server_info WHERE settings = 'currency';") as cur:
             return (await cur.fetchone())[0] # type: ignore
 
 async def get_member_async(guild_id: int, member_id: int) -> tuple[int, int, str, int, int, int]:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
-        async with base.execute("SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = ?", (member_id,)) as cur:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
+        async with base.execute(
+            "SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = " + member_id.__str__()
+        ) as cur:
             result: Row | None = await cur.fetchone()
         
         if result is not None:
             return tuple(result)
 
         await base.execute(
-            "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-            (member_id, 0, "", 0, 0, 0)
+            "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
+            (member_id, "")
         )
         await base.commit()
 
         return (member_id, 0, "", 0, 0, 0)
 
 async def check_member_async(guild_id: int, member_id: int) -> None:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         async with base.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)) as cur:
             result: Row | None = await cur.fetchone()
         
         if result is None:
             await base.execute(
-                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-                (member_id, 0, "", 0, 0, 0)
+                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
+                (member_id, "")
             )
             await base.commit()
 
 async def get_member_nocheck_async(guild_id: int, member_id: int) -> tuple[int, int, str, int, int, int]:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         async with base.execute("SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = ?", (member_id,)) as cur:
             return tuple(await cur.fetchone()) # type: ignore
 
 async def update_member_cash_async(guild_id: int, member_id: int, cash: int) -> None:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         await base.execute("UPDATE users SET money = ? WHERE memb_id = ?", (cash, member_id))
         await base.commit()
 
 async def check_member_level_async(guild_id: int, member_id: int) -> int:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         xp_b: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_border';")).fetchone())[0] # type: ignore
         mn_p_m: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';")).fetchone())[0] # type: ignore
         xp_p_m: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';")).fetchone())[0] # type: ignore 
@@ -102,21 +105,21 @@ async def check_member_level_async(guild_id: int, member_id: int) -> int:
             return new_level
         else:
             await base.execute(
-                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-                (member_id, mn_p_m, "", 0, xp_p_m, 0)
+                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, 0, ?, 0)",
+                (member_id, mn_p_m, "", xp_p_m)
             )
             await base.commit()
             return 1
 
 async def register_user_voice_channel_join(guild_id: int, member_id: int, time_join: int) -> None:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         async with base.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)) as cur:
             result: Row | None = await cur.fetchone()
         
         if not result:
             await base.execute(
-                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-                (member_id, 0, "", 0, 0, time_join)
+                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, ?)",
+                (member_id, "", time_join)
             )
         else:
             await base.execute(
@@ -127,7 +130,7 @@ async def register_user_voice_channel_join(guild_id: int, member_id: int, time_j
         await base.commit()
 
 async def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_voice: int, time_left: int) -> tuple[int, int]:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         voice_join_time: int = (await get_member_async(guild_id=guild_id, member_id=member_id))[5]
         if not voice_join_time:
             return (0, 0)
@@ -139,7 +142,7 @@ async def register_user_voice_channel_left(guild_id: int, member_id: int, money_
     return (income_for_voice, voice_join_time)
 
 async def register_user_voice_channel_left_with_join_time(guild_id: int, member_id: int, money_for_voice: int, time_join: int, time_left: int) -> int:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         income_for_voice: int = (time_left - time_join) * money_for_voice // 600
         await base.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
         await base.commit()
@@ -149,7 +152,7 @@ async def register_user_voice_channel_left_with_join_time(guild_id: int, member_
 async def add_role_async(guild_id: int, role_info: RoleInfo, members_id_with_role: set[int]) -> None:
     role_id: int = role_info.role_id
     salary: int = role_info.salary
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         await base.execute(
             "INSERT OR IGNORE INTO server_roles (role_id, price, salary, salary_cooldown, type, additional_salary) VALUES(?, ?, ?, ?, ?, ?)", 
             role_info.all_items
@@ -164,8 +167,8 @@ async def add_role_async(guild_id: int, role_info: RoleInfo, members_id_with_rol
 
                 if result is None:
                     await base.execute(
-                        "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-                        (member_id, 0, str_role_id, 0, 0, 0)
+                        "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
+                        (member_id, str_role_id)
                     )
                 else:
                     owned_roles: str = result[0]
@@ -202,15 +205,15 @@ async def verify_role_members_async(guild_id: int, role_info: PartialRoleInfo, m
     role_id: int = role_info.role_id
     salary: int = role_info.salary
     str_role_id: str = '#' + role_id.__str__()
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         for member_id in members_id_with_role:
             async with base.execute("SELECT owned_roles FROM users WHERE memb_id = ?", (member_id,)) as cur:
                 result: Row | None = await cur.fetchone()
 
             if result is None:
                 await base.execute(
-                    "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-                    (member_id, 0, str_role_id, 0, 0, 0)
+                    "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
+                    (member_id, str_role_id)
                 )
             else:
                 owned_roles: str = result[0]
@@ -228,8 +231,8 @@ async def verify_role_members_async(guild_id: int, role_info: PartialRoleInfo, m
         if result is None:
             role_owners: str = '#' + '#'.join(map(str, members_id_with_role)) if members_id_with_role else ""
             await base.execute(
-                "INSERT OR IGNORE INTO salary_roles (role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, ?)", 
-                (role_id, role_owners, salary, role_info.salary_cooldown, 0)
+                "INSERT OR IGNORE INTO salary_roles (role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, 0)", 
+                (role_id, role_owners, salary, role_info.salary_cooldown)
             )
         else:
             role_owners: str = result[0]
@@ -243,6 +246,102 @@ async def verify_role_members_async(guild_id: int, role_info: PartialRoleInfo, m
 
         await base.commit()
 
+async def add_member_role_async(guild_id: int, member_id: int, role_id: int) -> None:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
+        str_role_id: str = role_id.__str__()
+        async with base.execute("SELECT salary, salary_cooldown FROM server_roles WHERE role_id = " + str_role_id) as cur:
+            role_info_row: Row | None = await cur.fetchone()
+        
+        if not role_info_row:
+            return
+        
+        str_member_id: str = member_id.__str__()
+        # Update member's roles in users table.
+        async with base.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id) as cur:
+            result: Row | None = await cur.fetchone()
+
+        if result is None:
+            await base.execute(
+                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
+                (member_id, '#' + str_role_id)
+            )
+            await base.commit()
+        else:
+            str_member_roles_ids: str = result[0]
+            if str_role_id not in str_member_roles_ids:
+                await base.execute("UPDATE users SET owned_roles = '" + str_member_roles_ids + '#' + str_role_id + "' WHERE memb_id = " + str_member_id)
+                await base.commit()
+            del str_member_roles_ids
+        del result
+        
+        salary: int = role_info_row[0]
+        if not salary:
+            return
+        
+        # If role has salary.
+        async with base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id) as cur:
+            result = await cur.fetchone()
+        
+        if result is None:
+            await base.execute(
+                "INSERT INTO salary_roles (role_id, members, salary, salary_cooldown, last_time) VALUES (?, ?, ?, ?, 0)",
+                (role_id, '#' + str_member_id, salary, role_info_row[1])
+            )
+            await base.commit()
+            return
+        
+        str_role_owners_ids: str = result[0]
+        if str_member_id not in str_role_owners_ids:
+            await base.execute("UPDATE salary_roles SET members = '" + str_role_owners_ids + '#' + str_member_id + "' WHERE role_id = " + str_role_id)
+            await base.commit()
+
+async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) -> None:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
+        str_role_id: str = role_id.__str__()
+        async with base.execute("SELECT salary FROM server_roles WHERE role_id = " + str_role_id) as cur:
+            role_info_row: Row | None = await cur.fetchone()
+        
+        if not role_info_row:
+            return
+        
+        str_member_id: str = member_id.__str__()
+        # Update member's roles in users table.
+        async with base.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id) as cur:
+            result: Row | None = await cur.fetchone()
+        
+        if result is None:
+            await base.execute(
+                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
+                (member_id, "")
+            )
+            await base.commit()
+        else:
+            str_member_roles_ids: str = result[0]
+            if str_role_id in str_member_roles_ids:
+                await base.execute("UPDATE users SET owned_roles = '" + str_member_roles_ids.replace('#' + str_role_id, "") + "' WHERE memb_id = " + str_member_id)
+                await base.commit()
+            del str_member_roles_ids
+        del result
+
+        salary: int = role_info_row[0]
+        if not salary:
+            return
+        
+        # If role has salary.
+        async with base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id) as cur:
+            result = await cur.fetchone()
+
+        if result is None:
+            return
+        str_role_owners_ids: str = result[0]
+        if str_member_id in str_role_owners_ids:
+            str_role_owners_ids = str_role_owners_ids.replace('#' + str_member_id, "")
+            if str_role_owners_ids:
+                await base.execute("UPDATE salary_roles SET members = '" + str_role_owners_ids + "' WHERE role_id = " + str_role_id)
+            else:
+                await base.execute("DELETE FROM salary_roles WHERE role_id = " + str_role_id)
+            await base.commit()
+
 def peek_role_free_number(cur: Cursor) -> int:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()
     if req:
@@ -250,7 +349,7 @@ def peek_role_free_number(cur: Cursor) -> int:
         del req
         if role_numbers[0] != 1:
             return 1
-        for current_role_number, next_role_number in zip(role_numbers, role_numbers[1:]):
+        for current_role_number, next_role_number in pairwise(role_numbers):
             if current_role_number + 1 != next_role_number:
                 return current_role_number + 1
         return len(role_numbers) + 1
@@ -258,9 +357,7 @@ def peek_role_free_number(cur: Cursor) -> int:
         return 1
 
 def peek_free_request_id(cur: Cursor) -> int:
-    request_ids_list: list[tuple[int]] = cur.execute(
-        "SELECT request_id FROM sale_requests ORDER BY request_id"
-    ).fetchall()
+    request_ids_list: list[tuple[int]] = cur.execute("SELECT request_id FROM sale_requests ORDER BY request_id").fetchall()
     if request_ids_list:
         request_ids: set[int] = {req_id_tuple[0] for req_id_tuple in request_ids_list}
         del request_ids_list
@@ -285,13 +382,14 @@ def peek_role_free_numbers(cur: Cursor, amount_of_numbers: int) -> list[int]:
         return list(range(1, amount_of_numbers + 1))
 
 def delete_role_from_db(guild_id: int, str_role_id: str) -> None:
-    with closing(connect(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db")) as base:
+    with closing(connect(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id))) as base:
         with closing(base.cursor()) as cur:
-            cur.executescript(f"""\
-            DELETE FROM server_roles WHERE role_id = {str_role_id};
-            DELETE FROM salary_roles WHERE role_id = {str_role_id};
-            DELETE FROM store WHERE role_id = {str_role_id};
-            DELETE FROM sale_requests WHERE role_id = {str_role_id};""")
+            cur.executescript("""\
+DELETE FROM server_roles WHERE role_id = {0};\
+DELETE FROM salary_roles WHERE role_id = {0};\
+DELETE FROM store WHERE role_id = {0};\
+DELETE FROM sale_requests WHERE role_id = {0};""".format(str_role_id)
+            )
             base.commit()
             memb_ids_and_roles: list[tuple[int, str]] = cur.execute("SELECT memb_id, owned_roles FROM users").fetchall()
             for memb_id, owned_roles in memb_ids_and_roles:
@@ -303,11 +401,11 @@ def delete_role_from_db(guild_id: int, str_role_id: str) -> None:
                     base.commit()
 
 async def get_ignored_channels(guild_id: int) -> list[tuple[int, int, int]]:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         return await base.execute_fetchall("SELECT chnl_id, is_text, is_voice FROM ignored_channels;") # type: ignore
 
 def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, int]]:
-    with closing(connect(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db")) as base:
+    with closing(connect(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id))) as base:
         with closing(base.cursor()) as cur:
             cur.executescript("""\
             CREATE TABLE IF NOT EXISTS users (
@@ -415,18 +513,18 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
             return cur.execute("SELECT chnl_id, is_text, is_voice FROM ignored_channels;").fetchall()
 
 async def make_backup(guild_id: int) -> None:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as src:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as src:
         async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}_backup.db") as dst:
             await src.backup(dst)
 
 async def get_server_slots_table_async(guild_id: int) -> dict[int, int]:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         async with base.execute("SELECT bet, income FROM slots_table;") as cur:
             pairs: Iterable[Row] = await cur.fetchall()
             return {bet: income for bet, income in pairs}
 
 async def update_server_slots_table_async(guild_id: int, slots_table: dict[int, int]) -> None:
-    async with connect_async(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db") as base:
+    async with connect_async(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id)) as base:
         income_bet_pairs: list[tuple[int, int]] = [(income, bet) for bet, income in slots_table.items()]
         await base.executemany("UPDATE slots_table SET income = ? WHERE bet = ?", income_bet_pairs)        
         await base.commit()
