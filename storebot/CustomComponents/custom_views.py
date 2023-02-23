@@ -26,6 +26,7 @@ from nextcord import (
 )
 if __debug__:
     from nextcord import Role
+    from nextcord.abc import GuildChannel
     from typing import Callable
 
 from storebot import StoreBot
@@ -219,10 +220,6 @@ ec_text: Dict[int, Dict[int, str]] = {
         7: "📙 Log channel for economic operations:\n{}",
         8: "> To manage setting press button with corresponding emoji",
         9: "> To see and manage roles available for purchase/sale in the bot press 🛠️",
-        10: "**`Write amount of money gained for message (non negative integer number)`**",
-        11: "Amount of money gained from messages set to: **`{}`** {}",
-        12: "Write cooldown for `/work` command **in seconds** (integer from 60 to 604800)\nFor example, to make cooldown equal to 240 seconds, write `240` in the chat",
-        13: "Cooldown for `/work` set to: **`{}`** seconds",
         14: "Write salary from `/work`:\nTwo non-negative numbers, second at least as much as first\nSalary will be random integer \
             between them\nIf you want salary to constant write one number\nFor example, if you write `1` `100` then salary \
             will be random integer from `1` to `100`\nIf you write `10`, then salary will always be `10`",
@@ -249,10 +246,6 @@ ec_text: Dict[int, Dict[int, str]] = {
         7: "📙 Канал для логов экономических операций:\n{}",
         8: "> Для управления настройкой нажмите на кнопку с соответствующим эмодзи",
         9: "> Для просмотра и управления ролями, доступными для покупки/продажи у бота, нажмите 🛠️",
-        10: "**`Укажите количество денег, получаемых за сообщение\n(неотрицательное целое число)`**",
-        11: "Количество денег, получаемых за одно сообщение, теперь равно: **`{}`** {}",
-        12: "Укажите кулдаун для команды `/work` **в секундах** (целое число от 60 до 604800)\nНапример, чтобы поставить кулдаун 240 секунд, напишите в чат `240`",
-        13: "Кулдаун для команды `/work` теперь равен: **`{}`** секунд",
         14: "Укажите заработок от команды `/work`:\nДва неотрицательных числа, второе не менее первого\nЗаработок будет \
             рандомным целым числом между ними\nЕсли Вы хотите сделать заработок постоянным, укажите одно число\nНапример, \
             если Вы укажите `1` `100`, то заработок будет рандомным целым числом от `1` до `100`\nЕсли Вы укажите `10`, то \
@@ -712,6 +705,20 @@ class EconomyView(ViewBase):
             4: "**`Количество валюты, получаемой пользователем за одно сообщение, должно быть целым неотрицательным числом`**"
         }
     }
+    work_command_cooldown_modal_text: dict[int, dict[int, str]] = {
+        0: {
+            0: "Cooldown for command /work",
+            1: "Write cooldown for the `/work` command in seconds (integer from 60 to 604800)",
+            2: "Cooldown for the `/work` command set to: **`{0}`** seconds (approximately **`{1}`** minutes, **`{2}`** hours)",
+            3: "Cooldown for the `/work` command should be integer from `60` to `604800` **`in seconds`**\nFor example, to make cooldown equal to **`600`** seconds = **`10`** minutes, write **`600`**",
+        },
+        1: {
+            0: "Кулдаун для команды /work",
+            1: "Укажите кулдаун для команды `/work` в секундах (целое число от 60 до 604800)",
+            2: "Кулдаун для команды `/work` теперь равен: **`{0}`** секунд (приблизительно **`{1}`** минут, **`{2}`** часов)",
+            3: "Кулдаун для команды `/work` в секундах должен быть целым числом от 60 до 604800\nНапример, чтобы поставить кулдаун **`600`** секунд = **`10`** минут, укажите **`600`**",
+        }
+    }
 
     def __init__(self, lng: int, author_id: int, timeout: int, sale_price_percent: int, voice_income: int, currency: str, bot: StoreBot) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
@@ -759,29 +766,38 @@ class EconomyView(ViewBase):
         else:
             await interaction.followup.send(embed=Embed(description=modal_text[4]), ephemeral=True)
 
-    async def work_cldwn(self, interaction: Interaction, ans: str) -> bool:
-        if ans.isdigit() and 60 <= (work_command_cooldown := int(ans)) <= 604800:
-            lng: int = self.lng
+    async def update_work_cmd_cooldown(self, interaction: Interaction) -> None:
+        assert interaction.guild_id is not None
+        lng: int = self.lng
+        modal_text: dict[int, str] = self.work_command_cooldown_modal_text[lng]
+        word_cooldown_modal: OneTextInputModal = \
+            OneTextInputModal(modal_text[0], modal_text[0], modal_text[1], 2, 6)
+        await interaction.response.send_modal(word_cooldown_modal)
+        await word_cooldown_modal.wait()
 
-            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
-                with closing(base.cursor()) as cur:
-                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'w_cd'", (work_command_cooldown,))
-                    base.commit()
-            try:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][13].format(ans)))
-            except:
-                pass
+        user_input: str | None = word_cooldown_modal.value
+        if not user_input:
+            return
+
+        if user_input.isdigit() and (60 <= (work_command_cooldown := int(user_input)) <= 604800):
+            await update_server_info_table_uncheck_async(interaction.guild_id, "w_cd", user_input)
             
             assert interaction.message is not None
             emb: Embed = interaction.message.embeds[0]
             assert emb.description is not None
             dsc: list[str] = emb.description.split("\n\n")
-            dsc[1] = ec_text[lng][2].format(ans)
+            dsc[1] = ec_text[lng][2].format(user_input)
             emb.description = "\n\n".join(dsc)
-            await interaction.message.edit(embed=emb)
-            return False
+            try:
+                await interaction.message.edit(embed=emb)
+            except:
+                pass
+            
+            minutes: float = work_command_cooldown / 60
+            hours: float = minutes / 60 # instead of (work_command_cooldown / 3600)
+            await interaction.followup.send(embed=Embed(description=modal_text[2].format(user_input, minutes, hours)), ephemeral=True)
         else:
-            return True
+            await interaction.followup.send(embed=Embed(description=modal_text[3]), ephemeral=True)
 
     async def work_salary(self, interaction: Interaction, ans: str) -> bool:
         splitted_ans: list[str] = ans.split()
@@ -920,6 +936,24 @@ class EconomyView(ViewBase):
         except:
             return
 
+    async def drop_users_cash(self, interaction: Interaction) -> None:
+        assert interaction.guild_id is not None
+        assert interaction.locale is not None
+        self.lng
+        verification_view: VerificationView = VerificationView(self.author_id)
+        await interaction.response.send_message(embed=Embed(description=ec_text[self.lng][23]), view=verification_view)
+        await verification_view.wait()
+        try:
+            await interaction.delete_original_message()
+        except:
+            pass
+        
+        if verification_view.approved:
+            await drop_users_cash_async(interaction.guild_id)
+            await interaction.followup.send(embed=Embed(description=ec_text[self.lng][24]), ephemeral=True)
+        else:
+            await interaction.followup.send(embed=Embed(description=ec_text[self.lng][25]), ephemeral=True)
+
     async def manage_economy_roles(self, interaction: Interaction) -> None:
         assert interaction.guild_id is not None
         lng: int = self.lng
@@ -985,30 +1019,13 @@ class EconomyView(ViewBase):
         except:
             pass
 
-    async def drop_users_cash(self, interaction: Interaction) -> None:
-        assert interaction.guild_id is not None
-        assert interaction.locale is not None
-        self.lng
-        verification_view: VerificationView = VerificationView(self.author_id)
-        await interaction.response.send_message(embed=Embed(description=ec_text[self.lng][23]), view=verification_view)
-        await verification_view.wait()
-        try:
-            await interaction.delete_original_message()
-        except:
-            pass
-        
-        if verification_view.approved:
-            await drop_users_cash_async(interaction.guild_id)
-            await interaction.followup.send(embed=Embed(description=ec_text[self.lng][24]), ephemeral=True)
-        else:
-            await interaction.followup.send(embed=Embed(description=ec_text[self.lng][25]), ephemeral=True)
-
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.channel_id is not None
-        int_custom_id: int = int(custom_id[:2])
-        match int_custom_id:
+        match int(custom_id[:2]):
             case 10:
                 await self.msg_salary(interaction)
+            case 11:
+                await self.update_work_cmd_cooldown(interaction)
             case 13:
                 await self.log_chnl(interaction)
             case 14:
@@ -1020,8 +1037,8 @@ class EconomyView(ViewBase):
             case 47:
                 await self.drop_users_cash(interaction)
             case _:
-                assert int_custom_id in {11, 12}
-                await interaction.response.send_message(embed=Embed(description=ec_text[self.lng][10 + ((int_custom_id - 10) << 1)]), ephemeral=True)
+                assert int(custom_id[:2]) == 12
+                await interaction.response.send_message(embed=Embed(description=ec_text[self.lng][14]), ephemeral=True)
                 flag: bool = True
                 author_id: int = self.author_id
                 channel_id: int = interaction.channel_id
@@ -1036,11 +1053,7 @@ class EconomyView(ViewBase):
                     except TimeoutError:
                         flag = False
                     else:
-                        match int_custom_id:
-                            case 11: 
-                                flag = await self.work_cldwn(interaction=interaction, ans=user_ans.content)
-                            case 12: 
-                                flag = await self.work_salary(interaction=interaction, ans=user_ans.content)
+                        flag = await self.work_salary(interaction=interaction, ans=user_ans.content)
                         try:
                             await user_ans.delete()
                         except:
@@ -1269,6 +1282,25 @@ class SettingsView(ViewBase):
         if ans == "cancel":
             return None, False
         return None, True
+    
+    @staticmethod
+    async def try_delete(interaction: Interaction, view: ViewBase) -> None:
+        assert isinstance(interaction.channel, GuildChannel)
+        assert interaction.guild is not None
+        if interaction.channel.permissions_for(interaction.guild.me).manage_messages:
+            try:
+                await interaction.delete_original_message()
+                return
+            except:
+                pass
+
+        for child_component in view.children:
+            assert isinstance(child_component, (CustomButton, CustomSelect))
+            child_component.disabled = True
+        try:
+            await interaction.edit_original_message(view=view)
+        except:
+            return
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.guild_id is not None
@@ -1310,14 +1342,7 @@ class SettingsView(ViewBase):
                 )
                 await interaction.response.send_message(embed=Embed(description="\n".join(dsc)), view=gen_view)
                 await gen_view.wait()
-                for child_component in gen_view.children:
-                    assert isinstance(child_component, (CustomSelect, CustomButton))
-                    child_component.disabled = True
-                try:
-                    await interaction.edit_original_message(view=gen_view)
-                except:
-                    pass
-
+                await self.try_delete(interaction, gen_view)
             case 1:
                 with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
                     with closing(base.cursor()) as cur:
@@ -1344,14 +1369,7 @@ class SettingsView(ViewBase):
                 )
                 await interaction.response.send_message(embed=emb, view=m_rls_v)
                 await m_rls_v.wait()
-                for child_component in m_rls_v.children:
-                    assert isinstance(child_component, (CustomSelect, CustomButton))
-                    child_component.disabled = True
-                try:
-                    await interaction.edit_original_message(view=m_rls_v)
-                except:
-                    pass
-            
+                await self.try_delete(interaction, m_rls_v)
             case 2:
                 await interaction.response.send_message(embed=Embed(description=settings_text[lng][7]))
                 try_get_member_flag: bool = True
@@ -1455,17 +1473,23 @@ class SettingsView(ViewBase):
                     g_id=guild_id,
                     member=memb
                 )
-                
-                await interaction.send(embeds=[emb1, emb2, emb3], view=mng_v)
+
+                message = await interaction.send(embeds=[emb1, emb2, emb3], view=mng_v)
                 await mng_v.wait()
+                assert isinstance(interaction.channel, GuildChannel)
+                if interaction.channel.permissions_for(interaction.guild.me).manage_messages:
+                    try:
+                        await message.delete()
+                        return
+                    except:
+                        pass
                 for child_component in mng_v.children:
                     assert isinstance(child_component, (CustomButton, CustomSelect))
                     child_component.disabled = True
                 try:
-                    await interaction.edit_original_message(view=mng_v)
+                    await message.edit(view=mng_v)
                 except:
-                    pass
-
+                    return
             case 3:
                 with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
                     with closing(base.cursor()) as cur:
@@ -1506,14 +1530,7 @@ class SettingsView(ViewBase):
                 )
                 await interaction.response.send_message(embed=emb, view=ec_v)
                 await ec_v.wait()
-                for child_component in ec_v.children:
-                    assert isinstance(child_component, (CustomButton, CustomSelect))
-                    child_component.disabled = True
-                try:
-                    await interaction.edit_original_message(view=ec_v)
-                except:
-                    pass
-
+                await self.try_delete(interaction, ec_v)
             case 4:
                 with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
                     with closing(base.cursor()) as cur:
@@ -1542,16 +1559,8 @@ class SettingsView(ViewBase):
                 )
                 
                 await interaction.response.send_message(embed=emb, view=rnk_v)
-
                 await rnk_v.wait()
-                for child_component in rnk_v.children:
-                    assert isinstance(child_component, (CustomButton, CustomSelect))
-                    child_component.disabled = True
-                try:
-                    await interaction.edit_original_message(view=rnk_v)
-                except:
-                    pass
-
+                await self.try_delete(interaction, rnk_v)
             case 5:
                 with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
                     with closing(base.cursor()) as cur:
@@ -1571,16 +1580,8 @@ class SettingsView(ViewBase):
 
                 p_v: PollSettingsView = PollSettingsView(lng=lng, author_id=author_id, timeout=100)
                 await interaction.response.send_message(embed=Embed(description="\n\n".join(dsc)), view=p_v)
-                
                 await p_v.wait()
-                for child_component in p_v.children:
-                    assert isinstance(child_component, CustomButton)
-                    child_component.disabled = True
-                try:
-                    await interaction.edit_original_message(view=p_v)
-                except:
-                    pass
-            
+                await self.try_delete(interaction, p_v)
             case 54:
                 emb = Embed(description=SelectICView.select_ignored_channels_text[lng][0])
                 select_ic_view: SelectICView = SelectICView(
@@ -1593,11 +1594,7 @@ class SettingsView(ViewBase):
                 
                 await interaction.response.send_message(embed=emb, view=select_ic_view)
                 await select_ic_view.wait()
-                try:
-                    await interaction.delete_original_message()
-                except:
-                    pass
-            
+                await self.try_delete(interaction, select_ic_view)
             case 64:
                 slots_enabled: int = await get_server_info_value_async(guild_id=guild_id, key_name="slots_on")
                 slots_table: dict[int, int] = await get_server_slots_table_async(guild_id=guild_id)
@@ -1615,10 +1612,7 @@ class SettingsView(ViewBase):
 
                 await interaction.response.send_message(embed=emb, view=slots_manage_view)
                 await slots_manage_view.wait()
-                try:
-                    await interaction.delete_original_message()
-                except:
-                    pass
+                await self.try_delete(interaction, slots_manage_view)
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         return
