@@ -208,7 +208,7 @@ mod_roles_text: Dict[int, Dict[int, str]] = {
     }
 }
 
-ec_text: Dict[int, Dict[int, str]] = {
+ec_text: dict[int, dict[int, str]] = {
     0 : {
         0 : "Economy settings",
         1: "💸 Money gained for message:\n**`{}`** {}",
@@ -218,6 +218,7 @@ ec_text: Dict[int, Dict[int, str]] = {
         5: "🎤 Income from presenting in voice channel (for ten minutes):\n**`{}`** {}",
         6: "🛍️ Sale price of the role, from the purchase price: **`{}`** %",
         7: "📙 Log channel for economic operations:\n{}",
+        10: "0️⃣ Drop cash of all members on the server",
         8: "> To manage setting press button with corresponding emoji",
         9: "> To see and manage roles available for purchase/sale in the bot press 🛠️",
         14: "Write salary from `/work`:\nTwo non-negative numbers, second at least as much as first\nSalary will be random integer \
@@ -244,6 +245,7 @@ ec_text: Dict[int, Dict[int, str]] = {
         5: "🎤 Доход от присутствия в голосовом канале (доход указан за 10 минут):\n**`{}`** {}",
         6: "🛍️ Цена роли при продаже, от цены покупки: **`{}`** %",
         7: "📙 Канал для логов экономических операций:\n{}",
+        10: "0️⃣ Сбросить кэш всех пользователей на сервере",
         8: "> Для управления настройкой нажмите на кнопку с соответствующим эмодзи",
         9: "> Для просмотра и управления ролями, доступными для покупки/продажи у бота, нажмите 🛠️",
         14: "Укажите заработок от команды `/work`:\nДва неотрицательных числа, второе не менее первого\nЗаработок будет \
@@ -939,9 +941,9 @@ class EconomyView(ViewBase):
     async def drop_users_cash(self, interaction: Interaction) -> None:
         assert interaction.guild_id is not None
         assert interaction.locale is not None
-        self.lng
         verification_view: VerificationView = VerificationView(self.author_id)
-        await interaction.response.send_message(embed=Embed(description=ec_text[self.lng][23]), view=verification_view)
+        local_text: dict[int, str] = ec_text[self.lng]
+        await interaction.response.send_message(embed=Embed(description=local_text[23]), view=verification_view)
         await verification_view.wait()
         try:
             await interaction.delete_original_message()
@@ -950,9 +952,9 @@ class EconomyView(ViewBase):
         
         if verification_view.approved:
             await drop_users_cash_async(interaction.guild_id)
-            await interaction.followup.send(embed=Embed(description=ec_text[self.lng][24]), ephemeral=True)
+            await interaction.followup.send(embed=Embed(description=local_text[24]), ephemeral=True)
         else:
-            await interaction.followup.send(embed=Embed(description=ec_text[self.lng][25]), ephemeral=True)
+            await interaction.followup.send(embed=Embed(description=local_text[25]), ephemeral=True)
 
     async def manage_economy_roles(self, interaction: Interaction) -> None:
         assert interaction.guild_id is not None
@@ -1036,8 +1038,7 @@ class EconomyView(ViewBase):
                 await self.update_sale_role_price(interaction)
             case 47:
                 await self.drop_users_cash(interaction)
-            case _:
-                assert int(custom_id[:2]) == 12
+            case 12:
                 await interaction.response.send_message(embed=Embed(description=ec_text[self.lng][14]), ephemeral=True)
                 flag: bool = True
                 author_id: int = self.author_id
@@ -1502,21 +1503,23 @@ class SettingsView(ViewBase):
                         voice_income: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice';").fetchone()[0]
                         currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency';").fetchone()[0]
 
-                emb: Embed = Embed(title=ec_text[lng][0])
-                dsc: list[str] = [ec_text[lng][1].format(money_p_m, currency)]
-                dsc.append(ec_text[lng][2].format(w_cd))
+                local_text: dict[int, str] = ec_text[lng]
+                emb: Embed = Embed(title=local_text[0])
+                dsc: list[str] = [local_text[1].format(money_p_m, currency)]
+                dsc.append(local_text[2].format(w_cd))
                 if sal_l == sal_r:
-                    dsc.append(ec_text[lng][3].format(sal_l, currency))
+                    dsc.append(local_text[3].format(sal_l, currency))
                 else:
-                    dsc.append(ec_text[lng][3].format(ec_text[lng][4].format(sal_l, sal_r), currency))
-                dsc.append(ec_text[lng][5].format(voice_income, currency))
-                dsc.append(ec_text[lng][6].format(sale_price_percent))
+                    dsc.append(local_text[3].format(local_text[4].format(sal_l, sal_r), currency))
+                dsc.append(local_text[5].format(voice_income, currency))
+                dsc.append(local_text[6].format(sale_price_percent))
                 if e_l_c:
-                    dsc.append(ec_text[lng][7].format(f"<#{e_l_c}>"))
+                    dsc.append(local_text[7].format(f"<#{e_l_c}>"))
                 else:
-                    dsc.append(ec_text[lng][7].format(settings_text[lng][13]))
-                dsc.append(ec_text[lng][8])
-                dsc.append(ec_text[lng][9])
+                    dsc.append(local_text[7].format(settings_text[lng][13]))
+                dsc.append(local_text[10])
+                dsc.append(local_text[8])
+                dsc.append(local_text[9])
                 emb.description = "\n\n".join(dsc)
                 
                 ec_v: EconomyView = EconomyView(
