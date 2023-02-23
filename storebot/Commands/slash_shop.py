@@ -2,6 +2,7 @@ from datetime import datetime, timedelta, timezone
 from sqlite3 import connect, Cursor
 from contextlib import closing
 from random import randint
+from os import urandom
 from time import time
 from typing import (
     Literal,
@@ -41,7 +42,6 @@ from Tools.db_commands import (
     get_server_slots_table_async
 )
 from Variables.vars import CWD_PATH
-from config import in_row
 
 common_text: dict[int, dict[int, str]] = {
     0: {
@@ -252,13 +252,13 @@ class BetView(ViewBase):
         self.currency: str = currency
         self.add_item(CustomButton(
             label=bet_text[lng][0],
-            custom_id=f"36_{auth_id}_{randint(1, 100)}",
+            custom_id=f"36_{auth_id}_" + urandom(4).hex(),
             style=ButtonStyle.green,
             emoji="💰"
         ))
         self.add_item(CustomButton(
             label=bet_text[lng][1],
-            custom_id=f"37_{auth_id}_{randint(1, 100)}",
+            custom_id=f"37_{auth_id}_" + urandom(4).hex(),
             style=ButtonStyle.red,
             emoji="❌"
         ))
@@ -267,7 +267,7 @@ class BetView(ViewBase):
         assert isinstance(interaction.user, Member)
         memb_id: int = interaction.user.id
         lng: int = self.lng
-        if custom_id.startswith("36_"):
+        if custom_id.startswith("36"):
             if memb_id == self.author_id:
                 await interaction.response.send_message(embed=Embed(description=bet_text[lng][2]), ephemeral=True)
                 return
@@ -319,10 +319,10 @@ class StoreView(ViewBase):
         self.sort_reversed: bool = False  # возрастание / убывание при сортировке, False - возрастание
         self.pages: int = max(1, (self.l + in_row - 1) // in_row)
 
-        self.add_item(CustomButton(label="", custom_id=f"32_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
-        self.add_item(CustomButton(label="", custom_id=f"33_{auth_id}_{randint(1, 100)}", emoji="◀️"))
-        self.add_item(CustomButton(label="", custom_id=f"34_{auth_id}_{randint(1, 100)}", emoji="▶️"))
-        self.add_item(CustomButton(label="", custom_id=f"35_{auth_id}_{randint(1, 100)}", emoji="⏭"))
+        self.add_item(CustomButton(label="", custom_id=f"32_{auth_id}_" + urandom(4).hex(), emoji="⏮️"))
+        self.add_item(CustomButton(label="", custom_id=f"33_{auth_id}_" + urandom(4).hex(), emoji="◀️"))
+        self.add_item(CustomButton(label="", custom_id=f"34_{auth_id}_" + urandom(4).hex(), emoji="▶️"))
+        self.add_item(CustomButton(label="", custom_id=f"35_{auth_id}_" + urandom(4).hex(), emoji="⏭"))
 
         sort_by_what_options: list[SelectOption] = [
             SelectOption(
@@ -339,7 +339,7 @@ class StoreView(ViewBase):
             )
         ]
         self.add_item(CustomSelectWithOptions(
-            custom_id=f"102_{auth_id}_{randint(1, 100)}",
+            custom_id=f"102_{auth_id}_" + urandom(4).hex(),
             placeholder=store_text[lng][4],
             opts=sort_by_what_options
         ))
@@ -358,7 +358,7 @@ class StoreView(ViewBase):
             )
         ]
         self.add_item(CustomSelectWithOptions(
-            custom_id=f"103_{auth_id}_{randint(1, 100)}",
+            custom_id=f"103_{auth_id}_" + urandom(4).hex(),
             placeholder=store_text[lng][7],
             opts=sort_how_options
         ))
@@ -491,12 +491,12 @@ class BuyView(ViewBase):
         self.value: bool = False
         self.add_item(CustomButton(
             label=buy_approve_text[lng][0],
-            custom_id=f"30_{auth_id}_{randint(1, 100)}",
+            custom_id=f"30_{auth_id}_" + urandom(4).hex(),
             style=ButtonStyle.green, emoji="✅"
         ))
         self.add_item(CustomButton(
             label=buy_approve_text[lng][1],
-            custom_id=f"31_{auth_id}_{randint(1, 100)}",
+            custom_id=f"31_{auth_id}_" + urandom(4).hex(),
             style=ButtonStyle.red, emoji="❌"
         ))
 
@@ -523,10 +523,10 @@ class RatingView(ViewBase):
         self.in_row: int = in_row
         # True - show ranking by cash, False - by xp
         self.sort_value: bool = True if ec_status else False        
-        self.add_item(CustomButton(label="", custom_id=f"38_{auth_id}_{randint(1, 100)}", emoji="⏮️"))
-        self.add_item(CustomButton(label="", custom_id=f"39_{auth_id}_{randint(1, 100)}", emoji="◀️"))
-        self.add_item(CustomButton(label="", custom_id=f"40_{auth_id}_{randint(1, 100)}", emoji="▶️"))
-        self.add_item(CustomButton(label="", custom_id=f"41_{auth_id}_{randint(1, 100)}", emoji="⏭"))
+        self.add_item(CustomButton(label="", custom_id=f"38_{auth_id}_" + urandom(4).hex(), emoji="⏮️"))
+        self.add_item(CustomButton(label="", custom_id=f"39_{auth_id}_" + urandom(4).hex(), emoji="◀️"))
+        self.add_item(CustomButton(label="", custom_id=f"40_{auth_id}_" + urandom(4).hex(), emoji="▶️"))
+        self.add_item(CustomButton(label="", custom_id=f"41_{auth_id}_" + urandom(4).hex(), emoji="⏭"))
         if ec_status and rnk_status:
             opts: list[SelectOption] = [
                 SelectOption(
@@ -543,7 +543,7 @@ class RatingView(ViewBase):
                 )
             ]
             self.add_item(item=CustomSelectWithOptions(
-                custom_id=f"104_{auth_id}_{randint(1, 100)}", placeholder=rating_text[lng][3], opts=opts
+                custom_id=f"104_{auth_id}_" + urandom(4).hex(), placeholder=rating_text[lng][3], opts=opts
             ))
 
     async def update_menu(self, interaction: Interaction, click: int) -> None:
@@ -705,7 +705,8 @@ class SlashCommandsCog(Cog):
     }
 
     def __init__(self, bot: Bot) -> None:
-        self.in_row: int = in_row
+        from config import in_row
+        self.in_row: Literal[5] = in_row
 
     @classmethod
     async def can_role(cls, interaction: Interaction, role: Role, lng: int) -> bool:
@@ -894,6 +895,7 @@ class SlashCommandsCog(Cog):
 
         store_list: list[str] = []
         tz_info: timezone = timezone(timedelta(hours=tz))
+        in_row: Literal[5] = self.in_row
         for role_number, r, q, p, d, salary, salary_cooldown, role_type in db_store[:min(in_row, db_l)]:
             date: str = datetime.fromtimestamp(d, tz=tz_info).strftime("%H:%M %d-%m-%Y")
             role_info: str
@@ -1688,6 +1690,7 @@ class SlashCommandsCog(Cog):
             return
 
         l: int = len(membs_cash) if ec_status else len(membs_xp)
+        in_row: Literal[5] = self.in_row
         end: int = min(in_row, l)
         if ec_status:
             emb: Embed = Embed(title=rating_text[lng][0], colour=Colour.dark_gray())
