@@ -552,3 +552,27 @@ async def update_server_slots_table_async(guild_id: int, slots_table: dict[int, 
         await base.executemany("UPDATE slots_table SET income = ? WHERE bet = ?", income_bet_pairs)        
         await base.commit()
 
+async def listify_guild_roles(guild_id: int) -> tuple[list[tuple[int, int, int, int, int, int]], list[str]]:
+    str_guild_id: str = guild_id.__str__()
+    role_count: list[str] = []
+    async with connect_async(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db") as base:
+        del str_guild_id
+
+        roles: list[tuple[int, int, int, int, int, int]] = \
+            await (await base.execute("SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles")).fetchall() # type: ignore
+
+        for role in roles:
+            role_id: int = role[0]
+            role_type: int = role[4]
+            if role_type == 1:
+                role_count.append(str((await (await base.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,))).fetchone())[0])) # type: ignore
+            else:
+                quantity_in_store: Row | None = await (await base.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,))).fetchone()
+                if not quantity_in_store:
+                    role_count.append("0")
+                elif role_type == 2:
+                    role_count.append(str(quantity_in_store[0]))
+                else:
+                    role_count.append("∞")
+
+    return (roles, role_count)

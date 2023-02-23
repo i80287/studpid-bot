@@ -104,6 +104,7 @@ class ManageRoleModalBase(Modal):
             28: "Print integer non-negative number. For uncountable roles print any non-negative number",
             29: "Amount of the roles in the store must be non-negative integer number from 0 to 99",
             30: "You edited role <@&{}>. Now it's price is **`{}`**, salary is **`{}`**, cooldown for it is **`{}`** hours, role's type is **`{}`**, amount of roles in the store - **`{}`**, additional income from `/work` command - **`{}`**",
+            31: "**`You have not changed the role`**"
         },
         1: {
             0: "Добавление роли",
@@ -127,37 +128,26 @@ class ManageRoleModalBase(Modal):
             28: "Напишите целое неотрицательное число.Для бесконечных ролей можно указать любое неотрицательное число",
             29: "Количество ролей в магазине должно быть целым неотрицательным числом от 0 до 99",
             30: "Вы отредактировали роль <@&{}>. Теперь её цена - **`{}`**, доход - **`{}`**, его кулдаун - **`{}`** час(а)(ов), тип роли - **`{}`**, количество в магазине - **`{}`**, дополнительный заработок от команды `/work` - **`{}`**",
+            31: "**`Вы не изменили роль`**"
         }
     }
 
-    def __init__(self, title: str, *, timeout: float | None = None, custom_id: str = ..., auto_defer: bool = True) -> None:
-        super().__init__(title=title, timeout=timeout, custom_id=custom_id, auto_defer=auto_defer)
+    def __init__(self, title: str, timeout: float) -> None:
+        super().__init__(title=title, timeout=timeout)
 
 
 class RoleAddModal(ManageRoleModalBase):
-    partial_ec_text: Dict[int, Dict[int, str]] = {
-        0: {
-            18: "__**role - role id - price - salary - cooldown for salary - type - how much in the store - additional income from /work**__",
-            20: "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
-        },
-        1: {
-            18: "__**роль - id роли - цена - заработок - кулдаун заработка - тип - сколько в магазине - дополнительный заработок от /work**__",
-            20: "`Если роль не отображается ни в одном меню снизу, значит, бот не может управлять ею`",
-        }
-    }
+    def __init__(self, timeout: float, lng: int, role_id: int, auth_id: int) -> None:
+        super().__init__(self.manage_role_modals_text[lng][0], timeout)
 
-    def __init__(self, timeout: int, lng: int, role: int, message: Message, auth_id: int) -> None:
-        super().__init__(title=self.manage_role_modals_text[lng][0], timeout=timeout, custom_id=f"6100_{auth_id}_{randint(1, 100)}")
-        self.role_id=role
-        self.m: Message = message
+        self.role_id: int = role_id
         self.added: bool = False
         self.price_text_input = TextInput(
             label=self.manage_role_modals_text[lng][10],
             min_length=1,
             max_length=9,
             placeholder=self.manage_role_modals_text[lng][11],
-            required=True,
-            custom_id=f"6101_{auth_id}_{randint(1, 100)}"
+            required=True
         )
         self.salary_text_input = TextInput(
             label=self.manage_role_modals_text[lng][12],
@@ -165,8 +155,7 @@ class RoleAddModal(ManageRoleModalBase):
             max_length=9,
             style=TextInputStyle.paragraph,
             placeholder=self.manage_role_modals_text[lng][13],
-            required=False,
-            custom_id=f"6102_{auth_id}_{randint(1, 100)}"
+            required=False
         )
         self.r_type_text_input = TextInput(
             label=self.manage_role_modals_text[lng][14],
@@ -174,8 +163,7 @@ class RoleAddModal(ManageRoleModalBase):
             max_length=1,
             style=TextInputStyle.paragraph,
             placeholder=self.manage_role_modals_text[lng][26],
-            required=True,
-            custom_id=f"6103_{auth_id}_{randint(1, 100)}"
+            required=True
         )
         self.additional_salary_text_input = TextInput(
             label=self.manage_role_modals_text[lng][15],
@@ -274,23 +262,10 @@ class RoleAddModal(ManageRoleModalBase):
         additional_salary: int = self.additional_salary
         
         role_info: RoleInfo = RoleInfo(role_id, price, salary, salary_cooldown, role_type, additional_salary)
-        members_id_with_role: set[int] = {member.id for member in interaction.guild.members if role_id in member._roles}
+        members_id_with_role: set[int] = {member.id for member in interaction.guild.members if member._roles.has(role_id)}
         await add_role_async(interaction.guild_id, role_info, members_id_with_role)
+        del role_info
         del members_id_with_role
-
-        emb: Embed = self.m.embeds[0]
-        assert emb.description is not None
-        dsc: List[str] = emb.description.split("\n")
-        rls: List[str] = dsc[1:-2]
-        dsc = [self.partial_ec_text[lng][18]]
-        dsc.extend(r for r in rls)
-        dsc.append(f"<@&{role_id}> - **`{role_id}`** - **`{price}`** - **`{salary}`** - **`{salary_cooldown // 3600}`** - **`{r_types[lng][role_type]}`** - **`0`** - **`{additional_salary}`**\n")
-        dsc.append(self.partial_ec_text[lng][20])
-        emb.description = '\n'.join(dsc)
-        try:
-            await self.m.edit(embed=emb)
-        except:
-            pass
 
         self.added = True
         await interaction.response.send_message(
@@ -308,16 +283,17 @@ class RoleAddModal(ManageRoleModalBase):
 
 
 class RoleEditModal(ManageRoleModalBase):
-    def __init__(self, timeout: int, role: int, message: Message, lng: int, auth_id: int, price: int, salary: int, salary_cooldown: int, r_t: int, additional_salary: int, in_store: int):
-        super().__init__(title=self.manage_role_modals_text[lng][25], timeout=timeout, custom_id=f"7100_{auth_id}_{randint(1, 100)}")
-        self.role_id: int = role
-        self.m: Message = message
+    def __init__(self, timeout: float, role_id: int, lng: int, auth_id: int, price: int, salary: int, salary_cooldown: int, r_t: int, additional_salary: int, in_store: int) -> None:
+        super().__init__(title=self.manage_role_modals_text[lng][25], timeout=timeout)
+        self.role_id: int = role_id
         self.changed: bool = False
 
+        self.prev_price: int = price
         self.prev_salary: int = salary
         self.prev_salary_cooldown: int = salary_cooldown
         self.prev_r_t: int = r_t
         self.prev_in_store_amount: int = in_store
+        self.prev_additional_salary: int = additional_salary
         
         self.new_price: int = price
         self.new_salary: int = salary
@@ -392,7 +368,7 @@ class RoleEditModal(ManageRoleModalBase):
         
         salary_and_cooldown: str | None = self.salary_text_input.value
         if salary_and_cooldown:
-            s_ans: List[str] = salary_and_cooldown.split()
+            s_ans: list[str] = salary_and_cooldown.split()
             if len(s_ans) != 2:
                 errors_bit_mask |= 0b0000010
             else:
@@ -407,6 +383,9 @@ class RoleEditModal(ManageRoleModalBase):
                         errors_bit_mask |= 0b0001000
                 else:
                     errors_bit_mask |= 0b0000100
+        else:
+            self.new_salary = 0
+            self.new_salary_cooldown = 0
         
         role_type: str | None = self.r_type_text_input.value
         if role_type and role_type.isdigit() and (role_type_int := int(role_type)) in {1, 2, 3}:
@@ -434,23 +413,24 @@ class RoleEditModal(ManageRoleModalBase):
         assert interaction.guild is not None
         assert interaction.locale is not None
         lng: int = 1 if "ru" in interaction.locale else 0
+        local_text: dict[int, str] = self.manage_role_modals_text[lng]
         errors_bit_mask: int = self.check_ans()
         if errors_bit_mask:
-            report: List[str] = []
+            report: list[str] = []
             if errors_bit_mask & 0b0000001:
-                report.append(self.manage_role_modals_text[lng][18])
+                report.append(local_text[18])
             if errors_bit_mask & 0b0000010:
-                report.append(self.manage_role_modals_text[lng][19])
+                report.append(local_text[19])
             if errors_bit_mask & 0b0000100:
-                report.append(self.manage_role_modals_text[lng][20])
+                report.append(local_text[20])
             if errors_bit_mask & 0b0001000:
-                report.append(self.manage_role_modals_text[lng][21])
+                report.append(local_text[21])
             if errors_bit_mask & 0b0010000:
-                report.append(self.manage_role_modals_text[lng][22])
+                report.append(local_text[22])
             if errors_bit_mask & 0b0100000:
-                report.append(self.manage_role_modals_text[lng][23])
+                report.append(local_text[23])
             if errors_bit_mask & 0b1000000:
-                report.append(self.manage_role_modals_text[lng][29])
+                report.append(local_text[29])
             
             await interaction.response.send_message(embed=Embed(description='\n'.join(report)), ephemeral=True)
             self.stop()
@@ -464,46 +444,46 @@ class RoleEditModal(ManageRoleModalBase):
         role_id: int = self.role_id
         new_additional_salary: int = self.new_additional_salary
         guild_id: int = interaction.guild_id
+
+        members_id_with_role: set[int] = {member.id for member in interaction.guild.members if member._roles.has(role_id)}
+        role_info: PartialRoleInfo = PartialRoleInfo(role_id=role_id, salary=salary, salary_cooldown=salary_c)
+        await verify_role_members_async(guild_id, role_info, members_id_with_role)
+        del members_id_with_role
+
+        role_type_changed: bool = r_type != self.prev_r_t
+        salary_changed: bool = salary != self.prev_salary or salary_c != self.prev_salary_cooldown
+        if not (role_type_changed or salary_changed):
+            if price == self.prev_price \
+            and r_type == self.prev_r_t \
+            and l == self.prev_in_store_amount \
+            and new_additional_salary == self.prev_additional_salary:
+                # Role was not changed.
+                await interaction.response.send_message(embed=Embed(description=local_text[31]), ephemeral=True)
+                self.stop()
+                return
+
         with closing(connect(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db")) as base:
             with closing(base.cursor()) as cur:
                 cur.execute(
                     "UPDATE server_roles SET price = ?, salary = ?, salary_cooldown = ?, type = ?, additional_salary = ? WHERE role_id = ?",
                     (price, salary, salary_c, r_type, new_additional_salary, role_id)
                 )
-                if r_type != self.prev_r_t:
+                if role_type_changed:
                     self.update_type_and_store(base=base, cur=cur, price=price, salary=salary, salary_c=salary_c, r_type=r_type, r=role_id, l=l)
                 else:
                     self.update_store(base=base, cur=cur, r=role_id, price=price, salary=salary, salary_c=salary_c, r_type=r_type, l=l, l_prev = self.prev_in_store_amount)
-                if salary != self.prev_salary or salary_c != self.prev_salary_cooldown:
+                if salary_changed:
                     self.update_salary(base, cur, role_id, salary, salary_c)
-        
-        members_id_with_role: set[int] = {member.id for member in interaction.guild.members if role_id in member._roles}
-        role_info: PartialRoleInfo = PartialRoleInfo(role_id=role_id, salary=salary, salary_cooldown=salary_c)
-        await verify_role_members_async(guild_id, role_info, members_id_with_role)
-        del members_id_with_role
 
         amount_in_store: str = str(l) if r_type != 3 or not l else "∞"
-        emb: Embed = self.m.embeds[0]
-        assert emb.description is not None
-        dsc: List[str] = emb.description.split('\n')
-        str_role_id: str = str(role_id)
-        for i in range(1, len(dsc) - 1):
-            if str_role_id in dsc[i]:
-                dsc[i] = f"<@&{role_id}> - **`{role_id}`** - **`{price}`** - **`{salary}`** - **`{salary_c // 3600}`** - **`{r_types[lng][r_type]}`** - **`{amount_in_store}`** - **`{new_additional_salary}`**"
-                break
-        emb.description = '\n'.join(dsc)
-        try:
-            await self.m.edit(embed=emb)
-        except:
-            pass
         self.changed = True
 
         await interaction.response.send_message(
-            embed=Embed(description=self.manage_role_modals_text[lng][30].format(
+            embed=Embed(description=local_text[30].format(
                 role_id, 
                 price, 
                 salary, 
-                salary_c // 3600, 
+                salary_c // 3600,
                 r_types[lng][r_type], 
                 amount_in_store, 
                 new_additional_salary

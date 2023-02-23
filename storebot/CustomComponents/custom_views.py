@@ -36,7 +36,8 @@ from Tools.db_commands import (
     get_server_slots_table_async,
     get_server_currency_async,
     drop_users_cash_async,
-    update_server_info_table_uncheck_async
+    update_server_info_table_uncheck_async,
+    listify_guild_roles
 )
 from Tools.parse_tools import parse_emoji
 from Variables.vars import CWD_PATH
@@ -220,7 +221,7 @@ ec_text: Dict[int, Dict[int, str]] = {
         9: "> To see and manage roles available for purchase/sale in the bot press 🛠️",
         10: "**`Write amount of money gained for message (non negative integer number)`**",
         11: "Amount of money gained from messages set to: **`{}`** {}",
-        12: "Write cooldown for `/work` command **in seconds** (integer from 60 to 604800)\nFor example, to make cooldown equalt to 240 seconds, write `240` in the chat",
+        12: "Write cooldown for `/work` command **in seconds** (integer from 60 to 604800)\nFor example, to make cooldown equal to 240 seconds, write `240` in the chat",
         13: "Cooldown for `/work` set to: **`{}`** seconds",
         14: "Write salary from `/work`:\nTwo non-negative numbers, second at least as much as first\nSalary will be random integer \
             between them\nIf you want salary to constant write one number\nFor example, if you write `1` `100` then salary \
@@ -683,7 +684,7 @@ class ModRolesView(ViewBase):
 
 
 class EconomyView(ViewBase):
-    r_types: Dict[int, Dict[int, str]] = {
+    roles_types: dict[int, dict[int, str]] = {
         0 : {
             1 : "Nonstacking, displayed separated",
             2 : "Stacking, countable",
@@ -920,39 +921,51 @@ class EconomyView(ViewBase):
             return
 
     async def manage_economy_roles(self, interaction: Interaction) -> None:
+        assert interaction.guild_id is not None
         lng: int = self.lng
-        server_roles_ids: set[int] = set()
-        with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
-            with closing(base.cursor()) as cur:
-                roles: list[tuple[int, int, int, int, int, int]] = cur.execute(
-                    "SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles"
-                ).fetchall()
-                if roles:
-                    descr: list[str] = [ec_text[lng][19]]
-                    for role in roles:
-                        role_id: int = role[0]
-                        server_roles_ids.add(role_id)
-                        if role[4] == 1:
-                            cnt: str = str(cur.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,)).fetchone()[0])
-                        else:
-                            quantity_in_store: Optional[tuple[int]] = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,)).fetchone()
-                            if not quantity_in_store:
-                                cnt: str = "0"
-                            elif role[4] == 2:
-                                cnt: str = str(quantity_in_store[0])
-                            else:
-                                cnt: str = "∞"
-                        descr.append(
-                            f"<@&{role_id}> - **`{role_id}`** - **`{role[1]}`** - **`{role[2]}`** - **`{role[3]//3600}`** - **`{self.r_types[lng][role[4]]}`** - **`{cnt}`** - **`{role[5]}`**"
-                        )
-                else:
-                    descr: list[str] = [ec_text[lng][20]]
-        descr.append('\n' + ec_text[lng][21])
+
+        roles_info_tuples: list[tuple[int, int, int, int, int, int]]
+        roles_info_tuples, roles_counts = await listify_guild_roles(interaction.guild_id)
+        server_roles_ids: set[int] = {role_info[0] for role_info in roles_info_tuples}
+        if roles_info_tuples:
+            description_lines: list[str] = [ec_text[lng][19]] + [
+                "<@&{0}> - **`{0}`** - **`{1}`** - **`{2}`** - **`{3}`** - **`{4}`** - **`{5}`** - **`{6}`**".format(
+                    role_info[0],
+                    role_info[1],
+                    role_info[2],
+                    role_info[3] // 3600,
+                    self.roles_types[lng][role_info[4]],
+                    role_count,
+                    role_info[5]
+                ) for role_info, role_count in zip(roles_info_tuples, roles_counts)
+            ] + ['\n' + ec_text[lng][21]]
+        else:
+            description_lines: list[str] = [ec_text[lng][20], '\n' + ec_text[lng][21]]
         
+        total_length: int = sum(map(len, description_lines))
+        if total_length < 3900:
+            embeds: list[Embed] = [Embed(description='\n'.join(description_lines))]
+        elif total_length < 5000:
+            # Split all lines into 2 embeds.
+            half_index: int = len(description_lines) >> 1
+            embeds: list[Embed] = [
+                Embed(description='\n'.join(description_lines[:half_index])),
+                Embed(description='\n'.join(description_lines[half_index:]))
+            ]
+        else:
+            # Split all lines into 4 embeds.
+            length: int = len(description_lines)
+            middle_index: int = length >> 1
+            quad_index: int = middle_index >> 1
+            indexes: tuple[int, int, int, int, int] = (0, quad_index, middle_index, length - quad_index, length)
+            from itertools import pairwise
+            embeds: list[Embed] = [Embed(description='\n'.join(description_lines[l:r])) for l, r in pairwise(indexes)]
+
         assert interaction.guild is not None
         guild: Guild = interaction.guild
         assignable_and_boost_roles: list[tuple[str, str]] = [(r.name, str(r.id)) for r in guild.roles if r.is_assignable() or r.is_premium_subscriber()]
         remove_role_button_is_disabled: bool = False if assignable_and_boost_roles else True
+
         ec_rls_view: EconomyRolesManageView = EconomyRolesManageView(
             t_out=155,
             lng=lng,
@@ -961,7 +974,8 @@ class EconomyView(ViewBase):
             assignable_and_boost_roles=assignable_and_boost_roles,
             server_roles_ids=server_roles_ids
         )
-        await interaction.response.send_message(embed=Embed(description='\n'.join(descr)), view=ec_rls_view)
+
+        await interaction.response.send_message(embeds=embeds, view=ec_rls_view)
         await ec_rls_view.wait()
         for child_component in ec_rls_view.children:
             assert isinstance(child_component, (CustomButton, CustomSelect))
@@ -1044,100 +1058,190 @@ class EconomyRolesManageView(ViewBase):
         length: int = len(assignable_and_boost_roles)
         for i in range(min((length + 24) // 25, 4)):
             self.add_item(CustomSelect(
-                custom_id=f"{800 + i}",
+                custom_id=f"{800 + i}_" + urandom(4).hex(),
                 placeholder=settings_text[lng][2],
                 options=assignable_and_boost_roles[(i * 25):min(length, (i + 1) * 25)]
             ))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"15_{auth_id}_" + urandom(4).hex()))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=ec_mr_text[lng][0], emoji="🔧", custom_id=f"16_{auth_id}_" + urandom(4).hex(), disabled=rem_dis))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_" + urandom(4).hex(), disabled=rem_dis))
-    
-    async def click_button(self, interaction: Interaction, custom_id: str) -> None:
+        
+        self.add_item(CustomButton(
+            style=ButtonStyle.green,
+            label=settings_text[lng][4],
+            emoji="<:add01:999663315804500078>",
+            custom_id=f"15_{auth_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(
+            style=ButtonStyle.blurple,
+            label=ec_mr_text[lng][0],
+            emoji="🔧",
+            custom_id=f"16_{auth_id}_" + urandom(4).hex(),
+            disabled=rem_dis))
+        self.add_item(CustomButton(
+            style=ButtonStyle.red,
+            label=settings_text[lng][5],
+            emoji="<:remove01:999663428689997844>",
+            custom_id=f"17_{auth_id}_" + urandom(4).hex(),
+            disabled=rem_dis
+        ))
+
+    async def add_role(self, interaction: Interaction) -> None:
         assert interaction.message is not None
         assert isinstance(interaction.user, Member)
+        assert self.role is not None
+
         lng: int = self.lng
+        role_id: int = self.role
+        if role_id in self.server_roles_ids:
+            await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][9]), ephemeral=True)
+            return
+
+        add_mod: RoleAddModal = RoleAddModal(
+            90.0,
+            lng,
+            role_id,
+            interaction.user.id
+        )
+        await interaction.response.send_modal(modal=add_mod)
+        await add_mod.wait()
+        if add_mod.added:
+            self.server_roles_ids.add(role_id)
+            self.role = None
+    
+    async def edit_role(self, interaction: Interaction) -> None:
+        assert interaction.message is not None
+        assert isinstance(interaction.user, Member)
+        assert self.role is not None
+
+        lng: int = self.lng
+        role_id: int = self.role
+        if not role_id in self.server_roles_ids:
+            await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][8]), ephemeral=True)
+            return
+        
+        str_role_id: str = role_id.__str__()
+        str_guild_id: str = interaction.guild_id.__str__()
+        with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
+            with closing(base.cursor()) as cur:
+                req: tuple[int, int, int, int, int, int] = cur.execute(
+                    "SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles WHERE role_id = " + str_role_id
+                ).fetchone()
+                role_type: int = req[4]
+                if role_type != 2:
+                    role_in_store_count: int = cur.execute("SELECT count() FROM store WHERE role_id = " + str_role_id).fetchone()[0]
+                else:
+                    quantity: tuple[int] = cur.execute("SELECT quantity FROM store WHERE role_id = " + str_role_id).fetchone()                        
+                    role_in_store_count: int = quantity[0] if quantity else 0
+        del str_role_id
+        del str_guild_id
+
+        edit_mod: RoleEditModal = RoleEditModal(
+            90.0,
+            role_id,
+            lng,
+            self.author_id,
+            req[1],
+            req[2],
+            req[3],
+            role_type,
+            req[5],
+            role_in_store_count
+        )
+        await interaction.response.send_modal(modal=edit_mod)
+        await edit_mod.wait()
+        if edit_mod.changed:
+            self.role = None
+
+    async def delete_role(self, interaction: Interaction) -> None:
+        assert interaction.message is not None
+        assert isinstance(interaction.user, Member)
+        assert self.role is not None
+
+        lng: int = self.lng
+        role_id: int = self.role
+        if role_id not in self.server_roles_ids:
+            await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
+            return
+
+        v_d: VerifyDeleteView = VerifyDeleteView(
+            lng,
+            role_id,
+            interaction.user.id
+        )
+        await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(role_id)), view=v_d)
+        await v_d.wait()
+        try:
+            await interaction.delete_original_message()
+        except:
+            pass
+
+        if v_d.deleted:
+            self.server_roles_ids.remove(role_id)
+            self.role = None
+
+    async def click_button(self, interaction: Interaction, custom_id: str) -> None:
+        assert interaction.message is not None
+        assert interaction.guild_id is not None
+        assert isinstance(interaction.user, Member)
 
         if self.role is None:
+            lng: int = self.lng
             await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
             return
 
         match int(custom_id[:2]):
-            case 17:
-                role_id: int = self.role
-                if role_id not in self.server_roles_ids:
-                    await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][7]), ephemeral=True)
-                    return
-                v_d: VerifyDeleteView = VerifyDeleteView(lng=lng, role=role_id, m=interaction.message, auth_id=interaction.user.id)
-                await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][6].format(role_id)), view=v_d)
-                
-                if await v_d.wait():
-                    for child_component in v_d.children:
-                        assert isinstance(child_component, CustomButton)
-                        child_component.disabled = True
-                    try:
-                        await interaction.edit_original_message(view=v_d)
-                    except:
-                        pass
-
-                if v_d.deleted:
-                    self.server_roles_ids.remove(role_id)
-                    self.role = None
             case 15:
-                role_id: int = self.role
-                if role_id in self.server_roles_ids:
-                    await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][9]), ephemeral=True)
-                    return
-                add_mod: RoleAddModal = RoleAddModal(
-                    timeout=90,
-                    lng=lng,
-                    role=role_id,
-                    message=interaction.message,
-                    auth_id=interaction.user.id
-                )
-                await interaction.response.send_modal(modal=add_mod)
-                
-                await add_mod.wait()
-                if add_mod.added:
-                    self.server_roles_ids.add(role_id)
-                    self.role = None
+                await self.add_role(interaction)
             case 16:
-                role_id: int = self.role
-                if not role_id in self.server_roles_ids:
-                    await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][8]), ephemeral=True)
-                    return
-                
-                with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
-                    with closing(base.cursor()) as cur:
-                        req: tuple[int, int, int, int, int, int] = cur.execute(
-                            "SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles WHERE role_id = ?", 
-                            (role_id,)
-                        ).fetchone()
-                        role_type: int = req[4]
-                        if role_type != 2:
-                            role_in_store_count: int = cur.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,)).fetchone()[0]
-                        else:
-                            quantity: tuple[int] = cur.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,)).fetchone()                        
-                            role_in_store_count: int = quantity[0] if quantity else 0
-                
-                edit_mod: RoleEditModal = RoleEditModal(
-                    timeout=90,
-                    role=role_id,
-                    message=interaction.message,
-                    lng=lng,
-                    auth_id=self.author_id,
-                    price=req[1],
-                    salary=req[2],
-                    salary_cooldown=req[3],
-                    r_t=role_type,
-                    additional_salary=req[5],
-                    in_store=role_in_store_count
-                )
-                await interaction.response.send_modal(modal=edit_mod)
-                await edit_mod.wait()
-                if edit_mod.changed:
-                    self.role = None
+                await self.edit_role(interaction)
+            case 17:
+                await self.delete_role(interaction)
+        
+        if self.role is not None:
+            # Nothing was changed.
+            return
+
+        lng: int = self.lng
+        roles_info_tuples: list[tuple[int, int, int, int, int, int]]
+        roles_info_tuples, roles_counts = await listify_guild_roles(interaction.guild_id)
+        if roles_info_tuples:
+            description_lines: list[str] = [ec_text[lng][19]] + [
+                "<@&{0}> - **`{0}`** - **`{1}`** - **`{2}`** - **`{3}`** - **`{4}`** - **`{5}`** - **`{6}`**".format(
+                    role_info[0],
+                    role_info[1],
+                    role_info[2],
+                    role_info[3] // 3600,
+                    EconomyView.roles_types[lng][role_info[4]],
+                    role_count,
+                    role_info[5]
+                ) for role_info, role_count in zip(roles_info_tuples, roles_counts)
+            ] + ['\n' + ec_text[lng][21]]
+        else:
+            description_lines: list[str] = [ec_text[lng][20], '\n' + ec_text[lng][21]]
+        
+        total_length: int = sum(map(len, description_lines))
+        if total_length < 3900:
+            embeds: list[Embed] = [Embed(description='\n'.join(description_lines))]
+        elif total_length < 5000:
+            # Split all lines into 2 embeds.
+            half_index: int = len(description_lines) >> 1
+            embeds: list[Embed] = [
+                Embed(description='\n'.join(description_lines[:half_index])),
+                Embed(description='\n'.join(description_lines[half_index:]))
+            ]
+        else:
+            # Split all lines into 4 embeds.
+            length: int = len(description_lines)
+            middle_index: int = length >> 1
+            quad_index: int = middle_index >> 1
+            indexes: tuple[int, int, int, int, int] = (0, quad_index, middle_index, length - quad_index, length)
+            from itertools import pairwise
+            embeds: list[Embed] = [Embed(description='\n'.join(description_lines[l:r])) for l, r in pairwise(indexes)]
+        
+        try:
+            await interaction.message.edit(embeds=embeds)
+        except:
+            pass
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
+        assert values and values[0].isdigit()
         if custom_id.startswith("80"):
             self.role = int(values[0])
 
@@ -2156,27 +2260,22 @@ class ManageMemberView(ViewBase):
 
 
 class VerifyDeleteView(ViewBase):
-    def __init__(self, lng: int, role: int, m: Message, auth_id: int) -> None:
-        super().__init__(lng=lng, author_id=auth_id, timeout=30)
-        self.role_id: int = role
-        self.m: Message = m
+    def __init__(self, lng: int, role_id: int, author_id: int) -> None:
+        super().__init__(lng, author_id, 30)
+        self.role_id: int = role_id
         self.deleted: bool = False
-        self.add_item(CustomButton(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_" + urandom(4).hex()))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{author_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{author_id}_" + urandom(4).hex()))
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.guild is not None
         assert interaction.guild_id is not None
         lng: int = self.lng
-        if custom_id.startswith("1001_"):
-            if interaction.message:
-                try:
-                    await interaction.message.delete()
-                except:
-                    pass
+        
+        if custom_id.startswith("1001"):
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][3].format(self.role_id)), ephemeral=True)
             self.stop()
-        elif custom_id.startswith("1000_"):
+        else:
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][4]), ephemeral=True)
             str_role_id: str = str(self.role_id)
             delete_role_from_db(guild_id=interaction.guild_id, str_role_id=str_role_id)
@@ -2184,28 +2283,7 @@ class VerifyDeleteView(ViewBase):
                 await interaction.edit_original_message(embed=Embed(description=ec_mr_text[lng][5].format(str_role_id)))
             except:
                 pass
-            if interaction.message:
-                try:
-                    await interaction.message.delete()
-                except:
-                    pass
 
-            emb: Embed = self.m.embeds[0]
-            assert emb.description is not None
-            dsc: list[str] = emb.description.split("\n")
-            i: int = 0
-            while i < len(dsc):
-                if str_role_id in dsc[i]:
-                    del dsc[i]
-                else:
-                    i += 1
-            if len(dsc) == 3:
-                dsc[0] = ec_text[lng][20]
-            emb.description = '\n'.join(dsc)
-            try:
-                await self.m.edit(embed=emb)
-            except:
-                pass
             self.deleted = True
             self.stop()
 
