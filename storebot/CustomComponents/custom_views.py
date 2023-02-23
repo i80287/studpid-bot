@@ -413,13 +413,13 @@ class GenSettingsView(ViewBase):
         self.ec_status: int = ec_status
         self.rnk_status: int = rnk_status
         tzs: list[tuple[str, str]] = [(f"UTC{i}", str(i)) for i in range(-12, 0)] + [(f"UTC+{i}", str(i)) for i in range(0, 13)]
-        self.add_item(CustomSelect(custom_id=f"100_{auth_id}_{urandom(6).hex()}", placeholder=gen_settings_text[lng][20], options=languages[2][lng]))
-        self.add_item(CustomSelect(custom_id=f"101_{auth_id}_{urandom(6).hex()}", placeholder=gen_settings_text[lng][21], options=tzs))
-        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"6_{auth_id}_{urandom(6).hex()}", emoji="🗣️"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"7_{auth_id}_{urandom(6).hex()}", emoji="⏱"))
-        self.add_item(CustomButton(style=ButtonStyle.gray, label="", custom_id=f"42_{auth_id}_{urandom(6).hex()}", emoji="💵"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"43_{auth_id}_{urandom(6).hex()}", emoji="💰", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"44_{auth_id}_{urandom(6).hex()}", emoji="📈", row=2))
+        self.add_item(CustomSelect(custom_id=f"100_{auth_id}_" + urandom(4).hex(), placeholder=gen_settings_text[lng][20], options=languages[2][lng]))
+        self.add_item(CustomSelect(custom_id=f"101_{auth_id}_" + urandom(4).hex(), placeholder=gen_settings_text[lng][21], options=tzs))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"6_{auth_id}_" + urandom(4).hex(), emoji="🗣️"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"7_{auth_id}_" + urandom(4).hex(), emoji="⏱"))
+        self.add_item(CustomButton(style=ButtonStyle.gray, label="", custom_id=f"42_{auth_id}_" + urandom(4).hex(), emoji="💵"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"43_{auth_id}_" + urandom(4).hex(), emoji="💰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"44_{auth_id}_" + urandom(4).hex(), emoji="📈", row=2))
         
     async def select_lng(self, interaction: Interaction) -> None:
         assert interaction.guild_id is not None
@@ -578,12 +578,12 @@ class ModRolesView(ViewBase):
         self.role: Optional[int] = None
         for i in range((len(rls) + 24) // 25):
             self.add_item(CustomSelect(
-                custom_id=f"{200+i}_{auth_id}_{urandom(6).hex()}",
+                custom_id=f"{200+i}_{auth_id}_" + urandom(4).hex(),
                 placeholder=settings_text[lng][2],
                 options=rls[(i * 25):(min(len(rls), (i + 1) * 25))]
             ))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"8_{auth_id}_{urandom(6).hex()}"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_{urandom(6).hex()}", disabled=rem_dis))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"8_{auth_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_" + urandom(4).hex(), disabled=rem_dis))
     
 
     async def add_role(self, interaction: Interaction) -> None:
@@ -691,13 +691,13 @@ class EconomyView(ViewBase):
         self.sale_price_percent: int = sale_price_percent
         self.voice_income: int = voice_income
         self.currency: str = currency
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"10_{author_id}_{urandom(6).hex()}", emoji="💸"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"11_{author_id}_{urandom(6).hex()}", emoji="⏰"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"12_{author_id}_{urandom(6).hex()}", emoji="💹"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"45_{author_id}_{urandom(6).hex()}", emoji="🎤"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"46_{author_id}_{urandom(6).hex()}", emoji="🛍️"))
-        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"13_{author_id}_{urandom(6).hex()}", emoji="📙"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"14_{author_id}_{urandom(6).hex()}", emoji="🛠️"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"10_{author_id}_" + urandom(4).hex(), emoji="💸"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"11_{author_id}_" + urandom(4).hex(), emoji="⏰"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"12_{author_id}_" + urandom(4).hex(), emoji="💹"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"45_{author_id}_" + urandom(4).hex(), emoji="🎤"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"46_{author_id}_" + urandom(4).hex(), emoji="🛍️"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"13_{author_id}_" + urandom(4).hex(), emoji="📙"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"14_{author_id}_" + urandom(4).hex(), emoji="🛠️"))
         
     async def msg_salary(self, interaction: Interaction, ans: str) -> bool:
         if ans.isdigit() and (money_per_message := int(ans)) >= 0:
@@ -993,9 +993,9 @@ class EconomyRolesManageView(ViewBase):
                 placeholder=settings_text[lng][2],
                 options=assignable_and_boost_roles[(i * 25):min(length, (i + 1) * 25)]
             ))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"15_{auth_id}_{urandom(6).hex()}"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=ec_mr_text[lng][0], emoji="🔧", custom_id=f"16_{auth_id}_{urandom(6).hex()}", disabled=rem_dis))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_{urandom(6).hex()}", disabled=rem_dis))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"15_{auth_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label=ec_mr_text[lng][0], emoji="🔧", custom_id=f"16_{auth_id}_" + urandom(4).hex(), disabled=rem_dis))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"17_{auth_id}_" + urandom(4).hex(), disabled=rem_dis))
     
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.message is not None
@@ -1093,14 +1093,14 @@ class SettingsView(ViewBase):
     def __init__(self, lng: int, author_id: int, timeout: int, bot: StoreBot) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
         self.bot: StoreBot = bot
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"0_{author_id}_{urandom(6).hex()}", emoji="⚙️"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"1_{author_id}_{urandom(6).hex()}", emoji="<:moder:1000090629897998336>"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"2_{author_id}_{urandom(6).hex()}", emoji="<:user:1002245779089535006>"))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"3_{author_id}_{urandom(6).hex()}", emoji="💰", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"4_{author_id}_{urandom(6).hex()}", emoji="📈", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"64_{author_id}_{urandom(6).hex()}", emoji="🎰", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"54_{author_id}_{urandom(6).hex()}", emoji="🚫", row=3))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"5_{author_id}_{urandom(6).hex()}", emoji="📊", row=3))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"0_{author_id}_" + urandom(4).hex(), emoji="⚙️"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"1_{author_id}_" + urandom(4).hex(), emoji="<:moder:1000090629897998336>"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"2_{author_id}_" + urandom(4).hex(), emoji="<:user:1002245779089535006>"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"3_{author_id}_" + urandom(4).hex(), emoji="💰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"4_{author_id}_" + urandom(4).hex(), emoji="📈", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"64_{author_id}_" + urandom(4).hex(), emoji="🎰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"54_{author_id}_" + urandom(4).hex(), emoji="🚫", row=3))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"5_{author_id}_" + urandom(4).hex(), emoji="📊", row=3))
     
     @classmethod
     def check_ans(cls, guild: Guild, ans: str) -> Tuple[Optional[Member], bool]:
@@ -1466,8 +1466,8 @@ class SettingsView(ViewBase):
 class PollSettingsView(ViewBase):
     def __init__(self, lng: int, author_id: int, timeout: int) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
-        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"28_{author_id}_{urandom(6).hex()}", emoji="🔎"))
-        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"29_{author_id}_{urandom(6).hex()}", emoji="📰"))
+        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"28_{author_id}_" + urandom(4).hex(), emoji="🔎"))
+        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"29_{author_id}_" + urandom(4).hex(), emoji="📰"))
     
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.guild is not None
@@ -1561,9 +1561,9 @@ class PollSettingsView(ViewBase):
 class RankingView(ViewBase):
     def __init__(self, lng: int, author_id: int, timeout: int, g_id: int, cur_xp_pm: int, cur_xpb: int, bot: StoreBot) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
-        self.add_item(CustomButton(style=ButtonStyle.green, label="", emoji="✨", custom_id=f"21_{author_id}_{urandom(6).hex()}"))
-        self.add_item(CustomButton(style=ButtonStyle.grey, label="", emoji="📗", custom_id=f"22_{author_id}_{urandom(6).hex()}"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", emoji="🥇", custom_id=f"24_{author_id}_{urandom(6).hex()}"))
+        self.add_item(CustomButton(style=ButtonStyle.green, label="", emoji="✨", custom_id=f"21_{author_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(style=ButtonStyle.grey, label="", emoji="📗", custom_id=f"22_{author_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", emoji="🥇", custom_id=f"24_{author_id}_" + urandom(4).hex()))
         self.cur_xp_pm: int = cur_xp_pm
         self.cur_xpb: int = cur_xpb
         self.g_id: int = g_id
@@ -1674,13 +1674,14 @@ class RankingView(ViewBase):
 class PollsChannelsView(ViewBase):
     def __init__(self, timeout: int, lng: int, view_id_base: int, auth_id: int, chnls: list[tuple[str, str]]) -> None:
         super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
-        length: int = len(chnls)
-        for i in range(min((length + 23) // 24, 20)):
+        
+        for i in range(min(((length := len(chnls)) + 23) // 24, 5)):
             self.add_item(CustomSelect(
-                custom_id=f"{view_id_base+i}_{auth_id}_{urandom(6).hex()}", 
+                custom_id=f"{view_id_base + i}_{auth_id}_" + urandom(4).hex(), 
                 placeholder=settings_text[lng][10], 
-                options=[(settings_text[lng][12], "0")] + chnls[i*24:min(length, (i+1)*24)]
+                options=[(settings_text[lng][12], "0")] + chnls[(i*24):min(length, (i + 1)*24)]
             ))
+
         self.select_menus_id_start: int = view_id_base // 100
         self.channel_id: Optional[int] = None
     
@@ -1696,25 +1697,38 @@ class PollsChannelsView(ViewBase):
 class LevelRolesView(ViewBase):
     def __init__(self, lng: int, author_id: int, timeout: int, g_id: int, disabled: bool) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
-        self.add_item(CustomButton(style=ButtonStyle.green, label="🔧", custom_id=f"27_{author_id}_{urandom(6).hex()}", emoji="<:add01:999663315804500078>"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"28_{author_id}_{urandom(6).hex()}", emoji="<:remove01:999663428689997844>", disabled=disabled))
+
+        self.add_item(CustomButton(
+            style=ButtonStyle.green,
+            label="🔧",
+            custom_id=f"27_{author_id}_" + urandom(4).hex(),
+            emoji="<:add01:999663315804500078>"
+        ))
+        self.add_item(CustomButton(
+            style=ButtonStyle.red,
+            label="",
+            custom_id=f"28_{author_id}_" + urandom(4).hex(),
+            emoji="<:remove01:999663428689997844>",
+            disabled=disabled
+        ))
+
         self.g_id: int = g_id
         self.role: Optional[int] = None
     
     async def add_role(self, interaction: Interaction, lng: int, level: int) -> None:
         assert interaction.guild is not None
-        rls: list[tuple[str, str]] = [(r.name, str(r.id)) for r in interaction.guild.roles if r.is_assignable()]
+        rls: list[tuple[str, str]] = [(r.name, r.id.__str__()) for r in interaction.guild.roles if r.is_assignable()]
         if not rls:
             await interaction.send(embed=Embed(description = ranking_text[lng][30]), ephemeral=True)
             return
         
-        length: int = len(rls)
-        for i in range((length + 24) // 25):
+        for i in range(min(((length := len(rls)) + 24) // 25, 4)):
             self.add_item(CustomSelect(
-                custom_id=f"{1300+i}_{self.author_id}_{urandom(6).hex()}", 
+                custom_id=f"{1300 + i}_{self.author_id}_" + urandom(4).hex(), 
                 placeholder=settings_text[lng][2], 
-                options=rls[(i * 25):min(length, (i + 1) * 25)]
+                options=rls[(i*25):min(length, (i + 1)*25)]
             ))
+
         assert interaction.message is not None
         try:
             await interaction.message.edit(view=self)
@@ -1745,7 +1759,9 @@ class LevelRolesView(ViewBase):
             await interaction.send(embed=Embed(description=ranking_text[lng][32]), ephemeral=True)
             return
 
-        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        str_guild_id: str = self.g_id.__str__()
+        with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
+            del str_guild_id
             with closing(base.cursor()) as cur:
                 if cur.execute("SELECT role_id FROM rank_roles WHERE level = ?", (level,)).fetchone() is None:
                     cur.execute("INSERT INTO rank_roles(level, role_id) VALUES(?, ?)", (level, self.role))
@@ -1769,7 +1785,9 @@ class LevelRolesView(ViewBase):
         self.role = None
 
     async def remove_role(self, interaction: Interaction, lng: int, level: int) -> None:
-        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        str_guild_id: str = self.g_id.__str__()
+        with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
+            del str_guild_id
             with closing(base.cursor()) as cur:
                 if cur.execute("SELECT count() FROM rank_roles WHERE level = ?", (level,)).fetchone()[0]:
                     cur.execute("DELETE FROM rank_roles WHERE level = ?", (level,))
@@ -1781,11 +1799,11 @@ class LevelRolesView(ViewBase):
 
         if lvl_rls:
             dsc: list[str] = [f"**`{n} {ranking_text[lng][24]} - `**<@&{r}>" for n, r in lvl_rls]
-            fl: bool = False
+            is_button_disabled: bool = False
         else:
             assert isinstance(self.children[1], CustomButton)
             self.children[1].disabled = True
-            fl: bool = True
+            is_button_disabled: bool = True
             dsc: list[str] = [ranking_text[lng][25]]
 
         dsc.append(ranking_text[lng][27])
@@ -1793,7 +1811,7 @@ class LevelRolesView(ViewBase):
         
         try:
             assert interaction.message is not None
-            if fl:
+            if is_button_disabled:
                 await interaction.message.edit(embed=emb, view=self)
             else:
                 await interaction.message.edit(embed=emb)
@@ -1822,44 +1840,72 @@ class LevelRolesView(ViewBase):
 
 
 class ManageMemberView(ViewBase):
-    def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set[int],\
+    def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set[int], \
                 rls: list[tuple[str, str]], cur_money: int, cur_xp: int, rem_dis: bool, g_id: int, member: Member) -> None:
         super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=mng_membs_text[lng][0], emoji="🔧", custom_id=f"18_{auth_id}_{urandom(6).hex()}"))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"19_{auth_id}_{urandom(6).hex()}"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"20_{auth_id}_{urandom(6).hex()}", disabled=rem_dis))
-        for i in range((len(rls)+24)//25):
+
+        self.add_item(CustomButton(
+            style=ButtonStyle.blurple,
+            label=mng_membs_text[lng][0],
+            emoji="🔧",
+            custom_id=f"18_{auth_id}_" + urandom(4).hex()
+        ))
+        self.add_item(CustomButton(
+            style=ButtonStyle.green,
+            label=settings_text[lng][4],
+            emoji="<:add01:999663315804500078>",
+            custom_id=f"19_{auth_id}_" + urandom(4).hex()
+        ))
+        self.add_item(CustomButton(
+            style=ButtonStyle.red,
+            label=settings_text[lng][5],
+            emoji="<:remove01:999663428689997844>",
+            custom_id=f"20_{auth_id}_" + urandom(4).hex(),
+            disabled=rem_dis
+        ))
+
+        roles_count: int = len(rls)
+        for i in range(min(((roles_count + 24) // 25), 4)):
             self.add_item(CustomSelect(
-                custom_id=f"{300+i}_{auth_id}_{urandom(6).hex()}",
+                custom_id=f"{300 + i}_{auth_id}_" + urandom(4).hex(),
                 placeholder=settings_text[lng][2],
-                options=rls[i*25:min(len(rls), (i+1)*25)]
+                options=rls[(i * 25):min(roles_count, (i + 1) * 25)]
             ))
-        self.role: Optional[int] = None
+        
+        self.role_id: Optional[int] = None
         self.memb_id: int = memb_id
         self.memb_rls: set[int] = memb_rls
         self.cash: int = cur_money
         self.xp: int = cur_xp
         self.g_id: int = g_id
-        self.member: Member=member
+        self.member: Member = member
 
-    async def add_r(self, interaction: Interaction) -> None:
+    async def add_role(self, interaction: Interaction) -> None:
         assert interaction.guild is not None
-        assert self.role is not None
+        assert self.role_id is not None
         lng: int = self.lng
-        role_id: int = self.role
+        role_id: int = self.role_id
         if role_id in self.memb_rls:
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][7]), ephemeral=True)
             return
         
         self.memb_rls.add(role_id)
+
+        str_role_id: str = role_id.__str__()
+        str_guild_id: str = self.g_id.__str__()
         member_id: int = self.memb_id
-        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        str_member_id: str = member_id.__str__()
+
+        with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
+            del str_guild_id
             with closing(base.cursor()) as cur:
-                member_owned_roles_ids: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(member_id,)).fetchone()[0]
-                cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (member_owned_roles_ids + '#' + role_id.__str__(), member_id))
-                membs: Optional[tuple[str]] = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (role_id,)).fetchone()
+                member_owned_roles_ids: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id).fetchone()[0]
+                cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (member_owned_roles_ids + '#' + str_role_id, member_id))
+
+                membs: Optional[tuple[str]] = cur.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id).fetchone()
                 if membs:
-                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0] + '#' + member_id.__str__(), role_id))
+                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0] + '#' + str_member_id, role_id))
+
                 base.commit()
 
         role: Optional[Role] = interaction.guild.get_role(role_id)
@@ -1870,49 +1916,60 @@ class ManageMemberView(ViewBase):
         embs: list[Embed] = interaction.message.embeds
         emb3: Embed = embs[2]
         assert emb3.description is not None
-        dsc: list[str] = emb3.description.split("\n")
-        if len(dsc) == 1:
-            dsc = [code_blocks[lng*5], f"<@&{role_id}>**` - {role_id}`**"]
+        description_lines: list[str] = emb3.description.split("\n")
+        
+        role_id_line: str = "<@&" + str_role_id + ">**` - " + str_role_id + "`**"
+        if len(description_lines) == 1:
+            description_lines = [code_blocks[(lng * 5)], role_id_line]
             assert isinstance(self.children[2], CustomButton)
             self.children[2].disabled = False
-            emb3.description = '\n'.join(dsc)
+            emb3.description = '\n'.join(description_lines)
             embs[2] = emb3
             try:
                 await interaction.message.edit(embeds=embs, view=self)
             except:
                 pass
-            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(role_id, member_id)), ephemeral=True)
         else:
-            dsc.append(f"<@&{role_id}>**` - {role_id}`**")
-            emb3.description = '\n'.join(dsc)
+            description_lines.append(role_id_line)
+            emb3.description = '\n'.join(description_lines)
             embs[2] = emb3
             try:
                 await interaction.message.edit(embeds=embs)
             except:
                 pass
-            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(role_id, member_id)), ephemeral=True)
-        self.role = None
+
+        await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][8].format(str_role_id, str_member_id)), ephemeral=True)
+        self.role_id = None
     
-    async def rem_r(self, interaction: Interaction) -> None:
+    async def remove_role(self, interaction: Interaction) -> None:
         assert interaction.guild is not None
-        assert self.role is not None
+        assert self.role_id is not None
+        role_id: int = self.role_id
         lng: int = self.lng
-        if not self.role in self.memb_rls:
+        if not role_id in self.memb_rls:
             await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][9]), ephemeral=True)
             return
         
-        self.memb_rls.remove(self.role)
+        self.memb_rls.remove(role_id)
 
-        with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        str_role_id: str = role_id.__str__()
+        str_guild_id: str = self.g_id.__str__()
+        member_id: int = self.memb_id
+        str_member_id: str = member_id.__str__()
+
+        with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
+            del str_guild_id
             with closing(base.cursor()) as cur:
-                m_rls: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = ?",(self.memb_id,)).fetchone()[0]
-                cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls.replace(f"#{self.role}", ""), self.memb_id))
-                membs: Optional[tuple[str]] = cur.execute("SELECT members FROM salary_roles WHERE role_id = ?", (self.role,)).fetchone()
+                m_rls: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id).fetchone()[0]
+                cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls.replace('#' + str_role_id, ""), member_id))
+
+                membs: Optional[tuple[str]] = cur.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id).fetchone()
                 if membs:
-                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0].replace(f"#{self.memb_id}", ""), self.role))
+                    cur.execute("UPDATE salary_roles SET members = ? WHERE role_id = ?", (membs[0].replace('#' + str_member_id, ""), role_id))
+
                 base.commit()
 
-        role: Optional[Role] = interaction.guild.get_role(self.role)
+        role: Optional[Role] = interaction.guild.get_role(role_id)
         assert role is not None
         await self.member.remove_roles(role)
         
@@ -1920,8 +1977,9 @@ class ManageMemberView(ViewBase):
         embs: list[Embed] = interaction.message.embeds
         emb3: Embed = embs[2]
         assert emb3.description is not None
-        dsc: list[str] = emb3.description.split("\n")
-        if len(dsc) <= 4:
+        description_lines: list[str] = emb3.description.split('\n')
+        
+        if len(description_lines) <= 4:
             emb3.description = mng_membs_text[lng][6]
             assert isinstance(self.children[2], CustomButton)
             self.children[2].disabled = True
@@ -1930,108 +1988,115 @@ class ManageMemberView(ViewBase):
                 await interaction.message.edit(embeds=embs, view=self)
             except:
                 pass
-            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)            
         else:
-            i: int = 0
-            s_role: str = f"{self.role}"
-            while i < len(dsc):
-                if s_role in dsc[i]:
-                    dsc.pop(i)
-                    i = len(dsc) + 2
-                i += 1
-            emb3.description = "\n".join(dsc)
+            for i, line in enumerate(description_lines):
+                if str_role_id in line:
+                    description_lines.pop(i)
+                    break
+                
+            emb3.description = "\n".join(description_lines)
             embs[2] = emb3
             try:
                 await interaction.message.edit(embeds=embs)
             except:
                 pass
-            await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(self.role, self.memb_id)), ephemeral=True)
-        self.role = None
-
-    async def click_button(self, interaction: Interaction, custom_id: str) -> None:
+        
+        await interaction.response.send_message(embed=Embed(description=mng_membs_text[lng][10].format(str_role_id, str_member_id)), ephemeral=True)
+        
+        self.role_id = None
+    
+    async def update_member_cash_or_xp(self, interaction: Interaction) -> None:
         assert interaction.message is not None
         lng: int = self.lng
+        edit_modl: ManageMemberCashXpModal = ManageMemberCashXpModal(
+            timeout=90,
+            title=mng_membs_text[lng][19],
+            lng=lng,
+            memb_id=self.memb_id,
+            cur_money=self.cash,
+            cur_xp=self.xp,
+            auth_id=self.author_id
+        )
 
+        await interaction.response.send_modal(modal=edit_modl)
+        await edit_modl.wait()
+        
+        if edit_modl.is_changed:
+            l: int = 0
+            embs: list[Embed] = interaction.message.embeds
+            
+            str_guild_id: str = self.g_id.__str__()
+            with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
+                del str_guild_id
+                with closing(base.cursor()) as cur:
+                    xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
+                    if self.cash != edit_modl.new_cash:
+                        membs_cash: list[tuple[int, int]] = cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall()
+                        l = len(membs_cash)
+                    else:
+                        membs_cash: list[tuple[int, int]] = []
+                    if self.xp != edit_modl.new_xp:
+                        membs_xp: list[tuple[int, int]] = cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall()
+                        l = len(membs_xp)
+                    else:
+                        membs_xp: list[tuple[int, int]] = []
+            
+            if self.cash != edit_modl.new_cash:
+                self.cash = edit_modl.new_cash
+                
+                if membs_cash[l >> 1][1] < self.cash:
+                    cnt_cash: int = 1
+                    while cnt_cash < l and self.memb_id != membs_cash[cnt_cash-1][0]:
+                        cnt_cash += 1
+                else:
+                    cnt_cash: int = l
+                    while cnt_cash > 1 and self.memb_id != membs_cash[cnt_cash-1][0]:
+                        cnt_cash -= 1
+
+                embs[0].set_field_at(index=0, name=mng_membs_text[lng][1], value=code_blocks[1].format(self.cash))
+                embs[0].set_field_at(index=1, name=mng_membs_text[lng][4], value=code_blocks[1].format(cnt_cash))
+
+            if self.xp != edit_modl.new_xp:
+                self.xp = edit_modl.new_xp
+                if membs_xp[l >> 1][1] < self.xp:
+                    cnt_xp: int = 1
+                    while cnt_xp < l and self.memb_id != membs_xp[cnt_xp-1][0]:
+                        cnt_xp += 1
+                else:
+                    cnt_xp: int = l
+                    while cnt_xp > 1 and self.memb_id != membs_xp[cnt_xp-1][0]:
+                        cnt_xp -= 1
+                level: int = (self.xp + xp_b - 1) // xp_b
+
+                embs[1].set_field_at(index=0, name=mng_membs_text[lng][2], value=code_blocks[2].format(f"{self.xp}/{level * xp_b + 1}"))
+                embs[1].set_field_at(index=1, name=mng_membs_text[lng][3], value=code_blocks[2].format(level))
+                embs[1].set_field_at(index=2, name=mng_membs_text[lng][4], value=code_blocks[2].format(cnt_xp))
+            
+            try:
+                await interaction.message.edit(embeds=embs)
+            except:
+                return
+
+    async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         int_custom_id: int = int(custom_id[:2])
         if int_custom_id == 18:
-            edit_modl: ManageMemberCashXpModal = ManageMemberCashXpModal(
-                timeout=90,
-                title=mng_membs_text[lng][19],
-                lng=lng,
-                memb_id=self.memb_id,
-                cur_money=self.cash,
-                cur_xp=self.xp,
-                auth_id=self.author_id
-            )
-
-            await interaction.response.send_modal(modal=edit_modl)
-            await edit_modl.wait()
-            
-            if edit_modl.is_changed:
-                l: int = 0
-                embs: list[Embed] = interaction.message.embeds
-                with closing(connect(f'{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db')) as base:
-                    with closing(base.cursor()) as cur:
-                        xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
-                        if self.cash != edit_modl.new_cash:
-                            membs_cash: list[tuple[int, int]] = cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall()
-                            l: int = len(membs_cash)
-                        else:
-                            membs_cash: list[tuple[int, int]] = []
-                        if self.xp != edit_modl.new_xp:
-                            membs_xp: list[tuple[int, int]] = cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall()
-                            l: int = len(membs_xp)
-                        else:
-                            membs_xp: list[tuple[int, int]] = []
-                
-                if self.cash != edit_modl.new_cash:
-                    self.cash = edit_modl.new_cash
-                    
-                    if membs_cash[l >> 1][1] < self.cash:
-                        cnt_cash: int = 1
-                        while cnt_cash < l and self.memb_id != membs_cash[cnt_cash-1][0]:
-                            cnt_cash += 1
-                    else:
-                        cnt_cash: int = l
-                        while cnt_cash > 1 and self.memb_id != membs_cash[cnt_cash-1][0]:
-                            cnt_cash -= 1
-
-                    embs[0].set_field_at(index=0, name=mng_membs_text[lng][1], value=code_blocks[1].format(self.cash))
-                    embs[0].set_field_at(index=1, name=mng_membs_text[lng][4], value=code_blocks[1].format(cnt_cash))
-
-                if self.xp != edit_modl.new_xp:
-                    self.xp = edit_modl.new_xp
-                    if membs_xp[l >> 1][1] < self.xp:
-                        cnt_xp: int = 1
-                        while cnt_xp < l and self.memb_id != membs_xp[cnt_xp-1][0]:
-                            cnt_xp += 1
-                    else:
-                        cnt_xp: int = l
-                        while cnt_xp > 1 and self.memb_id != membs_xp[cnt_xp-1][0]:
-                            cnt_xp -= 1
-                    level: int = (self.xp + xp_b - 1) // xp_b
-
-                    embs[1].set_field_at(index=0, name=mng_membs_text[lng][2], value=code_blocks[2].format(f"{self.xp}/{level * xp_b + 1}"))
-                    embs[1].set_field_at(index=1, name=mng_membs_text[lng][3], value=code_blocks[2].format(level))
-                    embs[1].set_field_at(index=2, name=mng_membs_text[lng][4], value=code_blocks[2].format(cnt_xp))
-                
-                try:
-                    await interaction.message.edit(embeds=embs)
-                except:
-                    return
+            await self.update_member_cash_or_xp(interaction)
             return
 
-        if self.role is None:
-            await interaction.response.send_message(embed=Embed(description=settings_text[lng][6]), ephemeral=True)
+        if self.role_id is None:
+            await interaction.response.send_message(embed=Embed(description=settings_text[self.lng][6]), ephemeral=True)
             return
+
         if int_custom_id == 19:
-            await self.add_r(interaction=interaction)
+            await self.add_role(interaction)
         elif int_custom_id == 20:
-            await self.rem_r(interaction=interaction)
+            await self.remove_role(interaction)
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
+        assert len(values)
+        assert values[0].isdigit()
         if custom_id.startswith("30"):
-            self.role = int(values[0])
+            self.role_id = int(values[0])
 
 
 class VerifyDeleteView(ViewBase):
@@ -2040,8 +2105,8 @@ class VerifyDeleteView(ViewBase):
         self.role_id: int = role
         self.m: Message = m
         self.deleted: bool = False
-        self.add_item(CustomButton(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_{urandom(6).hex()}"))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_{urandom(6).hex()}"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label=ec_mr_text[lng][1], custom_id=f"1000_{auth_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(style=ButtonStyle.green, label=ec_mr_text[lng][2], custom_id=f"1001_{auth_id}_" + urandom(4).hex()))
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.guild is not None
