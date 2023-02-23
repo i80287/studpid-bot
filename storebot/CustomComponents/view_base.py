@@ -1,8 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import (
-    Optional,
-    Union
-)
+from typing import Optional
 
 from nextcord import Interaction, Embed
 from nextcord.ui import View
@@ -15,7 +12,7 @@ class ViewBase(ABC, View):
         1: "**`Извините, но Вы не можете управлять меню, которое вызвано другим пользователем`**",
     }
 
-    def __init__(self, *, lng: int, author_id: int, timeout: Optional[Union[int, float]] = 180, auto_defer: bool = True) -> None:
+    def __init__(self, lng: int, author_id: int, timeout: Optional[float] = 180.0, auto_defer: bool = True) -> None:
         super().__init__(timeout=timeout, auto_defer=auto_defer)
         self.lng: int = lng
         self.author_id: int = author_id
@@ -30,7 +27,9 @@ class ViewBase(ABC, View):
 
     async def interaction_check(self, interaction: Interaction) -> bool:
         assert isinstance(interaction.user, Member)
+        assert interaction.locale is not None
         if interaction.user.id != self.author_id:
-            await interaction.response.send_message(embed=Embed(description=self.interaction_check_text[self.lng]), ephemeral=True)
+            lng = 1 if "ru" in interaction.locale else 0
+            await interaction.response.send_message(embed=Embed(description=self.interaction_check_text[lng]), ephemeral=True)
             return False
         return True
