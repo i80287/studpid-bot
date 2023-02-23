@@ -110,9 +110,8 @@ class OpenAICog(Cog):
                     return
 
         answer: str = response.choices[0].text.strip('\n') # type: ignore
-        length: int = len(answer)
         try:
-            if length < 3900:
+            if ((length := len(answer)) < 3900):
                 await channel.send(embed=Embed(description=self.openai_cog_text[lng][2].format(answer)))
             else:
                 await channel.send(embed=Embed(description=self.openai_cog_text[lng][2].format(answer[:3900])))
