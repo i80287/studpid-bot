@@ -1308,7 +1308,10 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
 
-        with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        str_guild_id: str = guild_id.__str__()
+        db_path: str = CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db"
+        del str_guild_id
+        with closing(connect(db_path)) as base:
             with closing(base.cursor()) as cur:
                 purchase_request: Optional[tuple[int, int, int, int]] = await self.verify_request_id(
                     cur=cur,
@@ -1389,7 +1392,7 @@ class SlashCommandsCog(Cog):
                 lng=lng,
                 answer=self.manage_requests_text[lng][6]
             )
-            with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+            with closing(connect(db_path)) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("DELETE FROM sale_requests WHERE request_id = ?", (request_id,))
                     base.commit()
@@ -1398,7 +1401,7 @@ class SlashCommandsCog(Cog):
 
         new_seller_roles: str = '#' + '#'.join(str(r_id) for r_id in seller_roles_ids) if seller_roles_ids else ""
         str_member_roles += '#' + str(role_id)
-        with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        with closing(connect(db_path)) as base:
             with closing(base.cursor()) as cur:
                 cur.execute(
                     "UPDATE users SET money = money + ?, owned_roles = ? WHERE memb_id = ?",
@@ -1411,6 +1414,7 @@ class SlashCommandsCog(Cog):
                 cur.execute("DELETE FROM sale_requests WHERE request_id = ?", (request_id,))
                 base.commit()
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+        
         try:
             await seller.remove_roles(role)
             await interaction.user.add_roles(role)
@@ -1437,7 +1441,7 @@ class SlashCommandsCog(Cog):
         assert isinstance(interaction.user, Member)
         guild_id: int = interaction.guild_id
         memb_id: int = interaction.user.id
-        with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        with closing(connect(CWD_PATH + "/bases/bases_" + guild_id.__str__() + "/" + guild_id.__str__() + ".db")) as base:
             with closing(base.cursor()) as cur:
                 request: Optional[tuple[int, int, int, int]] = await self.verify_request_id(
                     cur=cur,
@@ -1470,7 +1474,7 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
 
         member: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
-        with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
+        with closing(connect(CWD_PATH + "/bases/bases_" + guild_id.__str__() + "/" + guild_id.__str__() + ".db")) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
                     await interaction.response.send_message(
@@ -1532,7 +1536,10 @@ class SlashCommandsCog(Cog):
         guild_id: int = interaction.guild_id
 
         member: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
-        with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
+        str_guild_id: str = guild_id.__str__()
+        db_path: str = CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db"
+        del str_guild_id
+        with closing(connect(db_path)) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=common_text[lng][2])
@@ -1582,7 +1589,7 @@ class SlashCommandsCog(Cog):
             loser_id: int = memb_id
             emb.description = f"<@{dueler}> {text_slash[lng][36]} `{amount}`{currency}"
 
-        with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+        with closing(connect(db_path)) as base:
             with closing(base.cursor()) as cur:
                 cur.execute('UPDATE users SET money = money - ? WHERE memb_id = ?', (amount, loser_id))
                 base.commit()
@@ -1615,7 +1622,7 @@ class SlashCommandsCog(Cog):
 
         act: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
         await check_member_async(guild_id=guild_id, member_id=t_id)
-        with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        with closing(connect(CWD_PATH + "/bases/bases_" + guild_id.__str__() + "/" + guild_id.__str__() + ".db")) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=common_text[lng][2])
@@ -1657,7 +1664,7 @@ class SlashCommandsCog(Cog):
         guild_id: int = interaction.guild_id
 
         await check_member_async(guild_id=guild_id, member_id=interaction.user.id)
-        with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        with closing(connect(CWD_PATH + "/bases/bases_" + guild_id.__str__() + "/" + guild_id.__str__() + ".db")) as base:
             with closing(base.cursor()) as cur:
                 ec_status: int = \
                     cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
