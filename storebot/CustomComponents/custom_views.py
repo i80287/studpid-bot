@@ -426,11 +426,11 @@ class GenSettingsView(ViewBase):
         tzs: list[tuple[str, str]] = [(f"UTC{i}", str(i)) for i in range(-12, 0)] + [(f"UTC+{i}", str(i)) for i in range(0, 13)]
         self.add_item(CustomSelect(custom_id=f"100_{auth_id}_" + urandom(4).hex(), placeholder=gen_settings_text[lng][20], options=languages[2][lng]))
         self.add_item(CustomSelect(custom_id=f"101_{auth_id}_" + urandom(4).hex(), placeholder=gen_settings_text[lng][21], options=tzs))
-        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"6_{auth_id}_" + urandom(4).hex(), emoji="🗣️"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"7_{auth_id}_" + urandom(4).hex(), emoji="⏱"))
-        self.add_item(CustomButton(style=ButtonStyle.gray, label="", custom_id=f"42_{auth_id}_" + urandom(4).hex(), emoji="💵"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"43_{auth_id}_" + urandom(4).hex(), emoji="💰", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"44_{auth_id}_" + urandom(4).hex(), emoji="📈", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"6_{auth_id}_" + urandom(4).hex(), emoji="🗣️"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, custom_id=f"7_{auth_id}_" + urandom(4).hex(), emoji="⏱"))
+        self.add_item(CustomButton(style=ButtonStyle.gray, custom_id=f"42_{auth_id}_" + urandom(4).hex(), emoji="💵"))
+        self.add_item(CustomButton(style=ButtonStyle.red, custom_id=f"43_{auth_id}_" + urandom(4).hex(), emoji="💰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.red, custom_id=f"44_{auth_id}_" + urandom(4).hex(), emoji="📈", row=2))
         
     async def select_lng(self, interaction: Interaction) -> None:
         assert interaction.guild_id is not None
@@ -719,14 +719,14 @@ class EconomyView(ViewBase):
         self.voice_income: int = voice_income
         self.currency: str = currency
         self.bot: StoreBot = bot
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"10_{author_id}_" + urandom(4).hex(), emoji="💸"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"11_{author_id}_" + urandom(4).hex(), emoji="⏰"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"12_{author_id}_" + urandom(4).hex(), emoji="💹"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"45_{author_id}_" + urandom(4).hex(), emoji="🎤"))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"46_{author_id}_" + urandom(4).hex(), emoji="🛍️"))
-        self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"13_{author_id}_" + urandom(4).hex(), emoji="📙"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"47_{author_id}_" + urandom(4).hex(), emoji="0️⃣"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"14_{author_id}_" + urandom(4).hex(), emoji="🛠️"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, custom_id=f"10_{author_id}_" + urandom(4).hex(), emoji="💸"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, custom_id=f"11_{author_id}_" + urandom(4).hex(), emoji="⏰"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, custom_id=f"12_{author_id}_" + urandom(4).hex(), emoji="💹"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, custom_id=f"45_{author_id}_" + urandom(4).hex(), emoji="🎤"))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, custom_id=f"46_{author_id}_" + urandom(4).hex(), emoji="🛍️"))
+        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"13_{author_id}_" + urandom(4).hex(), emoji="📙"))
+        self.add_item(CustomButton(style=ButtonStyle.red, custom_id=f"47_{author_id}_" + urandom(4).hex(), emoji="0️⃣"))
+        self.add_item(CustomButton(style=ButtonStyle.red, custom_id=f"14_{author_id}_" + urandom(4).hex(), emoji="🛠️"))
 
     async def msg_salary(self, interaction: Interaction) -> None:
         assert interaction.guild_id is not None
@@ -943,9 +943,9 @@ class EconomyView(ViewBase):
             description_lines: list[str] = [ec_text[lng][20], '\n' + ec_text[lng][21]]
         
         total_length: int = sum(map(len, description_lines))
-        if total_length < 3900:
+        if total_length < 2000:
             embeds: list[Embed] = [Embed(description='\n'.join(description_lines))]
-        elif total_length < 5000:
+        elif total_length < 4000:
             # Split all lines into 2 embeds.
             half_index: int = len(description_lines) >> 1
             embeds: list[Embed] = [
@@ -1721,9 +1721,9 @@ class PollSettingsView(ViewBase):
 class RankingView(ViewBase):
     def __init__(self, lng: int, author_id: int, timeout: int, g_id: int, cur_xp_pm: int, cur_xpb: int, bot: StoreBot) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
-        self.add_item(CustomButton(style=ButtonStyle.green, label="", emoji="✨", custom_id=f"21_{author_id}_" + urandom(4).hex()))
-        self.add_item(CustomButton(style=ButtonStyle.grey, label="", emoji="📗", custom_id=f"22_{author_id}_" + urandom(4).hex()))
-        self.add_item(CustomButton(style=ButtonStyle.red, label="", emoji="🥇", custom_id=f"24_{author_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(style=ButtonStyle.green, emoji="✨", custom_id=f"21_{author_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(style=ButtonStyle.grey, emoji="📗", custom_id=f"22_{author_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(style=ButtonStyle.red, emoji="🥇", custom_id=f"24_{author_id}_" + urandom(4).hex()))
         self.cur_xp_pm: int = cur_xp_pm
         self.cur_xpb: int = cur_xpb
         self.g_id: int = g_id
