@@ -1,13 +1,6 @@
 from sqlite3 import connect
 from contextlib import closing
-from typing import (
-    Literal,
-    Union,
-    Tuple,
-    List,
-    Dict,
-    Set
-)
+from typing import Literal
 
 from nextcord import (
     Embed,
@@ -29,7 +22,7 @@ from CustomComponents.custom_views import SettingsView
 
 
 class ModCommandsCog(Cog):
-    settings_text: Dict[int, Dict[int, Union[str, List[str]]]] = {
+    settings_text: dict[int, dict[int, str | list[str]]] = {
         0 : {
             0 : "Choose section",
             1: [
@@ -64,18 +57,24 @@ class ModCommandsCog(Cog):
     @staticmethod
     def mod_check(interaction: Interaction) -> bool:
         assert isinstance(interaction.user, Member)
+        assert interaction.guild_id is not None
         member: Member = interaction.user
         if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
             return True
 
-        with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+        str_guild_id: str = interaction.guild_id.__str__()
+        with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
+            del str_guild_id
             with closing(base.cursor()) as cur:
-                mod_roles_ids_list: Union[List[Tuple[int]], List] = cur.execute("SELECT * FROM mod_roles").fetchall()
-                if mod_roles_ids_list:
-                    mod_roles_ids_set: Set[int] = {x[0] for x in mod_roles_ids_list}
-                    del mod_roles_ids_list
-                    return any(role.id in mod_roles_ids_set for role in member.roles)
-                return False
+                mod_roles_ids_list: list[tuple[int]] | list = cur.execute("SELECT * FROM mod_roles").fetchall()            
+        
+        if mod_roles_ids_list:
+            return not {role_id_tuple[0] for role_id_tuple in mod_roles_ids_list}.isdisjoint(member._roles.__copy__())
+            # mod_roles_ids_set: set[int] = {x[0] for x in mod_roles_ids_list}
+            # del mod_roles_ids_list
+            # return not mod_roles_ids_set.isdisjoint(member._roles.__copy__())
+
+        return False
 
     @slash_command(
         name="settings",
