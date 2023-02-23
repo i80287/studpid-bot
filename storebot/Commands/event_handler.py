@@ -113,13 +113,7 @@ class EventsHandlerCog(Cog):
 
         from config import DEBUG
         if DEBUG:
-            from colorama import Fore
-            print(f'{Fore.CYAN}[>>>]Logged into Discord as {self.bot.user}\n')
-            opt=f'\n{Fore.YELLOW}[>>>]Available commands:{Fore.RESET}\n' \
-                f'\n{Fore.GREEN}1) setup guild_id lng - creates and setups new database for selected server.\n' \
-                f'{Fore.RED}   Warning: if old database exists, it will be restored to default and all infromation will be lost.\n'\
-                f'{Fore.RED}\n[>>>]Enter command:'
-            print(opt, end=' ')
+            print("[>>>]Logged into Discord as {0.user}".format(self.bot))
 
         guilds_len_str: str = len(guilds).__str__()
         await self.bot.change_presence(activity=Game(f"/help on {guilds_len_str} servers"))
