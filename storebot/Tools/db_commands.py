@@ -33,6 +33,12 @@ def update_server_info_table(guild_id: int, key_name: str, new_value: int) -> No
             cur.execute("UPDATE server_info SET value = " + new_value.__str__() + " WHERE settings = '" + key_name + "';")
             base.commit()
 
+async def update_server_info_table_uncheck_async(guild_id: int, key_name: str, new_value: str) -> None:
+    str_guild_id: str = guild_id.__str__()
+    async with connect_async(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db") as base:
+        await base.execute("UPDATE server_info SET value = " + new_value + " WHERE settings = '" + key_name + "';")
+        await base.commit()
+
 def get_server_info_value(guild_id: int, key_name: str) -> int:
     with closing(connect(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id))) as base:
         with closing(base.cursor()) as cur:
@@ -351,6 +357,13 @@ async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) 
             await base.commit()
         
         return is_added
+
+async def drop_users_cash_async(guild_id: int) -> None:
+    str_guild_id: str = guild_id.__str__()
+    async with connect_async(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db") as base:
+        # No 'del str_guild_id' because we want to release connection as fast as possible.
+        await base.execute("UPDATE users SET money = 0;")
+        await base.commit()
 
 def peek_role_free_number(cur: Cursor) -> int:
     req: list[tuple[int]] = cur.execute("SELECT role_number FROM store ORDER BY role_number").fetchall()

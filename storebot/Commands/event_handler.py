@@ -29,7 +29,6 @@ from storebot import StoreBot
 from Tools import db_commands
 from Tools.logger import Logger
 from Variables.vars import CWD_PATH
-from config import DEBUG
 
 
 class EventsHandlerCog(Cog):
@@ -96,21 +95,23 @@ class EventsHandlerCog(Cog):
         guilds: list[Guild] = self.bot.guilds.copy()
         for guild in guilds:
             guild_id: int = guild.id
+            str_guild_id: str = guild_id.__str__()
             
-            if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
-                mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
-            if not path.exists(f"{CWD_PATH}/logs/logs_{guild_id}/"):
-                mkdir(f"{CWD_PATH}/logs/logs_{guild_id}/")
+            if not path.exists(f"{CWD_PATH}/bases/bases_{str_guild_id}/"):
+                mkdir(f"{CWD_PATH}/bases/bases_{str_guild_id}/")
+            if not path.exists(f"{CWD_PATH}/logs/logs_{str_guild_id}/"):
+                mkdir(f"{CWD_PATH}/logs/logs_{str_guild_id}/")
 
-            db_ignored_channels_data: list[tuple[int, int, int]] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
+            db_ignored_channels_data: list[tuple[int, int, int]] = db_commands.check_db(guild_id, guild.preferred_locale)
             async with self.bot.voice_lock:
                 self.bot.members_in_voice[guild_id] = {}
                 self.bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
             async with self.bot.text_lock:
                 self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
 
-            await Logger.write_log_async("common_logs.log", "correct_db func", str(guild_id), str(guild.name))
+            await Logger.write_log_async("common_logs.log", "correct_db func", str_guild_id, guild.name)
 
+        from config import DEBUG
         if DEBUG:
             from colorama import Fore
             print(f'{Fore.CYAN}[>>>]Logged into Discord as {self.bot.user}\n')
@@ -120,9 +121,9 @@ class EventsHandlerCog(Cog):
                 f'{Fore.RED}\n[>>>]Enter command:'
             print(opt, end=' ')
 
-        guilds_len: int = len(guilds)
-        await self.bot.change_presence(activity=Game(f"/help on {guilds_len} servers"))
-        await Logger.write_log_async("common_logs.log", "on_ready", f"total {guilds_len} guilds")
+        guilds_len_str: str = len(guilds).__str__()
+        await self.bot.change_presence(activity=Game(f"/help on {guilds_len_str} servers"))
+        await Logger.write_log_async("common_logs.log", "on_ready", f"total {guilds_len_str} guilds")
 
     @Cog.listener()
     async def on_guild_join(self, guild: Guild) -> None:
@@ -133,14 +134,14 @@ class EventsHandlerCog(Cog):
             await guild.leave()
             return
 
-        if not path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
-            mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
-        if not path.exists(f"{CWD_PATH}/logs/logs_{guild_id}/"):
-            mkdir(f"{CWD_PATH}/logs/logs_{guild_id}/")
+        str_guild_id: str = guild_id.__str__()
+        if not path.exists(f"{CWD_PATH}/bases/bases_{str_guild_id}/"):
+            mkdir(f"{CWD_PATH}/bases/bases_{str_guild_id}/")
+        if not path.exists(f"{CWD_PATH}/logs/logs_{str_guild_id}/"):
+            mkdir(f"{CWD_PATH}/logs/logs_{str_guild_id}/")
 
-        guild_locale: str = str(guild.preferred_locale)
-        db_ignored_channels_data: list[tuple[int, int, int]] = db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
-        str_guild_id: str = str(guild_id)
+        guild_locale: str | None = guild.preferred_locale
+        db_ignored_channels_data: list[tuple[int, int, int]] = db_commands.check_db(guild_id, guild_locale)
         guild_name: str = guild.name
         await Logger.write_log_async("common_logs.log", "correct_db func", str_guild_id, guild_name)
         async with self.bot.voice_lock:
@@ -149,13 +150,13 @@ class EventsHandlerCog(Cog):
         async with self.bot.text_lock:
             self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
         
-        lng: int = 1 if "ru" in guild_locale else 0
+        lng: int = 1 if guild_locale and "ru" in guild_locale else 0
         try:
             await self.send_first_message(guild=guild, lng=lng)
         except Exception as ex:
             await Logger.write_one_log_async(
                 filename="error.log",
-                report=f"[FATAL] [ERROR] [send_first_message] [guild: {guild_id}:{guild.name}] [{str(ex)}]\n"
+                report=f"[FATAL] [ERROR] [send_first_message] [guild: {str_guild_id}:{guild.name}] [{str(ex)}]\n"
             )
 
         await Logger.write_log_async("guild.log", "guild_join", str_guild_id, guild_name)
@@ -163,7 +164,7 @@ class EventsHandlerCog(Cog):
         await Logger.write_guild_log_async(
             filename="guild.log",
             guild_id=guild_id,
-            report=f"[guild_join] [guild: {guild_id}:{guild_name}]"
+            report=f"[guild_join] [guild: {str_guild_id}:{guild_name}]"
         )
 
         await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"))

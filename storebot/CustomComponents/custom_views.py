@@ -34,7 +34,9 @@ from Tools.db_commands import (
     delete_role_from_db,
     get_server_info_value_async,
     get_server_slots_table_async,
-    get_server_currency_async
+    get_server_currency_async,
+    drop_users_cash_async,
+    update_server_info_table_uncheck_async
 )
 from Tools.parse_tools import parse_emoji
 from Variables.vars import CWD_PATH
@@ -42,12 +44,14 @@ from CustomComponents.custom_button import CustomButton
 from CustomComponents.custom_select import CustomSelect
 from CustomComponents.select_ic_view import SelectICView
 from CustomComponents.view_base import ViewBase
+from CustomComponents.verification_view import VerificationView
 from CustomModals.custom_modals import (
     RoleAddModal,
     RoleEditModal,
     XpSettingsModal,
     SelectLevelModal,
-    ManageMemberCashXpModal
+    ManageMemberCashXpModal,
+    OneTextInputModal
 )
 from CustomComponents.select_channel_view import SelectChannelView
 from CustomModals.sale_role_price import SalePriceModal
@@ -104,7 +108,7 @@ settings_text: Dict[int, Dict[int, str]] = {
         4 : "Add role",
         5 : "Remove role",
         6 : "**`You hasn't selected the role yet`**",
-        7 : "Ping of the member or write member's id\n\nWrite `cancel` to cancel the menu",
+        7 : "`Ping` member or write member's `id`\n\nWrite `cancel` to cancel the menu",
         8 : "Add channel",
         9 : "Remove channel",
         10 : "Select channel",
@@ -119,7 +123,7 @@ settings_text: Dict[int, Dict[int, str]] = {
         4 : "Добавить роль",
         5 : "Убрать роль",
         6 : "**`Вы не выбрали роль`**",
-        7 : "Напишите id участника сервера или пинганите его\n\nНапишите `cancel` для отмены",
+        7 : "Напишите `id` участника сервера или `пинганите` его\n\nНапишите `cancel` для отмены",
         8 : "Добавить канал",
         9 : "Убрать канал",
         10 : "Выберите канал",
@@ -229,6 +233,9 @@ ec_text: Dict[int, Dict[int, str]] = {
         20: "No roles were added",
         21: "`If role isn't shown in the menu(s) down below it means that bot can't manage this role`",
         22: "**`You reseted log channel`**",
+        23: "**`Are you sure you want to drop cash of all members on the server? This operation can not be undone`**",
+        24: "**`You dropped cash for all members`**",
+        25: "**`You rejected operation`**"
     },
     1 : {
         0: "Настройки экономики",
@@ -257,6 +264,9 @@ ec_text: Dict[int, Dict[int, str]] = {
         20: "Не добавлено ни одной роли",
         21: "`Если роль не отображается ни в одном меню снизу, значит, бот не может управлять ею`",
         22: "**`Вы сбросили канал логов`**",
+        23: "**`Вы уверены, что хотите сбросить кэш всех пользователей на сервере? Эта операция не может быть отменена`**",
+        24: "**`Вы сбросили кэш всех участников сервера`**",
+        25: "**`Вы отменили операцию сброса кэша`**"
     }
 }
 
@@ -685,45 +695,68 @@ class EconomyView(ViewBase):
             3 : "Cтакающаяся, бесконечная"
         }
     }
+    money_per_message_modal_text: dict[int, dict[int, str]] = {
+        0: {
+            0: "Money per message",
+            1: "Amount of money gained by member for message",
+            2: "Amount of money gained by member for one message (non-negative integer number)",
+            3: "**`Amount of money gained by member for one message set to: {0}`** {1}",
+            4: "**`Money gained by member for one message should be non-negative integer number`**"
+        },
+        1: {
+            0: "Заработок за сообщение",
+            1: "Количество валюты, получаемой за сообщение",
+            2: "Количество валюты, получаемой пользователем за одно сообщение (целое неотрицательное число)",
+            3: "**`Количество валюты, получаемой пользователем за одно сообщение, теперь равно: {0}`** {1}",
+            4: "**`Количество валюты, получаемой пользователем за одно сообщение, должно быть целым неотрицательным числом`**"
+        }
+    }
 
-    def __init__(self, lng: int, author_id: int, timeout: int, sale_price_percent: int, voice_income: int, currency: str) -> None:
+    def __init__(self, lng: int, author_id: int, timeout: int, sale_price_percent: int, voice_income: int, currency: str, bot: StoreBot) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
         self.sale_price_percent: int = sale_price_percent
         self.voice_income: int = voice_income
         self.currency: str = currency
+        self.bot: StoreBot = bot
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"10_{author_id}_" + urandom(4).hex(), emoji="💸"))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"11_{author_id}_" + urandom(4).hex(), emoji="⏰"))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"12_{author_id}_" + urandom(4).hex(), emoji="💹"))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"45_{author_id}_" + urandom(4).hex(), emoji="🎤"))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label="", custom_id=f"46_{author_id}_" + urandom(4).hex(), emoji="🛍️"))
         self.add_item(CustomButton(style=ButtonStyle.green, label="", custom_id=f"13_{author_id}_" + urandom(4).hex(), emoji="📙"))
+        self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"47_{author_id}_" + urandom(4).hex(), emoji="0️⃣"))
         self.add_item(CustomButton(style=ButtonStyle.red, label="", custom_id=f"14_{author_id}_" + urandom(4).hex(), emoji="🛠️"))
-        
-    async def msg_salary(self, interaction: Interaction, ans: str) -> bool:
-        if ans.isdigit() and (money_per_message := int(ans)) >= 0:
-            lng: int = self.lng
 
-            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
-                with closing(base.cursor()) as cur:
-                    cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (money_per_message,))
-                    base.commit()
-            
-            try:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][11].format(ans, self.currency)))
-            except:
-                pass
+    async def msg_salary(self, interaction: Interaction) -> None:
+        assert interaction.guild_id is not None
+        lng: int = self.lng
+        modal_text: dict[int, str] = self.money_per_message_modal_text[lng]
+        money_per_message_modal: OneTextInputModal = \
+            OneTextInputModal(modal_text[0], modal_text[1], modal_text[2], 1, 6)
+        await interaction.response.send_modal(money_per_message_modal)
+        await money_per_message_modal.wait()
+
+        user_input: str | None = money_per_message_modal.value
+        if not user_input:
+            return
+
+        if user_input.isdigit():
+            await update_server_info_table_uncheck_async(interaction.guild_id, "mn_per_msg", user_input)
             
             assert interaction.message is not None
             emb: Embed = interaction.message.embeds[0]
             assert emb.description is not None
             dsc: list[str] = emb.description.split("\n\n")
-            dsc[0] = ec_text[lng][1].format(ans, self.currency)
+            dsc[0] = ec_text[lng][1].format(user_input, self.currency)
             emb.description = "\n\n".join(dsc)
-            await interaction.message.edit(embed=emb)
+            try:
+                await interaction.message.edit(embed=emb)
+            except:
+                pass
 
-            return False
+            await interaction.followup.send(embed=Embed(description=modal_text[3].format(user_input, self.currency)), ephemeral=True)
         else:
-            return True
+            await interaction.followup.send(embed=Embed(description=modal_text[4]), ephemeral=True)
 
     async def work_cldwn(self, interaction: Interaction, ans: str) -> bool:
         if ans.isdigit() and 60 <= (work_command_cooldown := int(ans)) <= 604800:
@@ -937,37 +970,59 @@ class EconomyView(ViewBase):
             await interaction.edit_original_message(view=ec_rls_view)
         except:
             pass
-    
+
+    async def drop_users_cash(self, interaction: Interaction) -> None:
+        assert interaction.guild_id is not None
+        assert interaction.locale is not None
+        self.lng
+        verification_view: VerificationView = VerificationView(self.author_id)
+        await interaction.response.send_message(embed=Embed(description=ec_text[self.lng][23]), view=verification_view)
+        await verification_view.wait()
+        try:
+            await interaction.delete_original_message()
+        except:
+            pass
+        
+        if verification_view.approved:
+            await drop_users_cash_async(interaction.guild_id)
+            await interaction.followup.send(embed=Embed(description=ec_text[self.lng][24]), ephemeral=True)
+        else:
+            await interaction.followup.send(embed=Embed(description=ec_text[self.lng][25]), ephemeral=True)
+
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
+        assert interaction.channel_id is not None
         int_custom_id: int = int(custom_id[:2])
         match int_custom_id:
+            case 10:
+                await self.msg_salary(interaction)
             case 13:
-                await self.log_chnl(interaction=interaction)
+                await self.log_chnl(interaction)
             case 14:
-                await self.manage_economy_roles(interaction=interaction)
+                await self.manage_economy_roles(interaction)
             case 45:
-                await self.update_voice_income(interaction=interaction)
+                await self.update_voice_income(interaction)
             case 46:
-                await self.update_sale_role_price(interaction=interaction)
+                await self.update_sale_role_price(interaction)
+            case 47:
+                await self.drop_users_cash(interaction)
             case _:
-                if int_custom_id not in {10, 11, 12}:
-                    return
+                assert int_custom_id in {11, 12}
                 await interaction.response.send_message(embed=Embed(description=ec_text[self.lng][10 + ((int_custom_id - 10) << 1)]), ephemeral=True)
                 flag: bool = True
                 author_id: int = self.author_id
+                channel_id: int = interaction.channel_id
                 while flag:
+                    user_ans: Message
                     try:
-                        user_ans: Message = await interaction.client.wait_for(
+                        user_ans = await self.bot.wait_for(
                             event="message",
-                            check=lambda m: m.author.id == author_id and m.channel.id == interaction.channel_id,
-                            timeout=40
+                            check=lambda m: m.author.id == author_id and m.channel.id == channel_id,
+                            timeout=40.0
                         )
                     except TimeoutError:
                         flag = False
                     else:
                         match int_custom_id:
-                            case 10:
-                                flag = await self.msg_salary(interaction=interaction, ans=user_ans.content)
                             case 11: 
                                 flag = await self.work_cldwn(interaction=interaction, ans=user_ans.content)
                             case 12: 
@@ -989,7 +1044,7 @@ class EconomyRolesManageView(ViewBase):
         length: int = len(assignable_and_boost_roles)
         for i in range(min((length + 24) // 25, 4)):
             self.add_item(CustomSelect(
-                custom_id=f"{800+i}",
+                custom_id=f"{800 + i}",
                 placeholder=settings_text[lng][2],
                 options=assignable_and_boost_roles[(i * 25):min(length, (i + 1) * 25)]
             ))
@@ -1342,7 +1397,8 @@ class SettingsView(ViewBase):
                     timeout=110,
                     sale_price_percent=sale_price_percent,
                     voice_income=voice_income,
-                    currency=currency
+                    currency=currency,
+                    bot=self.bot
                 )
                 await interaction.response.send_message(embed=emb, view=ec_v)
                 await ec_v.wait()

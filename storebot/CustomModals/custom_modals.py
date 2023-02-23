@@ -843,3 +843,25 @@ class SelectLevelModal(Modal):
         else:
             await interaction.response.send_message(embed=Embed(description=ranking_text[self.lng][35]), ephemeral=True)        
         self.stop()
+
+
+class OneTextInputModal(Modal):
+    def __init__(self, title: str, label: str, placeholder: str | None = None, min_length: int = 0, max_length: int = 4000, default_value: str | None = None) -> None:
+        super().__init__(title, timeout=30.0)
+        self.text_input = TextInput(
+            label=label,
+            min_length=min_length,
+            max_length=max_length,
+            style=TextInputStyle.paragraph,
+            required=True,
+            default_value=default_value,
+            placeholder=placeholder
+        )
+        self.add_item(self.text_input)
+
+        self.value: str | None = None
+    
+    async def callback(self, interaction: Interaction) -> None:
+        self.value = self.text_input.value
+        await interaction.response.defer()
+        self.stop()
