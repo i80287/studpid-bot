@@ -1,5 +1,4 @@
 from random import randint
-from typing import Dict
 
 from nextcord import (
     Embed,
@@ -11,11 +10,11 @@ from nextcord.ui import (
     Modal
 )
 
-from Tools.db_commands import update_server_info_table
+from storebot.Tools.db_commands import update_server_info_table
 
 
 class SalePriceModal(Modal):
-    sale_price_modal_text: Dict[int, Dict[int, str]] = {
+    sale_price_modal_text: dict[int, dict[int, str]] = {
         0: {
             0: "Change role price for sale",
             1: "Percentage of the role price for sale",

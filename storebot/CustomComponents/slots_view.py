@@ -1,7 +1,11 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import LiteralString
+
 import asyncio
 from random import randrange
 from os import urandom
-from typing import LiteralString, final
 
 from nextcord import (
     TextChannel,
@@ -13,14 +17,14 @@ from nextcord import (
 )
 from nextcord.ext import tasks
 
-from Tools.db_commands import (
+from storebot.Tools.db_commands import (
     get_member_nocheck_async,
     update_member_cash_async,
     get_server_info_value_async
 )
-from CustomComponents.view_base import ViewBase
-from CustomComponents.custom_button import CustomButton
-from CustomComponents.custom_select import CustomSelectWithOptions
+from storebot.CustomComponents.view_base import ViewBase
+from storebot.CustomComponents.custom_button import CustomButton
+from storebot.CustomComponents.custom_select import CustomSelectWithOptions
 
 
 class SlotsView(ViewBase):

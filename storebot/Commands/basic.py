@@ -1,12 +1,27 @@
-from random import randint
-from asyncio import sleep
-from os import path
-if __debug__:
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
     from typing import (
         Literal,
         Optional,
         Union
     )
+
+    from nextcord import (
+        Guild,
+        Thread,
+        PartialMessageable
+    )
+    from nextcord.abc import (
+        GuildChannel,
+        PrivateChannel
+    )
+
+    from storebot.storebot import StoreBot
+
+from random import randint
+from asyncio import sleep
+from os import path
 
 from nextcord import (
     Embed,
@@ -21,19 +36,8 @@ from nextcord import (
 )
 from nextcord.ext.commands import command, is_owner, Context, Cog
 from nextcord.ui import Modal, TextInput
-if __debug__:
-    from nextcord import (
-        Guild,
-        Thread,
-        PartialMessageable
-    )
-    from nextcord.abc import (
-        GuildChannel,
-        PrivateChannel
-    )
 
-from storebot import StoreBot
-from Variables.vars import CWD_PATH
+from storebot.Variables.vars import CWD_PATH
 
 
 class FeedbackModal(Modal):

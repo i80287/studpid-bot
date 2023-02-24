@@ -1,9 +1,17 @@
-from datetime import datetime
-from typing import (
-    Literal,
-    Dict,
-    List
-)
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from datetime import datetime
+    from typing import (
+        Literal,
+        Dict,
+        List
+    )
+    from nextcord import (
+        Guild,
+        Role
+    )
+    from storebot.storebot import StoreBot
 
 from nextcord import (
     User,
@@ -17,12 +25,9 @@ from nextcord import (
     slash_command,
     Locale
 )
-from nextcord.ext.commands import Bot, Cog
-if __debug__:
-    from nextcord import Guild, Role, Asset
-
-from Tools import db_commands
-from Tools.parse_tools import parse_emoji
+from nextcord.ext.commands import Cog
+from storebot.Tools import db_commands
+from storebot.Tools.parse_tools import parse_emoji
 
 
 class AdditionalCommandsCog(Cog):
@@ -219,8 +224,8 @@ class AdditionalCommandsCog(Cog):
         }
     }
 
-    def __init__(self, bot: Bot) -> None:
-        self.bot: Bot = bot
+    def __init__(self, bot: StoreBot) -> None:
+        self.bot: StoreBot = bot
     
     @slash_command(
         name="emoji", 
@@ -454,5 +459,5 @@ class AdditionalCommandsCog(Cog):
         await interaction.response.send_message(embed=emb)
 
 
-def setup(bot: Bot) -> None:
+def setup(bot: StoreBot) -> None:
     bot.add_cog(AdditionalCommandsCog(bot))

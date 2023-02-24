@@ -1,11 +1,17 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import (
+        NoReturn,
+        Optional,
+        Union,
+        Dict
+    )
+    
+    from storebot.storebot import StoreBot
+
 import asyncio
 from time import time
-from typing import (
-    NoReturn,
-    Optional,
-    Union,
-    Dict
-)
 
 from nextcord import (
     VoiceState,
@@ -19,9 +25,8 @@ from nextcord import (
 from nextcord.ext import tasks
 from nextcord.ext.commands import Cog
 
-from storebot import StoreBot
-from Tools import db_commands
-from Tools.logger import Logger
+from storebot.Tools import db_commands
+from storebot.Tools.logger import Logger
 
 
 class VoiceHandlerCog(Cog):

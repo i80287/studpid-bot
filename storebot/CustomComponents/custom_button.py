@@ -1,7 +1,12 @@
-from typing import (
-    Optional,
-    Union
-)
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import (
+        Optional,
+        Union,
+    )
+
+    from storebot.CustomComponents.view_base import ViewBase
 
 from nextcord import (
     ButtonStyle,
@@ -10,10 +15,6 @@ from nextcord import (
     PartialEmoji
 )
 from nextcord.ui import Button
-
-if __debug__:
-    from CustomComponents.view_base import ViewBase
-
 
 class CustomButton(Button):    
     def __init__(

@@ -1,13 +1,18 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import (
+        Optional,
+        Literal
+    )
+
+    from storebot.storebot import StoreBot
+
 from sqlite3 import connect
 from contextlib import closing
 from datetime import datetime
 from asyncio import sleep
 from time import time
-from typing import (
-    Literal,
-    Optional,
-    Dict
-)
 
 from nextcord import (
     slash_command,
@@ -28,9 +33,8 @@ from nextcord.ui import (
     View
 )
 
-from Commands.mod_commands import ModCommandsCog
-from storebot import StoreBot
-from Variables.vars import CWD_PATH
+from storebot.Commands.mod_commands import ModCommandsCog
+from storebot.Variables.vars import CWD_PATH
 
 
 class poll_custom_button(Button):
@@ -44,7 +48,7 @@ class poll_custom_button(Button):
 
 
 class Poll(View):
-    poll_class_text: Dict[int, Dict[int, str]] = {
+    poll_class_text: dict[int, dict[int, str]] = {
         0 : {
             0 : "❌**`Disapproved by `**",
             1 : "✅**`Approved by `**",
@@ -283,7 +287,7 @@ class Poll(View):
 
 
 class PollCog(Cog):
-    polls_text: Dict[int, Dict[int, str]] = {
+    polls_text: dict[int, dict[int, str]] = {
         0 : {               
             0 : "**`Poll creation was cancelled because polls verification channel isn't configured`**",
             1 : "**`You can't select time for the poll less than it's now`**",

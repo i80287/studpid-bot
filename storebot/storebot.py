@@ -1,12 +1,15 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from storebot.Commands.polls import Poll
+
 from asyncio import Lock
 from time import time
 
 from nextcord import Intents, Member
 from nextcord.ext.commands import Bot, when_mentioned_or
 
-if __debug__:
-    from Commands import polls
-from config import prefix, FEEDBACK_CHANNEL, DEBUG_TOKEN, TOKEN, DEBUG
+from storebot.config import prefix, FEEDBACK_CHANNEL
 
 class StoreBot(Bot):
     def __init__(self) -> None:
@@ -19,7 +22,7 @@ class StoreBot(Bot):
         
         self.statistic_lock: Lock = Lock()
         self.bot_feedback_channel: int = FEEDBACK_CHANNEL
-        self.current_polls: list[polls.Poll] = []
+        self.current_polls: list[Poll] = []
         
         self.text_lock: Lock = Lock()
         # guild_id: {text_channel_id}
@@ -35,8 +38,3 @@ class StoreBot(Bot):
     # Dummy listener.
     async def on_application_command_error(*args) -> None:
         return
-
-if __name__ == "__main__":
-    bot: StoreBot = StoreBot()
-    bot.load_extensions_from_module("Commands")
-    bot.run(DEBUG_TOKEN if DEBUG else TOKEN)

@@ -1,5 +1,4 @@
 from random import randint
-from typing import Dict
 
 from nextcord import (
     Embed,
@@ -11,11 +10,11 @@ from nextcord.ui import (
     Modal
 )
 
-from Tools.db_commands import update_server_info_table
+from storebot.Tools.db_commands import update_server_info_table
 
 
 class VoiceIncomeModal(Modal):
-    voice_income_modal_text: Dict[int, Dict[int, str]] = {
+    voice_income_modal_text: dict[int, dict[int, str]] = {
         0: {
             0: "Change voice income",
             1: "Income from presence in voice channel",

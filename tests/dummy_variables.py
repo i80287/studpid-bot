@@ -82,7 +82,7 @@ dummy_guild_payloads: GuildPayloads = GuildPayloads(
     public_updates_channel_id=GUILD_PUBLIC_UPDATES_CHANNEL_ID,
     guild_scheduled_events=[],
 )
-dummy_conn_state: ConnectionState = ConnectionState(dispatch=dummy_dispatcher, handlers={}, hooks={}, http=HTTPClient(), loop=AbstractEventLoop())
+dummy_conn_state: ConnectionState = ConnectionState(dispatch=dummy_dispatcher, handlers={}, hooks={}, http=HTTPClient(dispatch=dummy_dispatcher), loop=AbstractEventLoop())
 dummy_guild: Guild = Guild(data=dummy_guild_payloads, state=dummy_conn_state)
 
 roles_positions: list[int] = list(range(1, GUILD_ROLES_COUNT + 1))

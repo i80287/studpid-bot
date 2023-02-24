@@ -1,8 +1,13 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Literal
+
+    from storebot.storebot import StoreBot
+
 import re
 import openai
 from asyncio import Lock, sleep
-if __debug__:
-    from typing import Literal
 
 from nextcord import (
     slash_command,
@@ -15,18 +20,17 @@ from nextcord.ext.commands import Cog
 from nextcord.channel import TextChannel
 from nextcord.threads import Thread
 
-from storebot import StoreBot
-from Tools.logger import Logger
+from storebot.Tools.logger import Logger
+from storebot.config import OPENAI_API_KEY
+from storebot.Variables.vars import BANNED_WORDS
 
-import config
-from Variables import vars
-openai.api_key = config.OPENAI_API_KEY
+openai.api_key = OPENAI_API_KEY
 words_filter: re.Pattern[str] = re.compile(
-    pattern=vars.BANNED_WORDS,
+    pattern=BANNED_WORDS,
     flags=re.RegexFlag.IGNORECASE | re.RegexFlag.MULTILINE
 )
-del config
-del vars
+del OPENAI_API_KEY
+del BANNED_WORDS
 
 class OpenAICog(Cog):
     openai_lock: Lock = Lock()

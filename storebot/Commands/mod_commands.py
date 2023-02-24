@@ -1,6 +1,11 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Literal
+    from storebot.storebot import StoreBot
+
 from sqlite3 import connect
 from contextlib import closing
-from typing import Literal
 
 from nextcord import (
     Embed,
@@ -16,9 +21,8 @@ from nextcord.ui import (
 from nextcord.ext import application_checks
 from nextcord.ext.commands import Cog
 
-from storebot import StoreBot
-from Variables.vars import CWD_PATH
-from CustomComponents.custom_views import SettingsView
+from storebot.Variables.vars import CWD_PATH
+from storebot.CustomComponents.custom_views import SettingsView
 
 
 class ModCommandsCog(Cog):

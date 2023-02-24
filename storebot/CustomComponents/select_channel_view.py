@@ -1,11 +1,14 @@
-from os import urandom
-if __debug__:
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
     from typing import Literal
+
+from os import urandom
 
 from nextcord import Interaction
 
-from CustomComponents.view_base import ViewBase
-from CustomComponents.custom_select import CustomSelect
+from storebot.CustomComponents.view_base import ViewBase
+from storebot.CustomComponents.custom_select import CustomSelect
 
 class SelectChannelView(ViewBase):
     ec_log_channel_view_text: dict[int, tuple[str, str]] = {

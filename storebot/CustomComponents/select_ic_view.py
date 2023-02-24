@@ -1,5 +1,9 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from storebot.storebot import StoreBot
+
 from os import urandom
-from typing import Dict
 
 from nextcord import (
     ButtonStyle,
@@ -7,15 +11,14 @@ from nextcord import (
     Embed
 )
 
-from Tools.db_commands import get_ignored_channels
-from CustomComponents.view_base import ViewBase
-from CustomComponents.custom_button import CustomButton
-from CustomComponents.ignored_channels_view import IgnoredChannelsView
-from storebot import StoreBot
+from storebot.Tools.db_commands import get_ignored_channels
+from storebot.CustomComponents.view_base import ViewBase
+from storebot.CustomComponents.custom_button import CustomButton
+from storebot.CustomComponents.ignored_channels_view import IgnoredChannelsView
 
 
 class SelectICView(ViewBase):
-    select_ignored_channels_text: Dict[int, Dict[int, str]] = {
+    select_ignored_channels_text: dict[int, dict[int, str]] = {
         0: {
             0: "> Press <:ignored_text:1064976269038583808> to see and manage `text channels` where members can't get money and xp\n\n\
                 > Press :mute: to see and manage `voice channels` where members can't get money and xp",

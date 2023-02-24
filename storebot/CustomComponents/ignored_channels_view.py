@@ -1,11 +1,16 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import (
+        Literal,
+        Optional,
+        Dict
+    )
+    from storebot.storebot import StoreBot
+
 from contextlib import closing
 from sqlite3 import connect
 from random import randint
-from typing import (
-    Literal,
-    Optional,
-    Dict
-)
 
 from nextcord import (
     ButtonStyle,
@@ -13,12 +18,10 @@ from nextcord import (
     Embed
 )
 
-from Variables.vars import CWD_PATH
-from CustomComponents.view_base import ViewBase
-from CustomComponents.custom_select import CustomSelect
-from CustomComponents.custom_button import CustomButton
-from storebot import StoreBot
-
+from storebot.Variables.vars import CWD_PATH
+from storebot.CustomComponents.view_base import ViewBase
+from storebot.CustomComponents.custom_select import CustomSelect
+from storebot.CustomComponents.custom_button import CustomButton
 
 class IgnoredChannelsView(ViewBase):
     ignored_channels_text: Dict[int, Dict[int, str]] = {
@@ -77,7 +80,7 @@ class IgnoredChannelsView(ViewBase):
         self.chnl: Optional[int] = None
         self.g_id: int = g_id
         self.auth_id: int = auth_id
-        self.bot: StoreBot = bot
+        self.bot: storebot.StoreBot = bot
         self.is_text: bool = is_text
 
     async def add_chnl(self, interaction: Interaction, lng: int, channel_id: int) -> None:

@@ -1,10 +1,14 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nextcord import Member
+
 from abc import ABC, abstractmethod
 from typing import Optional
 
 from nextcord import Interaction, Embed
 from nextcord.ui import View
-if __debug__:
-    from nextcord import Member
+
 
 class ViewBase(ABC, View):
     interaction_check_text: dict[int, str] = {

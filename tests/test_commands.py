@@ -11,6 +11,8 @@ from storebot.Tools import db_commands
 
 async def main() -> None:
     guild_id: int = GUILD_ID
+    print(CWD_PATH)
+    return
     if not os.path.exists(f"{CWD_PATH}/bases/bases_{guild_id}/"):
         os.mkdir(f"{CWD_PATH}/bases/bases_{guild_id}/")
     db_commands.check_db(guild_id=guild_id, guild_locale=dummy_guild.preferred_locale)

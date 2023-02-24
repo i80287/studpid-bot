@@ -1,13 +1,24 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import (
+        Callable,
+        Optional,
+        Union,
+        Tuple,
+        Dict
+    )
+
+    from nextcord import Role
+    from nextcord.abc import GuildChannel
+
+    from storebot.CustomComponents.view_base import ViewBase
+    from storebot.storebot import StoreBot
+
 import re
 from asyncio import (
     sleep,
     TimeoutError
-)
-from typing import (
-    Optional,
-    Union,
-    Tuple,
-    Dict
 )
 
 from contextlib import closing
@@ -24,13 +35,8 @@ from nextcord import (
     Member,
     Guild
 )
-if __debug__:
-    from nextcord import Role
-    from nextcord.abc import GuildChannel
-    from typing import Callable
 
-from storebot import StoreBot
-from Tools.db_commands import (
+from storebot.Tools.db_commands import (
     get_member_async,
     delete_role_from_db,
     get_server_info_value_async,
@@ -40,14 +46,16 @@ from Tools.db_commands import (
     update_server_info_table_uncheck_async,
     listify_guild_roles
 )
-from Tools.parse_tools import parse_emoji
-from Variables.vars import CWD_PATH
-from CustomComponents.custom_button import CustomButton
-from CustomComponents.custom_select import CustomSelect
-from CustomComponents.select_ic_view import SelectICView
-from CustomComponents.view_base import ViewBase
-from CustomComponents.verification_view import VerificationView
-from CustomModals.custom_modals import (
+from storebot.Tools.parse_tools import parse_emoji
+from storebot.Variables.vars import CWD_PATH
+from storebot.CustomComponents.custom_button import CustomButton
+from storebot.CustomComponents.custom_select import CustomSelect
+from storebot.CustomComponents.select_ic_view import SelectICView
+from storebot.CustomComponents.view_base import ViewBase
+from storebot.CustomComponents.verification_view import VerificationView
+from storebot.CustomComponents.select_channel_view import SelectChannelView
+from storebot.CustomComponents.slots_manage_view import SlotsManageView
+from storebot.CustomModals.custom_modals import (
     RoleAddModal,
     RoleEditModal,
     XpSettingsModal,
@@ -55,10 +63,8 @@ from CustomModals.custom_modals import (
     ManageMemberCashXpModal,
     OneTextInputModal
 )
-from CustomComponents.select_channel_view import SelectChannelView
-from CustomModals.sale_role_price import SalePriceModal
-from CustomModals.voice_income_modal import VoiceIncomeModal
-from CustomComponents.slots_manage_view import SlotsManageView
+from storebot.CustomModals.sale_role_price import SalePriceModal
+from storebot.CustomModals.voice_income_modal import VoiceIncomeModal
 
 
 languages = {

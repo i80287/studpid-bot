@@ -1,8 +1,11 @@
-import asyncio
-from typing import (
-    NoReturn
-)
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import NoReturn
 
+    from storebot.storebot import StoreBot
+
+import asyncio
 from nextcord import (
     Embed,
     Guild,
@@ -14,13 +17,12 @@ from nextcord.ext.commands import Cog
 
 from nextcord.utils import SnowflakeList
 
-from storebot import StoreBot
-from Tools.db_commands import (
+from storebot.Tools.db_commands import (
     add_member_role_async,
     remove_member_role_async,
     get_server_info_value_async
 )
-from Tools.logger import Logger
+from storebot.Tools.logger import Logger
 
 
 class MembersHandlerCog(Cog):

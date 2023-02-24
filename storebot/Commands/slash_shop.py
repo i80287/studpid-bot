@@ -1,13 +1,23 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import (
+        Optional,
+        Literal
+    )
+
+    from nextcord import Guild
+
+    from storebot.CustomComponents.custom_select import CustomSelect
+    from storebot.storebot import StoreBot
+
 from datetime import datetime, timedelta, timezone
 from sqlite3 import connect, Cursor
 from contextlib import closing
 from random import randint
 from os import urandom
 from time import time
-from typing import (
-    Literal,
-    Optional
-)
+
 
 from nextcord import (
     Embed,
@@ -22,16 +32,13 @@ from nextcord import (
     Member,
     TextChannel
 )
-from nextcord.ext.commands import Bot, Cog
-if __debug__:
-    from nextcord import Guild
-    from CustomComponents.custom_select import CustomSelect
+from nextcord.ext.commands import Cog
 
-from CustomComponents.view_base import ViewBase
-from CustomComponents.custom_button import CustomButton
-from CustomComponents.custom_select import CustomSelectWithOptions
-from CustomComponents.slots_view import SlotsView
-from Tools.db_commands import (
+from storebot.CustomComponents.view_base import ViewBase
+from storebot.CustomComponents.custom_button import CustomButton
+from storebot.CustomComponents.custom_select import CustomSelectWithOptions
+from storebot.CustomComponents.slots_view import SlotsView
+from storebot.Tools.db_commands import (
     get_member_async,
     check_member_async,
     peek_role_free_number,
@@ -41,7 +48,7 @@ from Tools.db_commands import (
     get_server_currency_async,
     get_server_slots_table_async
 )
-from Variables.vars import CWD_PATH
+from storebot.Variables.vars import CWD_PATH
 
 common_text: dict[int, dict[int, str]] = {
     0: {
@@ -704,8 +711,8 @@ class SlashCommandsCog(Cog):
         }
     }
 
-    def __init__(self, bot: Bot) -> None:
-        from config import in_row
+    def __init__(self, bot: StoreBot) -> None:
+        from storebot.config import in_row
         self.in_row: Literal[5] = in_row
 
     @classmethod
@@ -2125,5 +2132,5 @@ class SlashCommandsCog(Cog):
     async def slots_cmd(self, interaction: Interaction) -> None:
         await self.slots(interaction=interaction)
 
-def setup(bot: Bot) -> None:
+def setup(bot: StoreBot) -> None:
     bot.add_cog(SlashCommandsCog(bot))

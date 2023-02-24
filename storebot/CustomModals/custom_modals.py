@@ -1,3 +1,14 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import (
+        Generator,
+        Literal,
+        List,
+        Dict
+    )
+
+
 from sqlite3 import (
     connect,
     Connection,
@@ -5,17 +16,10 @@ from sqlite3 import (
 )
 from contextlib import closing
 from random import randint
-from typing import Literal
 from time import time
-from typing import (
-    Generator,
-    Dict,
-    List
-)
 
 from nextcord import (
     Embed,
-    Message,
     Interaction,
     TextInputStyle
 )
@@ -24,7 +28,7 @@ from nextcord.ui import (
     Modal
 )
 
-from Tools.db_commands import (
+from storebot.Tools.db_commands import (
     peek_role_free_number,
     peek_role_free_numbers,
     add_role_async,
@@ -32,7 +36,7 @@ from Tools.db_commands import (
     RoleInfo,
     PartialRoleInfo
 )
-from Variables.vars import CWD_PATH
+from storebot.Variables.vars import CWD_PATH
 
 r_types: Dict[int, Dict[int, str]] = {
     0: {

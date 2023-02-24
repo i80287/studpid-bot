@@ -5,8 +5,8 @@ from nextcord import (
     Interaction
 )
 
-from CustomComponents.view_base import ViewBase
-from CustomComponents.custom_button import CustomButton
+from storebot.CustomComponents.view_base import ViewBase
+from storebot.CustomComponents.custom_button import CustomButton
 
 class VerificationView(ViewBase):
     def __init__(self, author_id: int, timeout: float | None = 30.0) -> None:
