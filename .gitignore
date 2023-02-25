@@ -2,12 +2,9 @@ bases
 for tests
 additional_files
 
-*.toml
-*.cfg
 *.egg-info
 
 setup.py
-__init__.py
 config.py
 
 *.log
@@ -23,6 +20,5 @@ venv
 __pycache__
 build
 Release
-*.pyd
 *.c
 *.so

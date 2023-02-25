@@ -11,10 +11,10 @@ from asyncio import Lock, sleep
 
 from nextcord import (
     slash_command,
+    Embed,
     Locale,
-    Interaction,
     SlashOption,
-    Embed
+    Interaction
 )
 from nextcord.ext.commands import Cog
 from nextcord.channel import TextChannel
@@ -22,7 +22,7 @@ from nextcord.threads import Thread
 
 from storebot.Tools.logger import Logger
 from storebot.config import OPENAI_API_KEY
-from storebot.Variables.vars import BANNED_WORDS
+from storebot.constants import BANNED_WORDS
 
 openai.api_key = OPENAI_API_KEY
 words_filter: re.Pattern[str] = re.compile(

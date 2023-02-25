@@ -1,31 +1,27 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import (
-        Optional,
-        Union,
+    from nextcord import (
+        Emoji,
+        PartialEmoji,
+        Interaction
     )
 
-    from storebot.CustomComponents.view_base import ViewBase
-
-from nextcord import (
-    ButtonStyle,
-    Interaction,
-    Emoji,
-    PartialEmoji
-)
+from nextcord import ButtonStyle
 from nextcord.ui import Button
+if __debug__:
+    from storebot.CustomComponents.view_base import ViewBase
 
 class CustomButton(Button):    
     def __init__(
         self,
         *,
         style: ButtonStyle = ButtonStyle.secondary,
-        label: Optional[str] = None,
+        label: str | None = None,
         disabled: bool = False,
-        custom_id: Optional[str] = None,
-        emoji: Optional[Union[str, Emoji, PartialEmoji]] = None,
-        row: Optional[int] = None
+        custom_id: str | None = None,
+        emoji: str | Emoji | PartialEmoji | None = None,
+        row: int | None = None
     ) -> None:
         super().__init__(style=style, label=label, disabled=disabled, custom_id=custom_id, emoji=emoji, row=row)
 

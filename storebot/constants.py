@@ -1,6 +1,12 @@
-import os
-CWD_PATH: str = os.getcwd()
-BANNED_WORDS: str = r"""
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import LiteralString
+
+import pathlib
+CWD_PATH: str = pathlib.Path(__file__).parent.resolve().__str__()
+DB_PATH: str = CWD_PATH + "/bases/bases_{0}/{0}.db"
+BANNED_WORDS: LiteralString = r"""
 (relig)|
 (slave)|
 (war)|

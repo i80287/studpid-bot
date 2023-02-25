@@ -1,13 +1,14 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from nextcord import Member
+    from nextcord import Interaction
 
 from abc import ABC, abstractmethod
-from typing import Optional
 
-from nextcord import Interaction, Embed
+from nextcord import Embed
 from nextcord.ui import View
+if __debug__:
+    from nextcord import Member
 
 
 class ViewBase(ABC, View):
@@ -16,7 +17,7 @@ class ViewBase(ABC, View):
         1: "**`Извините, но Вы не можете управлять меню, которое вызвано другим пользователем`**",
     }
 
-    def __init__(self, lng: int, author_id: int, timeout: Optional[float] = 180.0, auto_defer: bool = True) -> None:
+    def __init__(self, lng: int, author_id: int, timeout: float | None = 180.0, auto_defer: bool = True) -> None:
         super().__init__(timeout=timeout, auto_defer=auto_defer)
         self.lng: int = lng
         self.author_id: int = author_id

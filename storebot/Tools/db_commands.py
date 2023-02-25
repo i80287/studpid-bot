@@ -2,14 +2,15 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from collections.abc import Iterable
+    from sqlite3 import Cursor, Row
 
 from dataclasses import dataclass
-from sqlite3 import connect, Cursor, Row
+from sqlite3 import connect
 from aiosqlite import connect as connect_async
 from contextlib import closing
 from itertools import pairwise
 
-from storebot.Variables.vars import CWD_PATH
+from storebot.constants import CWD_PATH
 
 @dataclass(frozen=True)
 class RoleInfo:

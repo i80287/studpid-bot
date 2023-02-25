@@ -1,9 +1,11 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import (
-        Optional,
-        Literal
+    from typing import Literal
+
+    from nextcord import (
+        Guild,
+        Message,
     )
 
     from storebot.storebot import StoreBot
@@ -16,16 +18,14 @@ from time import time
 
 from nextcord import (
     slash_command,
-    Message,
-    Interaction,
     Embed,
     ButtonStyle,
     Colour,
     Locale,
     SlashOption,
     NotFound,
-    Guild,
-    TextChannel
+    TextChannel,
+    Interaction
 )
 from nextcord.ext.commands import Cog
 from nextcord.ui import (
@@ -34,11 +34,11 @@ from nextcord.ui import (
 )
 
 from storebot.Commands.mod_commands import ModCommandsCog
-from storebot.Variables.vars import CWD_PATH
+from storebot.constants import DB_PATH
 
 
 class poll_custom_button(Button):
-    def __init__(self, label: str, disabled: bool, style: ButtonStyle, row: Optional[int] = None) -> None:
+    def __init__(self, label: str, disabled: bool, style: ButtonStyle, row: int | None = None) -> None:
         super().__init__(label=label, disabled=disabled, style=style, row=row)
 
     async def callback(self, interaction: Interaction) -> None:
@@ -84,15 +84,16 @@ class Poll(View):
     def __init__(self, bot: StoreBot) -> None:
         self.thesis: str = ""
         self.n: int = 12
-        self.questions: list[str] = []
+        self.answers: list[str] = []
         self.timeout: int = 0
-        self.poll_final_message: Optional[Message] = None
-        self.timestamp: Optional[datetime] = None
+        self.poll_final_message: Message | None = None
+        self.timestamp: datetime | None = None
         self.verified: bool = False
         self.anon: bool = True
         self.mult: bool = True
         self.lng: Literal[1, 0] = 0
-        self.bot: StoreBot = bot    
+        self.bot: StoreBot = bot
+        self.voters: list[set[int]] = []  
 
     def init_timeout(self) -> None:
         super().__init__(timeout=self.timeout)
@@ -104,7 +105,7 @@ class Poll(View):
         self.add_item(poll_custom_button(label="disapprove", disabled=False, style=ButtonStyle.red, row=(self.n + 4) // 5 + 1))
 
     def init_ans(self) -> None:
-        self.voters: list[set] = [set() for _ in range(self.n)]      
+        self.voters = [set() for _ in range(self.n)]      
 
     async def click_button(self, interaction: Interaction, label: str) -> None:
         if label.isdigit():
@@ -119,7 +120,7 @@ class Poll(View):
         guild: Guild = interaction.guild
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
 
-        with closing(connect(f"{CWD_PATH}/bases/bases_{guild.id}/{guild.id}.db")) as base:
+        with closing(connect(DB_PATH.format(guild.id))) as base:
             with closing(base.cursor()) as cur:
                 if not ModCommandsCog.mod_check(interaction=interaction):
                     await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][11]), ephemeral=True)
@@ -174,7 +175,7 @@ class Poll(View):
             try:
                 await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][4].format(label)), ephemeral=True)
             except NotFound:
-                await sleep(1)
+                await sleep(1.0)
                 try:
                     await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][4].format(label)), ephemeral=True)
                 except:
@@ -182,9 +183,11 @@ class Poll(View):
                 
         else:    
             fl: int = -1
-            for x in range(self.n):
-                if u_id in self.voters[x]:
-                    fl = x
+            for ans_number, voters_set in enumerate(self.voters):
+                if u_id in voters_set:
+                    fl = ans_number
+                    break
+            
             await self.update_votes(interaction=interaction, label=label, val=True)
             self.voters[label-1].add(u_id)
             if fl != -1 and not self.mult:
@@ -244,24 +247,24 @@ class Poll(View):
         max_votes: int = 0
         dsc: list[str] = [""]
         lng: int = self.lng
-        for i in range(self.n):
-            voters_for_ans_i: int = len(self.voters[i])
+        for ans_number, (voters_set, answer) in enumerate(zip(self.voters, self.answers), start=1):
+            voters_for_ans_i: int = len(voters_set)
 
             if voters_for_ans_i == 1:
-                dsc.append(f"{i+1}) {self.questions[i]} - {self.poll_class_text[lng][12].format(voters_for_ans_i)}")
+                dsc.append(f"{ans_number}) {answer} - {self.poll_class_text[lng][12].format(voters_for_ans_i)}")
             else:
-                dsc.append(f"{i+1}) {self.questions[i]} - {self.poll_class_text[lng][10].format(voters_for_ans_i)}")
+                dsc.append(f"{ans_number}) {answer} - {self.poll_class_text[lng][10].format(voters_for_ans_i)}")
 
             if not self.anon and voters_for_ans_i > 0:
                 dsc.append(self.poll_class_text[lng][9])
-                dsc.extend(f"<@{j}>" for j in self.voters[i])
+                dsc.extend(f"<@{j}>" for j in voters_set)
 
             if voters_for_ans_i == max_votes:
-                won_results_numbers.append(i+1)
+                won_results_numbers.append(ans_number)
             elif voters_for_ans_i > max_votes:
                 max_votes = voters_for_ans_i
                 won_results_numbers.clear()
-                won_results_numbers.append(i+1)
+                won_results_numbers.append(ans_number)
         
         won_results_description: list[str] = [f"{self.poll_class_text[lng][6]}"] \
             if len(won_results_numbers) == 1 else [f"{self.poll_class_text[lng][7]}"]
@@ -269,7 +272,7 @@ class Poll(View):
         votes_for_won_results: str = self.poll_class_text[lng][12].format(max_votes) \
             if max_votes == 1 else self.poll_class_text[lng][10].format(max_votes)
 
-        won_results_description.extend(f"{won_res_number}) {self.questions[won_res_number-1]} - {votes_for_won_results}" for won_res_number in won_results_numbers)
+        won_results_description.extend(f"{won_res_number}) {self.answers[won_res_number-1]} - {votes_for_won_results}" for won_res_number in won_results_numbers)
         won_results_description.append(f"{self.poll_class_text[lng][8]}")
         dsc[0] = '\n'.join(won_results_description)
         
@@ -554,7 +557,7 @@ class PollCog(Cog):
         assert interaction.user is not None
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         g_id: int = interaction.guild_id
-        with closing(connect(f"{CWD_PATH}/bases/bases_{g_id}/{g_id}.db")) as base:
+        with closing(connect(DB_PATH.format(g_id))) as base:
             with closing(base.cursor()) as cur:
                 chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
                 if not chnl_id or not isinstance(chnl := interaction.guild.get_channel(chnl_id), TextChannel):
@@ -570,53 +573,47 @@ class PollCog(Cog):
         poll.timeout = 3600 * hours + 60 * minutes
         poll.init_timeout()
 
-        if answer1: poll.questions.append(answer1)
-        if answer2: poll.questions.append(answer2)
-        if answer3: poll.questions.append(answer3)
-        if answer4: poll.questions.append(answer4)
-        if answer5: poll.questions.append(answer5)
-        if answer6: poll.questions.append(answer6)
-        if answer7: poll.questions.append(answer7)
-        if answer8: poll.questions.append(answer8)
-        if answer9: poll.questions.append(answer9)
-        if answer10: poll.questions.append(answer10)
-        if answer11: poll.questions.append(answer11)
-        if answer12: poll.questions.append(answer12)
-        poll.n = len(poll.questions)
+        if answer1: poll.answers.append(answer1)
+        if answer2: poll.answers.append(answer2)
+        if answer3: poll.answers.append(answer3)
+        if answer4: poll.answers.append(answer4)
+        if answer5: poll.answers.append(answer5)
+        if answer6: poll.answers.append(answer6)
+        if answer7: poll.answers.append(answer7)
+        if answer8: poll.answers.append(answer8)
+        if answer9: poll.answers.append(answer9)
+        if answer10: poll.answers.append(answer10)
+        if answer11: poll.answers.append(answer11)
+        if answer12: poll.answers.append(answer12)
+        poll.n = len(poll.answers)
         poll.thesis = question
-        
-        if anon in {"да", "yes"}:
-            poll.anon = True
-        else:
-            poll.anon = False
-        
-        if mult in {"да", "yes"}:
-            poll.mult = True
-        else:
-            poll.mult = False
 
+        poll.anon = True if anon in {"да", "yes"} else False
+        poll.mult = True if mult in {"да", "yes"} else False
+
+        local_text: dict[int, str] = self.polls_text[lng]
         poll_description: list[str] = [f"**{question}**"]
         if poll.anon:
-            poll_description.append(f"**`{self.polls_text[lng][4]}`**")
+            poll_description.append(f"**`{local_text[4]}`**")
         else: 
-            poll_description.append(f"**`{self.polls_text[lng][5]}`**")        
+            poll_description.append(f"**`{local_text[5]}`**")        
         if poll.mult:
-            poll_description.append(f"**`{self.polls_text[lng][6]}`**")
+            poll_description.append(f"**`{local_text[6]}`**")
         else:
-            poll_description.append(f"**`{self.polls_text[lng][7]}`**")
-        poll_description.append(self.polls_text[lng][8].format(interaction.user.id))
+            poll_description.append(f"**`{local_text[7]}`**")
+        poll_description.append(local_text[8].format(interaction.user.id))
         
         emb: Embed = Embed(description='\n'.join(poll_description), timestamp=poll.timestamp)
-        for i, i_question in enumerate(poll.questions):
-            emb.add_field(name=f"{i+1} {self.polls_text[lng][2]}", value=f"{i_question}\n{self.polls_text[lng][3]}")
-        emb.set_author(name=self.polls_text[lng][3])
+        for i, i_answer in enumerate(poll.answers):
+            emb.add_field(name=f"{i+1} {local_text[2]}", value=f"{i_answer}\n{local_text[3]}")
+        emb.set_author(name=local_text[3])
 
         poll.lng = lng
         poll.init_timeout()
         poll.init_buttons()
         poll.init_ans()
         await chnl.send(view=poll, embed=emb)
-        await interaction.response.send_message(embed=Embed(description=self.polls_text[lng][9], colour=Colour.dark_purple()), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=local_text[9], colour=Colour.dark_purple()), ephemeral=True)
 
 
 def setup(bot: StoreBot) -> None:

@@ -6,7 +6,7 @@ from Cython.Build import cythonize
 import Cython.Compiler.Options as CompilerOpts
 
 """
-Usage: python ./cython_setup.py build_ext --build-lib ./Tools
+Usage: python ./cython_setup.py
 """
 
 CompilerOpts.cimport_from_pyx = False
@@ -25,13 +25,20 @@ compiler_directives: dict[str, int] = {
     "optimize.use_switch": True,
 }
 
+import pathlib
+dir_path: pathlib.Path = pathlib.Path(__file__).parent.resolve() / "Tools"
+
 parse_tools_ext: Extension = Extension(
     name="parse_tools", 
-    sources=[os.path.join(f'.{os.sep}Tools', "parse_tools.pyx")],
+    sources=[str(dir_path / "parse_tools.pyx")],
     language="c",
 )
 
 extensions: list[Extension] = [parse_tools_ext]
+
+import sys
+if "build_ext" not in sys.argv:
+    sys.argv.extend(["build_ext", "--build-lib", dir_path.__str__()])
 
 setup(
     ext_modules=cythonize(

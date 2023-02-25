@@ -3,24 +3,22 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import (
         Generator,
-        Literal,
-        List,
-        Dict
+        Literal
     )
 
+    from nextcord import Interaction
 
 from sqlite3 import (
     connect,
     Connection,
     Cursor
 )
+from os import urandom
 from contextlib import closing
-from random import randint
 from time import time
 
 from nextcord import (
     Embed,
-    Interaction,
     TextInputStyle
 )
 from nextcord.ui import (
@@ -36,9 +34,9 @@ from storebot.Tools.db_commands import (
     RoleInfo,
     PartialRoleInfo
 )
-from storebot.Variables.vars import CWD_PATH
+from storebot.constants import DB_PATH
 
-r_types: Dict[int, Dict[int, str]] = {
+r_types: dict[int, dict[int, str]] = {
     0: {
         1: "Nonstacking, displayed separated",
         2: "Stacking, countable",
@@ -51,7 +49,7 @@ r_types: Dict[int, Dict[int, str]] = {
     }
 }
 
-ranking_text: Dict[int, Dict[int, str]] = {
+ranking_text: dict[int, dict[int, str]] = {
     0: {
         7: "Managing xp settings",
         8: "Xp per message",
@@ -85,7 +83,7 @@ ranking_text: Dict[int, Dict[int, str]] = {
 }
 
 class ManageRoleModalBase(Modal):
-    manage_role_modals_text: Dict[int, Dict[int, str]] = { 
+    manage_role_modals_text: dict[int, dict[int, str]] = { 
         0: {
             0: "Adding role",
             10: "Role's price",
@@ -199,7 +197,7 @@ class RoleAddModal(ManageRoleModalBase):
         
         salary_and_cooldown: str | None = self.salary_text_input.value
         if salary_and_cooldown:
-            s_ans: List[str] = salary_and_cooldown.split()
+            s_ans: list[str] = salary_and_cooldown.split()
             if len(s_ans) != 2:
                 errors_bit_mask |= 0b000010
             else:
@@ -237,7 +235,7 @@ class RoleAddModal(ManageRoleModalBase):
  
         errors_bit_mask: int = self.verify_user_input()
         if errors_bit_mask:
-            report: List[str] = []
+            report: list[str] = []
             if errors_bit_mask & 0b000001:
                 report.append(self.manage_role_modals_text[lng][18])
             if errors_bit_mask & 0b000010:
@@ -313,7 +311,7 @@ class RoleEditModal(ManageRoleModalBase):
             placeholder=self.manage_role_modals_text[lng][11],
             default_value=str(price),
             required=True,
-            custom_id=f"7101_{auth_id}_{randint(1, 100)}"
+            custom_id=f"7101_{auth_id}_" + urandom(4).hex()
         )
         default_salary = None if not salary else f"{salary} {salary_cooldown // 3600}"
         self.salary_text_input = TextInput(
@@ -324,7 +322,7 @@ class RoleEditModal(ManageRoleModalBase):
             placeholder=self.manage_role_modals_text[lng][13],
             default_value=default_salary,
             required=False,
-            custom_id=f"7102_{auth_id}_{randint(1, 100)}"
+            custom_id=f"7102_{auth_id}_" + urandom(4).hex()
         )
         self.r_type_text_input = TextInput(
             label=self.manage_role_modals_text[lng][14],
@@ -334,7 +332,7 @@ class RoleEditModal(ManageRoleModalBase):
             placeholder=self.manage_role_modals_text[lng][26],
             default_value=str(r_t),
             required=False,
-            custom_id=f"7103_{auth_id}_{randint(1, 100)}"
+            custom_id=f"7103_{auth_id}_" + urandom(4).hex()
         )
         self.in_store_amount_text_input = TextInput(
             label=self.manage_role_modals_text[lng][27],
@@ -344,7 +342,7 @@ class RoleEditModal(ManageRoleModalBase):
             placeholder=self.manage_role_modals_text[lng][28],
             default_value=str(in_store),
             required=True,
-            custom_id=f"7104_{auth_id}_{randint(1, 100)}"
+            custom_id=f"7104_{auth_id}_" + urandom(4).hex()
         )
         self.additional_salary_text_input = TextInput(
             label=self.manage_role_modals_text[lng][15],
@@ -466,7 +464,7 @@ class RoleEditModal(ManageRoleModalBase):
                 self.stop()
                 return
 
-        with closing(connect(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        with closing(connect(DB_PATH.format(guild_id))) as base:
             with closing(base.cursor()) as cur:
                 cur.execute(
                     "UPDATE server_roles SET price = ?, salary = ?, salary_cooldown = ?, type = ?, additional_salary = ? WHERE role_id = ?",
@@ -512,7 +510,7 @@ class RoleEditModal(ManageRoleModalBase):
             cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                         (free_number, r, l, price, t, salary, salary_c, 2))
         elif r_type == 1:
-            free_numbers: List[int] = peek_role_free_numbers(cur, l)
+            free_numbers: list[int] = peek_role_free_numbers(cur, l)
             inserting_roles: Generator[tuple[int, int, Literal[1], int, int, int, int, Literal[1]], None, None] = ((free_number, r, 1, price, t, salary, salary_c, 1) for free_number in free_numbers)
             cur.executemany(
                 "INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
@@ -538,14 +536,14 @@ class RoleEditModal(ManageRoleModalBase):
         elif r_type == 1:
             roles_amount_change: int = l - l_prev
             if roles_amount_change > 0:
-                free_numbers: List[int] = peek_role_free_numbers(cur, roles_amount_change)
+                free_numbers: list[int] = peek_role_free_numbers(cur, roles_amount_change)
                 inserting_roles = ((free_number, r, 1, price, t, salary, salary_c, 1) for free_number in free_numbers)
                 cur.executemany("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                                 inserting_roles)
             elif not roles_amount_change:
                 cur.execute("UPDATE store SET price = ?, last_date = ?, salary = ?, salary_cooldown = ? WHERE role_id = ?", (price, t, salary, salary_c, r))
             else:
-                sorted_rls_to_delete: List[tuple[int]] = cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r,)).fetchall()[:-roles_amount_change]
+                sorted_rls_to_delete: list[tuple[int]] = cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r,)).fetchall()[:-roles_amount_change]
                 rows: str = ", ".join({str(x[0]) for x in sorted_rls_to_delete})
                 cur.execute(f"DELETE FROM store WHERE rowid IN ({rows})")
         elif r_type == 3:
@@ -583,7 +581,7 @@ class RoleEditModal(ManageRoleModalBase):
 
 
 class ManageMemberCashXpModal(Modal):
-    mng_membs_text: Dict[int, Dict[int, str]] = {
+    mng_membs_text: dict[int, dict[int, str]] = {
         0: {
             0: "Change cash/xp",
             1: "Cash",
@@ -632,7 +630,7 @@ class ManageMemberCashXpModal(Modal):
     }
 
     def __init__(self, timeout: int, title: str, lng: int, memb_id: int, cur_money: int, cur_xp: int, auth_id: int) -> None:
-        super().__init__(title=title, timeout=timeout, custom_id=f"8100_{auth_id}_{randint(1, 100)}")
+        super().__init__(title=title, timeout=timeout, custom_id=f"8100_{auth_id}_" + urandom(4).hex())
         self.is_changed: bool = False
         self.memb_id: int = memb_id
 
@@ -648,7 +646,7 @@ class ManageMemberCashXpModal(Modal):
             min_length=1,
             max_length=9,
             required=True,
-            custom_id=f"8101_{auth_id}_{randint(1, 100)}"
+            custom_id=f"8101_{auth_id}_" + urandom(4).hex()
         )
         self.xp_text_input: TextInput = TextInput(
             label=self.mng_membs_text[lng][13],
@@ -657,7 +655,7 @@ class ManageMemberCashXpModal(Modal):
             min_length=1,
             max_length=9,
             required=True,
-            custom_id=f"8102_{auth_id}_{randint(1, 100)}"
+            custom_id=f"8102_{auth_id}_" + urandom(4).hex()
         )
         self.add_item(self.cash_text_input)
         self.add_item(self.xp_text_input)
@@ -683,7 +681,7 @@ class ManageMemberCashXpModal(Modal):
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         errors_bit_mask: int = self.verify_user_input()
         if errors_bit_mask:
-            report: List[str] = []
+            report: list[str] = []
             if errors_bit_mask & 0b01:
                 report.append(self.mng_membs_text[lng][14])
             if errors_bit_mask & 0b10:
@@ -696,21 +694,21 @@ class ManageMemberCashXpModal(Modal):
         xp: int = self.new_xp
         self.is_changed = True
         if cash != self.st_cash and xp != self.st_xp:
-            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
                 with closing(base.cursor()) as cur:  
                     cur.execute("UPDATE users SET money = ?, xp = ? WHERE memb_id = ?", (cash, xp, self.memb_id))
                     base.commit()
             await interaction.response.send_message(embed=Embed(description=self.mng_membs_text[lng][16].format(self.memb_id, cash, xp)), ephemeral=True)
 
         elif cash != self.st_cash:
-            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
                 with closing(base.cursor()) as cur:  
                     cur.execute("UPDATE users SET money = ? WHERE memb_id = ?", (cash, self.memb_id))
                     base.commit()
             await interaction.response.send_message(embed=Embed(description=self.mng_membs_text[lng][17].format(self.memb_id, cash)), ephemeral=True)
 
         elif xp != self.st_xp:
-            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
                 with closing(base.cursor()) as cur:  
                     cur.execute("UPDATE users SET xp = ? WHERE memb_id = ?", (xp, self.memb_id))
                     base.commit()
@@ -720,7 +718,7 @@ class ManageMemberCashXpModal(Modal):
 
 class XpSettingsModal(Modal):
     def __init__(self, timeout: int, lng: int, auth_id: int, g_id: int, cur_xp: int, cur_xpb: int) -> None:
-        super().__init__(title=ranking_text[lng][7], timeout=timeout, custom_id=f"9100_{auth_id}_{randint(1, 100)}")
+        super().__init__(title=ranking_text[lng][7], timeout=timeout, custom_id=f"9100_{auth_id}_" + urandom(4).hex())
         self.xp_text_input = TextInput(
             label=ranking_text[lng][8],
             placeholder=ranking_text[lng][9],
@@ -728,7 +726,7 @@ class XpSettingsModal(Modal):
             min_length=1,
             max_length=3,
             required=True,
-            custom_id=f"9101_{auth_id}_{randint(1, 100)}"
+            custom_id=f"9101_{auth_id}_" + urandom(4).hex()
         )
         self.xp_b_text_input = TextInput(
             label=ranking_text[lng][10],
@@ -737,7 +735,7 @@ class XpSettingsModal(Modal):
             min_length=1,
             max_length=5,
             required=True,
-            custom_id=f"9102_{auth_id}_{randint(1, 100)}"
+            custom_id=f"9102_{auth_id}_" + urandom(4).hex()
         )
         self.add_item(self.xp_text_input)
         self.add_item(self.xp_b_text_input)
@@ -770,7 +768,7 @@ class XpSettingsModal(Modal):
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         errors_bit_mask: int = self.verify_user_input()
         if errors_bit_mask:
-            report: List[str] = []
+            report: list[str] = []
             if errors_bit_mask & 0b01:
                 report.append(ranking_text[lng][12])
             if errors_bit_mask & 0b10:
@@ -782,8 +780,8 @@ class XpSettingsModal(Modal):
         xp: int = self.new_xp
         xp_border: int = self.new_xp_b
         if self.old_xp != xp or self.old_xpb != xp_border:
-            rep: List[str] = []
-            with closing(connect(f"{CWD_PATH}/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+            rep: list[str] = []
+            with closing(connect(DB_PATH.format(self.g_id))) as base:
                 with closing(base.cursor()) as cur:
                     if self.old_xp != xp:
                         cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_per_msg'", (xp,))
@@ -801,13 +799,13 @@ class XpSettingsModal(Modal):
 
 class SelectLevelModal(Modal):
     def __init__(self, lng: int, auth_id: int, timeout: int) -> None:
-        super().__init__(title=ranking_text[lng][24], timeout=timeout, custom_id=f"11100_{auth_id}_{randint(1, 100)}")
+        super().__init__(title=ranking_text[lng][24], timeout=timeout, custom_id=f"11100_{auth_id}_" + urandom(4).hex())
         self.lng: int = lng
         self.level: int | None = None
         self.level_selection = TextInput(
             label=ranking_text[lng][24],
             style=TextInputStyle.short,
-            custom_id=f"11101_{auth_id}_{randint(1, 100)}",
+            custom_id=f"11101_{auth_id}_" + urandom(4).hex(),
             min_length=1,
             max_length=3,
             required=True,

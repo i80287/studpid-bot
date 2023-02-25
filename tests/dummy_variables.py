@@ -1,8 +1,17 @@
-from asyncio import AbstractEventLoop
-from typing import Literal, Optional, List, Any, Dict
+import asyncio
+from typing import Literal, Optional, List, Any, Dict, Iterator
 
-from nextcord import Guild, Role, Interaction, InteractionType, Embed, File, AllowedMentions
+from nextcord import utils
+from nextcord.file import File
+from nextcord.flags import ApplicationFlags
+from nextcord.mentions import AllowedMentions
+from nextcord.guild import Guild
+from nextcord.embeds import Embed
+from nextcord.enums import InteractionType
+from nextcord.interactions import Interaction
+from nextcord.role import Role
 from nextcord.ui import View
+from nextcord.user import ClientUser
 from nextcord.interactions import InteractionResponse, _InteractionMessageState, PartialInteractionMessage
 from nextcord.errors import InteractionResponded, InvalidArgument
 from nextcord.types.guild import Guild as GuildPayloads
@@ -11,11 +20,12 @@ from nextcord.types.interactions import Interaction as InteractionPayLoads, Appl
 from nextcord.types.member import Member as MemberPayLoads
 from nextcord.types.user import User as UserPayloads
 from nextcord.state import ConnectionState
-from nextcord.http import HTTPClient
+
+from storebot.storebot import StoreBot
 
 USER_ID: Literal[324902349023] = 324902349023
 USER_USERNAME: Literal['3384924892304'] = "3384924892304"
-USER_DISCRIMINATOR: Literal['382492839439'] = "382492839439"
+USER_DISCRIMINATOR: Literal['3384'] = "3384"
 USER_EMAIL: Literal['abc@nextcord.org'] = "abc@nextcord.org"
 
 APPLICATION_ID: Literal[234234234] = 234234234
@@ -32,7 +42,8 @@ GUILD_PUBLIC_UPDATES_CHANNEL_ID: Literal[32982394089] = 32982394089
 GUILD_ROLES_COLOR: Literal[42] = 42
 GUILD_ROLES_PERMISSIONS: Literal['65536'] = "65536"
 GUILD_ROLES_COUNT: Literal[16] = 16
-GUILD_ROLES_IDS: list[int] = [i + 42 for i in range(GUILD_ROLES_COUNT)]
+GUILD_ROLES_IDS: list[int] = [GUILD_ID] + [i << 32 for i in range(1, GUILD_ROLES_COUNT)]
+GUILD_ROLES_NAMES: list[str] = ["@everyone"] + ["role {0}".format(i) for i in range(1, GUILD_ROLES_COUNT)]
 
 GUILD_MEMBER_AVATAR: Literal['https://unix.png'] = "https://unix.png"
 GUILD_MEMBER_NICK: Literal['3423989072384'] = "3423989072384"
@@ -49,10 +60,76 @@ INTERACTION_CHANNEL_ID: Literal[328293489023] = 328293489023
 GUILD_MEMBER_LOCALE: Literal['en-US'] = "en-US"
 GUILD_LOCALE: Literal['en-US'] = "en-US"
 
-def dummy_dispatcher() -> None:
-    return
+BOT_ID: Literal[8054885002459] = 8054885002459
+BOT_NAME: Literal['storebot'] = "storebot"
+BOT_DISCRIMINATOR: Literal['8054'] = "8054"
 
-dummy_guild_payloads: GuildPayloads = GuildPayloads(
+guild_roles_ids: Iterator[int] = iter(GUILD_ROLES_IDS)
+guild_roles_names: Iterator[str] = iter(GUILD_ROLES_NAMES)
+guild_roles_positions: Iterator[int] = iter(range(1, GUILD_ROLES_COUNT + 1))
+
+dummy_roles_payloads: list[RolePayloads] = [
+    RolePayloads(
+        id=next(guild_roles_ids),
+        name=next(guild_roles_names),
+        color=GUILD_ROLES_COLOR,
+        hoist=True,
+        position=next(guild_roles_positions),
+        permissions=GUILD_ROLES_PERMISSIONS,
+        managed=True,
+        mentionable=True
+    ) for _ in range(GUILD_ROLES_COUNT)
+]
+
+GUILD_MEMBER_ROLES: list[int | str] = [role["id"] for role in dummy_roles_payloads[1:GUILD_MEMBER_ROLES_COUNT + 1]] # skip @everyone role
+
+user_payloads: UserPayloads = UserPayloads(
+    id=USER_ID,
+    username=USER_USERNAME,
+    discriminator=USER_DISCRIMINATOR,
+    avatar=None,
+    bot=False,
+    system=False,
+    mfa_enabled=False,
+    verified=True,
+    email=USER_EMAIL,
+    premium_type=0
+)
+
+member_payloads: MemberPayLoads = MemberPayLoads(
+    user=user_payloads,
+    roles=GUILD_MEMBER_ROLES,
+    joined_at="",
+    deaf="",
+    mute="",
+    avatar=GUILD_MEMBER_AVATAR,
+    nick=GUILD_MEMBER_NICK
+)
+
+bot_user_payloads: UserPayloads = UserPayloads(
+    id=BOT_ID,
+    username=BOT_NAME,
+    discriminator=BOT_DISCRIMINATOR,
+    avatar=None,
+    bot=True,
+    system=False,
+    mfa_enabled=False,
+    verified=False,
+    email=None,
+    premium_type=0
+)
+
+bot_member_payloads: MemberPayLoads = MemberPayLoads(
+    user=bot_user_payloads,
+    roles=[],
+    joined_at="",
+    deaf="",
+    mute="",
+    avatar="",
+    nick=bot_user_payloads["username"]
+)
+
+guild_payloads: GuildPayloads = GuildPayloads(
     id=GUILD_ID,
     name=GUILD_NAME,
     icon=None,
@@ -68,7 +145,7 @@ dummy_guild_payloads: GuildPayloads = GuildPayloads(
     verification_level=0,
     default_message_notifications=0,
     explicit_content_filter=0,
-    roles=[],
+    roles=dummy_roles_payloads,
     mfa_level=0,
     nsfw_level=0,
     application_id=APPLICATION_ID,
@@ -81,73 +158,47 @@ dummy_guild_payloads: GuildPayloads = GuildPayloads(
     preferred_locale="str",
     public_updates_channel_id=GUILD_PUBLIC_UPDATES_CHANNEL_ID,
     guild_scheduled_events=[],
-)
-dummy_conn_state: ConnectionState = ConnectionState(dispatch=dummy_dispatcher, handlers={}, hooks={}, http=HTTPClient(dispatch=dummy_dispatcher), loop=AbstractEventLoop())
-dummy_guild: Guild = Guild(data=dummy_guild_payloads, state=dummy_conn_state)
-
-roles_positions: list[int] = list(range(1, GUILD_ROLES_COUNT + 1))
-dummy_roles_payloads: list[RolePayloads] = [
-    RolePayloads(
-        id=GUILD_ROLES_IDS.pop(),
-        name="",
-        color=GUILD_ROLES_COLOR,
-        hoist=True,
-        position=roles_positions.pop(),
-        permissions=GUILD_ROLES_PERMISSIONS,
-        managed=True,
-        mentionable=True
-    ) for _ in range(GUILD_ROLES_COUNT)
-]
-
-dummy_roles: list[Role] = [Role(guild=dummy_guild, state=dummy_conn_state, data=role_payload) for role_payload in dummy_roles_payloads]
-dummy_guild._roles = {role.id: role for role in dummy_roles}
-GUILD_MEMBER_ROLES: list[int | str] = [role.id for role in dummy_roles[:GUILD_MEMBER_ROLES_COUNT]]
-
-dummy_user_payloads: UserPayloads = UserPayloads(
-    id=USER_ID,
-    username=USER_USERNAME,
-    discriminator=USER_DISCRIMINATOR,
-    avatar=None,
-    bot=False,
-    system=False,
-    mfa_enabled=False,
-    verified=True,
-    email=USER_EMAIL,
-    premium_type=0
-)
-membed_payloads: MemberPayLoads = MemberPayLoads(
-    user=dummy_user_payloads,
-    roles=GUILD_MEMBER_ROLES,
-    joined_at="",
-    deaf="",
-    mute="",
-    avatar=GUILD_MEMBER_AVATAR,
-    nick=GUILD_MEMBER_NICK
+    members=[member_payloads, bot_member_payloads]
 )
 
-dummy_interaction_payloads: InteractionPayLoads = InteractionPayLoads(
-    id=INTERACTION_ID,
-    application_id=APPLICATION_ID,
-    type=INTERACTION_TYPE,
-    token=INTERACTION_TOKEN,
-    version=INTERACTION_VERSION,
-    data=ApplicationCommandInteractionData(
-        id=APPLICATION_COMMAND_ID,
-        name=APPLICATION_COMMAND_NAME,
-        type=1
-    ),
-    guild_id=GUILD_ID,
-    channel_id=INTERACTION_CHANNEL_ID,
-    member=membed_payloads,
-    user=dummy_user_payloads,
-    locale=GUILD_MEMBER_LOCALE,
-    guild_locale=GUILD_LOCALE
-)
+bot: StoreBot = StoreBot()
+conn_state: ConnectionState = bot._connection
+data: dict[str, Any] = {
+    "user": bot_user_payloads,
+    "guilds": [guild_payloads]
+}
+
+# immitate conn_state.parse_ready(data)
+if conn_state._ready_task is not None:
+    conn_state._ready_task.cancel()
+
+conn_state._ready_state = asyncio.Queue()
+conn_state.clear(views=False)
+conn_state.user = ClientUser(state=conn_state, data=data["user"])
+conn_state.store_user(data["user"])
+
+if conn_state.application_id is None:
+    try:
+        application = data["application"]
+    except KeyError:
+        pass
+    else:
+        conn_state.application_id = utils.get_as_snowflake(application, "id")
+        # flags will always be present here
+        conn_state.application_flags = ApplicationFlags._from_value(application["flags"])
+
+for guild_data in data["guilds"]:
+    conn_state._add_guild_from_data(guild_data)
+# end immitate
+
+guild: Guild = bot.guilds[0]
+GUILD_ROLES: list[Role] = guild.roles
 
 class DummyInteraction(Interaction):
     def __init__(self, *, data: InteractionPayLoads, state: ConnectionState) -> None:
         super().__init__(data=data, state=state)
         self.dummy_interaction_response: DummyInteractionResponse = DummyInteractionResponse(self)
+        self._payload: dict[str, Any] = {}
 
     @property
     def response(self) -> InteractionResponse:
@@ -157,9 +208,17 @@ class DummyInteraction(Interaction):
         instead.
         """
         return self.dummy_interaction_response
+    
+    @property
+    def payload(self) -> dict[str, Any]:
+        return self._payload
+
+    @payload.setter
+    def payload(self, value: dict[str, Any]) -> None:
+        self._payload = value
 
 class DummyInteractionResponse(InteractionResponse):
-    def __init__(self, parent: Interaction) -> None:
+    def __init__(self, parent: DummyInteraction) -> None:
         super().__init__(parent)
     
     async def send_message(
@@ -175,7 +234,7 @@ class DummyInteractionResponse(InteractionResponse):
         ephemeral: bool = False,
         delete_after: Optional[float] = None,
         allowed_mentions: Optional[AllowedMentions] = None,
-    ) -> tuple[PartialInteractionMessage, dict[str, Any]]:
+    ) -> PartialInteractionMessage:
         if self._responded:
             raise InteractionResponded(self._parent)
 
@@ -238,6 +297,27 @@ class DummyInteractionResponse(InteractionResponse):
             await self._parent.delete_original_message(delay=delete_after)
 
         state: _InteractionMessageState = _InteractionMessageState(self._parent, self._parent._state)
-        return (PartialInteractionMessage(state), payload)
+        if isinstance(self._parent, DummyInteraction):
+            self._parent.payload = payload
 
-dummy_interaction: DummyInteraction = DummyInteraction(data=dummy_interaction_payloads, state=dummy_conn_state)
+        return PartialInteractionMessage(state)
+
+def build_interaction_payloads() -> InteractionPayLoads:
+    return InteractionPayLoads(
+        id=INTERACTION_ID,
+        application_id=APPLICATION_ID,
+        type=INTERACTION_TYPE,
+        token=INTERACTION_TOKEN,
+        version=INTERACTION_VERSION,
+        data=ApplicationCommandInteractionData(
+            id=APPLICATION_COMMAND_ID,
+            name=APPLICATION_COMMAND_NAME,
+            type=1
+        ),
+        guild_id=GUILD_ID,
+        channel_id=INTERACTION_CHANNEL_ID,
+        member=member_payloads,
+        user=user_payloads,
+        locale=GUILD_MEMBER_LOCALE,
+        guild_locale=GUILD_LOCALE
+    )

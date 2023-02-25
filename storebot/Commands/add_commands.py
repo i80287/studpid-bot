@@ -2,14 +2,11 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from datetime import datetime
-    from typing import (
-        Literal,
-        Dict,
-        List
-    )
+    from typing import Literal
+
     from nextcord import (
+        Role,
         Guild,
-        Role
     )
     from storebot.storebot import StoreBot
 
@@ -20,10 +17,10 @@ from nextcord import (
     Colour,
     Member,
     SlashOption,
-    Interaction,
     Status,
     slash_command,
-    Locale
+    Locale,
+    Interaction
 )
 from nextcord.ext.commands import Cog
 from storebot.Tools import db_commands
@@ -31,7 +28,7 @@ from storebot.Tools.parse_tools import parse_emoji
 
 
 class AdditionalCommandsCog(Cog):
-    text_slash: Dict[int, Dict[int, str]] = {
+    text_slash: dict[int, dict[int, str]] = {
         0: {
             0: "Error",
             1: "Help menu",
@@ -143,11 +140,11 @@ class AdditionalCommandsCog(Cog):
         "<a:emoji:995806881048170518>", "<:sticker:995806680505921639>",  "<:summ:995804781006290974>",
         "<:online:995823257993363587>", "<:idle:995823256621813770>", "<:dnd:995823255199957032>", "<:offline:995823253878738944>"
     )
-    months: Dict[int, List[str]] = {
+    months: dict[int, list[str]] = {
         0: ["January {}", "February {}", "Mart {}", "April {}", "May {}", "June {}", "Jule {}", "August {}", "September {}", "October {}", "November {}", "December {}"],
         1: ["{} Января", "{} Февраля", "{} Марта", "{} Апреля", "{} Мая", "{} Июня", "{} Июля", "{} Августа", "{} Сентября", "{} Октября", "{} Ноября", "{} Декабря"]
     }
-    server_info_text: Dict[int, Dict[int, str]] = {
+    server_info_text: dict[int, dict[int, str]] = {
         0: {
             0: "Members' info",
             1: "Users",
@@ -195,7 +192,7 @@ class AdditionalCommandsCog(Cog):
             20: "Бустеры сервера и уровень буста"
         }
     }
-    member_info_description_lines: Dict[int, Dict[int, str]] = {
+    member_info_description_lines: dict[int, dict[int, str]] = {
         0: {
             0: "**User:** <@{0}> **`{0}`**",
             1: "**Pfp url is:** [Link to php]({0})",
@@ -310,16 +307,16 @@ class AdditionalCommandsCog(Cog):
         ca: datetime = guild.created_at
         time: str = f"{ca.strftime('%Y-%m-%d %H:%M:%S')}\n{self.months[lng][ca.month-1].format(ca.day)}, {ca.year}"
         
-        vls: List = [len(guild.humans), len(guild.bots), len(guild.text_channels), len(guild.voice_channels), len(guild.emojis), len(guild.stickers),
+        vls: list[int | str] = [len(guild.humans), len(guild.bots), len(guild.text_channels), len(guild.voice_channels), len(guild.emojis), len(guild.stickers),
         time, guild.verification_level, guild.filesize_limit >> 20, f"`{len(guild.premium_subscribers)}` - `{guild.premium_tier}{self.text_slash[lng][6]}`"]
 
         if guild.icon is not None:
             emb.set_thumbnail(url=guild.icon.url)
         
-        lc_s: Dict[int, str] = self.server_info_text[lng]
-        for i in (0,):
-            emb.add_field(name=lc_s[i * 4], value=f"{self.emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{self.emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\
-            \n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`") # type: ignore
+        lc_s: dict[int, str] = self.server_info_text[lng]
+        i: int = 0
+        emb.add_field(name=lc_s[i * 4], value=f"{self.emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{self.emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\
+        \n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`") # type: ignore
 
         emb.add_field(name=lc_s[12], value=f"{self.emojis[9]}`{lc_s[13]}` - `{onl}`\n{self.emojis[10]}`{lc_s[14]}` - `{idl}`\n{self.emojis[11]}`{lc_s[15]}` - `{dnd}`\n{self.emojis[12]}`{lc_s[16]}` - `{ofl}`")
 
@@ -371,7 +368,7 @@ class AdditionalCommandsCog(Cog):
 
         member_id: int = member.id
         await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=member_id)
-        info_description_lines: Dict[int, str] = self.member_info_description_lines[lng]
+        info_description_lines: dict[int, str] = self.member_info_description_lines[lng]
         description_lines: list[str] = [
             info_description_lines[0].format(member_id),
             info_description_lines[1].format(member.display_avatar.url),
@@ -437,7 +434,7 @@ class AdditionalCommandsCog(Cog):
             await self.member_info(interaction, interaction.user)
             return
 
-        info_description_lines: Dict[int, str] = self.member_info_description_lines[lng]
+        info_description_lines: dict[int, str] = self.member_info_description_lines[lng]
         user_id: int = user.id
         user_name: str = user.name
         avatar_url: str = user.display_avatar.url

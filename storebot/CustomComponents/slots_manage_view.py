@@ -1,8 +1,12 @@
-from random import randrange
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nextcord import Interaction
+
+from os import urandom
 
 from nextcord import (
     Embed,
-    Interaction,
     ButtonStyle
 )
 
@@ -26,13 +30,13 @@ class SlotsManageView(ViewBase):
         super().__init__(lng=lng, author_id=author_id, timeout=90)
         self.add_item(CustomButton(
             style=ButtonStyle.gray,
-            custom_id=f"65_{author_id}_{randrange(1000)}",
+            custom_id=f"65_{author_id}_" + urandom(4).hex(),
             emoji="💱"
         ))
         # TODO
         # self.add_item(CustomButton(
         #     style=ButtonStyle.danger,
-        #     custom_id=f"66_{author_id}_{randrange(1000)}",
+        #     custom_id=f"66_{author_id}_" + urandom(4).hex(),
         #     emoji="🎰"
         # ))
         self.slots_table: dict[int, int] = slots_table

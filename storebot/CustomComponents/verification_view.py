@@ -1,9 +1,11 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nextcord import Interaction
+
 from os import urandom
 
-from nextcord import (
-    ButtonStyle,
-    Interaction
-)
+from nextcord import ButtonStyle
 
 from storebot.CustomComponents.view_base import ViewBase
 from storebot.CustomComponents.custom_button import CustomButton

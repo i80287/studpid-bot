@@ -1,8 +1,12 @@
-from random import randint
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nextcord import Interaction
+
+from os import urandom
 
 from nextcord import (
     Embed,
-    Interaction,
     TextInputStyle
 )
 from nextcord.ui import (
@@ -38,11 +42,11 @@ class VoiceIncomeModal(Modal):
     }
 
     def __init__(self, timeout: int, lng: int, auth_id: int, voice_income: int) -> None:
-        super().__init__(title=self.voice_income_modal_text[lng][0], timeout=timeout, custom_id=f"13000_{auth_id}_{randint(1, 100)}")
+        super().__init__(title=self.voice_income_modal_text[lng][0], timeout=timeout, custom_id=f"13000_{auth_id}_" + urandom(4).hex())
         self.voice_income_textinput = TextInput(
             label=self.voice_income_modal_text[lng][1],
             style=TextInputStyle.paragraph,
-            custom_id=f"13001_{auth_id}_{randint(1, 100)}",
+            custom_id=f"13001_{auth_id}_" + urandom(4).hex(),
             min_length=1,
             max_length=9,
             required=True,

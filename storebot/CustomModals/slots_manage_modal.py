@@ -1,7 +1,11 @@
-from random import randrange
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nextcord import Interaction
+
+from os import urandom
 
 from nextcord import (
-    Interaction,
     Embed,
     TextInputStyle
 )
@@ -35,7 +39,7 @@ class SlotsManageModal(Modal):
         super().__init__(
             title=locale_text[0],
             timeout=90,
-            custom_id=f"13100_{author_id}_{randrange(1000)}"
+            custom_id=f"13100_{author_id}_" + urandom(4).hex()
         )
         self.income_for_bet_1 = TextInput(
             label=locale_text[1].format(100),

@@ -1,11 +1,12 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import (
-        NoReturn,
-        Optional,
-        Union,
-        Dict
+    from typing import NoReturn
+
+    from nextcord import (
+        VoiceState,
+        Member,
+        Guild
     )
     
     from storebot.storebot import StoreBot
@@ -14,12 +15,9 @@ import asyncio
 from time import time
 
 from nextcord import (
-    VoiceState,
     VoiceChannel,
     StageChannel,
     TextChannel,
-    Member,
-    Guild,
     Embed
 )
 from nextcord.ext import tasks
@@ -30,7 +28,7 @@ from storebot.Tools.logger import Logger
 
 
 class VoiceHandlerCog(Cog):
-    voice_handler_text: Dict[int, Dict[int, str]] = {
+    voice_handler_text: dict[int, dict[int, str]] = {
         0: {
             0: "**`Member`** <@{}> **`joined voice channel`** <#{}>",
             1: "**`Member`** <@{}> **`left voice channel`** <#{}> **`and gained {}`** {}"
@@ -65,8 +63,8 @@ class VoiceHandlerCog(Cog):
                 if guild_id not in self.bot.ignored_voice_channels:
                     self.bot.ignored_voice_channels[guild_id] = set()
 
-            before_channel: Optional[Union[VoiceChannel, StageChannel]] = before.channel
-            after_channel: Optional[Union[VoiceChannel, StageChannel]] = after.channel
+            before_channel: VoiceChannel | StageChannel | None = before.channel
+            after_channel: VoiceChannel | StageChannel | None = after.channel
             before_channel_is_voice: bool = isinstance(before_channel, VoiceChannel)
             after_channel_is_voice: bool = isinstance(after_channel, VoiceChannel)
 
@@ -235,7 +233,7 @@ class VoiceHandlerCog(Cog):
         if not member.voice:
             return
 
-        current_channel: Optional[Union[VoiceChannel, StageChannel]] = member.voice.channel
+        current_channel: VoiceChannel | StageChannel | None = member.voice.channel
         if not isinstance(current_channel, VoiceChannel):
             return
 

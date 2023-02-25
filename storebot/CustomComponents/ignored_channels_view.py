@@ -1,30 +1,28 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import (
-        Literal,
-        Optional,
-        Dict
-    )
+    from typing import Literal
+
+    from nextcord import Interaction
+
     from storebot.storebot import StoreBot
 
+from os import urandom
 from contextlib import closing
 from sqlite3 import connect
-from random import randint
 
 from nextcord import (
     ButtonStyle,
-    Interaction,
     Embed
 )
 
-from storebot.Variables.vars import CWD_PATH
+from storebot.constants import DB_PATH
 from storebot.CustomComponents.view_base import ViewBase
 from storebot.CustomComponents.custom_select import CustomSelect
 from storebot.CustomComponents.custom_button import CustomButton
 
 class IgnoredChannelsView(ViewBase):
-    ignored_channels_text: Dict[int, Dict[int, str]] = {
+    ignored_channels_text: dict[int, dict[int, str]] = {
         0: {
             0: "Add channel",
             1: "Remove channel",
@@ -60,7 +58,7 @@ class IgnoredChannelsView(ViewBase):
         l: int = len(chnls)
         for i in range(min((l + 23) // 24, 4)):
             self.add_item(CustomSelect(
-                custom_id=f"{1100+i}_{auth_id}_{randint(1, 100)}",
+                custom_id=f"{1100+i}_{auth_id}_{urandom(4).hex()}",
                 placeholder=self.ignored_channels_text[lng][2],
                 options=[(self.ignored_channels_text[lng][3], "0")] + chnls[(i * 24):min((i + 1) * 24, l)]
             ))
@@ -68,32 +66,32 @@ class IgnoredChannelsView(ViewBase):
             style=ButtonStyle.green,
             label=self.ignored_channels_text[lng][0],
             emoji="<:add01:999663315804500078>",
-            custom_id=f"25_{auth_id}_{randint(1, 100)}"
+            custom_id=f"25_{auth_id}_{urandom(4).hex()}"
         ))
         self.add_item(CustomButton(
             style=ButtonStyle.red,
             label=self.ignored_channels_text[lng][1],
             emoji="<:remove01:999663428689997844>",
-            custom_id=f"26_{auth_id}_{randint(1, 100)}",
+            custom_id=f"26_{auth_id}_{urandom(4).hex()}",
             disabled=rem_dis
         ))
-        self.chnl: Optional[int] = None
+        self.chnl: int | None = None
         self.g_id: int = g_id
         self.auth_id: int = auth_id
-        self.bot: storebot.StoreBot = bot
+        self.bot: StoreBot = bot
         self.is_text: bool = is_text
 
     async def add_chnl(self, interaction: Interaction, lng: int, channel_id: int) -> None:
         guild_id: int = self.g_id
         if self.is_text:
-            with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+            with closing(connect(DB_PATH.format(guild_id))) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("INSERT OR IGNORE INTO ignored_channels (chnl_id, is_text, is_voice) VALUES(?, 1, 0)", (channel_id,))
                     base.commit()
             async with self.bot.text_lock:
                 self.bot.ignored_text_channels[guild_id].add(channel_id)
         else:
-            with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+            with closing(connect(DB_PATH.format(guild_id))) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("INSERT OR IGNORE INTO ignored_channels (chnl_id, is_text, is_voice) VALUES(?, 0, 1)", (channel_id,))
                     base.commit()
@@ -124,7 +122,7 @@ class IgnoredChannelsView(ViewBase):
     
     async def rem_chnl(self, interaction: Interaction, lng: int, channel_id: int) -> None:
         guild_id: int = self.g_id
-        with closing(connect(f"{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        with closing(connect(DB_PATH.format(guild_id))) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("DELETE FROM ignored_channels WHERE chnl_id = ?", (channel_id,))
                 base.commit()
@@ -163,7 +161,7 @@ class IgnoredChannelsView(ViewBase):
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.locale is not None
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-        channel_id: Optional[int] = self.chnl
+        channel_id: int | None = self.chnl
         if not channel_id:
             await interaction.response.send_message(embed=Embed(description=self.ignored_channels_text[lng][8]), ephemeral=True)
             return

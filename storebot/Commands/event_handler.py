@@ -3,10 +3,15 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import (
         Generator,
-        Optional,
         Literal,
-        Union
     )
+
+    from nextcord import (
+        Role,
+        Guild,
+        Message
+    )
+    from nextcord.ext.commands import Context
 
     from storebot.storebot import StoreBot
 
@@ -18,21 +23,18 @@ from time import time
 
 from nextcord import (
     Game,
-    Message,
     Embed,
-    Guild,
-    Interaction,
-    Role,
+    Member,
     TextChannel,
-    Member
+    Interaction
 )
 from nextcord.errors import ApplicationCheckFailure
-from nextcord.ext.commands import Cog, Context
+from nextcord.ext.commands import Cog
 from nextcord.ext import tasks
 
 from storebot.Tools import db_commands
 from storebot.Tools.logger import Logger
-from storebot.Variables.vars import CWD_PATH
+from storebot.constants import CWD_PATH, DB_PATH
 
 
 class EventsHandlerCog(Cog):
@@ -72,9 +74,10 @@ class EventsHandlerCog(Cog):
     
     @classmethod
     async def send_first_message(cls, guild: Guild, lng: int) -> None:
-        channel_to_send_greet: Optional[TextChannel] = None
-        system_channel: Optional[TextChannel] = guild.system_channel
+        channel_to_send_greet: TextChannel | None = None
         guild_me: Member = guild.me
+
+        system_channel: TextChannel | None = guild.system_channel
         if system_channel and system_channel.permissions_for(guild_me).send_messages:
             channel_to_send_greet = system_channel
         else:
@@ -82,6 +85,7 @@ class EventsHandlerCog(Cog):
                 if channel.permissions_for(guild_me).send_messages:
                     channel_to_send_greet = channel
                     break
+        
         if channel_to_send_greet:
             await channel_to_send_greet.send(embed=Embed(description=cls.greetings[lng]))
 
@@ -91,10 +95,12 @@ class EventsHandlerCog(Cog):
     
     @Cog.listener()
     async def on_ready(self) -> None:
-        if not path.exists(f"{CWD_PATH}/bases/"):
-            mkdir(f"{CWD_PATH}/bases/")
-        if not path.exists(f"{CWD_PATH}/logs/"):
-            mkdir(f"{CWD_PATH}/logs/")
+        db_bases_path: str = CWD_PATH + "/bases/"
+        if not path.exists(db_bases_path):
+            mkdir(db_bases_path)
+        logs_path: str = CWD_PATH + "/logs/"
+        if not path.exists(logs_path):
+            mkdir(logs_path)
 
         guilds: list[Guild] = self.bot.guilds.copy()
         for guild in guilds:
@@ -189,9 +195,9 @@ class EventsHandlerCog(Cog):
     async def salary_roles_task(self) -> None:
         guild_ids: Generator[int, None, None] = (guild.id for guild in self.bot.guilds.copy())
         for guild_id in guild_ids: 
-            with closing(connect(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db")) as base:
+            with closing(connect(DB_PATH.format(guild_id))) as base:
                 with closing(base.cursor()) as cur:
-                    r: Union[list[tuple[int, str, int, int, int]], list] = cur.execute(
+                    r: list[tuple[int, str, int, int, int]] | list = cur.execute(
                         "SELECT role_id, members, salary, salary_cooldown, last_time FROM salary_roles"
                     ).fetchall()
                     if r:
@@ -204,7 +210,7 @@ class EventsHandlerCog(Cog):
                                 for member_id in member_ids:
                                     cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, member_id))
                                     base.commit()
-            await sleep(0.0)
+            await sleep(1.0)
     
     @salary_roles_task.before_loop
     async def before_timer(self) -> None:
@@ -240,7 +246,7 @@ class EventsHandlerCog(Cog):
         if not new_level:
             return
 
-        with closing(connect(f"{CWD_PATH}/bases/bases_{g_id}/{g_id}.db")) as base:
+        with closing(connect(DB_PATH.format(g_id))) as base:
             with closing(base.cursor()) as cur:
                 channel_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
                 if channel_id and isinstance(channel := guild.get_channel(channel_id), TextChannel):
@@ -248,7 +254,7 @@ class EventsHandlerCog(Cog):
                     emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(member.mention, new_level))
                     await channel.send(embed=emb)
 
-                db_lvl_rls: Union[list[tuple[int, int]], list] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level").fetchall()
+                db_lvl_rls: list[tuple[int, int]] | list = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level").fetchall()
                 
         if not db_lvl_rls:
             return

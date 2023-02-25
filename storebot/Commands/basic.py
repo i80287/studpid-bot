@@ -1,11 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import (
-        Literal,
-        Optional,
-        Union
-    )
+    from typing import Literal
 
     from nextcord import (
         Guild,
@@ -26,18 +22,18 @@ from os import path
 from nextcord import (
     Embed,
     Locale,
-    Interaction,
     Game,
     Status,
     slash_command,
     TextInputStyle,
     Permissions,
-    TextChannel
+    TextChannel,
+    Interaction
 )
-from nextcord.ext.commands import command, is_owner, Context, Cog
+from nextcord.ext.commands import command, is_owner, Cog, Context
 from nextcord.ui import Modal, TextInput
 
-from storebot.Variables.vars import CWD_PATH
+from storebot.constants import CWD_PATH
 
 
 class FeedbackModal(Modal):
@@ -80,7 +76,7 @@ class FeedbackModal(Modal):
         )
 
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        chnl: Optional[Union[GuildChannel, Thread, PrivateChannel, PartialMessageable]] = \
+        chnl: GuildChannel | Thread | PrivateChannel | PartialMessageable | None = \
             self.bot.get_channel(self.bot.bot_feedback_channel)
         if isinstance(chnl, TextChannel):
             await chnl.send(embed=Embed(description="\n".join(dsc)))
@@ -304,54 +300,57 @@ class BasicComandsCog(Cog):
     @is_owner()
     async def _salt(self, ctx: Context, chnl: TextChannel) -> None:
         self.bot.bot_feedback_channel = chnl.id
-        await ctx.reply(embed=Embed(description=f"New feedback channel is <#{self.bot.bot_feedback_channel}>"), mention_author=False, delete_after=5)
+        await ctx.reply(embed=Embed(description=f"New feedback channel is <#{chnl.id}>"), mention_author=False, delete_after=10.0)
 
     @command(name="load")
     @is_owner()
     async def _load(self, ctx: Context, extension) -> None:
-        if path.exists(CWD_PATH + f"/Commands/{extension}.py"):
+        if path.exists(CWD_PATH + f"storebot/Commands/{extension}.py"):
             async with self.bot.text_lock:
                 async with self.bot.voice_lock:
-                    self.bot.load_extension(f"Commands.{extension}")
-            await sleep(1)
+                    async with self.bot.statistic_lock:
+                        self.bot.load_extension(f"storebot.Commands.{extension}")
+            await sleep(1.0)
             await self.bot.sync_all_application_commands()
-            await sleep(1)
+            await sleep(1.0)
             emb: Embed = Embed(description=f"**Loaded `{extension}`**")
         else:
             emb: Embed = Embed(description=f"**`{extension}` not found**")
-        await ctx.reply(embed=emb, mention_author=False, delete_after=5)
+        await ctx.reply(embed=emb, mention_author=False, delete_after=10.0)
     
     @command(name="unload")
     @is_owner()
     async def _unload(self, ctx: Context, extension) -> None:
-        if path.exists(CWD_PATH + f"/Commands/{extension}.py"):
+        if path.exists(CWD_PATH + f"storebot/Commands/{extension}.py"):
             async with self.bot.text_lock:
                 async with self.bot.voice_lock:
-                    self.bot.unload_extension(f"Commands.{extension}")
-            await sleep(1)
+                    async with self.bot.statistic_lock:
+                        self.bot.unload_extension(f"storebot.Commands.{extension}")
+            await sleep(1.0)
             await self.bot.sync_all_application_commands()
-            await sleep(1)
+            await sleep(1.0)
             emb: Embed = Embed(description=f"**`Unloaded {extension}`**")
         else:
             emb: Embed = Embed(description=f"**`{extension} not found`**")
-        await ctx.reply(embed=emb, mention_author=False, delete_after=5)
+        await ctx.reply(embed=emb, mention_author=False, delete_after=10.0)
 
     @command(name="reload")
     @is_owner()
     async def _reload(self, ctx: Context, extension) -> None:
-        if path.exists(CWD_PATH + f"/Commands/{extension}.py"):
-            await ctx.reply(embed=Embed(description="**`Started reloading`**"), mention_author=False, delete_after=5.0)
+        if path.exists(CWD_PATH + f"storebot/Commands/{extension}.py"):
+            await ctx.reply(embed=Embed(description="**`Started reloading`**"), mention_author=False, delete_after=10.0)
             async with self.bot.text_lock:
                 async with self.bot.voice_lock:
-                    self.bot.unload_extension(f"Commands.{extension}")
-                    self.bot.load_extension(f"Commands.{extension}")
-            await sleep(1)
+                    async with self.bot.statistic_lock:
+                        self.bot.unload_extension(f"storebot.Commands.{extension}")
+                        self.bot.load_extension(f"storebot.Commands.{extension}")
+            await sleep(1.0)
             await self.bot.sync_all_application_commands()
-            await sleep(1)
+            await sleep(1.0)
             emb: Embed = Embed(description=f"**`Reloaded {extension}`**")
         else:
             emb: Embed = Embed(description=f"**`{extension}` not found**")
-        await ctx.reply(embed=emb, mention_author=False, delete_after=5)
+        await ctx.reply(embed=emb, mention_author=False, delete_after=10.0)
 
     @command(aliases=["statistic", "statistics"])
     @is_owner()
@@ -389,16 +388,16 @@ class BasicComandsCog(Cog):
     @command(name="shutdown")
     @is_owner()
     async def shutdown(self, ctx: Context) -> None:
-        from Commands.voice_handler import VoiceHandlerCog
-        cog: Optional[Cog] = self.bot.cogs.get("VoiceHandlerCog")
+        cog: Cog | None = self.bot.cogs.get("VoiceHandlerCog")
         
+        from storebot.Commands.voice_handler import VoiceHandlerCog
         if not isinstance(cog, VoiceHandlerCog):
             return
         
         k: int = 0
         async with self.bot.voice_lock:
             for guild_id, members_dict in self.bot.members_in_voice.items():
-                guild: Optional[Guild] = self.bot.get_guild(guild_id)
+                guild: Guild | None = self.bot.get_guild(guild_id)
                 if not guild:
                     continue
                 for member_id, member in members_dict.items():

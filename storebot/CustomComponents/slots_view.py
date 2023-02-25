@@ -3,6 +3,11 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import LiteralString
 
+    from nextcord import (
+        Guild,
+        Interaction
+    )
+
 import asyncio
 from random import randrange
 from os import urandom
@@ -10,8 +15,6 @@ from os import urandom
 from nextcord import (
     TextChannel,
     ButtonStyle,
-    Interaction,
-    Guild,
     Embed,
     SelectOption
 )
@@ -58,7 +61,7 @@ class SlotsView(ViewBase):
     def __init__(self, lng: int, author_id: int, timeout: int, guild: Guild, slots_table: dict[int, int], currency: str) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout, auto_defer=False)
         self.bet_select: CustomSelectWithOptions = CustomSelectWithOptions(
-            custom_id=f"120_{author_id}_{urandom(4).hex()}",
+            custom_id=f"120_{author_id}_" + urandom(4).hex(),
             placeholder=self.slots_view_text[lng][1],
             opts=[
                 SelectOption(label="100", value="100"),
@@ -70,7 +73,7 @@ class SlotsView(ViewBase):
         self.add_item(item=self.bet_select)
         self.add_item(item=CustomButton(
             style=ButtonStyle.green,
-            custom_id=f"60_{author_id}_{urandom(4).hex()}",
+            custom_id=f"60_{author_id}_" + urandom(4).hex(),
             emoji="🎰"
         ))
         self.bet: int = 0

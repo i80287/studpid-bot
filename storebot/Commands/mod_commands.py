@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Literal
+
     from storebot.storebot import StoreBot
 
 from sqlite3 import connect
@@ -10,20 +11,19 @@ from contextlib import closing
 from nextcord import (
     Embed,
     Locale,
-    Interaction,
-    Member,
-    slash_command
-)
-from nextcord.ui import (
-    Button,
-    StringSelect
+    slash_command,
+    Interaction
 )
 from nextcord.ext import application_checks
 from nextcord.ext.commands import Cog
+if __debug__:
+    from nextcord import Member
 
-from storebot.Variables.vars import CWD_PATH
+from storebot.constants import CWD_PATH
 from storebot.CustomComponents.custom_views import SettingsView
-
+if __debug__:
+    from storebot.CustomComponents.custom_button import CustomButton
+    from storebot.CustomComponents.custom_select import CustomSelect
 
 class ModCommandsCog(Cog):
     settings_text: dict[int, dict[int, str | list[str]]] = {
@@ -103,9 +103,9 @@ class ModCommandsCog(Cog):
         await interaction.response.send_message(embed=emb, view=st_view)
 
         await st_view.wait()
-        for c in st_view.children:
-            if isinstance(c, Button) or isinstance(c, StringSelect):
-                c.disabled = True
+        for child_component in st_view.children:
+            assert isinstance(child_component, (CustomButton, CustomSelect))
+            child_component.disabled = True
         try:
             await interaction.edit_original_message(view=st_view)
         except:

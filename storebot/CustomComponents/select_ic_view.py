@@ -1,13 +1,14 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
+    from nextcord import Interaction
+
     from storebot.storebot import StoreBot
 
 from os import urandom
 
 from nextcord import (
     ButtonStyle,
-    Interaction,
     Embed
 )
 

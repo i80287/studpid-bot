@@ -3,9 +3,9 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Literal
 
-from os import urandom
+    from nextcord import Interaction
 
-from nextcord import Interaction
+from os import urandom
 
 from storebot.CustomComponents.view_base import ViewBase
 from storebot.CustomComponents.custom_select import CustomSelect

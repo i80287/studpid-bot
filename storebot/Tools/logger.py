@@ -1,7 +1,7 @@
 import aiofiles
 from datetime import datetime, timedelta
 
-from storebot.Variables.vars import CWD_PATH
+from storebot.constants import CWD_PATH
 
 class Logger:
     @staticmethod
@@ -25,5 +25,6 @@ class Logger:
         if not filename.endswith(".log"):
             filename += ".log"
 
-        async with aiofiles.open(file=f"{CWD_PATH}/logs/logs_{guild_id}/{filename}", mode="a+", encoding="utf-8") as f:
-            await f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3.0))}] {report}\n")
+        async with aiofiles.open(file=CWD_PATH + f"/logs/logs_{guild_id}/" + filename, mode="a+", encoding="utf-8") as f:
+            time_now: str = datetime.utcnow().__add__(timedelta(hours=3.0)).__str__()
+            await f.write('[' + time_now + "] " + report + '\n')

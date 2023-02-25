@@ -3,19 +3,21 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import NoReturn
 
+    from nextcord import (
+        Guild,
+        Member
+    )
+    from nextcord.utils import SnowflakeList
+
     from storebot.storebot import StoreBot
 
 import asyncio
 from nextcord import (
     Embed,
-    Guild,
-    Member,
     TextChannel
 )
 from nextcord.ext import tasks
 from nextcord.ext.commands import Cog
-
-from nextcord.utils import SnowflakeList
 
 from storebot.Tools.db_commands import (
     add_member_role_async,
