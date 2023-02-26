@@ -2,7 +2,8 @@ name: Linux
 
 on: [push, pull_request, workflow_dispatch]
 
-permissions: read-all|write-all
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -26,4 +27,4 @@ jobs:
         python -m pip install -e .
     - name: Test storebot module
       run: |
-        python.exe ./tests/test_commands.py
+        python ./tests/test_commands.py
