@@ -812,7 +812,7 @@ class SlashCommandsCog(Cog):
         role_type: int = store[3]
         await member_buyer.add_roles(role)
 
-        with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
+        with closing(connect(DB_PATH.format(guild_id))) as base:
             with closing(base.cursor()) as cur:
                 server_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                 cur.execute(

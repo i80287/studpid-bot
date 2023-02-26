@@ -1,25 +1,36 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from typing import Literal, Optional, List, Any, Dict, Iterator
+    from collections.abc import Iterable, Sequence
+
+    from nextcord.mentions import AllowedMentions
+    from nextcord.message import Attachment
+    from nextcord.guild import Guild
+    from nextcord.embeds import Embed
+    from nextcord.role import Role
+    from nextcord.ui import View
+    from nextcord.state import ConnectionState
+    from nextcord.http import HTTPClient, Route
+
 import asyncio
-from typing import Literal, Optional, List, Any, Dict, Iterator
+import aiohttp
 
 from nextcord import utils
 from nextcord.file import File
 from nextcord.flags import ApplicationFlags
-from nextcord.mentions import AllowedMentions
-from nextcord.guild import Guild
-from nextcord.embeds import Embed
 from nextcord.enums import InteractionType
 from nextcord.interactions import Interaction
-from nextcord.role import Role
-from nextcord.ui import View
 from nextcord.user import ClientUser
-from nextcord.interactions import InteractionResponse, _InteractionMessageState, PartialInteractionMessage
+from nextcord.interactions import InteractionResponse, _InteractionMessageState, PartialInteractionMessage, InteractionMessage
 from nextcord.errors import InteractionResponded, InvalidArgument
 from nextcord.types.guild import Guild as GuildPayloads
 from nextcord.types.role import Role as RolePayloads
 from nextcord.types.interactions import Interaction as InteractionPayLoads, ApplicationCommandInteractionData
 from nextcord.types.member import Member as MemberPayLoads
 from nextcord.types.user import User as UserPayloads
-from nextcord.state import ConnectionState
+from nextcord.webhook.async_ import handle_message_parameters, async_context, MISSING
+from nextcord.gateway import DiscordClientWebSocketResponse
 
 from storebot.storebot import StoreBot
 
@@ -40,7 +51,7 @@ GUILD_RULES_CHANNEL_ID: Literal[3218990234] = 3218990234
 GUILD_PUBLIC_UPDATES_CHANNEL_ID: Literal[32982394089] = 32982394089
 
 GUILD_ROLES_COLOR: Literal[42] = 42
-GUILD_ROLES_PERMISSIONS: Literal['65536'] = "65536"
+GUILD_ROLES_PERMISSIONS: Literal['2199023255551'] = str((1 << 41) - 1) # type: ignore
 GUILD_ROLES_COUNT: Literal[16] = 16
 GUILD_ROLES_IDS: list[int] = [GUILD_ID] + [i << 32 for i in range(1, GUILD_ROLES_COUNT)]
 GUILD_ROLES_NAMES: list[str] = ["@everyone"] + ["role {0}".format(i) for i in range(1, GUILD_ROLES_COUNT)]
@@ -64,6 +75,8 @@ BOT_ID: Literal[8054885002459] = 8054885002459
 BOT_NAME: Literal['storebot'] = "storebot"
 BOT_DISCRIMINATOR: Literal['8054'] = "8054"
 
+views_queue: asyncio.Queue[View] = asyncio.Queue()
+
 guild_roles_ids: Iterator[int] = iter(GUILD_ROLES_IDS)
 guild_roles_names: Iterator[str] = iter(GUILD_ROLES_NAMES)
 guild_roles_positions: Iterator[int] = iter(range(1, GUILD_ROLES_COUNT + 1))
@@ -76,7 +89,7 @@ dummy_roles_payloads: list[RolePayloads] = [
         hoist=True,
         position=next(guild_roles_positions),
         permissions=GUILD_ROLES_PERMISSIONS,
-        managed=True,
+        managed=False,
         mentionable=True
     ) for _ in range(GUILD_ROLES_COUNT)
 ]
@@ -126,7 +139,8 @@ bot_member_payloads: MemberPayLoads = MemberPayLoads(
     deaf="",
     mute="",
     avatar="",
-    nick=bot_user_payloads["username"]
+    nick=bot_user_payloads["username"],
+    permissions=""
 )
 
 guild_payloads: GuildPayloads = GuildPayloads(
@@ -191,6 +205,23 @@ for guild_data in data["guilds"]:
     conn_state._add_guild_from_data(guild_data)
 # end immitate
 
+http: HTTPClient = conn_state.http
+http.__session = aiohttp.ClientSession(
+    connector=http.connector,
+    ws_response_class=DiscordClientWebSocketResponse
+)
+async def request(
+    route: Route,
+    *,
+    files: Optional[Sequence[File]] = None,
+    form: Optional[Iterable[Dict[str, Any]]] = None,
+    **kwargs: Any,
+) -> Any:
+    return object()
+
+http.request = request
+     
+
 guild: Guild = bot.guilds[0]
 GUILD_ROLES: list[Role] = guild.roles
 
@@ -199,6 +230,7 @@ class DummyInteraction(Interaction):
         super().__init__(data=data, state=state)
         self.dummy_interaction_response: DummyInteractionResponse = DummyInteractionResponse(self)
         self._payload: dict[str, Any] = {}
+        self.__edit_payload: dict[str, Any] = {}
 
     @property
     def response(self) -> InteractionResponse:
@@ -211,11 +243,116 @@ class DummyInteraction(Interaction):
     
     @property
     def payload(self) -> dict[str, Any]:
-        return self._payload
+        return self.__payload
 
     @payload.setter
     def payload(self, value: dict[str, Any]) -> None:
-        self._payload = value
+        self.__payload = value
+    
+    @property
+    def edit_payload(self) -> dict[str, Any]:
+        return self.__edit_payload
+
+    @edit_payload.setter
+    def edit_payload(self, value: dict[str, Any]) -> None:
+        self.__edit_payload = value
+
+    async def edit_original_message(
+        self,
+        *,
+        content: Optional[str] = MISSING,
+        embeds: List[Embed] = MISSING,
+        embed: Optional[Embed] = MISSING,
+        file: File = MISSING,
+        files: List[File] = MISSING,
+        attachments: List[Attachment] = MISSING,
+        view: Optional[View] = MISSING,
+        allowed_mentions: Optional[AllowedMentions] = None,
+    ) -> InteractionMessage:
+        """|coro|
+
+        Edits the original interaction response message.
+
+        This is a lower level interface to :meth:`InteractionMessage.edit` in case
+        you do not want to fetch the message and save an HTTP request.
+
+        This method is also the only way to edit the original message if
+        the message sent was ephemeral.
+
+        Parameters
+        ----------
+        content: Optional[:class:`str`]
+            The content to edit the message with or ``None`` to clear it.
+        embeds: List[:class:`Embed`]
+            A list of embeds to edit the message with.
+        embed: Optional[:class:`Embed`]
+            The embed to edit the message with. ``None`` suppresses the embeds.
+            This should not be mixed with the ``embeds`` parameter.
+        file: :class:`File`
+            The file to upload. This cannot be mixed with ``files`` parameter.
+        files: List[:class:`File`]
+            A list of files to send with the content. This cannot be mixed with the
+            ``file`` parameter.
+        attachments: List[:class:`Attachment`]
+            A list of attachments to keep in the message. To keep existing attachments,
+            you must fetch the message with :meth:`original_message` and pass
+            ``message.attachments`` to this parameter.
+        allowed_mentions: :class:`AllowedMentions`
+            Controls the mentions being processed in this message.
+            See :meth:`.abc.Messageable.send` for more information.
+        view: Optional[:class:`~nextcord.ui.View`]
+            The updated view to update this message with. If ``None`` is passed then
+            the view is removed.
+
+        Raises
+        ------
+        HTTPException
+            Editing the message failed.
+        Forbidden
+            Edited a message that is not yours.
+        InvalidArgument
+            You specified both ``embed`` and ``embeds`` or ``file`` and ``files``.
+        ValueError
+            The length of ``embeds`` was invalid.
+
+        Returns
+        -------
+        :class:`InteractionMessage`
+            The newly edited message.
+        """
+
+        previous_mentions: Optional[AllowedMentions] = self._state.allowed_mentions
+        params = handle_message_parameters(
+            content=content,
+            file=file,
+            files=files,
+            attachments=attachments,
+            embed=embed,
+            embeds=embeds,
+            view=view,
+            allowed_mentions=allowed_mentions,
+            previous_allowed_mentions=previous_mentions,
+        )
+        self.edit_payload = params.payload or {}
+
+        adapter = async_context.get()
+
+        # data = await adapter.edit_original_interaction_response(
+        #     self.application_id,
+        #     self.token,
+        #     session=self._session,
+        #     payload=params.payload,
+        #     multipart=params.multipart,
+        #     files=params.files,
+        # )
+
+        # # The message channel types should always match
+        # message = InteractionMessage(state=self._state, channel=self.channel, data={})  # type: ignore
+        # if view and not view.is_finished():
+        #     self._state.store_view(view, message.id)
+        
+        # return message
+        return None # type: ignore
 
 class DummyInteractionResponse(InteractionResponse):
     def __init__(self, parent: DummyInteraction) -> None:
@@ -289,6 +426,7 @@ class DummyInteractionResponse(InteractionResponse):
             if ephemeral and view.timeout is None:
                 view.timeout = 15 * 60.0
 
+            views_queue.put_nowait(view)
             self._parent._state.store_view(view)
 
         self._responded = True

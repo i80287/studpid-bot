@@ -1,0 +1,29 @@
+name: Linux
+
+on: [push, pull_request, workflow_dispatch]
+
+permissions: read-all|write-all
+
+jobs:
+  build:
+
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.11']
+
+    steps:
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: ${{ matrix.python-version }}
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        python -m pip install -r requirements-dev.txt
+        python -m pip install -e .
+    - name: Test storebot module
+      run: |
+        python.exe ./tests/test_commands.py

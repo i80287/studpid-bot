@@ -1,3 +1,13 @@
+from __future__ import annotations
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from nextcord.member import Member
+
+from storebot.Tools import db_commands
+from storebot.Tools.db_commands import RoleInfo
+from storebot.constants import DB_PATH
+from storebot.CustomModals.custom_modals import RoleEditModal
+
 from tests.dummy_variables import *
 
 def get_guild() -> Guild:
@@ -12,3 +22,35 @@ def get_test_role(member_has: bool = True) -> Role:
 def build_interaction() -> DummyInteraction:
     dummy_interaction_payloads: InteractionPayLoads = build_interaction_payloads()
     return DummyInteraction(data=dummy_interaction_payloads, state=conn_state)
+
+def add_role(member: Member, role: Role) -> Member:
+    member._roles.add(role.id)
+    return member
+
+def remove_role(member: Member, role: Role) -> Member:
+    roles = member._roles
+    role_id = role.id
+    if roles.has(role_id):
+        roles.remove(role.id)
+        return member
+    
+    raise Exception(f"{member!r} does not have {role!r}")
+
+def get_member(bot: bool = False) -> Member:
+    return guild.members[0] if bot is False else guild.members[-1]
+
+async def add_role_to_db(guild_id: int, role_info: RoleInfo, members_id_with_role: set[int] = set(), amount: int = 1) -> None:
+    await db_commands.add_role_async(guild_id=guild_id, role_info=role_info, members_id_with_role=members_id_with_role)
+
+    # TODO: update bot db layer
+    from sqlite3 import connect
+    from contextlib import closing
+    with closing(connect(DB_PATH.format(guild_id))) as base:
+        with closing(base.cursor()) as cur:
+            RoleEditModal.update_store(base, cur, role_info.role_id, role_info.price, role_info.salary, role_info.salary_cooldown, role_info.role_type, amount, 0)
+
+def get_connection() -> ConnectionState:
+    return conn_state
+
+async def get_view() -> View:
+    return await views_queue.get()
