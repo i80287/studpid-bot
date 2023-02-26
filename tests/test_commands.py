@@ -40,7 +40,10 @@ guild_id: int = guild.id
 conn_state = get_connection()
 
 async def main() -> None:
-    dir_path: str = f"{CWD_PATH}/bases/bases_{guild_id}/"
+    db_bases_path: str = CWD_PATH + "/bases/"
+    if not os.path.exists(db_bases_path):
+        os.mkdir(db_bases_path)
+    dir_path: str = CWD_PATH + f"/bases/bases_{guild_id}/"
     if not os.path.exists(dir_path):
         os.mkdir(dir_path)
     
@@ -58,8 +61,8 @@ async def main() -> None:
 
     try:
         await test_slash_cog(cog)
-    except:
-        raise
+    except Exception as ex:
+        print(ex)
     finally:
         try:
             session = get_connection().http.__session
