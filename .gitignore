@@ -4,9 +4,6 @@ additional_files
 
 *.egg-info
 
-setup.py
-config.py
-
 *.log
 *.todo
 *.
