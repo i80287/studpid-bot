@@ -5,7 +5,7 @@ if TYPE_CHECKING:
 
     from nextcord import Interaction
 
-    from storebot.storebot import StoreBot
+    from ..storebot import StoreBot
 
 from os import urandom
 from contextlib import closing
@@ -16,10 +16,11 @@ from nextcord import (
     Embed
 )
 
-from storebot.constants import DB_PATH
-from storebot.CustomComponents.view_base import ViewBase
-from storebot.CustomComponents.custom_select import CustomSelect
-from storebot.CustomComponents.custom_button import CustomButton
+from ..constants import DB_PATH
+from ..CustomComponents.view_base import ViewBase
+from ..CustomComponents.custom_select import CustomSelect
+from ..CustomComponents.custom_button import CustomButton
+
 
 class IgnoredChannelsView(ViewBase):
     ignored_channels_text: dict[int, dict[int, str]] = {

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from nextcord import Interaction
 
-    from storebot.storebot import StoreBot
+    from ..storebot import StoreBot
 
 from os import urandom
 
@@ -12,10 +12,10 @@ from nextcord import (
     Embed
 )
 
-from storebot.Tools.db_commands import get_ignored_channels
-from storebot.CustomComponents.view_base import ViewBase
-from storebot.CustomComponents.custom_button import CustomButton
-from storebot.CustomComponents.ignored_channels_view import IgnoredChannelsView
+from ..Tools.db_commands import get_ignored_channels
+from ..CustomComponents.view_base import ViewBase
+from ..CustomComponents.custom_button import CustomButton
+from ..CustomComponents.ignored_channels_view import IgnoredChannelsView
 
 
 class SelectICView(ViewBase):

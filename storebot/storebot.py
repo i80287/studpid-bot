@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from storebot.Commands.polls import Poll
+    from .Commands.polls import Poll
 
 from asyncio import Lock
 from time import time
@@ -9,7 +9,7 @@ from time import time
 from nextcord import Intents, Member
 from nextcord.ext.commands import Bot, when_mentioned_or
 
-from storebot.config import prefix, FEEDBACK_CHANNEL
+from .config import prefix, FEEDBACK_CHANNEL
 
 class StoreBot(Bot):
     def __init__(self) -> None:

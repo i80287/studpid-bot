@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 from nextcord import ButtonStyle
 from nextcord.ui import Button
 if __debug__:
-    from storebot.CustomComponents.view_base import ViewBase
+    from ..CustomComponents.view_base import ViewBase
 
 class CustomButton(Button):    
     def __init__(

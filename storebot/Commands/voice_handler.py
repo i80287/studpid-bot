@@ -9,7 +9,7 @@ if TYPE_CHECKING:
         Guild
     )
     
-    from storebot.storebot import StoreBot
+    from ..storebot import StoreBot
 
 import asyncio
 from time import time
@@ -23,8 +23,8 @@ from nextcord import (
 from nextcord.ext import tasks
 from nextcord.ext.commands import Cog
 
-from storebot.Tools import db_commands
-from storebot.Tools.logger import Logger
+from ..Tools import db_commands
+from ..Tools.logger import Logger
 
 
 class VoiceHandlerCog(Cog):

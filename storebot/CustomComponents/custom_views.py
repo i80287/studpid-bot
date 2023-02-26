@@ -12,7 +12,7 @@ if TYPE_CHECKING:
         Permissions
     )
 
-    from storebot.storebot import StoreBot
+    from ..storebot import StoreBot
 
 import re
 from asyncio import (
@@ -32,7 +32,7 @@ if __debug__:
     from nextcord import Member
     from nextcord.abc import GuildChannel
 
-from storebot.Tools.db_commands import (
+from ..Tools.db_commands import (
     get_member_async,
     delete_role_from_db,
     get_server_info_value_async,
@@ -42,14 +42,14 @@ from storebot.Tools.db_commands import (
     update_server_info_table_uncheck_async,
     listify_guild_roles
 )
-from storebot.Tools.parse_tools import parse_emoji
-from storebot.constants import CWD_PATH
-from storebot.CustomComponents.select_ic_view import SelectICView
-from storebot.CustomComponents.view_base import ViewBase
-from storebot.CustomComponents.verification_view import VerificationView
-from storebot.CustomComponents.select_channel_view import SelectChannelView
-from storebot.CustomComponents.slots_manage_view import SlotsManageView
-from storebot.CustomModals.custom_modals import (
+from ..Tools.parse_tools import parse_emoji
+from ..constants import CWD_PATH
+from ..CustomComponents.select_ic_view import SelectICView
+from ..CustomComponents.view_base import ViewBase
+from ..CustomComponents.verification_view import VerificationView
+from ..CustomComponents.select_channel_view import SelectChannelView
+from ..CustomComponents.slots_manage_view import SlotsManageView
+from ..CustomModals.custom_modals import (
     RoleAddModal,
     RoleEditModal,
     XpSettingsModal,
@@ -57,10 +57,10 @@ from storebot.CustomModals.custom_modals import (
     ManageMemberCashXpModal,
     OneTextInputModal
 )
-from storebot.CustomModals.sale_role_price import SalePriceModal
-from storebot.CustomModals.voice_income_modal import VoiceIncomeModal
-from storebot.CustomComponents.custom_button import CustomButton
-from storebot.CustomComponents.custom_select import CustomSelect
+from ..CustomModals.sale_role_price import SalePriceModal
+from ..CustomModals.voice_income_modal import VoiceIncomeModal
+from ..CustomComponents.custom_button import CustomButton
+from ..CustomComponents.custom_select import CustomSelect
 
 
 languages = {

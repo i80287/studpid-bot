@@ -26,7 +26,7 @@ from nextcord.ui import (
     Modal
 )
 
-from storebot.Tools.db_commands import (
+from ..Tools.db_commands import (
     peek_role_free_number,
     peek_role_free_numbers,
     add_role_async,
@@ -34,7 +34,7 @@ from storebot.Tools.db_commands import (
     RoleInfo,
     PartialRoleInfo
 )
-from storebot.constants import DB_PATH
+from ..constants import DB_PATH
 
 r_types: dict[int, dict[int, str]] = {
     0: {

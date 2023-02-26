@@ -13,7 +13,7 @@ if TYPE_CHECKING:
     )
     from nextcord.ext.commands import Context
 
-    from storebot.storebot import StoreBot
+    from ..storebot import StoreBot
 
 from sqlite3 import connect
 from contextlib import closing
@@ -32,9 +32,9 @@ from nextcord.errors import ApplicationCheckFailure
 from nextcord.ext.commands import Cog
 from nextcord.ext import tasks
 
-from storebot.Tools import db_commands
-from storebot.Tools.logger import Logger
-from storebot.constants import CWD_PATH, DB_PATH
+from ..Tools import db_commands
+from ..Tools.logger import Logger
+from ..constants import CWD_PATH, DB_PATH
 
 
 class EventsHandlerCog(Cog):
@@ -121,7 +121,7 @@ class EventsHandlerCog(Cog):
 
             await Logger.write_log_async("common_logs.log", "correct_db func", str_guild_id, guild.name)
 
-        from storebot.config import DEBUG
+        from ..config import DEBUG
         if DEBUG:
             print("[>>>]Logged into Discord as {0.user}".format(self.bot))
 

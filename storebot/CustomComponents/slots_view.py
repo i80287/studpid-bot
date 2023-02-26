@@ -20,14 +20,14 @@ from nextcord import (
 )
 from nextcord.ext import tasks
 
-from storebot.Tools.db_commands import (
+from ..Tools.db_commands import (
     get_member_nocheck_async,
     update_member_cash_async,
     get_server_info_value_async
 )
-from storebot.CustomComponents.view_base import ViewBase
-from storebot.CustomComponents.custom_button import CustomButton
-from storebot.CustomComponents.custom_select import CustomSelectWithOptions
+from ..CustomComponents.view_base import ViewBase
+from ..CustomComponents.custom_button import CustomButton
+from ..CustomComponents.custom_select import CustomSelectWithOptions
 
 
 class SlotsView(ViewBase):

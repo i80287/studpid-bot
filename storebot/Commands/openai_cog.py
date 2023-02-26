@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Literal
 
-    from storebot.storebot import StoreBot
+    from ..storebot import StoreBot
 
 import re
 import openai
@@ -20,9 +20,9 @@ from nextcord.ext.commands import Cog
 from nextcord.channel import TextChannel
 from nextcord.threads import Thread
 
-from storebot.Tools.logger import Logger
-from storebot.config import OPENAI_API_KEY
-from storebot.constants import BANNED_WORDS
+from ..Tools.logger import Logger
+from ..config import OPENAI_API_KEY
+from ..constants import BANNED_WORDS
 
 openai.api_key = OPENAI_API_KEY
 words_filter: re.Pattern[str] = re.compile(

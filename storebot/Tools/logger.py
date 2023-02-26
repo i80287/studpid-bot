@@ -1,7 +1,8 @@
 import aiofiles
 from datetime import datetime, timedelta
 
-from storebot.constants import CWD_PATH
+from ..constants import CWD_PATH
+
 
 class Logger:
     @staticmethod

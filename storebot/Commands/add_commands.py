@@ -8,7 +8,7 @@ if TYPE_CHECKING:
         Role,
         Guild,
     )
-    from storebot.storebot import StoreBot
+    from ..storebot import StoreBot
 
 from nextcord import (
     User,
@@ -23,8 +23,8 @@ from nextcord import (
     Interaction
 )
 from nextcord.ext.commands import Cog
-from storebot.Tools import db_commands
-from storebot.Tools.parse_tools import parse_emoji
+from ..Tools import db_commands
+from ..Tools.parse_tools import parse_emoji
 
 
 class AdditionalCommandsCog(Cog):

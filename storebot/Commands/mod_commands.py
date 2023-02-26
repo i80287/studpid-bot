@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import Literal
 
-    from storebot.storebot import StoreBot
+    from ..storebot import StoreBot
 
 from sqlite3 import connect
 from contextlib import closing
@@ -19,11 +19,11 @@ from nextcord.ext.commands import Cog
 if __debug__:
     from nextcord import Member
 
-from storebot.constants import CWD_PATH
-from storebot.CustomComponents.custom_views import SettingsView
+from ..constants import CWD_PATH
+from ..CustomComponents.custom_views import SettingsView
 if __debug__:
-    from storebot.CustomComponents.custom_button import CustomButton
-    from storebot.CustomComponents.custom_select import CustomSelect
+    from ..CustomComponents.custom_button import CustomButton
+    from ..CustomComponents.custom_select import CustomSelect
 
 class ModCommandsCog(Cog):
     settings_text: dict[int, dict[int, str | list[str]]] = {

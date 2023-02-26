@@ -14,7 +14,7 @@ from nextcord.ui import (
     Modal
 )
 
-from storebot.Tools.db_commands import update_server_info_table
+from ..Tools.db_commands import update_server_info_table
 
 
 class VoiceIncomeModal(Modal):

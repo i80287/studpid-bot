@@ -8,7 +8,7 @@ if TYPE_CHECKING:
         Message,
     )
 
-    from storebot.storebot import StoreBot
+    from ..storebot import StoreBot
 
 from sqlite3 import connect
 from contextlib import closing
@@ -33,8 +33,8 @@ from nextcord.ui import (
     View
 )
 
-from storebot.Commands.mod_commands import ModCommandsCog
-from storebot.constants import DB_PATH
+from ..Commands.mod_commands import ModCommandsCog
+from ..constants import DB_PATH
 
 
 class poll_custom_button(Button):

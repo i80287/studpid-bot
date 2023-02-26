@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 
     from nextcord import Guild
 
-    from storebot.storebot import StoreBot
+    from ..storebot import StoreBot
 
 from datetime import datetime, timedelta, timezone
 from sqlite3 import connect, Cursor
@@ -32,11 +32,11 @@ from nextcord import (
 )
 from nextcord.ext.commands import Cog
 
-from storebot.CustomComponents.view_base import ViewBase
-from storebot.CustomComponents.custom_button import CustomButton
-from storebot.CustomComponents.custom_select import CustomSelectWithOptions
-from storebot.CustomComponents.slots_view import SlotsView
-from storebot.Tools.db_commands import (
+from ..CustomComponents.view_base import ViewBase
+from ..CustomComponents.custom_button import CustomButton
+from ..CustomComponents.custom_select import CustomSelectWithOptions
+from ..CustomComponents.slots_view import SlotsView
+from ..Tools.db_commands import (
     get_member_async,
     check_member_async,
     peek_role_free_number,
@@ -46,9 +46,9 @@ from storebot.Tools.db_commands import (
     get_server_currency_async,
     get_server_slots_table_async
 )
-from storebot.constants import DB_PATH
+from ..constants import DB_PATH
 if __debug__:
-    from storebot.CustomComponents.custom_select import CustomSelect
+    from ..CustomComponents.custom_select import CustomSelect
 
 common_text: dict[int, dict[int, str]] = {
     0: {

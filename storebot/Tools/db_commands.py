@@ -10,7 +10,8 @@ from aiosqlite import connect as connect_async
 from contextlib import closing
 from itertools import pairwise
 
-from storebot.constants import CWD_PATH
+from ..constants import CWD_PATH
+
 
 @dataclass(frozen=True)
 class RoleInfo:

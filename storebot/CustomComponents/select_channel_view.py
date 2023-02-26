@@ -7,8 +7,9 @@ if TYPE_CHECKING:
 
 from os import urandom
 
-from storebot.CustomComponents.view_base import ViewBase
-from storebot.CustomComponents.custom_select import CustomSelect
+from ..CustomComponents.view_base import ViewBase
+from ..CustomComponents.custom_select import CustomSelect
+
 
 class SelectChannelView(ViewBase):
     ec_log_channel_view_text: dict[int, tuple[str, str]] = {

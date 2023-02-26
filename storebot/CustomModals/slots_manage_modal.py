@@ -14,6 +14,7 @@ from nextcord.ui import (
     TextInput
 )
 
+
 class SlotsManageModal(Modal):
     slots_manage_modal_text: dict[int, dict[int, str]] = {
         0: {

@@ -1,10 +1,10 @@
-from storebot.storebot import StoreBot
+from .storebot import StoreBot
 
 if __name__ == "__main__":
     bot: StoreBot = StoreBot()
     bot.load_extensions_from_module("storebot.Commands")
     
-    from storebot.config import DEBUG
+    from .config import DEBUG
     if DEBUG:
         from storebot.config import DEBUG_TOKEN
         bot.run(DEBUG_TOKEN)

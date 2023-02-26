@@ -9,7 +9,7 @@ if TYPE_CHECKING:
     )
     from nextcord.utils import SnowflakeList
 
-    from storebot.storebot import StoreBot
+    from ..storebot import StoreBot
 
 import asyncio
 from nextcord import (
@@ -19,12 +19,12 @@ from nextcord import (
 from nextcord.ext import tasks
 from nextcord.ext.commands import Cog
 
-from storebot.Tools.db_commands import (
+from ..Tools.db_commands import (
     add_member_role_async,
     remove_member_role_async,
     get_server_info_value_async
 )
-from storebot.Tools.logger import Logger
+from ..Tools.logger import Logger
 
 
 class MembersHandlerCog(Cog):

@@ -33,7 +33,7 @@ from nextcord import (
 from nextcord.ext.commands import command, is_owner, Cog, Context
 from nextcord.ui import Modal, TextInput
 
-from storebot.constants import CWD_PATH
+from ..constants import CWD_PATH
 
 
 class FeedbackModal(Modal):
