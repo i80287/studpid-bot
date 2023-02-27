@@ -326,10 +326,10 @@ class StoreView(ViewBase):
         self.sort_reversed: bool = False  # возрастание / убывание при сортировке, False - возрастание
         self.pages: int = max(1, (self.l + in_row - 1) // in_row)
 
-        self.add_item(CustomButton(label="", custom_id=f"32_{auth_id}_" + urandom(4).hex(), emoji="⏮️"))
-        self.add_item(CustomButton(label="", custom_id=f"33_{auth_id}_" + urandom(4).hex(), emoji="◀️"))
-        self.add_item(CustomButton(label="", custom_id=f"34_{auth_id}_" + urandom(4).hex(), emoji="▶️"))
-        self.add_item(CustomButton(label="", custom_id=f"35_{auth_id}_" + urandom(4).hex(), emoji="⏭"))
+        self.add_item(CustomButton(custom_id=f"32_{auth_id}_" + urandom(4).hex(), emoji="⏮️"))
+        self.add_item(CustomButton(custom_id=f"33_{auth_id}_" + urandom(4).hex(), emoji="◀️"))
+        self.add_item(CustomButton(custom_id=f"34_{auth_id}_" + urandom(4).hex(), emoji="▶️"))
+        self.add_item(CustomButton(custom_id=f"35_{auth_id}_" + urandom(4).hex(), emoji="⏭"))
 
         sort_by_what_options: list[SelectOption] = [
             SelectOption(
@@ -397,33 +397,34 @@ class StoreView(ViewBase):
             self.db_store.sort(key=lambda tup: tup[3], reverse=False)
             self.db_store.sort(key=lambda tup: tup[4], reverse=True)
 
-    async def update_menu(self, interaction: Interaction, click: int) -> None:
+    async def update_menu(self, interaction: Interaction, click: Literal[0, 1, 2, 3, 4]) -> None:
         assert interaction.message is not None
         assert interaction.message.embeds[0].footer.text is not None
         lng: int = self.lng
         text: str = interaction.message.embeds[0].footer.text
-        if not lng:
-            t1: int = text.find('Pa')
-            t2: int = text.find('fr', t1)
-            page: int = int(text[t1 + 5:t2 - 1])
-        else:
+        if lng:
             t1: int = text.find('Ст')
             t2: int = text.find('из', t1)
             page: int = int(text[t1 + 9:t2 - 1])
+        else:
+            t1: int = text.find('Pa')
+            t2: int = text.find('fr', t1)
+            page: int = int(text[t1 + 5:t2 - 1])
 
-        if click in {1, 2} and page <= 1:
-            return
-        elif click in {3, 4} and page >= self.pages:
-            return
-
-        if click == 1:
-            page = 1
-        elif click == 2:
-            page -= 1
-        elif click == 3:
-            page += 1
-        elif click == 4:
-            page = self.pages
+        if click in {1, 2}:
+            if page <= 1:
+                return
+            if click == 1:
+                page = 1
+            else:
+                page -= 1
+        elif click in {3, 4}:
+            if page >= self.pages:
+                return
+            if click == 3:
+                page += 1
+            else:
+                page = self.pages
 
         store_list: list[str] = []
         tzinfo: timezone = timezone(timedelta(hours=self.tz))
@@ -453,7 +454,7 @@ class StoreView(ViewBase):
                 await interaction.response.edit_message(embed=emb)
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
-        click: int
+        click: Literal[0, 1, 2, 3, 4]
         match int(custom_id[:2]):
             case 32:
                 click = 1
@@ -466,30 +467,36 @@ class StoreView(ViewBase):
             case _:
                 click = 0
 
-        await self.update_menu(interaction=interaction, click=click)
+        await self.update_menu(interaction, click)
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
-        if custom_id.startswith("102_"):
-            if values[0].isdigit() and int(values[0]):
+        assert values
+        assert values[0] in {"0", "1"}
+        assert custom_id.startswith("102_") or custom_id.startswith("103_")
+        assert isinstance(self.children[4], CustomSelectWithOptions)
+        assert isinstance(self.children[5], CustomSelectWithOptions)
+
+        if custom_id.startswith("102"):
+            if values[0] == "1":
                 self.sort_by_price = False
-                self.children[4].options[0].default = False # type: ignore
-                self.children[4].options[1].default = True # type: ignore
+                self.children[4].options[0].default = False
+                self.children[4].options[1].default = True
             else:
                 self.sort_by_price = True
-                self.children[4].options[0].default = True # type: ignore
-                self.children[4].options[1].default = False # type: ignore
-        elif custom_id.startswith("103_"):
-            if values[0].isdigit() and int(values[0]):
+                self.children[4].options[0].default = True
+                self.children[4].options[1].default = False
+        else:
+            if values[0] == "1":
                 self.sort_reversed = True
-                self.children[5].options[0].default = False # type: ignore
-                self.children[5].options[1].default = True # type: ignore
+                self.children[5].options[0].default = False
+                self.children[5].options[1].default = True
             else:
                 self.sort_reversed = False
-                self.children[5].options[0].default = True # type: ignore
-                self.children[5].options[1].default = False # type: ignore
+                self.children[5].options[0].default = True
+                self.children[5].options[1].default = False
 
         self.sort_store()
-        await self.update_menu(interaction=interaction, click=0)
+        await self.update_menu(interaction, 0)
 
 
 class BuyView(ViewBase):
@@ -990,7 +997,7 @@ class SlashCommandsCog(Cog):
 
         await store_view.wait()
         for button in store_view.children:
-            assert isinstance(button, (CustomButton, CustomSelect)), "CustomButton, CustomSelect"
+            assert isinstance(button, (CustomButton, CustomSelectWithOptions)), f"{button!r} is not CustomButton or CustomSelectWithOptions"
             button.disabled = True
         try:
             await interaction.edit_original_message(view=store_view)
