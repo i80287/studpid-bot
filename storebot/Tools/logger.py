@@ -10,7 +10,7 @@ class Logger:
         if not filename.endswith(".log"):
             filename += ".log"
 
-        async with aiofiles.open(file=filename, mode="a+", encoding="utf-8") as f:
+        async with aiofiles.open(file=CWD_PATH + '/' + filename, mode="a+", encoding="utf-8") as f:
             await f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3.0))}] {' '.join(['[' + s + ']' for s in report if s])}\n")
 
     @staticmethod
@@ -18,7 +18,7 @@ class Logger:
         if not filename.endswith(".log"):
             filename += ".log"
 
-        async with aiofiles.open(file=filename, mode="a+", encoding="utf-8") as f:
+        async with aiofiles.open(file=CWD_PATH + '/' + filename, mode="a+", encoding="utf-8") as f:
             await f.write(f"[{datetime.utcnow().__add__(timedelta(hours=3.0))}] {report}\n")
     
     @staticmethod
