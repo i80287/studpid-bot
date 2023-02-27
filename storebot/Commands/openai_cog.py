@@ -21,8 +21,11 @@ from nextcord.channel import TextChannel
 from nextcord.threads import Thread
 
 from ..Tools.logger import Logger
-from ..config import OPENAI_API_KEY
 from ..constants import BANNED_WORDS
+try:
+    from ..config import OPENAI_API_KEY
+except:
+    from ..config_example import OPENAI_API_KEY
 
 openai.api_key = OPENAI_API_KEY
 words_filter: re.Pattern[str] = re.compile(

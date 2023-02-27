@@ -712,7 +712,10 @@ class SlashCommandsCog(Cog):
     }
 
     def __init__(self, bot: StoreBot) -> None:
-        from storebot.config import in_row
+        try:
+            from ..config import in_row
+        except:
+            from ..config_example import in_row
         self.in_row: Literal[5] = in_row
 
     @classmethod

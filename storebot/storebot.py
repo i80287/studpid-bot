@@ -9,7 +9,10 @@ from time import time
 from nextcord import Intents, Member
 from nextcord.ext.commands import Bot, when_mentioned_or
 
-from .config import prefix, FEEDBACK_CHANNEL
+try:
+    from .config import prefix, FEEDBACK_CHANNEL
+except:
+    from .config_example import prefix, FEEDBACK_CHANNEL
 
 class StoreBot(Bot):
     def __init__(self) -> None:

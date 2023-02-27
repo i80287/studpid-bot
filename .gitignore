@@ -2,6 +2,8 @@ bases
 for tests
 additional_files
 
+config.py
+
 *.egg-info
 
 *.log

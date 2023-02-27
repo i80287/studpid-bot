@@ -108,7 +108,8 @@ async def test_slash_cog() -> None:
     member_id: int = member.id
 
     ROLE_PRICE: int = 100
-    role_info: RoleInfo = RoleInfo(role_id=role.id, price=ROLE_PRICE, salary=100, salary_cooldown=86400, role_type=1, additional_salary=42)
+    role_id_member_has = role.id
+    role_info: RoleInfo = RoleInfo(role_id=role_id_member_has, price=ROLE_PRICE, salary=100, salary_cooldown=86400, role_type=1, additional_salary=42)
     await add_role_to_db(guild_id, role_info, {member_id})
 
     interaction = build_interaction()
@@ -121,8 +122,8 @@ async def test_slash_cog() -> None:
     await cog.buy(interaction=interaction, role=role)
     check_embed(interaction.payload, "**`This item not found. Please, check if you selected right role`**")
 
-    role_id: int = role.id
-    role_info = RoleInfo(role_id=role_id, price=ROLE_PRICE, salary=100, salary_cooldown=86400, role_type=1, additional_salary=42)
+    role_id_to_add: int = role.id
+    role_info = RoleInfo(role_id=role_id_to_add, price=ROLE_PRICE, salary=100, salary_cooldown=86400, role_type=1, additional_salary=42)
     await add_role_to_db(guild_id, role_info)
 
     interaction = build_interaction()
@@ -162,7 +163,7 @@ async def test_slash_cog() -> None:
     member_info: tuple[int, int, str, int, int, int] = await db_commands.get_member_async(guild_id, member_id)
     assert member_id == member_info[0]
     assert MEMBER_INIT_CASH - ROLE_PRICE == member_info[1] 
-    assert role_id.__str__() in member_info[2]
+    assert "#{0}#{1}".format(role_id_member_has, role_id_to_add) == member_info[2]
 
 
 def check_embed(payload: dict[str, Any], description_text: str, check_color: bool = True):
