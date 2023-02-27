@@ -230,9 +230,9 @@ rating_text: dict[int, dict[int, str]] = {
     0: {
         0: "Top members by balance",
         1: "Top members by xp",
-        2: "Page {} from {}",
-        3: "{} place",
-        4: "{} level",
+        2: "Page {0} from {1}",
+        3: "{0} place",
+        4: "{0} level",
         5: "Sort by...",
         6: "Sort by cash",
         7: "Sort by xp",
@@ -240,9 +240,9 @@ rating_text: dict[int, dict[int, str]] = {
     1: {
         0: "Топ пользователей по балансу",
         1: "Топ пользователей по опыту",
-        2: "Страница {} из {}",
-        3: "{} место",
-        4: "{} уровень",
+        2: "Страница {0} из {1}",
+        3: "{0} место",
+        4: "{0} уровень",
         5: "Сортировать по...",
         6: "Сортировать по кэшу",
         7: "Сортировать по опыту",
@@ -530,10 +530,10 @@ class RatingView(ViewBase):
         self.in_row: int = in_row
         # True - show ranking by cash, False - by xp
         self.sort_value: bool = True if ec_status else False        
-        self.add_item(CustomButton(label="", custom_id=f"38_{auth_id}_" + urandom(4).hex(), emoji="⏮️"))
-        self.add_item(CustomButton(label="", custom_id=f"39_{auth_id}_" + urandom(4).hex(), emoji="◀️"))
-        self.add_item(CustomButton(label="", custom_id=f"40_{auth_id}_" + urandom(4).hex(), emoji="▶️"))
-        self.add_item(CustomButton(label="", custom_id=f"41_{auth_id}_" + urandom(4).hex(), emoji="⏭"))
+        self.add_item(CustomButton(custom_id=f"38_{auth_id}_" + urandom(4).hex(), emoji="⏮️"))
+        self.add_item(CustomButton(custom_id=f"39_{auth_id}_" + urandom(4).hex(), emoji="◀️"))
+        self.add_item(CustomButton(custom_id=f"40_{auth_id}_" + urandom(4).hex(), emoji="▶️"))
+        self.add_item(CustomButton(custom_id=f"41_{auth_id}_" + urandom(4).hex(), emoji="⏭"))
         if ec_status and rnk_status:
             opts: list[SelectOption] = [
                 SelectOption(
@@ -550,81 +550,92 @@ class RatingView(ViewBase):
                 )
             ]
             self.add_item(item=CustomSelectWithOptions(
-                custom_id=f"104_{auth_id}_" + urandom(4).hex(), placeholder=rating_text[lng][3], opts=opts
+                custom_id=f"104_{auth_id}_" + urandom(4).hex(),
+                placeholder=rating_text[lng][3],
+                opts=opts
             ))
 
-    async def update_menu(self, interaction: Interaction, click: int) -> None:
+    async def update_menu(self, interaction: Interaction, click: Literal[0, 1, 2, 3, 4]) -> None:
         assert interaction.message is not None
+        assert interaction.message.embeds
         assert interaction.message.embeds[0].footer.text is not None
+        assert interaction.message.embeds[0].footer.text.split(' ')[1].isdigit()
         page: int = int(interaction.message.embeds[0].footer.text.split(' ')[1])
+        total_pages: int = self.pages
 
-        if click in {1, 2} and page <= 1:
-            return
-        elif click in {3, 4} and page >= self.pages:
-            return
+        if click in {1, 2}:
+            if page <= 1:
+                return
+            if click == 1:
+                page = 1
+            else:
+                page -= 1
+        elif click in {3, 4}:
+            if page >= total_pages:
+                return
+            if click == 3:
+                page += 1
+            else:
+                page = total_pages
 
-        if click == 1:
-            page = 1
-        elif click == 2:
-            page -= 1
-        elif click == 3:
-            page += 1
-        elif click == 4:
-            page = self.pages
-
-        counter_start: int = (page - 1) * self.in_row + 1
+        in_row = self.in_row
+        counter_start: int = (page - 1) * in_row + 1
         lng: int = self.lng
         if self.sort_value:
+            currency: str = self.currency
             emb: Embed = Embed(title=rating_text[lng][0], colour=Colour.dark_gray())
-            for counter, role_info in enumerate(self.cash_list[((page - 1) * self.in_row):min((page * self.in_row), len(self.cash_list))], start=counter_start):
+            for counter, member_info in enumerate(self.cash_list[((page - 1) * in_row):min((page * in_row), len(self.cash_list))], start=counter_start):
                 emb.add_field(
                     name=rating_text[lng][3].format(counter),
-                    value=f"<@{role_info[0]}>\n{role_info[1]:0,} {self.currency}",
+                    value=f"<@{member_info[0]}>\n{member_info[1]:0,} " + currency,
                     inline=False
                 )
         else:
             emb: Embed = Embed(title=rating_text[lng][1], colour=Colour.dark_gray())
-            for counter, member_info in enumerate(self.xp_list[((page - 1) * self.in_row):min((page * self.in_row), len(self.xp_list))], start=counter_start):
+            levels_xp_border: int = self.xp_b
+            for counter, member_info in enumerate(self.xp_list[((page - 1) * in_row):min((page * in_row), len(self.xp_list))], start=counter_start):
                 emb.add_field(
                     name=rating_text[lng][3].format(counter),
-                    value=f"<@{member_info[0]}>\n{rating_text[lng][4].format((member_info[1] - 1) // self.xp_b + 1)}",
+                    value=f"<@{member_info[0]}>\n" + rating_text[lng][4].format((member_info[1] - 1) // levels_xp_border + 1),
                     inline=False
                 )
 
-        emb.set_footer(text=rating_text[lng][2].format(page, self.pages))
-        if not click:
-            await interaction.response.edit_message(embed=emb, view=self)
-        else:
+        emb.set_footer(text=rating_text[lng][2].format(page, total_pages))
+        if click:
             await interaction.response.edit_message(embed=emb)
+        else:
+            await interaction.response.edit_message(embed=emb, view=self)
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
-        int_custom_id: int = int(custom_id[:2])
-        match int_custom_id:
+        click: Literal[0, 1, 2, 3, 4]
+        match int(custom_id[:2]):
             case 38:
-                click: int = 1
+                click = 1
             case 39:
-                click: int = 2
+                click = 2
             case 40:
-                click: int = 3
+                click = 3
             case 41:
-                click: int = 4
+                click = 4
             case _:
-                click: int = 0
+                click = 0
 
-        await self.update_menu(interaction=interaction, click=click)
+        await self.update_menu(interaction, click)
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
-        if custom_id.startswith("104_"):
-            if values[0].isdigit() and int(values[0]):
-                self.sort_value = False
-                self.children[4].options[0].default = False # type: ignore
-                self.children[4].options[1].default = True # type: ignore
-            else:
-                self.sort_value = True
-                self.children[4].options[0].default = True # type: ignore
-                self.children[4].options[1].default = False # type: ignore
+        assert values[0].isdigit()
+        assert custom_id.startswith("104_")
+        assert isinstance(self.children[4], CustomSelectWithOptions)
+        if int(values[0]):
+            self.sort_value = False
+            self.children[4].options[0].default = False
+            self.children[4].options[1].default = True
+        else:
+            self.sort_value = True
+            self.children[4].options[0].default = True
+            self.children[4].options[1].default = False
 
-        await self.update_menu(interaction=interaction, click=0)
+        await self.update_menu(interaction, 0)
 
 
 class SlashCommandsCog(Cog):
@@ -716,7 +727,7 @@ class SlashCommandsCog(Cog):
             from ..config import in_row
         except:
             from ..config_example import in_row
-        self.in_row: Literal[5] = in_row
+        self.in_row = in_row
 
     @classmethod
     async def can_role(cls, interaction: Interaction, role: Role, lng: int) -> bool:
@@ -743,8 +754,8 @@ class SlashCommandsCog(Cog):
             await cls.respond_with_error_report(interaction=interaction, lng=lng, answer=cls.manage_requests_text[lng][0])
         return request
 
-    @classmethod
-    async def respond_with_error_report(cls, interaction: Interaction, lng: int, answer: str) -> None:
+    @staticmethod
+    async def respond_with_error_report(interaction: Interaction, lng: int, answer: str) -> None:
         await interaction.response.send_message(
             embed=Embed(
                 title=text_slash[lng][0],
@@ -905,7 +916,7 @@ class SlashCommandsCog(Cog):
 
         store_list: list[str] = []
         tz_info: timezone = timezone(timedelta(hours=tz))
-        in_row: Literal[5] = self.in_row
+        in_row = self.in_row
         for role_number, r, q, p, d, salary, salary_cooldown, role_type in db_store[:min(in_row, db_l)]:
             date: str = datetime.fromtimestamp(d, tz=tz_info).strftime("%H:%M %d-%m-%Y")
             role_info: str
@@ -1674,19 +1685,18 @@ class SlashCommandsCog(Cog):
         with closing(connect(DB_PATH.format(guild_id))) as base:
             with closing(base.cursor()) as cur:
                 ec_status: int = \
-                    cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
+                    cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled';").fetchone()[0]
                 rnk_status: int = \
-                    cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
-                if ec_status:
-                    membs_cash: list[tuple[int, int]] = cur.execute("SELECT memb_id, money FROM users").fetchall()
-                    membs_cash.sort(key=lambda tup: tup[1], reverse=True)
-                else:
-                    membs_cash = []
-                if rnk_status:
-                    membs_xp: list[tuple[int, int]] = cur.execute("SELECT memb_id, xp FROM users").fetchall()
-                    membs_xp.sort(key=lambda tup: tup[1], reverse=True)
-                else:
-                    membs_xp = []
+                    cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled';").fetchone()[0]
+                
+                membs_cash: list[tuple[int, int]] = \
+                    cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall() \
+                    if ec_status else []
+
+                membs_xp: list[tuple[int, int]] = \
+                    cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall() \
+                    if rnk_status else []
+
                 xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
 
@@ -1694,29 +1704,29 @@ class SlashCommandsCog(Cog):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
             return
 
-        l: int = len(membs_cash) if ec_status else len(membs_xp)
-        in_row: Literal[5] = self.in_row
-        end: int = min(in_row, l)
+        items_length: int = len(membs_cash) if ec_status else len(membs_xp)
+        in_row: int = self.in_row
+        end: int = min(in_row, items_length)
         if ec_status:
             emb: Embed = Embed(title=rating_text[lng][0], colour=Colour.dark_gray())
-            for counter, role_info in enumerate(membs_cash[0:end], start=1):
+            for counter, member_info in enumerate(membs_cash[:end], start=1):
                 emb.add_field(
                     name=rating_text[lng][3].format(counter),
-                    value=f"<@{role_info[0]}>\n{role_info[1]:0,} " + currency,
+                    value=f"<@{member_info[0]}>\n{member_info[1]:0,} " + currency,
                     inline=False
                 )
                 
         else:
             emb: Embed = Embed(title=rating_text[lng][1], colour=Colour.dark_gray())
-            for counter, role_info in enumerate(membs_xp[0:end], start=1):
+            for counter, member_info in enumerate(membs_xp[:end], start=1):
                 emb.add_field(
                     name=rating_text[lng][3].format(counter),
-                    value=f"<@{role_info[0]}>\n{rating_text[lng][4].format((role_info[1] - 1) // xp_b + 1)}",
+                    value=f"<@{member_info[0]}>\n" + rating_text[lng][4].format((member_info[1] - 1) // xp_b + 1),
                     inline=False
                 )
 
-        if l:
-            emb.set_footer(text=rating_text[lng][2].format(1, (l + in_row - 1) // in_row))
+        if items_length:
+            emb.set_footer(text=rating_text[lng][2].format(1, (items_length + in_row - 1) // in_row))
         else:
             emb.set_footer(text=rating_text[lng][2].format(1, 1))
 
@@ -1724,7 +1734,7 @@ class SlashCommandsCog(Cog):
             timeout=40,
             lng=lng,
             auth_id=interaction.user.id,
-            l=l,
+            l=items_length,
             cash_list=membs_cash,
             xp_list=membs_xp,
             xp_b=xp_b,
