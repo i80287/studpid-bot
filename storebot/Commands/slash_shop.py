@@ -727,7 +727,7 @@ class SlashCommandsCog(Cog):
             from ..config import in_row
         except:
             from ..config_example import in_row
-        self.in_row = in_row
+        self.in_row: Literal[5] = in_row
 
     @staticmethod
     def bin_search_pairs(member_id: int, value: int, values: list[tuple[int, int]]) -> int:
@@ -941,25 +941,18 @@ class SlashCommandsCog(Cog):
                     )
                     return
                 tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
-                db_store: list[tuple[int, int, int, int, int, int, int, int]] = cur.execute(
-                    "SELECT * FROM store").fetchall()
+                db_store: list[tuple[int, int, int, int, int, int, int, int]] = cur.execute("SELECT * FROM store").fetchall()
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
 
-        db_l: int = len(db_store)
-        l: int = db_l >> 1
-        while l:
-            for i in range(l, db_l):
-                moving_item: tuple[int, int, int, int, int, int, int, int] = db_store[i]
-                while i >= l and (db_store[i - l][3] > db_store[i][3] or (
-                        db_store[i - l][3] == db_store[i][3] and db_store[i - l][4] < db_store[i][4])):
-                    db_store[i] = db_store[i - l]
-                    i -= l
-                    db_store[i] = moving_item
-            l >>= 1
+        # Reversed sort by price, from higher to lower. 
+        # If prices are equal sort by date from higher to lower (latest is higher, early date is lower)
+        # tup[3] - price of the role, tup[4] - last date of adding role to the store
+        db_store.sort(key=lambda tup: (tup[3], tup[4]), reverse=True)
 
         store_list: list[str] = []
         tz_info: timezone = timezone(timedelta(hours=tz))
-        in_row = self.in_row
+        in_row: Literal[5] = self.in_row
+        db_l: int = len(db_store)
         for role_number, r, q, p, d, salary, salary_cooldown, role_type in db_store[:min(in_row, db_l)]:
             date: str = datetime.fromtimestamp(d, tz=tz_info).strftime("%H:%M %d-%m-%Y")
             role_info: str
