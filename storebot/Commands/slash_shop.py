@@ -32,6 +32,7 @@ from nextcord import (
 )
 from nextcord.ext.commands import Cog
 
+from .members_handler import MembersHandlerCog
 from ..CustomComponents.view_base import ViewBase
 from ..CustomComponents.custom_button import CustomButton
 from ..CustomComponents.custom_select import CustomSelectWithOptions
@@ -44,8 +45,11 @@ from ..Tools.db_commands import (
     delete_role_from_db,
     get_server_info_value_async,
     get_server_currency_async,
-    get_server_slots_table_async
+    get_server_slots_table_async,
+    process_bought_role,
+    PartialRoleStoreInfo
 )
+from ..Tools.logger import Logger
 from ..constants import DB_PATH
 if __debug__:
     from ..CustomComponents.custom_select import CustomSelect
@@ -129,7 +133,7 @@ text_slash: dict[int, dict[int, str]] = {
         11: "**`Если у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение покупки будет выслано Вам в личные сообщения`**",
         12: "Вы успешно купили роль `{}` на сервере `{}` за `{}` {}",
         13: "Покупка роли",
-        14: "{} купил роль {} за {} {}",
+        14: "{} купил(а, о) роль {} за {} {}",
         15: "Роли на продажу:",
         16: "**`Вы не можете продать роль, которой у Вас нет`**",
         17: "**`Продажа этой роли невозможна, т.к. она не находится в списке ролей, доступных для покупки/продажи на сервере`**",
@@ -138,7 +142,7 @@ text_slash: dict[int, dict[int, str]] = {
         20: "Подтверждение продажи",
         21: "**`Вы продали роль {} за {}`** {}",
         22: "Продажа роли",
-        23: "{} продал роль {} за {} {}",
+        23: "{} продал(а, о) роль {} за {} {}",
         24: "Ваш баланс",
         25: "**Ваши личные роли:**\n--- **Роль** --- **Цена** --- **Доход** (если есть)",
         26: "**`Пожалуйста, подождите {} перед тем, как снова использовать эту команду`**",
@@ -728,6 +732,14 @@ class SlashCommandsCog(Cog):
             10: "**`Вы отклонили предложение покупки роли`** <@&{}>",
         }
     }
+    buy_command_text: dict[int, dict[int, str]] = {
+        0: {
+            0: "**`An error occurred while adding role. Your money has not been debited. Please check bot's permissions`**"
+        },
+        1: {
+            0: "**`Во время добавления роли возникла ошибка. Ваши деньги не были списаны. Пожалуйста, проверьте права и разрешения бота`**"
+        }
+    }
 
     def __init__(self, bot: StoreBot) -> None:
         try:
@@ -827,7 +839,7 @@ class SlashCommandsCog(Cog):
 
         member_buyer: Member = interaction.user
         memb_id: int = member_buyer.id
-        r_id: int = role.id
+        role_id: int = role.id
         guild_id: int = interaction.guild_id
         with closing(connect(DB_PATH.format(guild_id))) as base:
             with closing(base.cursor()) as cur:
@@ -837,7 +849,7 @@ class SlashCommandsCog(Cog):
 
                 store: Optional[tuple[int, int, int, int]] = cur.execute(
                     "SELECT quantity, price, salary, type FROM store WHERE role_id = ?",
-                    (r_id,)
+                    (role_id,)
                 ).fetchone()
 
                 if not store:
@@ -849,64 +861,47 @@ class SlashCommandsCog(Cog):
         buyer: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
 
         # if r_id in {int(x) for x in buyer[2].split("#") if x}:
-        if str(r_id) in buyer[2]:
+        buyer_member_roles: str = buyer[2]
+        if str(role_id) in buyer_member_roles:
             await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][4])
             return
 
         buyer_cash: int = buyer[1]
-        cost: int = store[1]
+        role_price: int = store[1]
 
-        if buyer_cash < cost:
-            await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][6].format(cost - buyer_cash, currency))
+        if buyer_cash < role_price:
+            await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][6].format(role_price - buyer_cash, currency))
             return
 
-        emb: Embed = Embed(title=text_slash[lng][7], description=text_slash[lng][8].format(role.mention, cost, currency))
+        emb: Embed = Embed(title=text_slash[lng][7], description=text_slash[lng][8].format(role.mention, role_price, currency))
 
         view: BuyView = BuyView(timeout=30, auth_id=memb_id, lng=lng)
         await interaction.response.send_message(embed=emb, view=view)
 
-        c: bool = await view.wait()
-        if c or not view.value:
+        await view.wait()
+        if not view.value:
             try:
                 await interaction.delete_original_message()
             except:
                 return
             return
 
-        role_type: int = store[3]
-        await member_buyer.add_roles(role)
+        async with MembersHandlerCog.bot_added_roles_lock:
+            MembersHandlerCog.bot_added_roles_queue.put_nowait(role_id)
+        
+        try:
+            await member_buyer.add_roles(role)
+        except:
+            await self.respond_with_error_report(interaction, lng, self.buy_command_text[lng][0])
+            await Logger.write_guild_log_async(
+                "error.log",
+                guild_id,
+                f"[ERROR] [buy command] [add_roles failed] [member: {memb_id}:{member_buyer.name}] [role: {role_id}:{role.name}]"
+            )
+            return
 
-        with closing(connect(DB_PATH.format(guild_id))) as base:
-            with closing(base.cursor()) as cur:
-                server_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                cur.execute(
-                    "UPDATE users SET money = money - ?, owned_roles = ? WHERE memb_id = ?",
-                    (cost, buyer[2] + f"#{r_id}", memb_id)
-                )
-                base.commit()
-                if role_type == 1:
-                    rowid_to_delete: int = \
-                        cur.execute("SELECT rowid FROM store WHERE role_id = ? ORDER BY last_date", (r_id,)).fetchall()[0][0]
-                    cur.execute("DELETE FROM store WHERE rowid = ?", (rowid_to_delete,))
-                elif role_type == 2:
-                    if store[0] > 1:
-                        cur.execute("UPDATE store SET quantity = quantity - 1 WHERE role_id = ?", (r_id,))
-                    else:
-                        cur.execute("DELETE FROM store WHERE role_id = ?", (r_id,))
-
-                if store[2]:
-                    role_members: Optional[tuple[str]] = cur.execute(
-                        "SELECT members FROM salary_roles WHERE role_id = ?",
-                        (r_id,)
-                    ).fetchone()
-                    if role_members:
-                        cur.execute(
-                            "UPDATE salary_roles SET members = ? WHERE role_id = ?",
-                            (role_members[0] + f"#{memb_id}", r_id)
-                        )
-
-                base.commit()
-                chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
+        role_info: PartialRoleStoreInfo = PartialRoleStoreInfo(role_id, role_price, store[2], store[0], store[3])
+        await process_bought_role(guild_id, memb_id, buyer_member_roles, role_info)
 
         emb.title = text_slash[lng][10]
         emb.description = text_slash[lng][11]
@@ -919,17 +914,20 @@ class SlashCommandsCog(Cog):
             await member_buyer.send(
                 embed=Embed(
                     title=text_slash[lng][7],
-                    description=text_slash[lng][12].format(role.name,interaction.guild.name, cost,currency),
+                    description=text_slash[lng][12].format(role.name, interaction.guild.name, role_price, currency),
                     colour=Colour.green()
                 )
             )
         except:
             pass
-        if chnl_id and isinstance(guild_log_channel := interaction.guild.get_channel(chnl_id), TextChannel):
+
+        log_channel_id: int = await get_server_info_value_async(guild_id, 'log_c')
+        if log_channel_id and isinstance(guild_log_channel := interaction.guild.get_channel(log_channel_id), TextChannel):
+            server_lng: int = await get_server_info_value_async(guild_id, 'lang')
             try:
                 await guild_log_channel.send(embed=Embed(
                     title=text_slash[server_lng][13],
-                    description=text_slash[server_lng][14].format(f"<@{memb_id}>", f"<@&{r_id}>", cost, currency)
+                    description=text_slash[server_lng][14].format(f"<@{memb_id}>", f"<@&{role_id}>", role_price, currency)
                 ))
             except:
                 return
@@ -1030,16 +1028,16 @@ class SlashCommandsCog(Cog):
                 role_info: Optional[tuple[int, int, int, int, int]] = \
                     cur.execute("SELECT role_id, price, salary, salary_cooldown, type FROM server_roles WHERE role_id = ?", (r_id,)).fetchone()
                 if not role_info:
-                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][17])
+                    await self.respond_with_error_report(interaction, lng, text_slash[lng][17])
                     return
 
                 owned_roles: set[str] = {str_role_id for str_role_id in user_owned_roles if str_role_id}
                 str_role_id: str = str(r_id)
                 if str_role_id not in owned_roles:
-                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][16])
+                    await self.respond_with_error_report(interaction, lng, text_slash[lng][16])
                     return
-                else:
-                    owned_roles.remove(str_role_id)
+
+                owned_roles.remove(str_role_id)
 
                 r_price: int = role_info[1]
                 r_sal: int = role_info[2]
@@ -1050,7 +1048,6 @@ class SlashCommandsCog(Cog):
                 sale_price: int = r_price if sale_price_percent == 100 \
                     else r_price * sale_price_percent // 100
 
-                await interaction.user.remove_roles(role)
                 new_owned_roles: str = '#' + '#'.join(owned_roles) if owned_roles else ""
                 cur.execute(
                     "UPDATE users SET owned_roles = ?, money = money + ? WHERE memb_id = ?",
@@ -1105,6 +1102,10 @@ class SlashCommandsCog(Cog):
                 chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
                 server_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+
+        async with MembersHandlerCog.bot_removed_roles_lock:
+            MembersHandlerCog.bot_removed_roles_queue.put_nowait(r_id)
+        await interaction.user.remove_roles(role)
 
         emb: Embed = Embed(
             title=text_slash[lng][18],
@@ -1464,6 +1465,11 @@ class SlashCommandsCog(Cog):
                 base.commit()
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
         
+        async with MembersHandlerCog.bot_added_roles_lock:
+            MembersHandlerCog.bot_added_roles_queue.put_nowait(role_id)
+        async with MembersHandlerCog.bot_removed_roles_lock:
+            MembersHandlerCog.bot_removed_roles_queue.put_nowait(role_id)
+
         try:
             await seller.remove_roles(role)
             await interaction.user.add_roles(role)

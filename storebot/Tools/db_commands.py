@@ -10,7 +10,7 @@ from aiosqlite import connect as connect_async
 from contextlib import closing
 from itertools import pairwise
 
-from ..constants import CWD_PATH
+from ..constants import CWD_PATH, DB_PATH
 
 
 @dataclass(frozen=True)
@@ -26,11 +26,22 @@ class RoleInfo:
     def all_items(self) -> tuple[int, int, int, int, int, int]:
         return (self.role_id, self.price, self.salary, self.salary_cooldown, self.role_type, self.additional_salary)
 
+
 @dataclass(frozen=True)
 class PartialRoleInfo:
     role_id: int
     salary: int
     salary_cooldown: int
+
+
+@dataclass(frozen=True)
+class PartialRoleStoreInfo:
+    role_id: int
+    price: int
+    salary: int
+    quantity: int
+    role_type: int
+
 
 def update_server_info_table(guild_id: int, key_name: str, new_value: int) -> None:
     with closing(connect(CWD_PATH + "/bases/bases_{0}/{0}.db".format(guild_id))) as base:
@@ -362,6 +373,39 @@ async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) 
             await base.commit()
         
         return is_added
+
+async def process_bought_role(guild_id: int, member_id: int, buyer_member_roles: str, role_info: PartialRoleStoreInfo) -> None:
+    role_id: int = role_info.role_id
+    price: int = role_info.price
+    role_type: int = role_info.role_type
+    salary: int = role_info.salary
+    str_role_id: str = role_id.__str__()
+
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        await base.execute(
+            "UPDATE users SET money = money - ?, owned_roles = ? WHERE memb_id = ?;",
+            (price, buyer_member_roles + '#' + str_role_id, member_id)
+        )
+            
+        if role_type == 1:
+            query: str = "SELECT rowid FROM store WHERE role_id = " + str_role_id + " ORDER BY last_date;"
+            rowid_to_delete: int = (await (await base.execute(query)).fetchone())[0] # type: ignore
+            await base.execute("DELETE FROM store WHERE rowid = " + rowid_to_delete.__str__())
+        elif role_type == 2:
+            if role_info.quantity > 1:
+                await base.execute("UPDATE store SET quantity = quantity - 1 WHERE role_id = " + str_role_id)
+            else:
+                await base.execute("DELETE FROM store WHERE role_id = " + str_role_id)
+
+        await base.commit()
+
+        if salary:
+            role_members: Row | None = (await (await base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id)).fetchone())
+            if role_members:
+                new_role_members: str = role_members[0] + '#' + member_id.__str__()
+                await base.execute("UPDATE salary_roles SET members = '" + new_role_members + "' WHERE role_id = " + str_role_id)
+                
+            await base.commit()
 
 async def drop_users_cash_async(guild_id: int) -> None:
     str_guild_id: str = guild_id.__str__()

@@ -39,6 +39,11 @@ class MembersHandlerCog(Cog):
         }
     }
 
+    bot_added_roles_queue: asyncio.Queue[int] = asyncio.Queue()
+    bot_added_roles_lock: asyncio.Lock = asyncio.Lock()
+    bot_removed_roles_queue: asyncio.Queue[int] = asyncio.Queue()
+    bot_removed_roles_lock: asyncio.Lock = asyncio.Lock()
+
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
         self.members_queue: asyncio.Queue[tuple[Guild, int, SnowflakeList, SnowflakeList, bool]] = asyncio.Queue()
@@ -65,21 +70,28 @@ class MembersHandlerCog(Cog):
             after_roles: SnowflakeList = tup[3]
             is_role_added: bool = tup[4]
             changed_role_id: int = 0
-            is_added: bool = False
+            is_updated: bool = False
+            
             if is_role_added:
                 for role_id in after_roles:
                     if not before_roles.has(role_id):
-                        is_added = await add_member_role_async(guild.id, member_id, role_id)
-                        changed_role_id = role_id
-                        break
+                        if await self.check_bot_added_roles(role_id):
+                            is_updated = await add_member_role_async(guild_id, member_id, role_id)
+                            changed_role_id = role_id
+                            break
+                        else:
+                            continue
             else:
                 for role_id in before_roles:
                     if not after_roles.has(role_id):
-                        is_added = await remove_member_role_async(guild_id, member_id, role_id)
-                        changed_role_id = role_id
-                        break
+                        if await self.check_bot_removed_roles(role_id):
+                            is_updated = await remove_member_role_async(guild_id, member_id, role_id)
+                            changed_role_id = role_id
+                            break
+                        else:
+                            continue
             
-            if not is_added:
+            if not is_updated:
                 continue
 
             await Logger.write_guild_log_async(
@@ -91,10 +103,7 @@ class MembersHandlerCog(Cog):
             log_channel_id: int = await get_server_info_value_async(guild_id, "log_c") 
             if log_channel_id and isinstance(log_channel := guild.get_channel(log_channel_id), TextChannel):
                 server_lng: int = await get_server_info_value_async(guild_id, "lang")
-                description: str = \
-                    self.members_handler_text[server_lng][0].format(changed_role_id, member_id) \
-                    if is_role_added else \
-                    self.members_handler_text[server_lng][1].format(changed_role_id, member_id)
+                description: str = self.members_handler_text[server_lng][0 if is_role_added else 1].format(changed_role_id, member_id)
                 try:
                     await log_channel.send(embed=Embed(description=description))
                 except:
@@ -107,6 +116,57 @@ class MembersHandlerCog(Cog):
     @roles_updates_loop.before_loop
     async def before_voice_processor(self) -> None:
         await self.bot.wait_until_ready()
+
+    @classmethod
+    async def check_bot_added_roles(cls, role_id: int) -> bool:
+        async with cls.bot_added_roles_lock:
+            if cls.bot_added_roles_queue.empty():
+                return True
+            
+            bot_added_role_id_1: int = await cls.bot_added_roles_queue.get()
+    
+        if bot_added_role_id_1 == role_id:
+            return False
+        
+        async with cls.bot_added_roles_lock:
+            if cls.bot_added_roles_queue.empty():
+                cls.bot_added_roles_queue.put_nowait(bot_added_role_id_1)
+                return True
+        
+            bot_added_role_id_2: int = await cls.bot_added_roles_queue.get()
+            cls.bot_added_roles_queue.put_nowait(bot_added_role_id_1)
+        
+        if bot_added_role_id_2 == role_id:
+            return False
+
+        cls.bot_added_roles_queue.put_nowait(bot_added_role_id_2)
+        return True
+
+    @classmethod
+    async def check_bot_removed_roles(cls, role_id: int) -> bool:
+        async with cls.bot_removed_roles_lock:
+            if cls.bot_removed_roles_queue.empty():
+                return True
+            
+            bot_removed_role_id_1: int = await cls.bot_removed_roles_queue.get()
+        
+        if bot_removed_role_id_1 == role_id:
+            return False
+        
+        async with cls.bot_removed_roles_lock:
+            if cls.bot_removed_roles_queue.empty():
+                cls.bot_removed_roles_queue.put_nowait(bot_removed_role_id_1)
+                return True
+
+            bot_removed_role_id_2: int = await cls.bot_added_roles_queue.get()
+            cls.bot_removed_roles_queue.put_nowait(bot_removed_role_id_1)
+        
+        if bot_removed_role_id_2 == role_id:
+            return False
+
+        cls.bot_removed_roles_queue.put_nowait(bot_removed_role_id_2)
+        return True
+
 
 def setup(bot: StoreBot) -> None:
     bot.add_cog(MembersHandlerCog(bot))
