@@ -729,6 +729,49 @@ class SlashCommandsCog(Cog):
             from ..config_example import in_row
         self.in_row = in_row
 
+    @staticmethod
+    def bin_search_pairs(member_id: int, value: int, values: list[tuple[int, int]]) -> int:
+        total_length: int = len(values)
+        l_index: int = 0
+        r_index: int = total_length
+        while r_index > l_index:
+            m: int = (r_index + l_index) >> 1
+            if values[m][1] > value:
+                l_index = m + 1
+            else:
+                r_index = m
+        
+        if values[l_index][0] == member_id:
+            return l_index
+        
+        # Rare case if some members have same value.
+        
+        # Go right
+        found: bool = False
+        for i in range(l_index + 1, total_length):
+            i_member_pair: tuple[int, int] = values[i]
+            if i_member_pair[0] == member_id:
+                # We found needed member.
+                found = True
+                l_index = i
+                break
+            if i_member_pair[1] != value:
+                # Members with the same value gone.
+                break
+
+        if found:
+            return l_index
+
+        # Go left
+        for i in range(l_index - 1, -1, -1):
+            # Members with the same value can't gone.
+            if values[i][0] == member_id:
+                # We found needed member.
+                l_index = i
+                break
+
+        return l_index
+
     @classmethod
     async def can_role(cls, interaction: Interaction, role: Role, lng: int) -> bool:
         # if not interaction.permissions.manage_roles:
@@ -1199,55 +1242,38 @@ class SlashCommandsCog(Cog):
                 buy_role_requests: list[tuple[int, int, int, int]] = cur.execute(
                     "SELECT request_id, seller_id, role_id, price FROM sale_requests WHERE target_id = ?",
                     (memb_id,)
-                ).fetchall()                
+                ).fetchall()
 
         if not (ec_status or rnk_status):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
             return
 
         embs: list[Embed] = []
-        l: int = len(membs_cash) if ec_status else len(membs_xp)
-        if ec_status:
-            # cnt_cash is a place in the rating sorted by cash
-            cash: int = db_member_info[1]
-            if membs_cash[l >> 1][1] < cash:
-                cnt_cash: int = 1
-                while cnt_cash < l and memb_id != membs_cash[cnt_cash - 1][0]:
-                    cnt_cash += 1
-            else:
-                cnt_cash: int = l
-                while cnt_cash > 1 and memb_id != membs_cash[cnt_cash - 1][0]:
-                    cnt_cash -= 1
+        local_text: dict[int, str] = self.profile_text[lng]
 
-            emb1: Embed = Embed(description=self.profile_text[lng][5].format(memb_id, memb_id))
-            emb1.add_field(name=self.profile_text[lng][1], value=self.code_blocks[2][1].format("{0:0,}".format(cash)), inline=True)
-            emb1.add_field(name=self.profile_text[lng][4], value=self.code_blocks[2][1].format(cnt_cash), inline=True)
+        if ec_status:
+            member_cash: int = db_member_info[1]
+            index: int = self.bin_search_pairs(memb_id, member_cash, membs_cash)
+
+            emb1: Embed = Embed(description=local_text[5].format(memb_id))
+            emb1.add_field(name=local_text[1], value=self.code_blocks[2][1].format("{0:0,}".format(member_cash)), inline=True)
+            emb1.add_field(name=local_text[4], value=self.code_blocks[2][1].format(index + 1), inline=True) # place = index + 1
             embs.append(emb1)
 
         if rnk_status:
-            # cnt_cash is a place in the rating sorted by xp
             xp: int = db_member_info[4]
-            if membs_xp[l >> 1][1] < xp:
-                cnt_xp: int = 1
-                while cnt_xp < l and memb_id != membs_xp[cnt_xp - 1][0]:
-                    cnt_xp += 1
-            else:
-                cnt_xp: int = l
-                while cnt_xp > 1 and memb_id != membs_xp[cnt_xp - 1][0]:
-                    cnt_xp -= 1
-
+            index: int = self.bin_search_pairs(memb_id, xp, membs_xp)
             level: int = (xp + xp_b - 1) // xp_b
 
-            emb2: Embed = Embed()
-            if not len(embs):
-                emb2.description = self.profile_text[lng][5].format(memb_id, memb_id)
+            # if embs list is empty, description with member mention is added.
+            emb2: Embed = Embed() if embs else Embed(description = local_text[5].format(memb_id))
             emb2.add_field(
-                name=self.profile_text[lng][2],
+                name=local_text[2],
                 value=self.code_blocks[2][2].format(f"{xp:0,}/{(level * xp_b + 1):0,}"),
                 inline=True
             )
-            emb2.add_field(name=self.profile_text[lng][3], value=self.code_blocks[2][2].format("{0:0,}".format(level)), inline=True)
-            emb2.add_field(name=self.profile_text[lng][4], value=self.code_blocks[2][2].format(cnt_xp), inline=True)
+            emb2.add_field(name=local_text[3], value=self.code_blocks[2][2].format(level), inline=True)
+            emb2.add_field(name=local_text[4], value=self.code_blocks[2][2].format(index + 1), inline=True) # place = index + 1
             embs.append(emb2)
 
         if ec_status:
@@ -1256,8 +1282,8 @@ class SlashCommandsCog(Cog):
             memb_roles: set[int] | set = {int(role_id) for role_id in db_member_info[2].split("#") if role_id.isdigit()} if db_member_info[2] else set()
 
             embed_3_description: str = '\n'.join(
-                [self.code_blocks[lng][0]] + [f"<@&{r}>" for r in memb_server_db_roles]
-            ) if memb_server_db_roles else self.profile_text[lng][6]
+                [self.code_blocks[lng][0]] + ["<@&{0}>".format(role_id) for role_id in memb_server_db_roles]
+            ) if memb_server_db_roles else local_text[6]
             emb3: Embed = Embed(description=embed_3_description)
 
             # in case role(s) was(were) removed from user manually, we should update database
@@ -1302,15 +1328,17 @@ class SlashCommandsCog(Cog):
 
             if sale_role_requests:
                 embed_4_description: str = self.code_blocks[lng][1] + \
-                    '\n'.join(self.profile_text[lng][7].format(request_id, role_id, price, currency, target_id) \
-                        for request_id, target_id, role_id, price in sale_role_requests
+                    '\n'.join(
+                        local_text[7].format(request_id, role_id, price, currency, target_id) \
+                            for request_id, target_id, role_id, price in sale_role_requests
                     )
                 embs.append(Embed(description=embed_4_description))
 
             if buy_role_requests:
                 embed_5_description: str = self.code_blocks[lng][2] + \
-                    '\n'.join(self.profile_text[lng][8].format(request_id, role_id, price, currency, seller_id) \
-                        for request_id, seller_id, role_id, price in buy_role_requests
+                    '\n'.join(
+                        local_text[8].format(request_id, role_id, price, currency, seller_id) \
+                            for request_id, seller_id, role_id, price in buy_role_requests
                     )
                 embs.append(Embed(description=embed_5_description))
 
