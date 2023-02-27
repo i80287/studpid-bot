@@ -31,7 +31,8 @@ from tests.builder import (
     remove_role,
     add_role_to_db,
     get_connection,
-    get_view
+    get_view,
+    MISSING
 )
 
 test_bot: StoreBot = get_bot()
@@ -54,26 +55,32 @@ async def main() -> None:
     db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
     
     test_bot.load_extensions_from_module("storebot.Commands")
-    
-    cog: SlashCommandsCog | None = test_bot.get_cog("SlashCommandsCog") # type: ignore
-    if not cog:
-        raise Exception("SlashCommandsCog not found")
 
+    exceptions: list[Exception] = []
     try:
-        await test_slash_cog(cog)
+        await test_slash_cog()
     except Exception as ex:
-        print(ex)
+        exceptions.append(ex)
     finally:
         try:
-            session = get_connection().http.__session
-            if session:
+            if (session := conn_state.http.__session) is not MISSING:
                 await session.close()
         except:
             pass
         os.remove(db_path)
         os.rmdir(dir_path)
+    
+    if exceptions:
+        print(*exceptions, sep='\n')
+        raise exceptions[0]
+    else:
+        print("All tests passed")
 
-async def test_slash_cog(cog: SlashCommandsCog) -> None:
+async def test_slash_cog() -> None:
+    cog: SlashCommandsCog | None = test_bot.get_cog("SlashCommandsCog") # type: ignore
+    if not cog:
+        raise Exception("SlashCommandsCog not found")
+
     interaction: DummyInteraction = build_interaction()
     await cog.bet(interaction=interaction, amount=42)
     check_embed(interaction.payload, "**`You can't make a bet, because you need 42`** :coin: **`more`**")
@@ -98,10 +105,11 @@ async def test_slash_cog(cog: SlashCommandsCog) -> None:
     check_embed(interaction.payload, "**`This item not found. Please, check if you selected right role`**")
 
     member: Member = get_member()
+    member_id: int = member.id
 
     ROLE_PRICE: int = 100
     role_info: RoleInfo = RoleInfo(role_id=role.id, price=ROLE_PRICE, salary=100, salary_cooldown=86400, role_type=1, additional_salary=42)
-    await add_role_to_db(guild_id, role_info, {member.id})
+    await add_role_to_db(guild_id, role_info, {member_id})
 
     interaction = build_interaction()
     await cog.buy(interaction=interaction, role=role)
@@ -113,20 +121,22 @@ async def test_slash_cog(cog: SlashCommandsCog) -> None:
     await cog.buy(interaction=interaction, role=role)
     check_embed(interaction.payload, "**`This item not found. Please, check if you selected right role`**")
 
-    role_info = RoleInfo(role_id=role.id, price=ROLE_PRICE, salary=100, salary_cooldown=86400, role_type=1, additional_salary=42)
+    role_id: int = role.id
+    role_info = RoleInfo(role_id=role_id, price=ROLE_PRICE, salary=100, salary_cooldown=86400, role_type=1, additional_salary=42)
     await add_role_to_db(guild_id, role_info)
 
     interaction = build_interaction()
     await cog.buy(interaction=interaction, role=role)
     check_embed(interaction.payload, f"**`For purchasing this role you need {ROLE_PRICE} `:coin:` more`**")
 
-    await db_commands.update_member_cash_async(guild_id, member.id, ROLE_PRICE - 1)
+    await db_commands.update_member_cash_async(guild_id, member_id, ROLE_PRICE - 1)
 
     interaction = build_interaction()
     await cog.buy(interaction=interaction, role=role)
     check_embed(interaction.payload, "**`For purchasing this role you need 1 `:coin:` more`**")
 
-    await db_commands.update_member_cash_async(guild_id, member.id, ROLE_PRICE << 1)
+    MEMBER_INIT_CASH: int = ROLE_PRICE << 1
+    await db_commands.update_member_cash_async(guild_id, member_id, MEMBER_INIT_CASH)
 
     interaction = build_interaction()
 
@@ -148,6 +158,12 @@ async def test_slash_cog(cog: SlashCommandsCog) -> None:
         task.cancel()
 
     check_embed(interaction.edit_payload, "**`If your DM are open, then purchase confirmation will be messaged you`**", False)
+
+    member_info: tuple[int, int, str, int, int, int] = await db_commands.get_member_async(guild_id, member_id)
+    assert member_id == member_info[0]
+    assert MEMBER_INIT_CASH - ROLE_PRICE == member_info[1] 
+    assert role_id.__str__() in member_info[2]
+
 
 def check_embed(payload: dict[str, Any], description_text: str, check_color: bool = True):
     assert "embeds" in payload
