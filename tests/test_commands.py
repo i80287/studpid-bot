@@ -4,6 +4,7 @@ if TYPE_CHECKING:
     from typing import Any
 
     from nextcord import Guild, Role
+    from nextcord.state import ConnectionState
 
     from .dummy_variables import DummyInteraction
 
@@ -38,37 +39,47 @@ from tests.builder import (
 test_bot: StoreBot = get_bot()
 guild: Guild = get_guild()
 guild_id: int = guild.id
-conn_state = get_connection()
+conn_state: ConnectionState = get_connection()
 
 async def main() -> None:
-    db_bases_path: str = CWD_PATH + "/bases/"
-    if not os.path.exists(db_bases_path):
-        os.mkdir(db_bases_path)
-    dir_path: str = CWD_PATH + f"/bases/bases_{guild_id}/"
-    if not os.path.exists(dir_path):
-        os.mkdir(dir_path)
-    
-    db_path: str = DB_PATH.format(guild_id)
-    if os.path.exists(db_path):
-        os.remove(db_path)
-    
-    db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
-    
-    test_bot.load_extensions_from_module("storebot.Commands")
-
     exceptions: list[Exception] = []
+    dir_path: str | None = None
+    db_path: str | None = None
+    
     try:
+        db_bases_path: str = CWD_PATH + "/bases/"
+        if not os.path.exists(db_bases_path):
+            os.mkdir(db_bases_path)
+        dir_path = CWD_PATH + f"/bases/bases_{guild_id}/"
+        if not os.path.exists(dir_path):
+            os.mkdir(dir_path)
+        
+        db_path = DB_PATH.format(guild_id)
+        if os.path.exists(db_path):
+            os.remove(db_path)
+        
+        db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
+        
+        test_bot.load_extensions_from_module("storebot.Commands")
         await test_slash_cog()
     except Exception as ex:
         exceptions.append(ex)
     finally:
-        try:
-            if (session := conn_state.http.__session) is not MISSING:
+        if (session := conn_state.http.__session) is not MISSING:
+            try:
                 await session.close()
-        except:
-            pass
-        os.remove(db_path)
-        os.rmdir(dir_path)
+            except Exception as ex:
+                exceptions.append(ex)
+        if db_path:
+            try:
+                os.remove(db_path)
+            except Exception as ex:
+                exceptions.append(ex)
+        if dir_path:
+            try:
+                os.rmdir(dir_path)
+            except Exception as ex:
+                exceptions.append(ex)
     
     if exceptions:
         print(*exceptions, sep='\n')
@@ -108,9 +119,13 @@ async def test_slash_cog() -> None:
     member_id: int = member.id
 
     ROLE_PRICE: int = 100
-    role_id_member_has = role.id
+    role_id_member_has: int = role.id
     role_info: RoleInfo = RoleInfo(role_id=role_id_member_has, price=ROLE_PRICE, salary=100, salary_cooldown=86400, role_type=1, additional_salary=42)
     await add_role_to_db(guild_id, role_info, {member_id})
+
+    member_info: tuple[int, int, str, int, int, int] = await db_commands.get_member_async(guild_id, member_id)
+    assert member_id == member_info[0]
+    assert "#{0}".format(role_id_member_has) == member_info[2]
 
     interaction = build_interaction()
     await cog.buy(interaction=interaction, role=role)
@@ -160,7 +175,7 @@ async def test_slash_cog() -> None:
 
     check_embed(interaction.edit_payload, "**`If your DM are open, then purchase confirmation will be messaged you`**", False)
 
-    member_info: tuple[int, int, str, int, int, int] = await db_commands.get_member_async(guild_id, member_id)
+    member_info = await db_commands.get_member_async(guild_id, member_id)
     assert member_id == member_info[0]
     assert MEMBER_INIT_CASH - ROLE_PRICE == member_info[1] 
     assert "#{0}#{1}".format(role_id_member_has, role_id_to_add) == member_info[2]
