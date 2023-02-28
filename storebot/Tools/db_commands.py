@@ -44,6 +44,9 @@ class PartialRoleStoreInfo:
     quantity: int
     role_type: int
 
+async def get_mod_roles_async(guild_id: int) -> list[tuple[int]] | list:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        return await base.execute_fetchall("SELECT * FROM mod_roles;") # type: ignore
 
 def update_server_info_table(guild_id: int, key_name: str, new_value: int) -> None:
     with closing(connect(DB_PATH.format(guild_id))) as base:

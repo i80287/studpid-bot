@@ -32,9 +32,11 @@ from nextcord.ui import (
     Button,
     View
 )
+if __debug__:
+    from nextcord.member import Member
 
-from ..Commands.mod_commands import ModCommandsCog
 from ..constants import DB_PATH
+from ..Tools.db_commands import get_mod_roles_async
 
 
 class poll_custom_button(Button):
@@ -95,6 +97,20 @@ class Poll(View):
         self.bot: StoreBot = bot
         self.voters: list[set[int]] = []  
 
+    @staticmethod
+    async def mod_check(interaction: Interaction) -> bool:
+        assert isinstance(interaction.user, Member)
+        assert interaction.guild_id is not None
+        member: Member = interaction.user
+        if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
+            return True
+
+        mod_roles_ids_list: list[tuple[int]] | list = await get_mod_roles_async(interaction.guild_id)
+        if mod_roles_ids_list:
+            return not {role_id_tuple[0] for role_id_tuple in mod_roles_ids_list}.isdisjoint(member._roles.__copy__())
+
+        return False
+
     def init_timeout(self) -> None:
         super().__init__(timeout=self.timeout)
 
@@ -122,7 +138,7 @@ class Poll(View):
 
         with closing(connect(DB_PATH.format(guild.id))) as base:
             with closing(base.cursor()) as cur:
-                if not ModCommandsCog.mod_check(interaction=interaction):
+                if not (await self.mod_check(interaction)):
                     await interaction.response.send_message(embed=Embed(description=self.poll_class_text[lng][11]), ephemeral=True)
                     return
                 chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]

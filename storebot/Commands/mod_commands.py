@@ -5,9 +5,6 @@ if TYPE_CHECKING:
 
     from ..storebot import StoreBot
 
-from sqlite3 import connect
-from contextlib import closing
-
 from nextcord import (
     Embed,
     Locale,
@@ -19,7 +16,7 @@ from nextcord.ext.commands import Cog
 if __debug__:
     from nextcord import Member
 
-from ..constants import CWD_PATH
+from ..Tools.db_commands import get_mod_roles_async
 from ..CustomComponents.custom_views import SettingsView
 if __debug__:
     from ..CustomComponents.custom_button import CustomButton
@@ -58,20 +55,14 @@ class ModCommandsCog(Cog):
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
 
-    @staticmethod
-    def mod_check(interaction: Interaction) -> bool:
+    async def mod_check(interaction: Interaction) -> bool: # type: ignore # Wait for fix in the framework?
         assert isinstance(interaction.user, Member)
         assert interaction.guild_id is not None
         member: Member = interaction.user
         if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
             return True
 
-        str_guild_id: str = interaction.guild_id.__str__()
-        with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
-            del str_guild_id
-            with closing(base.cursor()) as cur:
-                mod_roles_ids_list: list[tuple[int]] | list = cur.execute("SELECT * FROM mod_roles").fetchall()            
-        
+        mod_roles_ids_list: list[tuple[int]] | list = await get_mod_roles_async(interaction.guild_id)
         if mod_roles_ids_list:
             return not {role_id_tuple[0] for role_id_tuple in mod_roles_ids_list}.isdisjoint(member._roles.__copy__())
             # mod_roles_ids_set: set[int] = {x[0] for x in mod_roles_ids_list}
