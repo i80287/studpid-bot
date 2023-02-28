@@ -27,7 +27,7 @@ from nextcord.ui import (
 )
 
 from ..Tools.db_commands import (
-    peek_role_free_number,
+    peek_role_free_number_depricated,
     peek_role_free_numbers,
     add_role_async,
     verify_role_members_async,
@@ -502,11 +502,11 @@ class RoleEditModal(ManageRoleModalBase):
             return
         t: int = int(time())
         if r_type == 3:
-            free_number: int = peek_role_free_number(cur)
+            free_number: int = peek_role_free_number_depricated(cur)
             cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                         (free_number, r, -404, price, t, salary, salary_c, 3))
         elif r_type == 2:
-            free_number: int = peek_role_free_number(cur)
+            free_number: int = peek_role_free_number_depricated(cur)
             cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                         (free_number, r, l, price, t, salary, salary_c, 2))
         elif r_type == 1:
@@ -528,7 +528,7 @@ class RoleEditModal(ManageRoleModalBase):
         t: int = int(time())
         if r_type == 2:
             if not l_prev:
-                free_number: int = peek_role_free_number(cur)
+                free_number: int = peek_role_free_number_depricated(cur)
                 cur.execute("INSERT INTO store (role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
                             (free_number, r, l, price, t, salary, salary_c, 2))
             else:
@@ -548,7 +548,7 @@ class RoleEditModal(ManageRoleModalBase):
                 cur.execute(f"DELETE FROM store WHERE rowid IN ({rows})")
         elif r_type == 3:
             if not l_prev:
-                free_number: int = peek_role_free_number(cur)
+                free_number: int = peek_role_free_number_depricated(cur)
                 cur.execute(
                     "INSERT INTO store(role_number, role_id, quantity, price, last_date, salary, salary_cooldown, type) VALUES (?, ?, ?, ?, ?, ?, ?, ?)",
                     (free_number, r, -404, price, t, salary, salary_c, 3)
