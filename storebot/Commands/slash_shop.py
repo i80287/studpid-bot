@@ -946,10 +946,11 @@ class SlashCommandsCog(Cog):
                 db_store: list[tuple[int, int, int, int, int, int, int, int]] = cur.execute("SELECT * FROM store").fetchall()
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
 
-        # Reversed sort by price, from higher to lower. 
+        # Sort by price from lower to higher 
         # If prices are equal sort by date from higher to lower (latest is higher, early date is lower)
-        # tup[3] - price of the role, tup[4] - last date of adding role to the store
-        db_store.sort(key=lambda tup: (tup[3], tup[4]), reverse=True)
+        # tup[3] - price of the role, tup[4] - last date of adding role to the store.
+        db_store.sort(key=lambda tup: tup[4], reverse=True)
+        db_store.sort(key=lambda tup: tup[3], reverse=False)
 
         store_list: list[str] = []
         tz_info: timezone = timezone(timedelta(hours=tz))
