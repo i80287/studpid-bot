@@ -88,7 +88,7 @@ class DebugCommandsCog(Cog):
             for guild in guilds:
                 if member_count := guild.member_count:
                     members_count += member_count
-                lines.append(fr"{{{guild.name }}}-{{{guild.id}}}-{{{member_count}}}-{{{guild.owner_id}}}")
+                lines.append(fr"{{{guild.name} }}-{{{guild.id}}}-{{{member_count}}}-{{{guild.owner_id}}}")
         
         lines.extend((
             f"\n**`Total guilds: {len(guilds)}`**",
