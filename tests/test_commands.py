@@ -61,7 +61,7 @@ async def main() -> None:
         
         db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
         
-        test_bot.load_extensions_from_module("storebot.Commands")
+        test_bot.load_extensions_from_module("storebot.Cogs")
         await test_slash_cog()
     except Exception as ex:
         exceptions.append(ex)
