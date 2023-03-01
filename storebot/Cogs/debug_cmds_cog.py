@@ -31,11 +31,11 @@ class DebugCommandsCog(Cog):
     @command(name="load") # type: ignore
     @is_owner()
     async def load(self, ctx: Context, extension) -> None:
-        if path.exists(CWD_PATH + f"storebot/Commands/{extension}.py"):
+        if path.exists(CWD_PATH + f"storebot/Cogs/{extension}.py"):
             async with self.bot.text_lock:
                 async with self.bot.voice_lock:
                     async with self.bot.statistic_lock:
-                        self.bot.load_extension(f"storebot.Commands.{extension}")
+                        self.bot.load_extension(f"storebot.Cogs.{extension}")
             await sleep(1.0)
             await self.bot.sync_all_application_commands()
             await sleep(1.0)
@@ -47,11 +47,11 @@ class DebugCommandsCog(Cog):
     @command(name="unload") # type: ignore
     @is_owner()
     async def unload(self, ctx: Context, extension) -> None:
-        if path.exists(CWD_PATH + f"storebot/Commands/{extension}.py"):
+        if path.exists(CWD_PATH + f"storebot/Cogs/{extension}.py"):
             async with self.bot.text_lock:
                 async with self.bot.voice_lock:
                     async with self.bot.statistic_lock:
-                        self.bot.unload_extension(f"storebot.Commands.{extension}")
+                        self.bot.unload_extension(f"storebot.Cogs.{extension}")
             await sleep(1.0)
             await self.bot.sync_all_application_commands()
             await sleep(1.0)
@@ -63,13 +63,13 @@ class DebugCommandsCog(Cog):
     @command(name="reload") # type: ignore
     @is_owner()
     async def reload(self, ctx: Context, extension) -> None:
-        if path.exists(CWD_PATH + f"storebot/Commands/{extension}.py"):
+        if path.exists(CWD_PATH + f"storebot/Cogs/{extension}.py"):
             await ctx.reply(embed=Embed(description="**`Started reloading`**"), mention_author=False, delete_after=10.0)
             async with self.bot.text_lock:
                 async with self.bot.voice_lock:
                     async with self.bot.statistic_lock:
-                        self.bot.unload_extension(f"storebot.Commands.{extension}")
-                        self.bot.load_extension(f"storebot.Commands.{extension}")
+                        self.bot.unload_extension(f"storebot.Cogs.{extension}")
+                        self.bot.load_extension(f"storebot.Cogs.{extension}")
             await sleep(1.0)
             await self.bot.sync_all_application_commands()
             await sleep(1.0)
