@@ -59,7 +59,7 @@ class TextComandsCog(Cog):
         if roles:
             assert additional_salary != 0
             description_lines.append("**`Total income from the roles: {0:0,}`** {1}".format(additional_salary, currency))
-            description_lines.extend("<@&{0}> **`- {1:0,}`** ".format(role_id, role_salary) + currency for role_id, role_salary in roles)
+            description_lines.extend("<@&{0}> **`- {1:0,}`** ".format(role_id, role_salary) + currency for role_id, role_salary in roles if role_salary)
 
         await ctx.channel.send(
             embed=Embed(

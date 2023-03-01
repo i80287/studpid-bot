@@ -1474,7 +1474,7 @@ class SlashCommandsCog(Cog):
         if roles:
             assert additional_salary != 0
             description_lines.append(local_text[2].format(additional_salary, currency))
-            description_lines.extend("<@&{0}> **`- {1:0,}`** ".format(role_id, role_salary) + currency for role_id, role_salary in roles)
+            description_lines.extend("<@&{0}> **`- {1:0,}`** ".format(role_id, role_salary) + currency for role_id, role_salary in roles if role_salary)
 
         await interaction.response.send_message(embed=Embed(
             description='\n'.join(description_lines),
