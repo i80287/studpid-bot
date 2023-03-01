@@ -8,7 +8,7 @@ from time import time
 from storebot.Tools import db_commands
 from storebot.Tools.db_commands import RoleInfo
 from storebot.constants import DB_PATH
-from storebot.CustomModals.custom_modals import RoleEditModal
+from storebot.Modals.custom_modals import RoleEditModal
 
 from tests.dummy_variables import *
 
