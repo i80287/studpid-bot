@@ -25,9 +25,9 @@ from ..Tools.db_commands import (
     update_member_cash_async,
     get_server_info_value_async
 )
-from ..CustomComponents.view_base import ViewBase
-from ..CustomComponents.custom_button import CustomButton
-from ..CustomComponents.custom_select import CustomSelectWithOptions
+from ..Components.view_base import ViewBase
+from ..Components.custom_button import CustomButton
+from ..Components.custom_select import CustomSelectWithOptions
 
 
 class SlotsView(ViewBase):

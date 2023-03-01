@@ -44,12 +44,15 @@ from ..Tools.db_commands import (
 )
 from ..Tools.parse_tools import parse_emoji
 from ..constants import CWD_PATH
-from ..CustomComponents.select_ic_view import SelectICView
-from ..CustomComponents.view_base import ViewBase
-from ..CustomComponents.verification_view import VerificationView
-from ..CustomComponents.select_channel_view import SelectChannelView
-from ..CustomComponents.slots_manage_view import SlotsManageView
-from ..CustomModals.custom_modals import (
+from ..Components.custom_button import CustomButton
+from ..Components.custom_select import CustomSelect
+from ..Components.view_base import ViewBase
+from ..Components.select_ic_view import SelectICView
+from ..Components.verification_view import VerificationView
+from ..Components.select_channel_view import SelectChannelView
+from ..Components.slots_manage_view import SlotsManageView
+
+from ..Modals.custom_modals import (
     RoleAddModal,
     RoleEditModal,
     XpSettingsModal,
@@ -57,10 +60,8 @@ from ..CustomModals.custom_modals import (
     ManageMemberCashXpModal,
     OneTextInputModal
 )
-from ..CustomModals.sale_role_price import SalePriceModal
-from ..CustomModals.voice_income_modal import VoiceIncomeModal
-from ..CustomComponents.custom_button import CustomButton
-from ..CustomComponents.custom_select import CustomSelect
+from ..Modals.sale_role_price import SalePriceModal
+from ..Modals.voice_income_modal import VoiceIncomeModal
 
 
 languages = {

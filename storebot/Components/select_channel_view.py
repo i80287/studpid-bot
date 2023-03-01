@@ -7,8 +7,8 @@ if TYPE_CHECKING:
 
 from os import urandom
 
-from ..CustomComponents.view_base import ViewBase
-from ..CustomComponents.custom_select import CustomSelect
+from ..Components.view_base import ViewBase
+from ..Components.custom_select import CustomSelect
 
 
 class SelectChannelView(ViewBase):

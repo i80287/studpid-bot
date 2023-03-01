@@ -20,10 +20,13 @@ from nextcord import (
     Status,
     slash_command,
     Locale,
-    Interaction
+    Interaction,
+    Permissions
 )
 from nextcord.ext.commands import Cog
-from ..Tools import db_commands
+
+from ..Modals.feedback import FeedbackModal
+from ..Tools.db_commands import check_member_async
 from ..Tools.parse_tools import parse_emoji
 
 
@@ -134,7 +137,7 @@ class AdditionalCommandsCog(Cog):
             51: "**`Дефолтное эмодзи Дискорда: `**{}"
         }
     }
-    emojis = (
+    emojis: tuple[str, ...] = (
         "👤", "<:bot:995804039000359043>", "<:sum:995804781006290974>",
         "<:text:995806008960094239>", "<:voice:995804037351997482>", "<:summ:995804781006290974>", 
         "<a:emoji:995806881048170518>", "<:sticker:995806680505921639>",  "<:summ:995804781006290974>",
@@ -220,6 +223,153 @@ class AdditionalCommandsCog(Cog):
             10: "**`Роли участника сервера:`**"
         }
     }
+    u_ec_cmds: dict[int, list[tuple[str, str]]] = {
+        0 : [
+            ("`/store`", "Show store"),
+            ("`/buy`", "Make a role purchase"),
+            ("`/buy_by_number`", "Make a role purchase. Role is selected by number in the store"),
+            ("`/sell`", "Sell the role"),
+            ("`/sell_to`", "Sell the role to the selected member by selected price"),
+            ("`/accept_request`", "Accept role purchase request made by another member for you"),
+            ("`/decline_request`", "Decline role purchase request made by another member for you or delete you role sale request"),
+            ("`/leaders`", "Show top members by balance/xp"),
+        ],
+        1 : [
+            ("`/store`", "Открывает меню магазина"),
+            ("`/buy`", "Совершает покупку роли"),
+            ("`/buy_by_number`", "Совершает покупку роли. Роль выбирается по номеру из магазина."),
+            ("`/sell`", "Совершает продажу роли"),
+            ("`/sell_to`", "Создаёт запрос продажи роли указанному участнику за указанную цену"),
+            ("`/accept_request`", "Принимает запрос покупки роли, сделанный Вам другим участником"),
+            ("`/decline_request`", "Отклоняет запрос покупки роли, сделанный Вам другим участником, или отменяет Ваш запрос продажи роли"),
+            ("`/leaders`", "Показывет топ пользователей по балансу/опыту"),
+        ],
+    }
+    u_pers_cmds: dict[int, list[tuple[str, str]]] = {
+        0 : [
+            ("`/profile`", "Show your profile"), 
+            ("`/work`", "Start working, so you get salary"),
+            ("`/collect`", "Same as `/work`"),
+            ("`/transfer`", "Transfer money to another member"), 
+            ("`/duel`", "Make a bet"),
+        ],
+        1 : [
+            ("`/profile`", "Показывает меню Вашего профиля"), 
+            ("`/work`", "Начинает работу, за которую Вы полчите заработок"),
+            ("`/collect`", "То же, что и `/work`"),
+            ("`/transfer`", "Совершает перевод валюты другому пользователю"), 
+            ("`/duel`", "Делает ставку"),
+            
+        ]
+    }
+    u_other_cmds: dict[int, list[tuple[str, str]]] = {
+        0 : [
+            ("`/poll`", "Make a poll"), 
+            ("`/server`", "Show information about the server"),
+            ("`/emoji`", "Show information about the emoji"),
+            ("`/ask`", "Asks OpenAI anything"),
+            ("`/member_info`", "Shows information about selected member or command caller"),
+            ("`/user_info`", "Shows brief information about any Discord user or command caller"),
+        ],
+        1 : [
+            ("`/poll`", "Создаёт полл (опрос)"), 
+            ("`/server`", "Показывает информацию о сервере"),
+            ("`/emoji`", "Показывает информацию о эмодзи"),
+            ("`/ask`", "Спрашивает OpenAI о чём угодно"),
+            ("`/member_info`", "Показывает информацию о выбранном участнике сервера или участнике, вызвавшем команду"),
+            ("`/user_info`", "Показывает краткую информацию о любом пользователе Дискорда или пользователе, вызвавшем команду"),
+        ]
+    }
+    m_cmds: dict[int, list[tuple[str, str]]] = {
+        0 : [
+            ("`/guide`", "Show guide about bot's system"), 
+            ("`/settings`", "Call bot's settings menu"),
+        ],
+        1 : [
+            ("`/guide`", "Показывает гайд о системе бота"), 
+            ("`/settings`", "Вызывает меню настроек бота"),
+        ]
+    }
+    guide_text: dict[int, dict[int, str]] = {
+        0 : {
+            0 : "The guide",
+            1 : "Economic operations with the roles",
+            2 : "In order to make role able to be bought and sold on the server and it could bring money you should add it to the list of roles, available for the purchase/sale in the \
+                menu **`/settings`** -> \"💰\" -> \"🛠️\". Also in this menu you can manage added roles",
+            3 : "Bot devides roles on three types:",
+            4 : "1, 2 and 3",
+            5 : "Type 1",
+            6 : "\"Nonstacking\" roles, that are not stacking in the store (are shown as different items in the store)",
+            7 : "Type 2",
+            8 : "\"Stacking\" roles that are stacking in the store (are shown as one item with quantity)",
+            9 : "Type 3",
+            10 : "\"Infinite\" roles that can't run out in the store (you can buy them endless times)",
+            11 : "Salary of the roles",
+            12 : "Each role can have passive salary: once per every cooldown time, set in the menu **`/settings`** -> \"💰\" -> \"🛠️\", members that have this role on their balance will \
+                gain money (salary) that is selected in the menu **`/settings`** -> \"💰\" -> \"🛠️\"",
+            13 : "Work",
+            14 : "Members can gain money by using **`/work`** command. Amount of gained money is set in the menu **`/settings`** -> \"💰\" -> \"💹\". Cooldown \
+                for the command is set in the menu **`/settings`** -> \"💰\" -> \"⏰\"",
+            15 : "Rank system",
+            16 : "For each message member gains amount of xp set in the menu **`/settings`** -> \"📈\" -> \"✨\" After achieving \"border\" of the level set in the menu \
+                **`/settings`** -> \"📈\" -> \"✨\" member's level growths. For each new level bot can add role (and for old - remove, if new role is added) set in the menu \
+                **`/settings`** -> \"📈\" -> \"🥇\" for each level separately",
+            17 : "Money for messages",
+            18 : "Besides the xp member can gain money for every message. Amount of money gained from message is set in the menu **`/settings`** -> \"💰\" -> \"💸\"\
+                If you want to turn off this function you can make this value equal to 0",
+            19 : "Polls",
+            20 : "Members can create polls via **`/poll`**. They can be open/anonymous and have one/multiple choice. After creation poll will be posted in verification channel set \
+                in the menu **`/settings`** -> \"📊\" -> \"🔎\". After being approved by moderator poll will be posted in channel for publishing polls set in the \
+                menu **`/settings`** -> \"📊\" -> \"📰\""
+        },
+        1 : {
+            0 : "Гайд",
+            1 : "Экономические операции с ролями",
+            2 : "Чтобы роль можно было покупать и продавать на сервере, а также она могла приносить заработок, нужно добавить её в список ролей, \
+                доступных для покупки/продажи на сервере при помоши меню **`/settings`** -> \"💰\" -> \"🛠️\". В этом же меню можно и управлять добавленными ролями",
+            3 : "Бот делит роли на 3 типа:",
+            4 : "1, 2 и 3",
+            5 : "Тип 1",
+            6 : "\"Нестакающиеся\" роли, которые не стакаются в магазине (т.е. отображаются как отдельные товары)",
+            7 : "Тип 2",
+            8 : "\"Стакающиеся\" роли, которые стакаются в магазине (т.е. отображаются как один товар с указанным количеством)",
+            9 : "Тип 3",
+            10 : "\"Бесконечные\" роли, которые не заканчиваются в магазине (т.е. их можно купить бесконечное количество раз)",
+            11 : "Заработок роли",
+            12 : "Каждая роль может иметь пассивный заработок: раз в некоторое установленное время, установленное в меню **`/settings`** -> \"💰\" -> \"🛠️\", участники, на балансе \
+                которых находится эта роль, получают заработок, установленный для каждой роли отдельно в меню **`/settings`** -> \"💰\" -> \"🛠️\"",
+            13 : "Работа",
+            14 : "Пользователи могут получать деньги за использование команды **`/work`**. Заработок от команды устанавливается в меню **`/settings`** -> \"💰\" -> \"💹\". Кулдаун команды \
+                устанавливается в меню **`/settings`** -> \"💰\" -> \"⏰\"",
+            15 : "Система рангов",
+            16 : "За каждое сообщение на сервере пользователь получает количество опыта, установленное в меню **`/settings`** -> \"📈\" -> \"✨\" По достижении \"границы\" уровня, \
+                установленной в меню **`/settings`** -> \"📈\" -> \"✨\", уровень пользователя повышается. За каждый новый уровень бот может выдавать роль (а за пройденный - снимать, \
+                если выдана новая), установленную в меню **`/settings`** -> \"📈\" -> \"🥇\" для каждого уровня отдельно",
+            17 : "Деньги за сообщения",
+            18 : "За каждое сообщение пользователь получает не только опыт, но и деньги. Количество денег, получаемое за сообщение, устанавливается в меню **`/settings`** -> \"💰\" -> \"💸\"\
+                Если Вы хотите отключить эту функцию, Вы можете установить это значение равным нулю",
+            19 : "Поллы",
+            20 : "Пользователи могут создавать поллы (опросы) при помощи **`/poll`**. Они могут быть открытыми/анонимными и содержать один или несколько вариантов выбора. После создания \
+                полл будет отправлен на верификацию в канал, установленный в меню **`/settings`** -> \"📊\" -> \"🔎\". Если полл будет одобрен модератором, то он будет отправлен в \
+                канал для публикаций, установленный в меню  **`/settings`** -> \"📊\" -> \"📰\""
+        }
+    }
+    help_cmd_text: dict[int, dict[int, str]] = {
+        0 : {
+            0 : "User's commands",
+            1 : "Mod's commands",
+            2 : "Economy",
+            3 : "Personal",
+            4 : "Other",
+        },
+        1 : {
+            0 : "Команды пользователей",
+            1 : "Команды модераторов",
+            2 : "Экономика",
+            3 : "Персональные",
+            4 : "Остальные",
+        }
+    }
 
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
@@ -249,7 +399,7 @@ class AdditionalCommandsCog(Cog):
         assert interaction.locale is not None
         assert isinstance(interaction.user, Member)
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-        await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
+        await check_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
 
         emoji: Emoji | str | None = parse_emoji(self.bot, emoji_str)        
         if emoji is None:
@@ -287,7 +437,7 @@ class AdditionalCommandsCog(Cog):
         assert interaction.locale is not None
         assert isinstance(interaction.user, Member)
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
-        await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
+        await check_member_async(guild_id=interaction.guild_id, member_id=interaction.user.id)
 
         emb: Embed = Embed(title=self.text_slash[lng][13], colour=Colour.dark_purple())
         guild: Guild = interaction.guild
@@ -367,7 +517,7 @@ class AdditionalCommandsCog(Cog):
             return
 
         member_id: int = member.id
-        await db_commands.check_member_async(guild_id=interaction.guild_id, member_id=member_id)
+        await check_member_async(guild_id=interaction.guild_id, member_id=member_id)
         info_description_lines: dict[int, str] = self.member_info_description_lines[lng]
         description_lines: list[str] = [
             info_description_lines[0].format(member_id),
@@ -455,6 +605,61 @@ class AdditionalCommandsCog(Cog):
 
         await interaction.response.send_message(embed=emb)
 
+    @slash_command(
+        name="guide",
+        description="show guide about bot's system",
+        description_localizations={
+            Locale.ru: "показывает гайд о системе бота"
+        },
+        dm_permission=False
+    )
+    async def guide(self, interaction: Interaction) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        local_guide_text: dict[int, str] = self.guide_text[lng]
+        emb: Embed = Embed(title=local_guide_text[0])
+        for i in range(1, 20, 2):
+            emb.add_field(name=local_guide_text[i], value=local_guide_text[i + 1], inline=False)
+        await interaction.response.send_message(embed=emb)
+
+    @slash_command(
+        name="help", 
+        description="Calls menu with commands",
+        description_localizations={
+            Locale.ru : "Вызывает меню команд"
+        },
+        dm_permission=False
+    )
+    async def help(self, interaction: Interaction) -> None:
+        lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
+        emb1: Embed = Embed(title=self.help_cmd_text[lng][0], description=self.help_cmd_text[lng][2])
+        emb2: Embed = Embed(description=self.help_cmd_text[lng][3])
+        emb3: Embed = Embed(description=self.help_cmd_text[lng][4])
+        emb4: Embed = Embed(title=self.help_cmd_text[lng][1])
+        for n, v in self.u_ec_cmds[lng]:
+            emb1.add_field(name=n, value=v, inline=False)
+        for n, v in self.u_pers_cmds[lng]:
+            emb2.add_field(name=n, value=v, inline=False)
+        for n, v in self.u_other_cmds[lng]:
+            emb3.add_field(name=n, value=v, inline=False)
+        for n, v in self.m_cmds[lng]:
+            emb4.add_field(name=n, value=v, inline=False)
+        await interaction.response.send_message(embeds=[emb1, emb2, emb3, emb4])
+
+    @slash_command(
+        name="feedback",
+        description="Sends a feedback to the support server",
+        description_localizations={
+            Locale.ru: "Отправляет отзыв на сервер поддержки"
+        },
+        dm_permission=False,
+        default_member_permissions=Permissions.administrator.flag
+    )
+    async def feedback(self, interaction: Interaction) -> None:
+        assert interaction.user is not None
+        assert interaction.locale is not None
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
+        feedback_modal: FeedbackModal = FeedbackModal(bot=self.bot, lng=lng, auth_id=interaction.user.id)
+        await interaction.response.send_modal(modal=feedback_modal)
 
 def setup(bot: StoreBot) -> None:
     bot.add_cog(AdditionalCommandsCog(bot))

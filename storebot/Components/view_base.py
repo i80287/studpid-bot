@@ -34,7 +34,10 @@ class ViewBase(ABC, View):
         assert isinstance(interaction.user, Member)
         assert interaction.locale is not None
         if interaction.user.id != self.author_id:
-            lng = 1 if "ru" in interaction.locale else 0
-            await interaction.response.send_message(embed=Embed(description=self.interaction_check_text[lng]), ephemeral=True)
+            await interaction.response.send_message(
+                embed=Embed(description=self.interaction_check_text[1 if "ru" in interaction.locale else 0]),
+                ephemeral=True
+            )
             return False
+
         return True

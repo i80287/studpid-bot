@@ -10,9 +10,9 @@ from nextcord import (
     ButtonStyle
 )
 
-from ..CustomComponents.view_base import ViewBase
-from ..CustomComponents.custom_button import CustomButton
-from ..CustomModals.slots_manage_modal import SlotsManageModal
+from ..Components.view_base import ViewBase
+from ..Components.custom_button import CustomButton
+from ..Modals.slots_manage_modal import SlotsManageModal
 from ..Tools.db_commands import update_server_slots_table_async
 
 

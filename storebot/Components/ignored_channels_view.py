@@ -17,9 +17,9 @@ from nextcord import (
 )
 
 from ..constants import DB_PATH
-from ..CustomComponents.view_base import ViewBase
-from ..CustomComponents.custom_select import CustomSelect
-from ..CustomComponents.custom_button import CustomButton
+from ..Components.view_base import ViewBase
+from ..Components.custom_select import CustomSelect
+from ..Components.custom_button import CustomButton
 
 
 class IgnoredChannelsView(ViewBase):

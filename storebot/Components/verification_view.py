@@ -7,8 +7,9 @@ from os import urandom
 
 from nextcord import ButtonStyle
 
-from ..CustomComponents.view_base import ViewBase
-from ..CustomComponents.custom_button import CustomButton
+from ..Components.view_base import ViewBase
+from ..Components.custom_button import CustomButton
+
 
 class VerificationView(ViewBase):
     def __init__(self, author_id: int, timeout: float | None = 30.0) -> None:

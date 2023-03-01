@@ -15,7 +15,6 @@ from sqlite3 import connect, Cursor
 from contextlib import closing
 from random import randint
 from os import urandom
-from time import time
 
 from nextcord import (
     Role,
@@ -33,10 +32,10 @@ from nextcord import (
 from nextcord.ext.commands import Cog
 
 from .members_handler import MembersHandlerCog
-from ..CustomComponents.view_base import ViewBase
-from ..CustomComponents.custom_button import CustomButton
-from ..CustomComponents.custom_select import CustomSelectWithOptions
-from ..CustomComponents.slots_view import SlotsView
+from ..Components.view_base import ViewBase
+from ..Components.custom_button import CustomButton
+from ..Components.custom_select import CustomSelectWithOptions
+from ..Components.slots_view import SlotsView
 from ..Tools.db_commands import (
     get_member_async,
     check_member_async,
@@ -48,12 +47,14 @@ from ..Tools.db_commands import (
     process_bought_role,
     get_buy_command_params_async,
     process_sell_command_async,
+    get_server_log_info_async,
+    process_work_command_async,
     PartialRoleStoreInfo
 )
 from ..Tools.logger import Logger
 from ..constants import DB_PATH
 if __debug__:
-    from ..CustomComponents.custom_select import CustomSelect
+    from ..Components.custom_select import CustomSelect
 
 common_text: dict[int, dict[int, str]] = {
     0: {
@@ -96,11 +97,6 @@ text_slash: dict[int, dict[int, str]] = {
         23: "{} sold role {} for {} {}",
         24: "Your balance",
         25: "**Your personal roles:**\n--- **Role** --- **Price** --- **Salary** (if it has)",
-        26: "**`Please, wait {} before using this command`**",
-        27: "Success",
-        28: "**`You gained {}`** {}",
-        29: "Work",
-        30: "{} gained {} {}",
         31: "**`You can't make a bet, because you need {}`** {} **`more`**",
         32: "Bet",
         33: "**`You bet {}`** {}\n**`Now another user must make a counter bet`**",
@@ -117,7 +113,6 @@ text_slash: dict[int, dict[int, str]] = {
         44: "**`Store role number can not be less than 1`**",
         45: "**`There is no role with such number in the store`**",
         46: "**`Role is not found on the server. May be it was deleted`**",
-        47: "**`You gained {}`** {} **`from the /work command and {}`** {} **`from your roles`**",
     },
     1: {
         0: "Ошибка",  # title
@@ -146,11 +141,6 @@ text_slash: dict[int, dict[int, str]] = {
         23: "{} продал(а, о) роль {} за {} {}",
         24: "Ваш баланс",
         25: "**Ваши личные роли:**\n--- **Роль** --- **Цена** --- **Доход** (если есть)",
-        26: "**`Пожалуйста, подождите {} перед тем, как снова использовать эту команду`**",
-        27: "Успех",
-        28: "**`Вы заработали {}`** {}",
-        29: "Работа",
-        30: "{} заработал {} {}",
         31: "**`Вы не можете сделать ставку, так как Вам не хватает {}`** {}",
         32: "Ставка",
         33: "**`Вы сделали ставку в размере {}`** {}\n**`Теперь кто-то должен принять Ваш вызов`**",
@@ -167,7 +157,6 @@ text_slash: dict[int, dict[int, str]] = {
         44: "**`Номер роли в магазине не может быть меньше 1`**",
         45: "**`Роли с таким номером нет в магазине`**",
         46: "**`Роль не найдена на сервере. Возможно, она была удалена`**",
-        47: "**`Вы заработали {}`** {} **`от команды /work и {}`** {} **`от Ваших ролей`**",
     }
 }
 
@@ -741,6 +730,21 @@ class SlashCommandsCog(Cog):
             0: "**`Во время добавления роли возникла ошибка. Ваши деньги не были списаны. Пожалуйста, проверьте права и разрешения бота`**"
         }
     }
+    work_command_text: dict[int, dict[int, str]] = {
+        0: {
+            0: "**`Please, wait {0}:{1}:{2} before using this command`**",
+            1: "**`Income from the command: {0:0,}`** {1}",
+            2: "**`Total income from the roles: {0:0,}`** {1}",
+            3: "<@{0}> **`gained {1:0,}`** {2} **`from the /work (/collect) command and {3:0,}`** {2} **`from the roles`**",
+
+        },
+        1: {
+            0: "**`Пожалуйста, подождите {0}:{1}:{2} перед тем, как снова использовать эту команду`**",
+            1: "**`Доход от команды: {0:0,}`** {1}",
+            2: "**`Общий доход от ролей: {0:0,}`** {1}",
+            3: "<@{0}> **`заработал {1:0,}`** {2} **`от команды /work (/collect) и {3:0,}`** {2} **`от ролей`**",
+        }
+    }
 
     def __init__(self, bot: StoreBot) -> None:
         try:
@@ -908,19 +912,16 @@ class SlashCommandsCog(Cog):
             pass
 
         try:
-            await member_buyer.send(
-                embed=Embed(
-                    title=text_slash[lng][7],
-                    description=text_slash[lng][12].format(role.name, interaction.guild.name, role_price, currency),
-                    colour=Colour.green()
-                )
-            )
+            await member_buyer.send(embed=Embed(
+                title=text_slash[lng][7],
+                description=text_slash[lng][12].format(role.name, interaction.guild.name, role_price, currency),
+                colour=Colour.green()
+            ))
         except:
             pass
 
-        log_channel_id: int = await get_server_info_value_async(guild_id, 'log_c')
+        log_channel_id, server_lng = await get_server_log_info_async(guild_id)
         if log_channel_id and isinstance(guild_log_channel := interaction.guild.get_channel(log_channel_id), TextChannel):
-            server_lng: int = await get_server_info_value_async(guild_id, 'lang')
             try:
                 await guild_log_channel.send(embed=Embed(
                     title=text_slash[server_lng][13],
@@ -1046,9 +1047,8 @@ class SlashCommandsCog(Cog):
         except:
             pass
 
-        log_channel_id: int = await get_server_info_value_async(guild_id, 'log_c')
+        log_channel_id, server_lng = await get_server_log_info_async(guild_id)
         if log_channel_id and isinstance(guild_log_channel := interaction.guild.get_channel(log_channel_id), TextChannel):
-            server_lng: int = await get_server_info_value_async(guild_id, 'lang')
             try:
                 await guild_log_channel.send(embed=Embed(
                     title=text_slash[server_lng][22],
@@ -1449,58 +1449,47 @@ class SlashCommandsCog(Cog):
         assert isinstance(interaction.user, Member)
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
-        memb_id: int = interaction.user.id
+        member_id: int = interaction.user.id
 
-        member: tuple[int, int, str, int, int, int] = await get_member_async(guild_id, memb_id)
-        with closing(connect(DB_PATH.format(guild_id))) as base:
-            with closing(base.cursor()) as cur:
-                if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
-                    await interaction.response.send_message(
-                        embed=Embed(description=common_text[lng][2]),
-                        ephemeral=True
-                    )
-                    return
+        salary: int
+        additional_salary: int
+        roles: list[tuple[int, int]] | None
+        salary, additional_salary, roles = await process_work_command_async(guild_id, member_id)
 
-                time_reload: int = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd'").fetchone()[0]
-                if member[3] and (lasted_time := int(time()) - member[3]) < time_reload:
-                    time_l: int = time_reload - lasted_time
-                    t_l: str = f"{time_l // 3600}:{(time_l % 3600) // 60}:{time_l % 60}"
-                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][26].format(t_l))
-                    return
-
-                sal_l: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l'").fetchone()[0]
-                sal_r: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r'").fetchone()[0]
-                salary: int = randint(sal_l, sal_r)
-                member_roles_ids: tuple[str] = tuple(role_id for role_id in member[2].split('#') if role_id)
-                if member_roles_ids:
-                    query: str = "SELECT additional_salary FROM server_roles WHERE role_id IN ({})"\
-                        .format(", ".join(member_roles_ids))
-                    memb_roles_add_salary: list[tuple[int]] = cur.execute(query).fetchall()
-                    # `additional_income` may be equal to 0.
-                    additional_income: int = sum(add_salary[0] for add_salary in memb_roles_add_salary)
-                    salary += additional_income
-                else:
-                    additional_income: int = 0
-
-                cur.execute(
-                    "UPDATE users SET money = money + ?, work_date = ? WHERE memb_id = ?",
-                    (salary, int(time()), memb_id)
-                )
-                base.commit()
-
-                chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
-                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
-                server_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
+        if salary < 0:
+            if salary == -1:
+                answer: str = common_text[lng][2]
+            else:
+                hours: int = additional_salary // 3600
+                seconds_for_minutes: int = additional_salary - hours * 3600 # aka additional_salary % 3600
+                minutes: int = seconds_for_minutes // 60                    # aka (additional_salary % 3600) // 60
+                seconds: int = seconds_for_minutes - minutes * 60           # aka additional_salary % 60
+                answer: str = self.work_command_text[lng][0].format(hours, minutes, seconds)
+            await self.respond_with_error_report(interaction, lng, answer)
+            return
         
-        descr: str = text_slash[lng][28].format(salary, currency) if not additional_income \
-            else text_slash[lng][47].format(salary - additional_income, currency, additional_income, currency)
-        await interaction.response.send_message(embed=Embed(description=descr, colour=Colour.gold()))
-        if chnl_id and isinstance(guild_log_channel := interaction.guild.get_channel(chnl_id), TextChannel):
+        currency: str = await get_server_currency_async(guild_id)
+        local_text: dict[int, str] = self.work_command_text[lng]
+        description_lines: list[str] = [local_text[1].format(salary, currency)]
+        if roles:
+            assert additional_salary != 0
+            description_lines.append(local_text[2].format(additional_salary, currency))
+            description_lines.extend("<@&{0}> **`- {1:0,}`** ".format(role_id, role_salary) + currency for role_id, role_salary in roles)
+
+        await interaction.response.send_message(embed=Embed(
+            description='\n'.join(description_lines),
+            colour=Colour.gold()
+        ))
+
+        log_channel_id, server_lng = await get_server_log_info_async(guild_id)
+        if log_channel_id and isinstance(guild_log_channel := interaction.guild.get_channel(log_channel_id), TextChannel):
             try:
-                await guild_log_channel.send(embed=Embed(
-                    title=text_slash[server_lng][29],
-                    description=text_slash[server_lng][30].format(f"<@{memb_id}>", salary, currency)
-                ))
+                await guild_log_channel.send(embed=Embed(description=self.work_command_text[server_lng][3].format(
+                    member_id,
+                    salary,
+                    currency,
+                    additional_salary
+                )))
             except:
                 return
 
@@ -1522,7 +1511,6 @@ class SlashCommandsCog(Cog):
                     return
 
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
-                server_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
 
         if amount > member[1]:
             await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][31].format(amount - member[1], currency))
@@ -1571,13 +1559,14 @@ class SlashCommandsCog(Cog):
                 base.commit()
                 cur.execute('UPDATE users SET money = money + ? WHERE memb_id = ?', (amount, winner_id))
                 base.commit()
-                chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
 
         try:
             await interaction.edit_original_message(embed=emb, view=bet_view)
         except:
             pass
-        if chnl_id and isinstance(guild_log_channel := interaction.guild.get_channel(chnl_id), TextChannel):
+
+        log_channel_id, server_lng = await get_server_log_info_async(guild_id)
+        if log_channel_id and isinstance(guild_log_channel := interaction.guild.get_channel(log_channel_id), TextChannel):
             try:
                 await guild_log_channel.send(embed=Embed(
                     title=text_slash[server_lng][37],
@@ -1614,16 +1603,15 @@ class SlashCommandsCog(Cog):
                 cur.execute('UPDATE users SET money = money + ? WHERE memb_id = ?', (value, t_id))
                 base.commit()
 
-                chnl_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c'").fetchone()[0]
-                server_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-
         emb: Embed = Embed(
             title=text_slash[lng][40],
             description=text_slash[lng][41].format(value, currency, f"<@{t_id}>"),
             colour=Colour.green()
         )
         await interaction.response.send_message(embed=emb)
-        if chnl_id and isinstance(guild_log_channel := interaction.guild.get_channel(chnl_id), TextChannel):
+
+        log_channel_id, server_lng = await get_server_log_info_async(guild_id)
+        if log_channel_id and isinstance(guild_log_channel := interaction.guild.get_channel(log_channel_id), TextChannel):
             try:
                 await guild_log_channel.send(embed=Embed(
                     title=text_slash[server_lng][42],

@@ -17,10 +17,10 @@ if __debug__:
     from nextcord import Member
 
 from ..Tools.db_commands import get_mod_roles_async
-from ..CustomComponents.custom_views import SettingsView
+from ..Components.custom_views import SettingsView
 if __debug__:
-    from ..CustomComponents.custom_button import CustomButton
-    from ..CustomComponents.custom_select import CustomSelect
+    from ..Components.custom_button import CustomButton
+    from ..Components.custom_select import CustomSelect
 
 class ModCommandsCog(Cog):
     settings_text: dict[int, dict[int, str | list[str]]] = {

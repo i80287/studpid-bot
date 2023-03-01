@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from .Commands.polls import Poll
+    from .Cogs.polls_cog import Poll
 
 from asyncio import Lock
 from time import time

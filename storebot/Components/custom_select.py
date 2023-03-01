@@ -7,7 +7,7 @@ from nextcord import SelectOption
 from nextcord.ui import StringSelect
 
 if __debug__:
-    from ..CustomComponents.view_base import ViewBase
+    from ..Components.view_base import ViewBase
 
 
 class CustomSelect(StringSelect):

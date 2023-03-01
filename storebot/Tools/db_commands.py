@@ -1,10 +1,15 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import Literal, LiteralString
+    from typing import (
+        Literal,
+        LiteralString,
+        Callable
+    )
     from collections.abc import Iterable
     from sqlite3 import Cursor, Row
 
+from random import Random
 from time import time
 from dataclasses import dataclass
 from sqlite3 import connect
@@ -14,6 +19,7 @@ from itertools import pairwise
 
 from ..constants import CWD_PATH, DB_PATH
 
+_rnd: Random = Random()
 
 @dataclass(frozen=True)
 class RoleInfo:
@@ -51,7 +57,7 @@ async def get_mod_roles_async(guild_id: int) -> list[tuple[int]] | list:
 def update_server_info_table(guild_id: int, key_name: str, new_value: int) -> None:
     with closing(connect(DB_PATH.format(guild_id))) as base:
         with closing(base.cursor()) as cur:
-            cur.execute("UPDATE server_info SET value = " + new_value.__str__() + " WHERE settings = '" + key_name + "';")
+            cur.execute("UPDATE server_info SET value = " + str(new_value) + " WHERE settings = '" + key_name + "';")
             base.commit()
 
 async def update_server_info_table_uncheck_async(guild_id: int, key_name: str, new_value: str) -> None:
@@ -69,6 +75,18 @@ async def get_server_info_value_async(guild_id: int, key_name: str) -> int:
         async with base.execute("SELECT value FROM server_info WHERE settings = '" + key_name + "';") as cur:
             return (await cur.fetchone())[0] # type: ignore
 
+async def get_server_log_info_async(guild_id: int) -> tuple[int, int]:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        async with base.execute("SELECT value FROM server_info WHERE settings = 'log_c';") as cur:
+            log_channel_id: int = (await cur.fetchone())[0] # type: ignore
+        
+        if log_channel_id:
+            async with base.execute("SELECT value FROM server_info WHERE settings = 'lang';") as cur:
+                lng: int = (await cur.fetchone())[0] # type: ignore
+            return (log_channel_id, lng)
+        
+        return (0, 0)
+
 async def get_server_currency_async(guild_id: int) -> str:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute("SELECT str_value FROM server_info WHERE settings = 'currency';") as cur:
@@ -77,7 +95,7 @@ async def get_server_currency_async(guild_id: int) -> str:
 async def get_member_async(guild_id: int, member_id: int) -> tuple[int, int, str, int, int, int]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute(
-            "SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = " + member_id.__str__()
+            "SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = " + str(member_id)
         ) as cur:
             result: Row | None = await cur.fetchone()
         
@@ -186,7 +204,7 @@ async def add_role_async(guild_id: int, role_info: RoleInfo, members_id_with_rol
         await base.commit()
 
         if members_id_with_role:
-            str_role_id: str = '#' + role_id.__str__()
+            str_role_id: str = '#' + str(role_id)
             for member_id in members_id_with_role:
                 async with base.execute("SELECT owned_roles FROM users WHERE memb_id = ?", (member_id,)) as cur:
                     result: Row | None = await cur.fetchone()
@@ -230,7 +248,8 @@ async def add_role_async(guild_id: int, role_info: RoleInfo, members_id_with_rol
 async def verify_role_members_async(guild_id: int, role_info: PartialRoleInfo, members_id_with_role: set[int]) -> None:
     role_id: int = role_info.role_id
     salary: int = role_info.salary
-    str_role_id: str = '#' + role_id.__str__()
+    str_role_id: str = str(role_id)
+    add_str_role_id: str = '#' + str_role_id
     async with connect_async(DB_PATH.format(guild_id)) as base:
         for member_id in members_id_with_role:
             async with base.execute("SELECT owned_roles FROM users WHERE memb_id = ?", (member_id,)) as cur:
@@ -239,19 +258,19 @@ async def verify_role_members_async(guild_id: int, role_info: PartialRoleInfo, m
             if result is None:
                 await base.execute(
                     "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
-                    (member_id, str_role_id)
+                    (member_id, add_str_role_id)
                 )
             else:
                 owned_roles: str = result[0]
-                if str_role_id not in owned_roles:
-                    owned_roles += str_role_id
+                if add_str_role_id not in owned_roles:
+                    owned_roles += add_str_role_id
                     await base.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (owned_roles, member_id))
         await base.commit()
 
         if not salary:
             return
 
-        async with base.execute("SELECT members FROM salary_roles WHERE role_id = ?", (role_id,)) as cur:
+        async with base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id) as cur:
             result: Row | None = await cur.fetchone()
         
         if result is None:
@@ -265,23 +284,20 @@ async def verify_role_members_async(guild_id: int, role_info: PartialRoleInfo, m
             owners_ids_in_db: set[int] = {int(owner_id) for owner_id in role_owners.split('#') if owner_id.isdigit()}
             owners_ids_in_db |= members_id_with_role
             role_owners: str = '#' + '#'.join(map(str, owners_ids_in_db)) if owners_ids_in_db else ""
-            await base.execute(
-                "UPDATE salary_roles SET members = ? WHERE role_id = ?",
-                (role_owners, role_id)
-            )
+            await base.execute("UPDATE salary_roles SET members = '" + role_owners + "' WHERE role_id = " + str_role_id)
 
         await base.commit()
 
 async def add_member_role_async(guild_id: int, member_id: int, role_id: int) -> bool:
     async with connect_async(DB_PATH.format(guild_id)) as base:
-        str_role_id: str = role_id.__str__()
+        str_role_id: str = str(role_id)
         async with base.execute("SELECT salary, salary_cooldown FROM server_roles WHERE role_id = " + str_role_id) as cur:
             role_info_row: Row | None = await cur.fetchone()
         
         if not role_info_row:
             return False
         
-        str_member_id: str = member_id.__str__()
+        str_member_id: str = str(member_id)
         # Update member's roles in users table.
         async with base.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id) as cur:
             result: Row | None = await cur.fetchone()
@@ -327,14 +343,14 @@ async def add_member_role_async(guild_id: int, member_id: int, role_id: int) -> 
 
 async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) -> bool:
     async with connect_async(DB_PATH.format(guild_id)) as base:
-        str_role_id: str = role_id.__str__()
+        str_role_id: str = str(role_id)
         async with base.execute("SELECT salary FROM server_roles WHERE role_id = " + str_role_id) as cur:
             role_info_row: Row | None = await cur.fetchone()
         
         if not role_info_row:
             return False
         
-        str_member_id: str = member_id.__str__()
+        str_member_id: str = str(member_id)
         # Update member's roles in users table.
         async with base.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id) as cur:
             result: Row | None = await cur.fetchone()
@@ -383,7 +399,7 @@ async def process_bought_role(guild_id: int, member_id: int, buyer_member_roles:
     price: int = role_info.price
     role_type: int = role_info.role_type
     salary: int = role_info.salary
-    str_role_id: str = role_id.__str__()
+    str_role_id: str = str(role_id)
 
     async with connect_async(DB_PATH.format(guild_id)) as base:
         await base.execute(
@@ -394,7 +410,7 @@ async def process_bought_role(guild_id: int, member_id: int, buyer_member_roles:
         if role_type == 1:
             query: str = "SELECT rowid FROM store WHERE role_id = " + str_role_id + " ORDER BY last_date;"
             rowid_to_delete: int = (await (await base.execute(query)).fetchone())[0] # type: ignore
-            await base.execute("DELETE FROM store WHERE rowid = " + rowid_to_delete.__str__())
+            await base.execute("DELETE FROM store WHERE rowid = " + str(rowid_to_delete))
         elif role_type == 2:
             if role_info.quantity > 1:
                 await base.execute("UPDATE store SET quantity = quantity - 1 WHERE role_id = " + str_role_id)
@@ -406,7 +422,7 @@ async def process_bought_role(guild_id: int, member_id: int, buyer_member_roles:
         if salary:
             role_members: Row | None = (await (await base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id)).fetchone())
             if role_members:
-                new_role_members: str = role_members[0] + '#' + member_id.__str__()
+                new_role_members: str = role_members[0] + '#' + str(member_id)
                 await base.execute("UPDATE salary_roles SET members = '" + new_role_members + "' WHERE role_id = " + str_role_id)
                 
             await base.commit()
@@ -520,7 +536,7 @@ async def process_sell_command_async(guild_id: int, role_id: int, member_id: int
 
             `price of the role` otherwise (non-negative integer)
     """
-    str_role_id: str = role_id.__str__()
+    str_role_id: str = str(role_id)
     time_now: int = int(time())
 
     async with connect_async(DB_PATH.format(guild_id)) as base:
@@ -534,7 +550,8 @@ async def process_sell_command_async(guild_id: int, role_id: int, member_id: int
         if not role_info:
             return -2
 
-        result: Row | None = await (await base.execute("SELECT owned_roles FROM users WHERE memb_id = " + member_id.__str__())).fetchone()  
+        str_member_id: str = str(member_id)
+        result: Row | None = await (await base.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id)).fetchone()  
 
         if result is not None:
             owned_roles: set[str] = {str_role_id for str_role_id in result[0].split('#') if str_role_id}
@@ -554,7 +571,6 @@ async def process_sell_command_async(guild_id: int, role_id: int, member_id: int
         sale_price: int = role_price if (sale_price_percent == 100) else (role_price * sale_price_percent // 100)
 
         new_owned_roles: str = ('#' + '#'.join(owned_roles)) if owned_roles else ""
-        str_member_id: str = member_id.__str__()
         await base.execute(
             "UPDATE users SET owned_roles = '" + new_owned_roles + "', money = money + ? WHERE memb_id = " + str_member_id,
             (sale_price,)
@@ -601,7 +617,90 @@ async def process_sell_command_async(guild_id: int, role_id: int, member_id: int
                 await base.execute("UPDATE salary_roles SET members = '" + new_role_members + "' WHERE role_id = " + str_role_id)
                 await base.commit()
 
-    return sale_price    
+    return sale_price
+
+async def process_work_command_async(guild_id: int, member_id: int) -> tuple[int, int, list[tuple[int, int]] | None]:
+    """Process `/work` command
+
+    Args:
+        guild_id (int): id of the guild (discord server)
+        member_id (int): id of the member
+
+    Returns:
+        int:
+            `(-1, 0, None)` if guild's economy is disabled
+
+            `(-2, time_lasted_for_cooldown_break, None)` if user should wait some time to use the command again
+
+            `(salary, additional_salary, list of role | None)` (`None` if `additional_salary` = `0`)
+    """
+    # init before open conn to db
+    time_now: int = int(time())
+    str_member_id: str = str(member_id)
+
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        if not (await (await base.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled';")).fetchone())[0]: # type: ignore
+            return (-1, 0, None)
+
+        sal_l: int = (await(await base.execute("SELECT value FROM server_info WHERE settings = 'sal_l';")).fetchone())[0] # type: ignore
+        sal_r: int = (await(await base.execute("SELECT value FROM server_info WHERE settings = 'sal_r';")).fetchone())[0] # type: ignore
+        
+        # inlining random.randint
+        getrandbits: Callable[[int], int] = _rnd.getrandbits
+        n: int = sal_r - sal_l
+        k: int = n.bit_length()  # don't use (n-1) here because n can be 1
+        r: int = getrandbits(k)  # 0 <= r < 2**k
+        while r > n:
+            r = getrandbits(k)
+        
+        salary: int = sal_l + r
+
+        result: Row | None = await (await base.execute(
+            "SELECT owned_roles, work_date FROM users WHERE memb_id = " + str_member_id
+        )).fetchone()
+
+        if result is None:    
+            await base.execute(
+                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, 0, 0, 0);",
+                (member_id, salary, "")
+            )
+            await base.commit()
+            return (salary, 0, None)
+
+        work_date: int = result[1]
+        command_cooldown: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'w_cd';")).fetchone())[0] # type: ignore
+        if work_date and (lasted_time := time_now - work_date) < command_cooldown:
+            return (-2, command_cooldown - lasted_time, None)
+
+        member_roles_ids: tuple[str, ...] = tuple(role_id for role_id in result[0].split('#') if role_id)
+        if member_roles_ids:
+            query: LiteralString = """\
+WITH cte AS (SELECT role_id, additional_salary FROM server_roles WHERE role_id IN ({0}))
+SELECT 0, sum(additional_salary) FROM cte
+UNION SELECT * FROM cte;
+""".format(", ".join(member_roles_ids))
+
+            memb_roles_add_salary: list[tuple[int, int]] = await base.execute_fetchall(query) # type: ignore
+            
+            # `additional_salary` may be equal to 0.
+            additional_salary: int = memb_roles_add_salary[0][1]
+            if additional_salary:
+                assert len(memb_roles_add_salary) > 1
+                # if additional_salary != 0 then there is at least one role
+                # in `memb_roles_add_salary` so len(memb_roles_add_salary) > 1
+                await base.execute(
+                    "UPDATE users SET money = money + ?, work_date = ? WHERE memb_id = " + str_member_id,
+                    (salary + additional_salary, time_now)
+                )
+                await base.commit()
+                return (salary, additional_salary, memb_roles_add_salary[1:])
+
+        await base.execute(
+            "UPDATE users SET money = money + ?, work_date = ? WHERE memb_id = " + str_member_id,
+            (salary, time_now)
+        )
+        await base.commit()
+        return (salary, 0, None)
 
 def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, int]]:
     with closing(connect(DB_PATH.format(guild_id))) as base:
@@ -735,17 +834,16 @@ async def listify_guild_roles(guild_id: int) -> tuple[list[tuple[int, int, int, 
             await (await base.execute("SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles")).fetchall() # type: ignore
 
         for role in roles:
-            role_id: int = role[0]
             role_type: int = role[4]
             if role_type == 1:
-                role_count.append(str((await (await base.execute("SELECT count() FROM store WHERE role_id = ?", (role_id,))).fetchone())[0])) # type: ignore
+                role_count.append(str((await (await base.execute("SELECT count() FROM store WHERE role_id = " + str(role[0]))).fetchone())[0])) # type: ignore
             else:
-                quantity_in_store: Row | None = await (await base.execute("SELECT quantity FROM store WHERE role_id = ?", (role_id,))).fetchone()
+                quantity_in_store: Row | None = await (await base.execute("SELECT quantity FROM store WHERE role_id = " + str(role[0]))).fetchone()
                 if not quantity_in_store:
-                    role_count.append("0")
+                    role_count.append('0')
                 elif role_type == 2:
                     role_count.append(str(quantity_in_store[0]))
                 else:
-                    role_count.append("∞")
+                    role_count.append('∞')
 
     return (roles, role_count)

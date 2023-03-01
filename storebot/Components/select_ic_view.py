@@ -13,9 +13,9 @@ from nextcord import (
 )
 
 from ..Tools.db_commands import get_ignored_channels
-from ..CustomComponents.view_base import ViewBase
-from ..CustomComponents.custom_button import CustomButton
-from ..CustomComponents.ignored_channels_view import IgnoredChannelsView
+from ..Components.view_base import ViewBase
+from ..Components.custom_button import CustomButton
+from ..Components.ignored_channels_view import IgnoredChannelsView
 
 
 class SelectICView(ViewBase):
@@ -37,13 +37,13 @@ class SelectICView(ViewBase):
             style=ButtonStyle.green,
             label="",
             emoji="<:ignored_text:1064976269038583808>",
-            custom_id=f"55_{author_id}_{urandom(4).hex()}"
+            custom_id=f"55_{author_id}_" + urandom(4).hex()
         ))
         self.add_item(CustomButton(
             style=ButtonStyle.green,
             label="",
             emoji="🔇",
-            custom_id=f"56_{author_id}_{urandom(4).hex()}",
+            custom_id=f"56_{author_id}_" + urandom(4).hex(),
         ))
         self.g_id: int = g_id
         self.bot: StoreBot = bot
@@ -52,7 +52,8 @@ class SelectICView(ViewBase):
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.guild is not None
         guild_id: int = self.g_id
-        db_ignored_channels: list[tuple[int, int, int]] = await get_ignored_channels(guild_id=guild_id)
+
+        db_ignored_channels: list[tuple[int, int, int]] = await get_ignored_channels(guild_id)
         guild_text_ignored_channels_ids: set[int] = {tup[0] for tup in db_ignored_channels if tup[1]}
         guild_voice_ignored_channels_ids: set[int] = {tup[0] for tup in db_ignored_channels if tup[2]}
         del db_ignored_channels

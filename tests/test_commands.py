@@ -16,12 +16,12 @@ from nextcord import Colour, Member
 from nextcord.ui.view import View
 
 from storebot.constants import CWD_PATH, DB_PATH
-from storebot.Commands.slash_shop import SlashCommandsCog
+from storebot.Cogs.slash_cmds_cog import SlashCommandsCog
 from storebot.storebot import StoreBot
 from storebot.Tools import db_commands
 from storebot.Tools.db_commands import RoleInfo
-from storebot.CustomComponents.custom_button import CustomButton
-from storebot.CustomComponents.view_base import ViewBase
+from storebot.Components.custom_button import CustomButton
+from storebot.Components.view_base import ViewBase
 
 from tests.builder import (
     build_interaction,
