@@ -95,7 +95,16 @@ class OpenAICog(Cog):
             await interaction.response.send_message(embed=Embed(description=self.openai_cog_text[lng][0]))
             return
         
-        await interaction.response.send_message(embed=Embed(description=self.openai_cog_text[lng][1].format(question)))
+        try:
+            await interaction.response.send_message(embed=Embed(description=self.openai_cog_text[lng][1].format(question)))
+        except Exception as ex:
+            await Logger.write_one_log_async(
+                    filename="error.log",
+                    report=f"[FATAL] [ERROR] [could not response] [ask] [question: {question}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
+                )
+            await channel.send(embed=Embed(description=self.openai_cog_text[lng][4]))
+            await interaction.response.defer()
+
         async with channel.typing():
             async with self.openai_lock:
                 try:
