@@ -12,7 +12,7 @@ from nextcord import (
     Colour,
     TextChannel,
 )
-from nextcord.ext.commands import command, Cog, Context
+from nextcord.ext.commands import Cog, Context
 if __debug__:
     from nextcord.member import Member
 
@@ -26,14 +26,12 @@ class TextComandsCog(Cog):
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
 
-    @command(aliases=["work"]) # type: ignore
-    async def collect(self, ctx: Context)-> None:
+    @staticmethod
+    async def work_command(ctx: Context)-> None:
         assert ctx.guild is not None
         assert isinstance(ctx.author, Member)
         guild: Guild = ctx.guild
         guild_id: int = guild.id
-        if guild_id not in {1058854571239280721, 1057747986349821984, 750708076029673493, 863462268402532363}:
-            return
         member_id: int = ctx.author.id
 
         salary: int

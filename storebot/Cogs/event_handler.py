@@ -2,6 +2,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import (
+        Callable,
         Generator,
         Literal,
     )
@@ -15,6 +16,7 @@ if TYPE_CHECKING:
 
     from ..storebot import StoreBot
 
+import re
 from sqlite3 import connect
 from contextlib import closing
 from os import path, mkdir
@@ -32,10 +34,13 @@ from nextcord.errors import ApplicationCheckFailure
 from nextcord.ext.commands import Cog
 from nextcord.ext import tasks
 
+from .text_cmds_cog import TextComandsCog
 from ..Tools import db_commands
 from ..Tools.logger import Logger
 from ..constants import CWD_PATH, DB_PATH
 
+
+command_match: Callable[[str, int, int], re.Match[str] | None] = re.compile(r"^(!work)|(!collect)", re.RegexFlag.IGNORECASE).match
 
 class EventsHandlerCog(Cog):
     event_handl_text: dict[int, dict[int, str]] = {
@@ -71,23 +76,18 @@ class EventsHandlerCog(Cog):
         self.bot: StoreBot = bot
         self.salary_roles_task.start()
         self.backup_task.start()
-    
+
     @classmethod
     async def send_first_message(cls, guild: Guild, lng: int) -> None:
-        channel_to_send_greet: TextChannel | None = None
+        embed: Embed = Embed(description=cls.greetings[lng])
         guild_me: Member = guild.me
-
-        system_channel: TextChannel | None = guild.system_channel
-        if system_channel and system_channel.permissions_for(guild_me).send_messages:
-            channel_to_send_greet = system_channel
-        else:
-            for channel in guild.text_channels:
-                if channel.permissions_for(guild_me).send_messages:
-                    channel_to_send_greet = channel
-                    break
-        
-        if channel_to_send_greet:
-            await channel_to_send_greet.send(embed=Embed(description=cls.greetings[lng]))
+        for channel in guild.text_channels:
+            if channel.permissions_for(guild_me).send_messages:
+                try:
+                    await channel.send(embed=embed)
+                    return
+                except:
+                    continue
 
     @Cog.listener()
     async def on_connect(self) -> None:
@@ -138,11 +138,11 @@ class EventsHandlerCog(Cog):
             await guild.leave()
             return
 
-        str_guild_id: str = guild_id.__str__()
-        if not path.exists(f"{CWD_PATH}/bases/bases_{str_guild_id}/"):
-            mkdir(f"{CWD_PATH}/bases/bases_{str_guild_id}/")
-        if not path.exists(f"{CWD_PATH}/logs/logs_{str_guild_id}/"):
-            mkdir(f"{CWD_PATH}/logs/logs_{str_guild_id}/")
+        str_guild_id: str = str(guild_id)
+        if not path.exists(CWD_PATH + "/bases/bases_{0}/".format(str_guild_id)):
+            mkdir(CWD_PATH + "/bases/bases_{0}/".format(str_guild_id))
+        if not path.exists(CWD_PATH + "/logs/logs_{0}/".format(str_guild_id)):
+            mkdir(CWD_PATH + "/logs/logs_{0}/".format(str_guild_id))
 
         guild_locale: str | None = guild.preferred_locale
         db_ignored_channels_data: list[tuple[int, int, int]] = db_commands.check_db(guild_id, guild_locale)
@@ -232,15 +232,23 @@ class EventsHandlerCog(Cog):
         #or message.type is MessageType.chat_input_command
         if not isinstance(member := message.author, Member) or member.bot:
             return
+
         assert message.guild is not None
         guild: Guild = message.guild
         g_id: int = guild.id
+
+        if g_id in {1058854571239280721, 1057747986349821984, 750708076029673493, 863462268402532363} \
+            and command_match(message.content, 0, 8) is not None:
+            await TextComandsCog.work_command(await self.bot.get_context(message))
+            return
+
         async with self.bot.text_lock:
-            if g_id in self.bot.ignored_text_channels:
-                if message.channel.id in self.bot.ignored_text_channels[g_id]:
+            ignored_text_channels: dict[int, set[int]] = self.bot.ignored_text_channels
+            if g_id in ignored_text_channels:
+                if message.channel.id in ignored_text_channels[g_id]:
                     return
             else:
-                self.bot.ignored_text_channels[g_id] = set()
+                ignored_text_channels[g_id] = set()
 
         new_level: int = await db_commands.check_member_level_async(guild_id=g_id, member_id=member.id)
         if not new_level:
@@ -260,17 +268,21 @@ class EventsHandlerCog(Cog):
             return
 
         lvl_rls: dict[int, int] = {k: v for k, v in db_lvl_rls}
-        del db_lvl_rls
         if new_level in lvl_rls:
+            levels: list[int] = [tup[0] for tup in db_lvl_rls]
+            del db_lvl_rls
+
             guild_roles: dict[int, Role] = guild._roles.copy()
             memb_roles: set[int] = {role_id for role_id in member._roles if role_id in guild_roles}
+
             new_level_role_id: int = lvl_rls[new_level]
             if new_level_role_id not in memb_roles and (role := guild_roles.get(new_level_role_id)):
                 try: 
                     await member.add_roles(role, reason=f"Member gained new level {new_level}")
                 except: 
                     pass
-            levels: list[int] = sorted(lvl_rls.keys())
+
+            # Bin search, realized in Python, will be slower here, as predicted ~ len(new_level_index) < 32 (very small)
             new_level_index: int = levels.index(new_level)
             if new_level_index and ((old_role_id := lvl_rls[levels[new_level_index-1]]) in memb_roles) and (role := guild_roles.get(old_role_id)):
                 try: 
