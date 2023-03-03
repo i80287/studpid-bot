@@ -31,7 +31,7 @@ class DebugCommandsCog(Cog):
     @command(name="load") # type: ignore
     @is_owner()
     async def load(self, ctx: Context, extension) -> None:
-        if path.exists(CWD_PATH + f"/storebot/Cogs/{extension}.py"):
+        if path.exists(CWD_PATH + f"/Cogs/{extension}.py"):
             async with self.bot.text_lock:
                 async with self.bot.voice_lock:
                     async with self.bot.statistic_lock:
@@ -47,7 +47,7 @@ class DebugCommandsCog(Cog):
     @command(name="unload") # type: ignore
     @is_owner()
     async def unload(self, ctx: Context, extension) -> None:
-        if path.exists(CWD_PATH + f"/storebot/Cogs/{extension}.py"):
+        if path.exists(CWD_PATH + f"/Cogs/{extension}.py"):
             async with self.bot.text_lock:
                 async with self.bot.voice_lock:
                     async with self.bot.statistic_lock:
@@ -63,7 +63,7 @@ class DebugCommandsCog(Cog):
     @command(name="reload") # type: ignore
     @is_owner()
     async def reload(self, ctx: Context, extension) -> None:
-        if path.exists(CWD_PATH + f"/storebot/Cogs/{extension}.py"):
+        if path.exists(CWD_PATH + f"/Cogs/{extension}.py"):
             await ctx.reply(embed=Embed(description="**`Started reloading`**"), mention_author=False, delete_after=10.0)
             async with self.bot.text_lock:
                 async with self.bot.voice_lock:
@@ -100,8 +100,8 @@ class DebugCommandsCog(Cog):
 
         emb1: Embed = Embed(description='\n'.join(lines[:half_size]))
         emb2: Embed = Embed(description='\n'.join(lines[half_size:]))
-        await ctx.reply(embed=emb1, mention_author=False, delete_after=20.0)
-        await ctx.reply(embed=emb2, mention_author=False, delete_after=20.0)
+        await ctx.reply(embed=emb1, mention_author=False, delete_after=30.0)
+        await ctx.reply(embed=emb2, mention_author=False, delete_after=30.0)
 
     @command(name="update_status") # type: ignore
     @is_owner()
