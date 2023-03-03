@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import (
         Callable,
-        Generator,
         Literal,
     )
 
@@ -21,7 +20,6 @@ from sqlite3 import connect
 from contextlib import closing
 from os import path, mkdir
 from asyncio import sleep
-from time import time
 
 from nextcord import (
     Game,
@@ -35,8 +33,13 @@ from nextcord.ext.commands import Cog
 from nextcord.ext import tasks
 
 from .text_cmds_cog import TextComandsCog
-from ..Tools import db_commands
 from ..Tools.logger import Logger
+from ..Tools.db_commands import (
+    check_db,
+    make_backup,
+    process_salary_roles,
+    check_member_level_async,
+)
 from ..constants import CWD_PATH, DB_PATH
 
 
@@ -51,16 +54,10 @@ class EventsHandlerCog(Cog):
             0: "**`Извините, но у Вас недостаточно прав для использования этой команды`**",
         },
     }
-    greetings: dict[int, str] = {
-        0: "Thanks for adding bot!\n\
-            Use **`/guide`** to see guide about bot's system\n\
-            **`/settings`** to manage bot\n\
-            and **`/help`** to see available commands",
-        1: "Благодарим за добавление бота!\n\
-            Используйте **`/guide`** для просмотра гайда о системе бота\n\
-            **`/settings`** для управления ботом\n\
-            и **`/help`** для просмотра доступных команд",
-    }
+    greetings: tuple[str, str] = (
+        "Thanks for adding bot!\nUse **`/guide`** to see guide about bot's system\n**`/settings`** to manage bot\nand **`/help`** to see available commands",
+        "Благодарим за добавление бота!\nИспользуйте **`/guide`** для просмотра гайда о системе бота\n**`/settings`** для управления ботом\nи **`/help`** для просмотра доступных команд",
+    )
     new_level_text: dict[int, dict[int, str]] = {
         0: {
             0: "New level!",
@@ -78,8 +75,7 @@ class EventsHandlerCog(Cog):
         self.backup_task.start()
 
     @classmethod
-    async def send_first_message(cls, guild: Guild, lng: int) -> None:
-        embed: Embed = Embed(description=cls.greetings[lng])
+    async def send_first_message(cls, guild: Guild, embed: Embed) -> None:
         guild_me: Member = guild.me
         for channel in guild.text_channels:
             if channel.permissions_for(guild_me).send_messages:
@@ -95,12 +91,10 @@ class EventsHandlerCog(Cog):
     
     @Cog.listener()
     async def on_ready(self) -> None:
-        db_bases_path: str = CWD_PATH + "/bases/"
-        if not path.exists(db_bases_path):
-            mkdir(db_bases_path)
-        logs_path: str = CWD_PATH + "/logs/"
-        if not path.exists(logs_path):
-            mkdir(logs_path)
+        if not path.exists(CWD_PATH + "/bases/"):
+            mkdir(CWD_PATH + "/bases/")
+        if not path.exists(CWD_PATH + "/logs/"):
+            mkdir(CWD_PATH + "/logs/")
 
         guilds: list[Guild] = self.bot.guilds.copy()
         for guild in guilds:
@@ -112,7 +106,7 @@ class EventsHandlerCog(Cog):
             if not path.exists(f"{CWD_PATH}/logs/logs_{str_guild_id}/"):
                 mkdir(f"{CWD_PATH}/logs/logs_{str_guild_id}/")
 
-            db_ignored_channels_data: list[tuple[int, int, int]] = db_commands.check_db(guild_id, guild.preferred_locale)
+            db_ignored_channels_data: list[tuple[int, int, int]] = check_db(guild_id, guild.preferred_locale)
             async with self.bot.voice_lock:
                 self.bot.members_in_voice[guild_id] = {}
                 self.bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
@@ -125,7 +119,7 @@ class EventsHandlerCog(Cog):
         if DEBUG:
             print("[>>>]Logged into Discord as {0.user}".format(self.bot))
 
-        guilds_len_str: str = len(guilds).__str__()
+        guilds_len_str: str = str(len(guilds))
         await self.bot.change_presence(activity=Game(f"/help on {guilds_len_str} servers"))
         await Logger.write_log_async("common_logs.log", "on_ready", f"total {guilds_len_str} guilds")
 
@@ -145,7 +139,7 @@ class EventsHandlerCog(Cog):
             mkdir(CWD_PATH + "/logs/logs_{0}/".format(str_guild_id))
 
         guild_locale: str | None = guild.preferred_locale
-        db_ignored_channels_data: list[tuple[int, int, int]] = db_commands.check_db(guild_id, guild_locale)
+        db_ignored_channels_data: list[tuple[int, int, int]] = check_db(guild_id, guild_locale)
         guild_name: str = guild.name
         await Logger.write_log_async("common_logs.log", "correct_db func", str_guild_id, guild_name)
         async with self.bot.voice_lock:
@@ -154,9 +148,11 @@ class EventsHandlerCog(Cog):
         async with self.bot.text_lock:
             self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
         
-        lng: int = 1 if guild_locale and "ru" in guild_locale else 0
         try:
-            await self.send_first_message(guild=guild, lng=lng)
+            await self.send_first_message(
+                guild,
+                Embed(description=self.greetings[1 if guild_locale and "ru" in guild_locale else 0])
+            )
         except Exception as ex:
             await Logger.write_one_log_async(
                 filename="error.log",
@@ -193,23 +189,8 @@ class EventsHandlerCog(Cog):
     
     @tasks.loop(seconds=180.0)
     async def salary_roles_task(self) -> None:
-        guild_ids: Generator[int, None, None] = (guild.id for guild in self.bot.guilds.copy())
-        for guild_id in guild_ids: 
-            with closing(connect(DB_PATH.format(guild_id))) as base:
-                with closing(base.cursor()) as cur:
-                    r: list[tuple[int, str, int, int, int]] | list = cur.execute(
-                        "SELECT role_id, members, salary, salary_cooldown, last_time FROM salary_roles"
-                    ).fetchall()
-                    if r:
-                        time_now: int = int(time())
-                        for role, role_owners, salary, t, last_time in r:
-                            if not last_time or time_now - last_time >= t:
-                                cur.execute("UPDATE salary_roles SET last_time = ? WHERE role_id = ?", (time_now, role))
-                                base.commit()
-                                member_ids: set[int] = {int(member_id) for member_id in role_owners.split("#") if member_id}
-                                for member_id in member_ids:
-                                    cur.execute("UPDATE users SET money = money + ? WHERE memb_id = ?", (salary, member_id))
-                                    base.commit()
+        for guild in self.bot.guilds.copy():
+            await process_salary_roles(guild.id)
             await sleep(1.0)
     
     @salary_roles_task.before_loop
@@ -218,9 +199,8 @@ class EventsHandlerCog(Cog):
 
     @tasks.loop(hours=2.0)
     async def backup_task(self) -> None:
-        guild_ids: Generator[int, None, None] = (guild.id for guild in self.bot.guilds.copy())
-        for guild_id in guild_ids:
-            await db_commands.make_backup(guild_id)
+        for guild in self.bot.guilds.copy():
+            await make_backup(guild.id)
             await sleep(1.0)
 
     @backup_task.before_loop
@@ -250,7 +230,7 @@ class EventsHandlerCog(Cog):
             else:
                 ignored_text_channels[g_id] = set()
 
-        new_level: int = await db_commands.check_member_level_async(guild_id=g_id, member_id=member.id)
+        new_level: int = await check_member_level_async(guild_id=g_id, member_id=member.id)
         if not new_level:
             return
 

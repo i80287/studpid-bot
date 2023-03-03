@@ -427,6 +427,21 @@ async def process_bought_role(guild_id: int, member_id: int, buyer_member_roles:
                 
             await base.commit()
 
+async def process_salary_roles(guild_id: int) -> None:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        roles_info: list[tuple[int, str, int, int, int]] | list = \
+            await base.execute_fetchall("SELECT role_id, members, salary, salary_cooldown, last_time FROM salary_roles;") # type: ignore
+        if roles_info:
+            time_now: int = int(time())
+            for role_id, role_owners, salary, t, last_time in roles_info:
+                if not last_time or time_now - last_time >= t:
+                    await base.execute("UPDATE salary_roles SET last_time = ? WHERE role_id = ?;", (time_now, role_id))
+                    await base.commit()
+                    str_member_ids: set[str] = {member_id for member_id in role_owners.split("#") if member_id}
+                    for str_member_id in str_member_ids:
+                        await base.execute("UPDATE users SET money = money + ? WHERE memb_id = " + str_member_id, (salary,))
+                        await base.commit()
+
 async def drop_users_cash_async(guild_id: int) -> None:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         await base.execute("UPDATE users SET money = 0;")
