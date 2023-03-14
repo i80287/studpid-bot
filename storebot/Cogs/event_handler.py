@@ -75,15 +75,26 @@ class EventsHandlerCog(Cog):
         self.backup_task.start()
 
     @classmethod
-    async def send_first_message(cls, guild: Guild, embed: Embed) -> None:
+    async def send_first_message(cls, guild: Guild, embed: Embed) -> list[Exception]:
+        exceptions: list[Exception] = []
         guild_me: Member = guild.me
         for channel in guild.text_channels:
-            if channel.permissions_for(guild_me).send_messages:
+            permission: bool = False
+            try:
+                permission = channel.permissions_for(guild_me).send_messages
+            except Exception as ex:
+                exceptions.append(PermissionError("Error while seeking permissions"))
+                exceptions.append(ex)
+                continue
+            if permission:
                 try:
                     await channel.send(embed=embed)
-                    return
-                except:
+                    return exceptions
+                except Exception as ex:
+                    exceptions.append(ex)
                     continue
+        
+        return exceptions
 
     @Cog.listener()
     async def on_connect(self) -> None:
@@ -99,7 +110,7 @@ class EventsHandlerCog(Cog):
         guilds: list[Guild] = self.bot.guilds.copy()
         for guild in guilds:
             guild_id: int = guild.id
-            str_guild_id: str = guild_id.__str__()
+            str_guild_id: str = str(guild_id)
             
             if not path.exists(f"{CWD_PATH}/bases/bases_{str_guild_id}/"):
                 mkdir(f"{CWD_PATH}/bases/bases_{str_guild_id}/")
@@ -148,15 +159,19 @@ class EventsHandlerCog(Cog):
         async with self.bot.text_lock:
             self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
         
+        exceptions: list[Exception]
         try:
-            await self.send_first_message(
+            exceptions = await self.send_first_message(
                 guild,
                 Embed(description=self.greetings[1 if guild_locale and "ru" in guild_locale else 0])
             )
         except Exception as ex:
+            exceptions = [ex]
+        
+        for ex in exceptions:
             await Logger.write_one_log_async(
                 filename="error.log",
-                report=f"[FATAL] [ERROR] [send_first_message] [guild: {str_guild_id}:{guild.name}] [{str(ex)}]\n"
+                report=f"[FATAL] [ERROR] [send_first_message] [guild: {str_guild_id}:{guild_name}] [{str(ex)}:{ex:!r}]\n"
             )
 
         await Logger.write_log_async("guild.log", "guild_join", str_guild_id, guild_name)
