@@ -60,12 +60,14 @@ common_text: dict[int, dict[int, str]] = {
     0: {
         0: "**`Sorry, but you can't manage menu called by another member`**",
         1: "**`Economy system and leveling system are disabled on this server`**",
-        2: "**`Economy system is disabled on this server`**"
+        2: "**`Economy system is disabled on this server`**",
+        3: "**`This command is disabled on this server`**",
     },
     1: {
         0: "**`Извините, но Вы не можете меню, которое вызвано другим пользователем`**",
         1: "**`Экономическая система и система уровней отключены на этом сервере`**",
-        2: "**`Экономическая система отключена на этом сервере`**"
+        2: "**`Экономическая система отключена на этом сервере`**",
+        3: "**`Эта команда отключена на этом сервере`**",
     }
 }
 
@@ -1501,6 +1503,10 @@ class SlashCommandsCog(Cog):
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         memb_id: int = interaction.user.id
         guild_id: int = interaction.guild_id
+
+        if guild_id == 1058854571239280721:
+            await self.respond_with_error_report(interaction, lng, common_text[lng][3])
+            return
 
         member: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
         db_path: str = DB_PATH.format(guild_id)
