@@ -28,7 +28,7 @@ class VerificationView(ViewBase):
     
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         await interaction.response.defer()
-        self.approved = True if custom_id[0] == "0" else False
+        self.approved = custom_id[0] == "0"
         self.stop()
     
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
