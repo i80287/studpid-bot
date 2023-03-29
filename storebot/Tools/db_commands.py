@@ -6,7 +6,7 @@ if TYPE_CHECKING:
         LiteralString,
         Callable
     )
-    from collections.abc import Iterable
+    from collections.abc import Iterable, Generator
     from sqlite3 import Cursor, Row
 
 from random import Random
@@ -97,8 +97,9 @@ async def get_member_async(guild_id: int, member_id: int) -> tuple[int, int, str
         async with base.execute(
             "SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = " + str(member_id)
         ) as cur:
-            result: Row | None = await cur.fetchone()
-        
+            result = await cur.fetchone()
+        assert result is None or isinstance(result, tuple)
+
         if result is not None:
             return tuple(result)
 
@@ -113,8 +114,9 @@ async def get_member_async(guild_id: int, member_id: int) -> tuple[int, int, str
 async def check_member_async(guild_id: int, member_id: int) -> None:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)) as cur:
-            result: Row | None = await cur.fetchone()
-        
+            result = await cur.fetchone()
+        assert result is None or isinstance(result, tuple)
+
         if result is None:
             await base.execute(
                 "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
@@ -137,14 +139,17 @@ async def check_member_level_async(guild_id: int, member_id: int) -> int:
         xp_b: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_border';")).fetchone())[0] # type: ignore
         mn_p_m: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';")).fetchone())[0] # type: ignore
         xp_p_m: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg';")).fetchone())[0] # type: ignore 
-        member_row: Row | None = await (await base.execute("SELECT xp FROM users WHERE memb_id = ?", (member_id,))).fetchone() # type: ignore
-        
+        member_row = await (await base.execute("SELECT xp FROM users WHERE memb_id = ?", (member_id,))).fetchone() # type: ignore
+        assert member_row is None or isinstance(member_row, tuple)
+
         if member_row:
             await base.execute("UPDATE users SET money = money + ?, xp = xp + ? WHERE memb_id = ?", (mn_p_m, xp_p_m, member_id))
             await base.commit()
-            old_level: int = (member_row[0] - 1) // xp_b + 1
-            new_level: int = (member_row[0] + xp_p_m - 1) // xp_b + 1
-            if old_level == new_level:                
+            xp = member_row[0]
+            assert isinstance(xp, int)
+            old_level: int = (xp - 1) // xp_b + 1
+            new_level: int = (xp + xp_p_m - 1) // xp_b + 1
+            if old_level == new_level:
                 return 0
             return new_level
         else:
@@ -156,27 +161,41 @@ async def check_member_level_async(guild_id: int, member_id: int) -> int:
             return 1
 
 async def register_user_voice_channel_join(guild_id: int, member_id: int, time_join: int) -> None:
+    str_member_id = str(member_id)
     async with connect_async(DB_PATH.format(guild_id)) as base:
-        async with base.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)) as cur:
-            result: Row | None = await cur.fetchone()
+        async with base.execute("SELECT rowid FROM users WHERE memb_id = " + str_member_id) as cur:
+            result = await cur.fetchone()
+        assert result is None or isinstance(result, tuple)
+
+        if result is not None:
+            await base.execute(
+                "UPDATE users SET voice_join_time = ? WHERE memb_id = " + str_member_id,
+                (time_join,)
+            )
         
-        if not result:
+        else:
             await base.execute(
                 "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, ?)",
                 (member_id, "", time_join)
             )
-        else:
-            await base.execute(
-                "UPDATE users SET voice_join_time = ? WHERE memb_id = ?",
-                (time_join, member_id)
-            )
-        
+            
         await base.commit()
 
 async def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_voice: int, time_left: int) -> tuple[int, int]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
-        voice_join_time: int = (await get_member_async(guild_id=guild_id, member_id=member_id))[5]
-        if not voice_join_time:
+        async with base.execute("SELECT voice_join_time FROM users WHERE memb_id = " + str(member_id)) as cur:
+            result = await cur.fetchone()
+        assert result is None or isinstance(result, tuple)
+
+        if result is not None:    
+            if not (voice_join_time := result[0]):
+                return (0, 0)
+        else:
+            await base.execute(
+                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
+                (member_id, "")
+            )
+            await base.commit()
             return (0, 0)
 
         income_for_voice: int = (time_left - voice_join_time) * money_for_voice // 600
@@ -207,31 +226,33 @@ async def add_role_async(guild_id: int, role_info: RoleInfo, members_id_with_rol
             str_role_id: str = '#' + str(role_id)
             for member_id in members_id_with_role:
                 async with base.execute("SELECT owned_roles FROM users WHERE memb_id = ?", (member_id,)) as cur:
-                    result: Row | None = await cur.fetchone()
+                    result = await cur.fetchone()
+                assert result is None or isinstance(result, tuple)
 
-                if result is None:
-                    await base.execute(
-                        "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
-                        (member_id, str_role_id)
-                    )
-                else:
+                if result is not None:
                     owned_roles: str = result[0]
                     if str_role_id not in owned_roles:
                         owned_roles += str_role_id
                         await base.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (owned_roles, member_id))
+                else:
+                    await base.execute(
+                        "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
+                        (member_id, str_role_id)
+                    )
 
             await base.commit()
 
         if salary:
             async with base.execute("SELECT members FROM salary_roles WHERE role_id = ?", (role_id,)) as cur:
-                result: Row | None = await cur.fetchone()
-            
+                result = await cur.fetchone()
+            assert result is None or isinstance(result, tuple)
+
             if result is None:
                 salary_cooldown: int = role_info.salary_cooldown
                 role_owners: str = '#' + '#'.join(map(str, members_id_with_role)) if members_id_with_role else ""
                 await base.execute(
-                    "INSERT OR IGNORE INTO salary_roles (role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, ?)", 
-                    (role_id, role_owners, salary, salary_cooldown, 0)
+                    "INSERT OR IGNORE INTO salary_roles (role_id, members, salary, salary_cooldown, last_time) VALUES(?, ?, ?, ?, 0)", 
+                    (role_id, role_owners, salary, salary_cooldown)
                 )
             else:
                 role_owners: str = result[0]
@@ -253,7 +274,8 @@ async def verify_role_members_async(guild_id: int, role_info: PartialRoleInfo, m
     async with connect_async(DB_PATH.format(guild_id)) as base:
         for member_id in members_id_with_role:
             async with base.execute("SELECT owned_roles FROM users WHERE memb_id = ?", (member_id,)) as cur:
-                result: Row | None = await cur.fetchone()
+                result = await cur.fetchone()
+            assert result is None or isinstance(result, tuple)
 
             if result is None:
                 await base.execute(
@@ -271,8 +293,9 @@ async def verify_role_members_async(guild_id: int, role_info: PartialRoleInfo, m
             return
 
         async with base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id) as cur:
-            result: Row | None = await cur.fetchone()
-        
+            result = await cur.fetchone()
+        assert result is None or isinstance(result, tuple)
+
         if result is None:
             role_owners: str = '#' + '#'.join(map(str, members_id_with_role)) if members_id_with_role else ""
             await base.execute(
@@ -292,7 +315,8 @@ async def add_member_role_async(guild_id: int, member_id: int, role_id: int) -> 
     async with connect_async(DB_PATH.format(guild_id)) as base:
         str_role_id: str = str(role_id)
         async with base.execute("SELECT salary, salary_cooldown FROM server_roles WHERE role_id = " + str_role_id) as cur:
-            role_info_row: Row | None = await cur.fetchone()
+            role_info_row = await cur.fetchone()
+        assert role_info_row is None or isinstance(role_info_row, tuple)
         
         if not role_info_row:
             return False
@@ -300,7 +324,8 @@ async def add_member_role_async(guild_id: int, member_id: int, role_id: int) -> 
         str_member_id: str = str(member_id)
         # Update member's roles in users table.
         async with base.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id) as cur:
-            result: Row | None = await cur.fetchone()
+            result = await cur.fetchone()
+        assert result is None or isinstance(result, tuple)
 
         is_added: bool = False
         if result is None:
@@ -326,7 +351,8 @@ async def add_member_role_async(guild_id: int, member_id: int, role_id: int) -> 
         # If role has salary.
         async with base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id) as cur:
             result = await cur.fetchone()
-        
+        assert result is None or isinstance(result, tuple)
+
         if result is None:
             await base.execute(
                 "INSERT INTO salary_roles (role_id, members, salary, salary_cooldown, last_time) VALUES (?, ?, ?, ?, 0)",
@@ -345,7 +371,8 @@ async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) 
     async with connect_async(DB_PATH.format(guild_id)) as base:
         str_role_id: str = str(role_id)
         async with base.execute("SELECT salary FROM server_roles WHERE role_id = " + str_role_id) as cur:
-            role_info_row: Row | None = await cur.fetchone()
+            role_info_row = await cur.fetchone()
+        assert role_info_row is None or isinstance(role_info_row, tuple)
         
         if not role_info_row:
             return False
@@ -353,8 +380,9 @@ async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) 
         str_member_id: str = str(member_id)
         # Update member's roles in users table.
         async with base.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id) as cur:
-            result: Row | None = await cur.fetchone()
-        
+            result = await cur.fetchone()
+        assert result is None or isinstance(result, tuple)
+
         is_added: bool = False
         if result is None:
             await base.execute(
@@ -379,6 +407,7 @@ async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) 
         # If role has salary.
         async with base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id) as cur:
             result = await cur.fetchone()
+        assert result is None or isinstance(result, tuple)
 
         if result is None:
             return is_added
@@ -420,7 +449,8 @@ async def process_bought_role(guild_id: int, member_id: int, buyer_member_roles:
         await base.commit()
 
         if salary:
-            role_members: Row | None = (await (await base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id)).fetchone())
+            role_members = (await (await base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id)).fetchone())
+            assert role_members is None or isinstance(role_members, tuple)
             if role_members:
                 new_role_members: str = role_members[0] + '#' + str(member_id)
                 await base.execute("UPDATE salary_roles SET members = '" + new_role_members + "' WHERE role_id = " + str_role_id)
@@ -566,7 +596,8 @@ async def process_sell_command_async(guild_id: int, role_id: int, member_id: int
             return -2
 
         str_member_id: str = str(member_id)
-        result: Row | None = await (await base.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id)).fetchone()  
+        result = await (await base.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id)).fetchone()  
+        assert result is None or isinstance(result, tuple)
 
         if result is not None:
             owned_roles: set[str] = {str_role_id for str_role_id in result[0].split('#') if str_role_id}
@@ -584,6 +615,8 @@ async def process_sell_command_async(guild_id: int, role_id: int, member_id: int
         sale_price_percent: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'sale_price_perc'")).fetchone())[0] # type: ignore
         role_price: int = role_info[0]
         sale_price: int = role_price if (sale_price_percent == 100) else (role_price * sale_price_percent // 100)
+        assert isinstance(role_price, int)
+        assert isinstance(sale_price, int)
 
         new_owned_roles: str = ('#' + '#'.join(owned_roles)) if owned_roles else ""
         await base.execute(
@@ -596,6 +629,9 @@ async def process_sell_command_async(guild_id: int, role_id: int, member_id: int
         role_salary: int = role_info[1]
         role_salary_cooldown: int = role_info[2]
         role_type: int = role_info[3]
+        assert isinstance(role_salary, int)
+        assert isinstance(role_salary_cooldown, int)
+        assert isinstance(role_type, int)
 
         if role_type == 1:
             req: Iterable[tuple[int]] = await base.execute_fetchall("SELECT role_number FROM store ORDER BY role_number;") # type: ignore
@@ -659,7 +695,9 @@ async def process_work_command_async(guild_id: int, member_id: int) -> tuple[int
 
         sal_l: int = (await(await base.execute("SELECT value FROM server_info WHERE settings = 'sal_l';")).fetchone())[0] # type: ignore
         sal_r: int = (await(await base.execute("SELECT value FROM server_info WHERE settings = 'sal_r';")).fetchone())[0] # type: ignore
-        
+        assert isinstance(sal_l, int)
+        assert isinstance(sal_r, int)
+
         # inlining random.randint
         getrandbits: Callable[[int], int] = _rnd.getrandbits
         n: int = sal_r - sal_l
@@ -670,9 +708,10 @@ async def process_work_command_async(guild_id: int, member_id: int) -> tuple[int
         
         salary: int = sal_l + r
 
-        result: Row | None = await (await base.execute(
+        result = await (await base.execute(
             "SELECT owned_roles, work_date FROM users WHERE memb_id = " + str_member_id
         )).fetchone()
+        assert result is None or isinstance(result, tuple)
 
         if result is None:    
             await base.execute(
@@ -790,7 +829,7 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
             else: 
                 lng: int = 1 if guild_locale and "ru" in guild_locale else 0
             
-            settings_params: list[tuple[str, int, str]] = [
+            settings_params: tuple[tuple[str, int, str], ...] = (
                 ('lang', lng, ""),
                 ('tz', 0, ""),
                 ('xp_border', 100, ""),
@@ -810,16 +849,16 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
                 ('currency', 0, ":coin:"),
                 ('sale_price_perc', 100, ""),
                 ('slots_on', 1, ""),
-            ]
+            )
             cur.executemany("INSERT OR IGNORE INTO server_info (settings, value, str_value) VALUES(?, ?, ?)", settings_params)
             base.commit()
 
-            default_slot_sums: list[tuple[int, int]] = [
+            default_slot_sums: tuple[tuple[int, int], ...] = (
                 (100, 80),
                 (200, 160),
                 (500, 400),
                 (1000, 800)
-            ]
+            )
             cur.executemany("INSERT OR IGNORE INTO slots_table (bet, income) VALUES(?, ?)", default_slot_sums)
             base.commit()
 
@@ -834,11 +873,11 @@ async def get_server_slots_table_async(guild_id: int) -> dict[int, int]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute("SELECT bet, income FROM slots_table;") as cur:
             pairs: Iterable[Row] = await cur.fetchall()
-            return {bet: income for bet, income in pairs}
+        return {bet: income for bet, income in pairs}
 
 async def update_server_slots_table_async(guild_id: int, slots_table: dict[int, int]) -> None:
     async with connect_async(DB_PATH.format(guild_id)) as base:
-        income_bet_pairs: list[tuple[int, int]] = [(income, bet) for bet, income in slots_table.items()]
+        income_bet_pairs: Generator[tuple[int, int], None, None] = ((income, bet) for bet, income in slots_table.items())
         await base.executemany("UPDATE slots_table SET income = ? WHERE bet = ?", income_bet_pairs)        
         await base.commit()
 
@@ -853,12 +892,15 @@ async def listify_guild_roles(guild_id: int) -> tuple[list[tuple[int, int, int, 
             if role_type == 1:
                 role_count.append(str((await (await base.execute("SELECT count() FROM store WHERE role_id = " + str(role[0]))).fetchone())[0])) # type: ignore
             else:
-                quantity_in_store: Row | None = await (await base.execute("SELECT quantity FROM store WHERE role_id = " + str(role[0]))).fetchone()
+                quantity_in_store = await (await base.execute("SELECT quantity FROM store WHERE role_id = " + str(role[0]))).fetchone()
+                assert quantity_in_store is None or isinstance(quantity_in_store, tuple)
+
                 if not quantity_in_store:
                     role_count.append('0')
                 elif role_type == 2:
                     role_count.append(str(quantity_in_store[0]))
                 else:
                     role_count.append('∞')
-
+    
+    assert len(roles) == len(role_count)
     return (roles, role_count)
