@@ -12,11 +12,6 @@ if __debug__:
 
 
 class ViewBase(ABC, View):
-    interaction_check_text: dict[int, str] = {
-        0: "**`Sorry, but you can't manage menu called by another user`**",
-        1: "**`Извините, но Вы не можете управлять меню, которое вызвано другим пользователем`**",
-    }
-
     def __init__(self, lng: int, author_id: int, timeout: float | None = 180.0, auto_defer: bool = True) -> None:
         super().__init__(timeout=timeout, auto_defer=auto_defer)
         self.lng: int = lng
@@ -34,8 +29,11 @@ class ViewBase(ABC, View):
         assert isinstance(interaction.user, Member)
         assert interaction.locale is not None
         if interaction.user.id != self.author_id:
+            description = "**`Извините, но Вы не можете управлять меню, которое вызвано другим пользователем`**" \
+                if "ru" in interaction.locale else \
+                "**`Sorry, but you can't manage menu called by another user`**"
             await interaction.response.send_message(
-                embed=Embed(description=self.interaction_check_text[1 if "ru" in interaction.locale else 0]),
+                embed=Embed(description=description),
                 ephemeral=True
             )
             return False
