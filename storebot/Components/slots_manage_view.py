@@ -63,9 +63,10 @@ class SlotsManageView(ViewBase):
                     self.slots_table = new_slots_table
                     await update_server_slots_table_async(guild_id=guild_id, slots_table=new_slots_table)
                     currency: str = self.currency
+                    format_string = "**`{0}`" + currency + " : `{1}`**" + currency
                     try:
                         await interaction.message.edit(embed=Embed(description=SlotsManageView.slots_manage_view_text[lng][0].format(
-                            '\n'.join("**`{0}`{2} : `{1}`**{2}".format(bet, income, currency) for bet, income in new_slots_table.items())
+                            '\n'.join(format_string.format(bet, income) for bet, income in new_slots_table.items())
                         )))
                     except:
                         return
