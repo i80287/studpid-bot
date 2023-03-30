@@ -412,10 +412,10 @@ class AdditionalCommandsCog(Cog):
             emb = Embed(
                 title=self.text_slash[lng][11], 
                 description=f"**`Emoji:`** {emoji_raw_str}\n\
-                            **`Raw string:`** \\{emoji_raw_str}\n\
-                            **`Emoji id:`** {emoji.id}\n\
-                            **`Created at:`** {created_at}\n\
-                            **`URL:`** {emoji_url}"
+**`Raw string:`** \\{emoji_raw_str}\n\
+**`Emoji id:`** {emoji.id}\n\
+**`Created at:`** {created_at}\n\
+**`URL:`** {emoji_url}"
             )
             emb.set_image(url=emoji_url)
             await interaction.response.send_message(embed=emb)
@@ -465,14 +465,12 @@ class AdditionalCommandsCog(Cog):
         
         lc_s: dict[int, str] = self.server_info_text[lng]
         i: int = 0
-        emb.add_field(name=lc_s[i * 4], value=f"{self.emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{self.emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\
-        \n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`") # type: ignore
+        emb.add_field(name=lc_s[i * 4], value=f"{self.emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{self.emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`") # type: ignore
 
         emb.add_field(name=lc_s[12], value=f"{self.emojis[9]}`{lc_s[13]}` - `{onl}`\n{self.emojis[10]}`{lc_s[14]}` - `{idl}`\n{self.emojis[11]}`{lc_s[15]}` - `{dnd}`\n{self.emojis[12]}`{lc_s[16]}` - `{ofl}`")
 
         for i in (1, 2):
-            emb.add_field(name=lc_s[i * 4], value=f"{self.emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{self.emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\
-            \n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`") # type: ignore
+            emb.add_field(name=lc_s[i * 4], value=f"{self.emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{self.emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`") # type: ignore
         
         for i in (17, 18):
             emb.add_field(name=lc_s[i], value=f"`{vls[i - 11]}`")
