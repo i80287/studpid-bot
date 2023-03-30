@@ -65,7 +65,7 @@ class SlotsManageView(ViewBase):
                     currency: str = self.currency
                     format_string = "**`{0}`" + currency + " : `{1}`**" + currency
                     try:
-                        await interaction.message.edit(embed=Embed(description=SlotsManageView.slots_manage_view_text[lng][0].format(
+                        await interaction.message.edit(embed=Embed(description=self.slots_manage_view_text[lng][0].format(
                             '\n'.join(format_string.format(bet, income) for bet, income in new_slots_table.items())
                         )))
                     except:
