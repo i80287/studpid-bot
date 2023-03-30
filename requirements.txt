@@ -1,6 +1,6 @@
 emoji
 cython
-nextcord>=2.2
+nextcord>=2.4
 nextcord[speed]
 nextcord[voice]
 aiosqlite
