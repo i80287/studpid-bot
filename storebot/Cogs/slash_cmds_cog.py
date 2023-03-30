@@ -2140,7 +2140,7 @@ class SlashCommandsCog(Cog):
             },
             required=True,
             min_value=1,
-            max_value=(1 << 15) - 1
+            max_value=30000
         )
     ) -> None:
         await self.roulette(interaction, bet)
