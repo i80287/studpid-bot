@@ -59,21 +59,32 @@ class TextComandsCog(Cog):
             description_lines.append("**`Total income from the roles: {0:0,}`** {1}".format(additional_salary, currency))
             description_lines.extend("<@&{0}> **`- {1:0,}`** ".format(role_id, role_salary) + currency for role_id, role_salary in roles if role_salary)
 
-        await ctx.channel.send(
-            embed=Embed(
-                description='\n'.join(description_lines),
-                colour=Colour.gold()
-            ),
-            reference=ctx.message,
-            mention_author=False
-        )
+        success = True
+        try:
+            await ctx.channel.send(
+                embed=Embed(
+                    description='\n'.join(description_lines),
+                    colour=Colour.gold()
+                ),
+                reference=ctx.message,
+                mention_author=False
+            )
+        except:
+            success = False
 
         log_channel_id, server_lng = await get_server_log_info_async(guild_id)
         if log_channel_id and isinstance(guild_log_channel := guild.get_channel(log_channel_id), TextChannel):
-            log_text: LiteralString = \
+            log_text: str = \
                 "<@{0}> **`заработал {1:0,}`** {2} **`от команды /work (/collect) и {3:0,}`** {2} **`от ролей`**" \
                 if server_lng else \
-                "<@{0}> **`gained {1:0,}`** {2} **`from the /work (/collect) command and {3:0,}`** {2} **`from the roles`**"
+                "<@{0}> **`gained {1:0,}`** {2} **`from the /work (/collect) command and {3:0,}`** {2} **`from the roles`**" \
+            
+            if not success:
+                log_text += \
+                    f"\nAn error occured while sending message. Check bot permissions in the <#{ctx.channel.id}> channel" \
+                    if server_lng else \
+                    f"\nПри отправке сообщения возникла ошибка. Проверьте права бота в канале <#{ctx.channel.id}>"
+
             try:
                 await guild_log_channel.send(embed=Embed(description=log_text.format(
                     member_id,
