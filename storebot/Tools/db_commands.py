@@ -129,6 +129,11 @@ async def get_member_nocheck_async(guild_id: int, member_id: int) -> tuple[int, 
         async with base.execute("SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = " + str(member_id)) as cur:
             return tuple(await cur.fetchone()) # type: ignore
 
+async def get_member_cash_nocheck_async(guild_id: int, member_id: int) -> int:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        async with base.execute("SELECT money FROM users WHERE memb_id = " + str(member_id)) as cur:
+            return (await cur.fetchone())[0] # type: ignore
+
 async def update_member_cash_async(guild_id: int, member_id: int, cash: int) -> None:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         await base.execute("UPDATE users SET money = ? WHERE memb_id = ?", (cash, member_id))

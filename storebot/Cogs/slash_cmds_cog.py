@@ -36,6 +36,7 @@ from ..Components.view_base import ViewBase
 from ..Components.custom_button import CustomButton
 from ..Components.custom_select import CustomSelectWithOptions
 from ..Components.slots_view import SlotsView
+from ..Components.roulette_view import RouletteView
 from ..Tools.db_commands import (
     get_member_async,
     check_member_async,
@@ -1717,11 +1718,7 @@ class SlashCommandsCog(Cog):
         member_id: int = interaction.user.id
         await check_member_async(guild_id=guild_id, member_id=member_id)
         if not (await get_server_info_value_async(guild_id=guild_id, key_name="slots_on")):
-            await self.respond_with_error_report(
-                interaction=interaction,
-                lng=lng,
-                answer=SlotsView.slots_view_text[lng][0]
-            )
+            await self.respond_with_error_report(interaction, lng, SlotsView.slots_view_text[lng][0])
             return
         
         slots_table: dict[int, int] = await get_server_slots_table_async(guild_id=guild_id)
@@ -1745,6 +1742,35 @@ class SlashCommandsCog(Cog):
             c.disabled = True
         try:
             await interaction.edit_original_message(view=slots_view)
+        except:
+            return
+    
+    async def roulette(self, interaction: Interaction, bet: int) -> None:
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
+        guild_id: int = interaction.guild_id
+        member_id: int = interaction.user.id
+        await check_member_async(guild_id, member_id)
+        if not (await get_server_info_value_async(guild_id, "slots_on")):
+            await self.respond_with_error_report(interaction, lng, RouletteView.roulette_view_text[lng][0])
+            return
+        
+        
+        roulette_view = RouletteView(lng, member_id, bet, 180, interaction.guild, await get_server_currency_async(guild_id))
+        await interaction.response.send_message(
+            embed=Embed(description=RouletteView.slot_panel.format('⬛', '⬛', '⬛', '⬛', '⬛', '⬛', '⬛', '⬛', '⬛', '⬛', '⬛', '⬛', '⬛', '⬛', '⬛', '⬛', '⬛')),
+            view=roulette_view
+        )
+
+        await roulette_view.wait()
+        for c in roulette_view.children:
+            assert isinstance(c, (CustomButton, CustomSelect))
+            c.disabled = True
+        try:
+            await interaction.edit_original_message(view=roulette_view)
         except:
             return
 
@@ -2079,7 +2105,7 @@ class SlashCommandsCog(Cog):
         dm_permission=False
     )
     async def leaders_e(self, interaction: Interaction) -> None:
-        await self.leaders(interaction=interaction)
+        await self.leaders(interaction)
 
     @slash_command(
         name="slots",
@@ -2090,7 +2116,35 @@ class SlashCommandsCog(Cog):
         dm_permission=False
     )
     async def slots_cmd(self, interaction: Interaction) -> None:
-        await self.slots(interaction=interaction)
+        await self.slots(interaction)
+    
+    @slash_command(
+        name="roulette",
+        description="Starts 'roulette' game",
+        description_localizations={
+            Locale.ru: "Начинает игру в рулетку"
+        },
+        dm_permission=False
+    )
+    async def roulette_cmd(
+        self,
+        interaction: Interaction,
+        bet: int = SlashOption(
+            name="bet",
+            name_localizations={
+                Locale.ru: "ставка"
+            },
+            description="Amount of bet",
+            description_localizations={
+                Locale.ru: "Размер ставки"
+            },
+            required=True,
+            min_value=1,
+            max_value=(1 << 15) - 1
+        )
+    ) -> None:
+        await self.roulette(interaction, bet)
+        
 
 def setup(bot: StoreBot) -> None:
     bot.add_cog(SlashCommandsCog(bot))
