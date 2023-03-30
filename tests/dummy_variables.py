@@ -19,6 +19,7 @@ import aiohttp
 from nextcord import utils
 from nextcord.file import File
 from nextcord.flags import ApplicationFlags
+from nextcord.types.emoji import Emoji as EmojiPayload
 from nextcord.enums import InteractionType
 from nextcord.interactions import Interaction
 from nextcord.user import ClientUser
@@ -96,6 +97,10 @@ dummy_roles_payloads: list[RolePayloads] = [
 
 GUILD_MEMBER_ROLES: list[int | str] = [role["id"] for role in dummy_roles_payloads[1:GUILD_MEMBER_ROLES_COUNT + 1]] # skip @everyone role
 
+GUILD_EMOJI_ID: Literal[485998304] = 485998304
+GUILD_EMOJI_NAME = "emojiName"
+GUILD_EMOJI_ROLES: list[int | str] = [role["id"] for role in dummy_roles_payloads]
+
 user_payloads: UserPayloads = UserPayloads(
     id=USER_ID,
     username=USER_USERNAME,
@@ -143,13 +148,24 @@ bot_member_payloads: MemberPayLoads = MemberPayLoads(
     permissions=""
 )
 
+emoji_payload: EmojiPayload = EmojiPayload(
+    id=GUILD_EMOJI_ID,
+    name=GUILD_EMOJI_NAME,
+    roles=GUILD_EMOJI_ROLES,
+    user=user_payloads,
+    require_colons=False,
+    managed=True,
+    animated=False,
+    available=True
+)
+
 guild_payloads: GuildPayloads = GuildPayloads(
     id=GUILD_ID,
     name=GUILD_NAME,
     icon=None,
     splash=None,
     discovery_splash=None,
-    emojis=[],
+    emojis=[emoji_payload],
     features=[],
     description=None,
     owner_id=GUILD_OWNER_ID,

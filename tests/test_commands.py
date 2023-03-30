@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from typing import Any
+    from typing import Any, Iterator, Literal
 
     from nextcord import Guild, Role
     from nextcord.state import ConnectionState
@@ -17,6 +17,7 @@ from nextcord.ui.view import View
 
 from storebot.constants import CWD_PATH, DB_PATH
 from storebot.Cogs.slash_cmds_cog import SlashCommandsCog
+from storebot.Cogs.add_cmds_cog import AdditionalCommandsCog
 from storebot.storebot import StoreBot
 from storebot.Tools import db_commands
 from storebot.Tools.db_commands import RoleInfo
@@ -24,6 +25,7 @@ from storebot.Components.custom_button import CustomButton
 from storebot.Components.view_base import ViewBase
 
 from tests.builder import (
+    get_emoji_assets,
     build_interaction,
     get_guild,
     get_test_role,
@@ -63,6 +65,7 @@ async def main() -> None:
         
         test_bot.load_extensions_from_module("storebot.Cogs")
         await test_slash_cog()
+        await test_add_cmds_cog()
     except Exception as ex:
         exceptions.append(ex)
     finally:
@@ -90,23 +93,23 @@ async def main() -> None:
 
 async def test_slash_cog() -> None:
     cog: SlashCommandsCog | None = test_bot.get_cog("SlashCommandsCog") # type: ignore
-    if not cog:
+    if cog is None:
         raise Exception("SlashCommandsCog not found")
 
     interaction: DummyInteraction = build_interaction()
     await cog.bet(interaction=interaction, amount=42)
-    check_embed(interaction.payload, "**`You can't make a bet, because you need 42`** :coin: **`more`**")
+    check_embed(interaction, "**`You can't make a bet, because you need 42`** :coin: **`more`**")
     
     interaction = build_interaction()
     interaction.locale = "ru"
     await cog.bet(interaction=interaction, amount=42)
-    check_embed(interaction.payload, "**`Вы не можете сделать ставку, так как Вам не хватает 42`** :coin:")
+    check_embed(interaction, "**`Вы не можете сделать ставку, так как Вам не хватает 42`** :coin:")
 
     role = get_test_role()
 
     interaction = build_interaction()
     await cog.buy(interaction=interaction, role=role)
-    check_embed(interaction.payload, "**`I don't have permission to manage this role. My role should be higher than this role`**")
+    check_embed(interaction, "**`I don't have permission to manage this role. My role should be higher than this role`**")
     
     bot_member: Member = guild.me
     max_guild_role: Role = max(guild.roles)
@@ -114,7 +117,7 @@ async def test_slash_cog() -> None:
 
     interaction = build_interaction()
     await cog.buy(interaction=interaction, role=role)
-    check_embed(interaction.payload, "**`This item not found. Please, check if you selected right role`**")
+    check_embed(interaction, "**`This item not found. Please, check if you selected right role`**")
 
     member: Member = get_member()
     member_id: int = member.id
@@ -130,13 +133,13 @@ async def test_slash_cog() -> None:
 
     interaction = build_interaction()
     await cog.buy(interaction=interaction, role=role)
-    check_embed(interaction.payload, "**`You already have this role`**")
+    check_embed(interaction, "**`You already have this role`**")
 
     role: Role = get_test_role(False)
 
     interaction = build_interaction()
     await cog.buy(interaction=interaction, role=role)
-    check_embed(interaction.payload, "**`This item not found. Please, check if you selected right role`**")
+    check_embed(interaction, "**`This item not found. Please, check if you selected right role`**")
 
     role_id_to_add: int = role.id
     role_info: RoleInfo = RoleInfo(role_id=role_id_to_add, price=ROLE_PRICE, salary=100, salary_cooldown=86400, role_type=1, additional_salary=42)
@@ -144,13 +147,13 @@ async def test_slash_cog() -> None:
 
     interaction = build_interaction()
     await cog.buy(interaction=interaction, role=role)
-    check_embed(interaction.payload, f"**`For purchasing this role you need {ROLE_PRICE} `:coin:` more`**")
+    check_embed(interaction, f"**`For purchasing this role you need {ROLE_PRICE} `:coin:` more`**")
 
     await db_commands.update_member_cash_async(guild_id, member_id, ROLE_PRICE - 1)
 
     interaction = build_interaction()
     await cog.buy(interaction=interaction, role=role)
-    check_embed(interaction.payload, "**`For purchasing this role you need 1 `:coin:` more`**")
+    check_embed(interaction, "**`For purchasing this role you need 1 `:coin:` more`**")
 
     MEMBER_INIT_CASH: int = ROLE_PRICE << 1
     await db_commands.update_member_cash_async(guild_id, member_id, MEMBER_INIT_CASH)
@@ -194,7 +197,45 @@ async def test_slash_cog() -> None:
     
     check_store_embed(interaction.payload, role_info_member_has, time_added)
 
-def check_embed(payload: dict[str, Any], description_text: str, check_color: bool = True) -> None:
+async def test_add_cmds_cog():
+    cog: AdditionalCommandsCog | None = test_bot.get_cog("AdditionalCommandsCog") # type: ignore
+    if cog is None:
+        raise Exception("SlashCommandsCog not found")
+
+    (emoji_id, full_name) = get_emoji_assets()
+    description_text: str = f"""**`Emoji:`** {full_name}\n\
+**`Raw string:`** \\{full_name}\n\
+**`Emoji id:`** {emoji_id}\n\
+**`Created at:`** 01/01/2015, 00:00:00\n\
+**`URL:`** https://cdn.discordapp.com/emojis/{emoji_id}.png?quality=lossless"""
+
+    interaction: DummyInteraction = build_interaction()   
+    await cog.emoji(interaction, emoji_str=str(emoji_id))
+    check_embed(interaction, description_text, False)
+
+    interaction = build_interaction()
+    await cog.emoji(interaction, emoji_str=full_name)
+    check_embed(interaction, description_text, False)
+
+    interaction = build_interaction()
+    await cog.emoji(interaction, emoji_str=":black_large_square:")
+    check_embed(interaction, "**`Default Discord emoji: `**:black_large_square:", False)
+
+    interaction = build_interaction()
+    await cog.server(interaction)
+    check_server_ember(interaction)
+
+    interaction = build_interaction()
+    interaction.locale = "ru"
+    await cog.server(interaction)
+    check_server_ember(interaction, 1)
+
+def check_embed(interaction: DummyInteraction | dict[str, Any], description_text: str, check_color: bool = True) -> None:
+    payload: dict[str, Any] = \
+        interaction \
+        if isinstance(interaction, dict) else \
+        interaction.payload
+
     assert "embeds" in payload
     embeds: list[dict[str, Any]] = payload["embeds"]
     assert isinstance(embeds, list)
@@ -367,6 +408,30 @@ def check_store_embed(payload: dict[str, Any], role_info: RoleInfo, time_added: 
         if not lng else \
         "Сортировать от..."
 
+def check_server_ember(interaction: DummyInteraction, lng: int = 0) -> None:
+    payload: dict[str, Any] = interaction.payload
+    assert "embeds" in payload
+    embeds: list[dict[str, Any]] = payload["embeds"]
+    assert isinstance(embeds, list)
+    assert len(embeds) == 1
+    embed_payload: dict[str, Any] = embeds[0]
+
+    assert "footer" in embed_payload
+    footer: dict[str, Any] = embed_payload["footer"]
+    assert "text" in footer
+    assert footer["text"] == f"{AdditionalCommandsCog.text_slash[lng][14]}{interaction.guild_id}"
+
+    assert "fields" in embed_payload
+    fields: list[dict[str, Any]] = embed_payload["fields"]
+    assert isinstance(fields, list)
+    assert len(fields) == 8
+
+    index_iter: Iterator[Literal[0, 12, 4, 8, 17, 18, 19, 20]] = iter((0, 12, 4, 8, 17, 18, 19, 20))
+    info_text: dict[int, str] = AdditionalCommandsCog.server_info_text[lng]
+    for field in fields:
+        assert "inline" in field and isinstance(is_inline := field["inline"], bool) and is_inline
+        assert "name" in field and isinstance(name := field["name"], str)
+        assert name == info_text[next(index_iter)]
 
 def check_option(option: dict[str, Any], label: str, value: str, is_default: bool) -> None:
     assert "label" in option

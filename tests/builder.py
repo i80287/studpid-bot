@@ -59,3 +59,11 @@ def get_connection() -> ConnectionState:
 
 async def get_view() -> View:
     return await views_queue.get()
+
+def get_emoji_assets() -> tuple[int, str]:
+    assert isinstance(emoji_id := emoji_payload["id"], int)
+    assert (emoji_name := emoji_payload["name"]) is not None
+    full_name: str = emoji_name + ':' + str(emoji_id) + '>'
+    assert "animated" in emoji_payload
+    full_name = "<:a:" + full_name if emoji_payload["animated"] else "<:" + full_name
+    return (emoji_id, full_name)
