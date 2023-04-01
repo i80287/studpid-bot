@@ -35,15 +35,18 @@ if __debug__:
 from ..Tools.db_commands import (
     get_member_async,
     delete_role_from_db,
-    get_server_info_value_async,
+    is_command_enabled_async,
     get_server_slots_table_async,
     get_server_currency_async,
     drop_users_cash_async,
     update_server_info_table_uncheck_async,
-    listify_guild_roles
+    listify_guild_roles,
+    enable_economy_commands_async,
+    disable_economy_commands_async,
+    CommandId
 )
 from ..Tools.parse_tools import parse_emoji
-from ..constants import CWD_PATH
+from ..constants import DB_PATH
 from ..Components.custom_button import CustomButton
 from ..Components.custom_select import CustomSelect
 from ..Components.view_base import ViewBase
@@ -438,8 +441,7 @@ class GenSettingsView(ViewBase):
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][22]), ephemeral=True)
             return
 
-        g_id: int = interaction.guild_id
-        with closing(connect(f"{CWD_PATH}/bases/bases_{g_id}/{g_id}.db")) as base:
+        with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
             with closing(base.cursor()) as cur:
                 if cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0] == s_lng:
                     await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][26]), ephemeral=True)
@@ -466,7 +468,7 @@ class GenSettingsView(ViewBase):
         if tz is None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][23]), ephemeral=True)
             return
-        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+        with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (tz,))
                 base.commit()
@@ -498,9 +500,9 @@ class GenSettingsView(ViewBase):
             elif isinstance(emoji, str):
                 emoji_str: str = emoji
             else:
-                emoji_str: str = emoji.__str__()
+                emoji_str: str = str(emoji)
 
-            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("UPDATE server_info SET str_value = ? WHERE settings = 'currency'", (emoji_str,))
                     base.commit()
@@ -519,13 +521,20 @@ class GenSettingsView(ViewBase):
                 pass
 
     async def change_ec_system(self, interaction: Interaction) -> None:
+        assert interaction.guild_id is not None
         self.ec_status ^= 1
-        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+        guild_id: int = interaction.guild_id
+        with closing(connect(DB_PATH.format(guild_id))) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'economy_enabled'", (self.ec_status,))
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (self.ec_status,))
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_for_voice'", (self.ec_status*6,))
                 base.commit()
+        
+        if self.ec_status:
+            await enable_economy_commands_async(guild_id)
+        else:
+            await disable_economy_commands_async(guild_id)
 
         assert interaction.message is not None
         emb: Embed = interaction.message.embeds[0]
@@ -541,7 +550,7 @@ class GenSettingsView(ViewBase):
 
     async def change_rnk_system(self, interaction: Interaction) -> None:
         self.rnk_status ^= 1
-        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+        with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'ranking_enabled'", (self.rnk_status,))
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_per_msg'", (self.rnk_status,))
@@ -604,7 +613,7 @@ class ModRolesView(ViewBase):
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][7]), ephemeral=True)
             return       
                 
-        with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+        with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("INSERT OR IGNORE INTO mod_roles(role_id) VALUES(?)", (rl_id,))
                 base.commit()
@@ -636,7 +645,7 @@ class ModRolesView(ViewBase):
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][9]), ephemeral=True)
             return
         
-        with closing(connect(f'{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db')) as base:
+        with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("DELETE FROM mod_roles WHERE role_id = ?", (rl_id,))
                 base.commit()
@@ -825,7 +834,7 @@ class EconomyView(ViewBase):
         if fl:
             lng: int = self.lng
 
-            with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+            with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
                 with closing(base.cursor()) as cur:
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_l'", (n1,))
                     cur.execute("UPDATE server_info SET value = ? WHERE settings = 'sal_r'", (n2,))
@@ -906,7 +915,7 @@ class EconomyView(ViewBase):
         guild_self_bot: Member = interaction.guild.me
         verify_permissions: Callable[[Permissions], bool] = \
             lambda permissions: permissions.read_message_history and permissions.read_messages and permissions.send_messages
-        channels_options: list[tuple[str, str]] = [(c.name, c.id.__str__()) for c in interaction.guild.text_channels if verify_permissions(c.permissions_for(guild_self_bot))]
+        channels_options: list[tuple[str, str]] = [(c.name, str(c.id)) for c in interaction.guild.text_channels if verify_permissions(c.permissions_for(guild_self_bot))]
 
         select_channel_view: SelectChannelView = SelectChannelView(lng, self.author_id, 40, channels_options)
         await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=select_channel_view, ephemeral=True)
@@ -920,8 +929,7 @@ class EconomyView(ViewBase):
         if (channel_id := select_channel_view.channel_id) is None:
             return
 
-        guild_id: str = str(interaction.guild_id)
-        with closing(connect(CWD_PATH + f"/bases/bases_{guild_id}/{guild_id}.db")) as base:
+        with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'log_c'", (channel_id,))
                 base.commit()
@@ -1133,9 +1141,8 @@ class EconomyRolesManageView(ViewBase):
             await interaction.response.send_message(embed=Embed(description=ec_mr_text[lng][8]), ephemeral=True)
             return
         
-        str_role_id: str = role_id.__str__()
-        str_guild_id: str = interaction.guild_id.__str__()
-        with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
+        str_role_id: str = str(role_id)
+        with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
             with closing(base.cursor()) as cur:
                 req: tuple[int, int, int, int, int, int] = cur.execute(
                     "SELECT role_id, price, salary, salary_cooldown, type, additional_salary FROM server_roles WHERE role_id = " + str_role_id
@@ -1147,7 +1154,6 @@ class EconomyRolesManageView(ViewBase):
                     quantity: tuple[int] = cur.execute("SELECT quantity FROM store WHERE role_id = " + str_role_id).fetchone()                        
                     role_in_store_count: int = quantity[0] if quantity else 0
         del str_role_id
-        del str_guild_id
 
         edit_mod: RoleEditModal = RoleEditModal(
             90.0,
@@ -1316,7 +1322,7 @@ class SettingsView(ViewBase):
         int_custom_id: int = int(custom_id.split('_')[0])
         match int_custom_id:
             case 0:
-                with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
+                with closing(connect(DB_PATH.format(guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         s_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
                         tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
@@ -1348,7 +1354,7 @@ class SettingsView(ViewBase):
                 await gen_view.wait()
                 await self.try_delete(interaction, gen_view)
             case 1:
-                with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
+                with closing(connect(DB_PATH.format(guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         db_m_rls: list[tuple[int]] = cur.execute("SELECT role_id FROM mod_roles").fetchall()
                 emb = Embed(title=mod_roles_text[lng][0])
@@ -1404,7 +1410,7 @@ class SettingsView(ViewBase):
                 memb_id: int = memb.id
                 memb_info: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
                 
-                with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
+                with closing(connect(DB_PATH.format(guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
                         membs_cash: list[tuple[int, int]] = cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall()
@@ -1495,7 +1501,7 @@ class SettingsView(ViewBase):
                 except:
                     return
             case 3:
-                with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
+                with closing(connect(DB_PATH.format(guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         money_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]
                         w_cd: int = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd';").fetchone()[0]
@@ -1538,7 +1544,7 @@ class SettingsView(ViewBase):
                 await ec_v.wait()
                 await self.try_delete(interaction, ec_v)
             case 4:
-                with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
+                with closing(connect(DB_PATH.format(guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         xp_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg'").fetchone()[0]
                         xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
@@ -1568,7 +1574,7 @@ class SettingsView(ViewBase):
                 await rnk_v.wait()
                 await self.try_delete(interaction, rnk_v)
             case 5:
-                with closing(connect(f'{CWD_PATH}/bases/bases_{guild_id}/{guild_id}.db')) as base:
+                with closing(connect(DB_PATH.format(guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         p_v_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
                         p_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
@@ -1602,7 +1608,7 @@ class SettingsView(ViewBase):
                 await select_ic_view.wait()
                 await self.try_delete(interaction, select_ic_view)
             case 64:
-                slots_enabled: int = await get_server_info_value_async(guild_id=guild_id, key_name="slots_on")
+                slots_enabled: bool = await is_command_enabled_async(guild_id, CommandId.SLOTS)
                 slots_table: dict[int, int] = await get_server_slots_table_async(guild_id=guild_id)
                 currency: str = await get_server_currency_async(guild_id=guild_id)
                 emb: Embed = Embed(description=SlotsManageView.slots_manage_view_text[lng][0].format(
@@ -1636,7 +1642,7 @@ class PollSettingsView(ViewBase):
         guild_self_bot: Member = interaction.guild.me
         verify_permissions: Callable[[Permissions], bool] = \
             lambda permissions: permissions.read_message_history and permissions.read_messages and permissions.send_messages
-        channels_options: list[tuple[str, str]] = [(c.name, c.id.__str__()) for c in interaction.guild.text_channels if verify_permissions(c.permissions_for(guild_self_bot))]
+        channels_options: list[tuple[str, str]] = [(c.name, str(c.id)) for c in interaction.guild.text_channels if verify_permissions(c.permissions_for(guild_self_bot))]
 
         int_custom_id: int = int(custom_id[:2])
         if int_custom_id == 28:
@@ -1662,7 +1668,7 @@ class PollSettingsView(ViewBase):
 
         if int_custom_id == 28:            
             if new_channel_id:
-                with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         cur.execute("UPDATE server_info SET value = ? WHERE settings = 'poll_v_c'", (new_channel_id,))
                         base.commit()                
@@ -1675,7 +1681,7 @@ class PollSettingsView(ViewBase):
 
                 await interaction.send(embed=Embed(description=poll_text[lng][4].format(new_channel_id)), ephemeral=True)         
             else:
-                with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         cur.execute("UPDATE server_info SET value = 0 WHERE settings = 'poll_v_c'")
                         base.commit()
@@ -1689,7 +1695,7 @@ class PollSettingsView(ViewBase):
                 await interaction.send(embed=Embed(description=poll_text[lng][5]), ephemeral=True)
         elif int_custom_id == 29:
             if new_channel_id:
-                with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         cur.execute("UPDATE server_info SET value = ? WHERE settings = 'poll_c'", (new_channel_id,))
                         base.commit()                
@@ -1702,7 +1708,7 @@ class PollSettingsView(ViewBase):
 
                 await interaction.send(embed=Embed(description=poll_text[lng][6].format(new_channel_id)), ephemeral=True)
             else:
-                with closing(connect(f"{CWD_PATH}/bases/bases_{interaction.guild_id}/{interaction.guild_id}.db")) as base:
+                with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         cur.execute("UPDATE server_info SET value = 0 WHERE settings = 'poll_c'")
                         base.commit()
@@ -1760,7 +1766,7 @@ class RankingView(ViewBase):
         guild_self_bot: Member = interaction.guild.me
         verify_permissions: Callable[[Permissions], bool] = \
             lambda permissions: permissions.read_message_history and permissions.read_messages and permissions.send_messages
-        channels_options: list[tuple[str, str]] = [(c.name, c.id.__str__()) for c in interaction.guild.text_channels if verify_permissions(c.permissions_for(guild_self_bot))]
+        channels_options: list[tuple[str, str]] = [(c.name, str(c.id)) for c in interaction.guild.text_channels if verify_permissions(c.permissions_for(guild_self_bot))]
 
         level_channel_select_view: SelectChannelView = SelectChannelView(lng, self.author_id, 30, channels_options)
         await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=level_channel_select_view, ephemeral=True)
@@ -1774,7 +1780,7 @@ class RankingView(ViewBase):
         if (level_channel_id := level_channel_select_view.channel_id) is None:
             return
         
-        with closing(connect(CWD_PATH + f"/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        with closing(connect(DB_PATH.format(self.g_id))) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'lvl_c'", (level_channel_id,))
                 base.commit()
@@ -1793,7 +1799,7 @@ class RankingView(ViewBase):
     async def lvl_roles(self, interaction: Interaction) -> None:
         assert isinstance(interaction.user, Member)
         lng: int = self.lng
-        with closing(connect(CWD_PATH + f"/bases/bases_{self.g_id}/{self.g_id}.db")) as base:
+        with closing(connect(DB_PATH.format(self.g_id))) as base:
             with closing(base.cursor()) as cur:
                 lvl_rls: list[tuple[int, int]] = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level ASC").fetchall()
         if lvl_rls:
@@ -1877,7 +1883,7 @@ class LevelRolesView(ViewBase):
     
     async def add_role(self, interaction: Interaction, lng: int, level: int) -> None:
         assert interaction.guild is not None
-        rls: list[tuple[str, str]] = [(r.name, r.id.__str__()) for r in interaction.guild.roles if r.is_assignable()]
+        rls: list[tuple[str, str]] = [(r.name, str(r.id)) for r in interaction.guild.roles if r.is_assignable()]
         if not rls:
             await interaction.send(embed=Embed(description = ranking_text[lng][30]), ephemeral=True)
             return
@@ -1919,9 +1925,7 @@ class LevelRolesView(ViewBase):
             await interaction.send(embed=Embed(description=ranking_text[lng][32]), ephemeral=True)
             return
 
-        str_guild_id: str = self.g_id.__str__()
-        with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
-            del str_guild_id
+        with closing(connect(DB_PATH.format(self.g_id))) as base:
             with closing(base.cursor()) as cur:
                 if cur.execute("SELECT role_id FROM rank_roles WHERE level = ?", (level,)).fetchone() is None:
                     cur.execute("INSERT INTO rank_roles(level, role_id) VALUES(?, ?)", (level, self.role))
@@ -1945,9 +1949,7 @@ class LevelRolesView(ViewBase):
         self.role = None
 
     async def remove_role(self, interaction: Interaction, lng: int, level: int) -> None:
-        str_guild_id: str = self.g_id.__str__()
-        with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
-            del str_guild_id
+        with closing(connect(DB_PATH.format(self.g_id))) as base:
             with closing(base.cursor()) as cur:
                 if cur.execute("SELECT count() FROM rank_roles WHERE level = ?", (level,)).fetchone()[0]:
                     cur.execute("DELETE FROM rank_roles WHERE level = ?", (level,))
@@ -2051,13 +2053,10 @@ class ManageMemberView(ViewBase):
         
         self.memb_rls.add(role_id)
 
-        str_role_id: str = role_id.__str__()
-        str_guild_id: str = self.g_id.__str__()
+        str_role_id: str = str(role_id)
         member_id: int = self.memb_id
-        str_member_id: str = member_id.__str__()
-
-        with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
-            del str_guild_id
+        str_member_id: str = str(member_id)
+        with closing(connect(DB_PATH.format(self.g_id))) as base:
             with closing(base.cursor()) as cur:
                 member_owned_roles_ids: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id).fetchone()[0]
                 cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (member_owned_roles_ids + '#' + str_role_id, member_id))
@@ -2112,13 +2111,10 @@ class ManageMemberView(ViewBase):
         
         self.memb_rls.remove(role_id)
 
-        str_role_id: str = role_id.__str__()
-        str_guild_id: str = self.g_id.__str__()
+        str_role_id: str = str(role_id)
         member_id: int = self.memb_id
-        str_member_id: str = member_id.__str__()
-
-        with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
-            del str_guild_id
+        str_member_id: str = str(member_id)
+        with closing(connect(DB_PATH.format(self.g_id))) as base:
             with closing(base.cursor()) as cur:
                 m_rls: str = cur.execute("SELECT owned_roles FROM users WHERE memb_id = " + str_member_id).fetchone()[0]
                 cur.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (m_rls.replace('#' + str_role_id, ""), member_id))
@@ -2184,10 +2180,7 @@ class ManageMemberView(ViewBase):
         if edit_modl.is_changed:
             l: int = 0
             embs: list[Embed] = interaction.message.embeds
-            
-            str_guild_id: str = self.g_id.__str__()
-            with closing(connect(CWD_PATH + "/bases/bases_" + str_guild_id + "/" + str_guild_id + ".db")) as base:
-                del str_guild_id
+            with closing(connect(DB_PATH.format(self.g_id))) as base:
                 with closing(base.cursor()) as cur:
                     xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
                     if self.cash != edit_modl.new_cash:

@@ -26,7 +26,7 @@ class SlotsManageView(ViewBase):
         }
     }
 
-    def __init__(self, lng: int, author_id: int, slots_enabled: int, slots_table: dict[int, int], currency: str) -> None:
+    def __init__(self, lng: int, author_id: int, slots_enabled: bool, slots_table: dict[int, int], currency: str) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=90)
         self.add_item(CustomButton(
             style=ButtonStyle.gray,
@@ -40,7 +40,7 @@ class SlotsManageView(ViewBase):
         #     emoji="🎰"
         # ))
         self.slots_table: dict[int, int] = slots_table
-        self.slots_enabled: int = slots_enabled
+        self.slots_enabled: bool = slots_enabled
         self.currency: str = currency
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
@@ -71,7 +71,7 @@ class SlotsManageView(ViewBase):
                     except:
                         return
             case 66:
-                self.slots_enabled ^= 1
+                self.slots_enabled ^= True
     
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         return

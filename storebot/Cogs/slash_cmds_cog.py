@@ -3,7 +3,8 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import (
         Optional,
-        Literal
+        Literal,
+        LiteralString
     )
 
     from nextcord import Guild
@@ -50,7 +51,9 @@ from ..Tools.db_commands import (
     process_sell_command_async,
     get_server_log_info_async,
     process_work_command_async,
-    PartialRoleStoreInfo
+    is_command_disabled_async,
+    PartialRoleStoreInfo,
+    CommandId
 )
 from ..Tools.logger import Logger
 from ..constants import DB_PATH
@@ -748,6 +751,10 @@ class SlashCommandsCog(Cog):
             3: "<@{0}> **`заработал {1:0,}`** {2} **`от команды /work (/collect) и {3:0,}`** {2} **`от ролей`**",
         }
     }
+    slash_commands_text: tuple[LiteralString, LiteralString] = (
+        "**`This command is disabled on this server`**",
+        "**`Эта команда отключена на этом сервере`**"
+    )
 
     def __init__(self, bot: StoreBot) -> None:
         try:
@@ -841,13 +848,17 @@ class SlashCommandsCog(Cog):
         assert interaction.locale is not None
         assert isinstance(interaction.user, Member)
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
+        guild_id: int = interaction.guild_id
 
-        if not await self.can_role(interaction=interaction, role=role, lng=lng):
+        if not (await get_server_info_value_async(guild_id, 'economy_enabled')):
+            await self.respond_with_error_report(interaction, lng, common_text[lng][2])
             return
 
-        guild_id: int = interaction.guild_id
-        if not (await get_server_info_value_async(guild_id, 'economy_enabled')):
-            await self.respond_with_error_report(interaction=interaction, lng=lng, answer=common_text[lng][2])
+        if await is_command_disabled_async(guild_id, CommandId.BUY):
+            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
+            return
+
+        if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
 
         role_id: int = role.id
@@ -938,7 +949,9 @@ class SlashCommandsCog(Cog):
         assert interaction.locale is not None, "locale"
         assert isinstance(interaction.user, Member), "isinstance Member"
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-        with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
+        guild_id: int = interaction.guild_id
+
+        with closing(connect(DB_PATH.format(guild_id))) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
                     await interaction.response.send_message(
@@ -949,6 +962,10 @@ class SlashCommandsCog(Cog):
                 tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
                 db_store: list[tuple[int, int, int, int, int, int, int, int]] = cur.execute("SELECT * FROM store").fetchall()
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+
+        if await is_command_disabled_async(guild_id, CommandId.STORE):
+            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
+            return
 
         # Sort by price from lower to higher 
         # If prices are equal sort by date from higher to lower (latest is higher, early date is lower)
@@ -1011,10 +1028,15 @@ class SlashCommandsCog(Cog):
         assert interaction.locale is not None
         assert isinstance(interaction.user, Member)
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-        if not await self.can_role(interaction=interaction, role=role, lng=lng):
+        guild_id: int = interaction.guild_id
+
+        if await is_command_disabled_async(guild_id, CommandId.SELL):
+            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
             return
 
-        guild_id: int = interaction.guild_id
+        if not await self.can_role(interaction, role, lng):
+            return
+
         role_id: int = role.id
         member_id: int = interaction.user.id
 
@@ -1068,13 +1090,18 @@ class SlashCommandsCog(Cog):
         if not await self.can_role(interaction=interaction, role=role, lng=lng):
             return
         memb_id: int = interaction.user.id
+        guild_id: int = interaction.guild_id
+
+        if await is_command_disabled_async(guild_id, CommandId.SELL_TO):
+            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
+            return
+
         target_id: int = target.id
         if memb_id == target_id:
             await self.respond_with_error_report(interaction=interaction, lng=lng, answer=self.sell_to_text[lng][0])
             return
         
         role_id: int = role.id
-        guild_id: int = interaction.guild_id
 
         user_owned_roles: list[str] = ((await get_member_async(guild_id=guild_id, member_id=memb_id))[2]).split("#")
         target_owned_roles: list[str] = ((await get_member_async(guild_id=guild_id, member_id=target_id))[2]).split("#")
@@ -1142,7 +1169,6 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
         guild_id: int = interaction.guild_id
 
-        db_member_info: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
         with closing(connect(DB_PATH.format(guild_id))) as base:
             with closing(base.cursor()) as cur:
                 xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
@@ -1176,9 +1202,14 @@ class SlashCommandsCog(Cog):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
             return
 
+        if await is_command_disabled_async(guild_id, CommandId.PROFILE):
+            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
+            return
+
         embs: list[Embed] = []
         local_text: dict[int, str] = self.profile_text[lng]
 
+        db_member_info: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
         if ec_status:
             member_cash: int = db_member_info[1]
             index: int = self.bin_search_pairs(memb_id, member_cash, membs_cash)
@@ -1286,6 +1317,10 @@ class SlashCommandsCog(Cog):
         guild_id: int = interaction.guild_id
         memb_id: int = interaction.user.id
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
+
+        if await is_command_disabled_async(guild_id, CommandId.ACCEPT_REQUEST):
+            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
+            return
 
         db_path: str = DB_PATH.format(guild_id)
         with closing(connect(db_path)) as base:
@@ -1421,8 +1456,15 @@ class SlashCommandsCog(Cog):
         assert interaction.guild_id is not None
         assert interaction.locale is not None
         assert isinstance(interaction.user, Member)
+        guild_id: int = interaction.guild_id
         memb_id: int = interaction.user.id
-        with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
+        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
+        
+        if await is_command_disabled_async(guild_id, CommandId.DECLINE_REQUEST):
+            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
+            return
+
+        with closing(connect(DB_PATH.format(guild_id))) as base:
             with closing(base.cursor()) as cur:
                 request: Optional[tuple[int, int, int, int]] = await self.verify_request_id(
                     cur=cur,
@@ -1434,7 +1476,7 @@ class SlashCommandsCog(Cog):
                     return
                 cur.execute("DELETE FROM sale_requests WHERE request_id = ?", (request_id,))
                 base.commit()
-        lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
+
         decr: str = self.manage_requests_text[lng][9] \
             if memb_id == request[0] else self.manage_requests_text[lng][10]
         await interaction.response.send_message(
@@ -1453,6 +1495,10 @@ class SlashCommandsCog(Cog):
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
         member_id: int = interaction.user.id
+
+        if await is_command_disabled_async(guild_id, CommandId.WORK):
+            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
+            return
 
         salary: int
         additional_salary: int
@@ -1496,7 +1542,7 @@ class SlashCommandsCog(Cog):
             except:
                 return
 
-    async def bet(self, interaction: Interaction, amount: int) -> None:
+    async def duel(self, interaction: Interaction, amount: int) -> None:
         assert interaction.guild_id is not None
         assert interaction.guild is not None
         assert interaction.locale is not None
@@ -1505,20 +1551,20 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
         guild_id: int = interaction.guild_id
 
-        if guild_id == 1058854571239280721:
-            await self.respond_with_error_report(interaction, lng, common_text[lng][3])
-            return
-
-        member: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
         db_path: str = DB_PATH.format(guild_id)
         with closing(connect(db_path)) as base:
             with closing(base.cursor()) as cur:
-                if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
+                if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled';").fetchone()[0]:
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=common_text[lng][2])
                     return
 
-                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
+                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency';").fetchone()[0]
 
+        if await is_command_disabled_async(guild_id, CommandId.DUEL):
+            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
+            return
+
+        member: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
         if amount > member[1]:
             await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][31].format(amount - member[1], currency))
             return
@@ -1592,6 +1638,10 @@ class SlashCommandsCog(Cog):
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
 
+        if await is_command_disabled_async(guild_id, CommandId.TRANSFER):
+            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
+            return
+
         act: tuple[int, int, str, int, int, int] = await get_member_async(guild_id, memb_id)
         await check_member_async(guild_id, t_id)
         with closing(connect(DB_PATH.format(guild_id))) as base:
@@ -1634,7 +1684,7 @@ class SlashCommandsCog(Cog):
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
 
-        await check_member_async(guild_id=guild_id, member_id=interaction.user.id)
+        await check_member_async(guild_id, interaction.user.id)
         with closing(connect(DB_PATH.format(guild_id))) as base:
             with closing(base.cursor()) as cur:
                 ec_status: int = \
@@ -1655,6 +1705,10 @@ class SlashCommandsCog(Cog):
 
         if not (ec_status or rnk_status):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
+            return
+        
+        if await is_command_disabled_async(guild_id, CommandId.LEADERS):
+            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
             return
 
         items_length: int = len(membs_cash) if ec_status else len(membs_xp)
@@ -1715,12 +1769,13 @@ class SlashCommandsCog(Cog):
         assert isinstance(interaction.user, Member)
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
-        member_id: int = interaction.user.id
-        await check_member_async(guild_id=guild_id, member_id=member_id)
-        if not (await get_server_info_value_async(guild_id=guild_id, key_name="slots_on")):
+        if await is_command_disabled_async(guild_id, CommandId.SLOTS):
             await self.respond_with_error_report(interaction, lng, SlotsView.slots_view_text[lng][0])
             return
-        
+
+        member_id: int = interaction.user.id
+        await check_member_async(guild_id, member_id)
+
         slots_table: dict[int, int] = await get_server_slots_table_async(guild_id=guild_id)
         currency: str = await get_server_currency_async(guild_id=guild_id)
         slots_view: SlotsView = SlotsView(
@@ -1752,12 +1807,13 @@ class SlashCommandsCog(Cog):
         assert isinstance(interaction.user, Member)
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
-        member_id: int = interaction.user.id
-        await check_member_async(guild_id, member_id)
-        if not (await get_server_info_value_async(guild_id, "slots_on")):
+
+        if await is_command_disabled_async(guild_id, CommandId.ROULETTE):
             await self.respond_with_error_report(interaction, lng, RouletteView.roulette_view_text[lng][0])
             return
         
+        member_id: int = interaction.user.id
+        await check_member_async(guild_id, member_id)
         
         roulette_view = RouletteView(lng, member_id, bet, 180, interaction.guild, await get_server_currency_async(guild_id))
         await interaction.response.send_message(
@@ -2057,7 +2113,7 @@ class SlashCommandsCog(Cog):
             min_value=1
         )
     ) -> None:
-        await self.bet(interaction=interaction, amount=amount)
+        await self.duel(interaction, amount)
 
     @slash_command(
         name="transfer",

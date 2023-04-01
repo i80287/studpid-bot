@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from collections.abc import Iterable, Generator
     from sqlite3 import Cursor, Row
 
+from enum import IntEnum
 from random import Random
 from time import time
 from dataclasses import dataclass
@@ -20,6 +21,22 @@ from itertools import pairwise
 from ..constants import CWD_PATH, DB_PATH
 
 _rnd: Random = Random()
+
+class CommandId(IntEnum):
+    # 0 is reserved
+    STORE = 1
+    BUY = 2
+    SELL = 3
+    SELL_TO = 4
+    PROFILE = 5
+    ACCEPT_REQUEST = 6
+    DECLINE_REQUEST = 7
+    WORK = 8
+    DUEL = 9
+    TRANSFER = 10
+    LEADERS = 11
+    SLOTS = 12
+    ROULETTE = 13
 
 @dataclass(frozen=True)
 class RoleInfo:
@@ -761,6 +778,56 @@ UNION SELECT * FROM cte;
         await base.commit()
         return (salary, 0, None)
 
+async def is_command_enabled_async(guild_id: int, command_id: CommandId) -> bool:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        res = await (await base.execute("SELECT is_enabled FROM commands_settings WHERE command_id = " + str(command_id))).fetchone()
+        return res is not None and res[0]
+
+async def is_command_disabled_async(guild_id: int, command_id: CommandId) -> bool:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        res = await (await base.execute("SELECT is_enabled FROM commands_settings WHERE command_id = " + str(command_id))).fetchone()
+        return res is None or not res[0]
+
+async def enable_economy_commands_async(guild_id: int) -> None:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        await base.executemany(
+            "UPDATE commands_settings SET is_enabled = 1 WHERE command_id = ?",
+            (# Pure economy commands.
+                (CommandId.STORE,),
+                (CommandId.BUY,),
+                (CommandId.SELL,),
+                (CommandId.SELL_TO,),
+                (CommandId.ACCEPT_REQUEST,),
+                (CommandId.DECLINE_REQUEST,),
+                (CommandId.WORK,),
+                (CommandId.DUEL,),
+                (CommandId.TRANSFER,),
+                (CommandId.SLOTS,),
+                (CommandId.ROULETTE,)
+            )
+        )
+        await base.commit()
+
+async def disable_economy_commands_async(guild_id: int) -> None:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        await base.executemany(
+            "UPDATE commands_settings SET is_enabled = 0 WHERE command_id = ?",
+            (# Pure economy commands.
+                (CommandId.STORE,),
+                (CommandId.BUY,),
+                (CommandId.SELL,),
+                (CommandId.SELL_TO,),
+                (CommandId.ACCEPT_REQUEST,),
+                (CommandId.DECLINE_REQUEST,),
+                (CommandId.WORK,),
+                (CommandId.DUEL,),
+                (CommandId.TRANSFER,),
+                (CommandId.SLOTS,),
+                (CommandId.ROULETTE,)
+            )
+        )
+        await base.commit()
+
 def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, int]]:
     with closing(connect(DB_PATH.format(guild_id))) as base:
         with closing(base.cursor()) as cur:
@@ -825,7 +892,12 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
             CREATE TABLE IF NOT EXISTS slots_table (
                 bet INTEGER PRIMARY KEY,
                 income INTEGER NOT NULL DEFAULT 0
-            );""")
+            );
+            CREATE TABLE IF NOT EXISTS commands_settings (
+                command_id INTEGER PRIMARY KEY,
+                is_enabled INTEGER NOT NULL DEFAULT 0
+            )
+            """)
             base.commit()
             
             db_guild_language: tuple[int] | None = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()
@@ -852,11 +924,26 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
                 ('economy_enabled', 1, ""),
                 ('ranking_enabled', 1, ""),
                 ('currency', 0, ":coin:"),
-                ('sale_price_perc', 100, ""),
-                ('slots_on', 1, ""),
+                ('sale_price_perc', 100, "")
             )
             cur.executemany("INSERT OR IGNORE INTO server_info (settings, value, str_value) VALUES(?, ?, ?)", settings_params)
-            base.commit()
+
+            commands_settings: tuple[tuple[int, int], ...] = (
+                (CommandId.STORE, 1),
+                (CommandId.BUY, 1),
+                (CommandId.SELL, 1),
+                (CommandId.SELL_TO, 1),
+                (CommandId.PROFILE, 1),
+                (CommandId.ACCEPT_REQUEST, 1),
+                (CommandId.DECLINE_REQUEST, 1),
+                (CommandId.WORK, 1),
+                (CommandId.DUEL, 1),
+                (CommandId.TRANSFER, 1),
+                (CommandId.LEADERS, 1),
+                (CommandId.SLOTS, 1),
+                (CommandId.ROULETTE, 1)
+            )
+            cur.executemany("INSERT OR IGNORE INTO commands_settings (command_id, is_enabled) VALUES(?, ?)", commands_settings)
 
             default_slot_sums: tuple[tuple[int, int], ...] = (
                 (100, 80),

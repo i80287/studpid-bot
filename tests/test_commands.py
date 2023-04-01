@@ -97,12 +97,12 @@ async def test_slash_cog() -> None:
         raise Exception("SlashCommandsCog not found")
 
     interaction: DummyInteraction = build_interaction()
-    await cog.bet(interaction=interaction, amount=42)
+    await cog.duel(interaction=interaction, amount=42)
     check_embed(interaction, "**`You can't make a bet, because you need 42`** :coin: **`more`**")
     
     interaction = build_interaction()
     interaction.locale = "ru"
-    await cog.bet(interaction=interaction, amount=42)
+    await cog.duel(interaction=interaction, amount=42)
     check_embed(interaction, "**`Вы не можете сделать ставку, так как Вам не хватает 42`** :coin:")
 
     role = get_test_role()
