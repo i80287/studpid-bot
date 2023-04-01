@@ -59,7 +59,7 @@ class VoiceIncomeModal(Modal):
     
     @staticmethod
     def check_ans(value: str | None) -> int | None:
-        if value is not None and value.isdigit():
+        if value is not None and value.isdecimal():
             return int(value)
         return None
 

@@ -89,7 +89,7 @@ class SlotsManageModal(Modal):
     def verify_user_input(self) -> int:
         errors_bit_mask: int = 0b0000
 
-        if (income_1 := self.income_for_bet_1.value) and income_1.isdigit():
+        if (income_1 := self.income_for_bet_1.value) and income_1.isdecimal():
             new_income_1: int = int(income_1)
             if self.slots_table[100] != new_income_1:
                 self.slots_table[100] = new_income_1
@@ -97,7 +97,7 @@ class SlotsManageModal(Modal):
         else:
             errors_bit_mask |= 0b0001
         
-        if (income_2 := self.income_for_bet_2.value) and income_2.isdigit():
+        if (income_2 := self.income_for_bet_2.value) and income_2.isdecimal():
             new_income_2: int = int(income_2)
             if self.slots_table[200] != new_income_2:
                 self.slots_table[200] = new_income_2
@@ -105,7 +105,7 @@ class SlotsManageModal(Modal):
         else:
             errors_bit_mask |= 0b0010
         
-        if (income_3 := self.income_for_bet_3.value) and income_3.isdigit():
+        if (income_3 := self.income_for_bet_3.value) and income_3.isdecimal():
             new_income_3: int = int(income_3)
             if self.slots_table[500] != new_income_3:
                 self.slots_table[500] = new_income_3
@@ -113,7 +113,7 @@ class SlotsManageModal(Modal):
         else:
             errors_bit_mask |= 0b0100
         
-        if (income_4 := self.income_for_bet_4.value) and income_4.isdigit():
+        if (income_4 := self.income_for_bet_4.value) and income_4.isdecimal():
             new_income_4: int = int(income_4)
             if self.slots_table[1000] != new_income_4:
                 self.slots_table[1000] = new_income_4

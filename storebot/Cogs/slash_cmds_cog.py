@@ -566,7 +566,7 @@ class RatingView(ViewBase):
         assert interaction.message is not None
         assert interaction.message.embeds
         assert interaction.message.embeds[0].footer.text is not None
-        assert interaction.message.embeds[0].footer.text.split(' ')[1].isdigit()
+        assert interaction.message.embeds[0].footer.text.split(' ')[1].isdecimal()
         page: int = int(interaction.message.embeds[0].footer.text.split(' ')[1])
         total_pages: int = self.pages
 
@@ -630,7 +630,7 @@ class RatingView(ViewBase):
         await self.update_menu(interaction, click)
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
-        assert values[0].isdigit()
+        assert values[0].isdecimal()
         assert custom_id.startswith("104_")
         assert isinstance(self.children[4], CustomSelectWithOptions)
         if int(values[0]):
@@ -1238,7 +1238,7 @@ class SlashCommandsCog(Cog):
         if ec_status:
             # roles_ids_on_server & roles_ids_in_db
             memb_server_db_roles: set[int] | set = set(interaction.user._roles) & db_roles
-            memb_roles: set[int] | set = {int(role_id) for role_id in db_member_info[2].split("#") if role_id.isdigit()} if db_member_info[2] else set()
+            memb_roles: set[int] | set = {int(role_id) for role_id in db_member_info[2].split("#") if role_id.isdecimal()} if db_member_info[2] else set()
 
             embed_3_description: str = '\n'.join(
                 [self.code_blocks[lng][0]] + ["<@&{0}>".format(role_id) for role_id in memb_server_db_roles]

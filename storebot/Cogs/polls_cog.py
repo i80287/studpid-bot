@@ -124,7 +124,7 @@ class Poll(View):
         self.voters = [set() for _ in range(self.n)]      
 
     async def click_button(self, interaction: Interaction, label: str) -> None:
-        if label.isdigit():
+        if label.isdecimal():
             await self.process_vote_button(interaction=interaction, label=int(label))
         else:
             await self.process_approvement(interaction=interaction, label=label)

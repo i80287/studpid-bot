@@ -190,7 +190,7 @@ class RoleAddModal(ManageRoleModalBase):
         errors_bit_mask: int = 0b000000
 
         price: str | None = self.price_text_input.value
-        if price and price.isdigit() and (price_int := int(price)) > 0:
+        if price and price.isdecimal() and (price_int := int(price)) > 0:
             self.price = price_int
         else:
             errors_bit_mask |= 0b000001
@@ -202,11 +202,11 @@ class RoleAddModal(ManageRoleModalBase):
                 errors_bit_mask |= 0b000010
             else:
                 salary: str = s_ans[0]
-                if salary.isdigit() and (salary_int := int(salary)) >= 0:
+                if salary.isdecimal() and (salary_int := int(salary)) >= 0:
                     self.salary = salary_int
 
                     salary_cooldown: str = s_ans[1]
-                    if salary_cooldown.isdigit() and ((1 if salary_int else 0) <= (salary_cooldown_int := int(salary_cooldown)) <= 1008):
+                    if salary_cooldown.isdecimal() and ((1 if salary_int else 0) <= (salary_cooldown_int := int(salary_cooldown)) <= 1008):
                         self.salary_cooldown = salary_cooldown_int * 3600
                     else:
                         errors_bit_mask |= 0b001000
@@ -214,14 +214,14 @@ class RoleAddModal(ManageRoleModalBase):
                     errors_bit_mask |= 0b000100
 
         role_type: str | None = self.r_type_text_input.value
-        if role_type and role_type.isdigit() and (role_type_int := int(role_type)) in {1, 2, 3}:
+        if role_type and role_type.isdecimal() and (role_type_int := int(role_type)) in {1, 2, 3}:
             self.role_type = role_type_int
         else:
             errors_bit_mask |= 0b010000
         
         additional_salary: str | None = self.additional_salary_text_input.value
         if additional_salary:
-            if additional_salary.isdigit() and (additional_salary_int := int(additional_salary)) > 0:
+            if additional_salary.isdecimal() and (additional_salary_int := int(additional_salary)) > 0:
                 self.additional_salary = additional_salary_int
             else:
                 errors_bit_mask |= 0b100000
@@ -363,7 +363,7 @@ class RoleEditModal(ManageRoleModalBase):
         errors_bit_mask: int = 0b000000
 
         price: str | None = self.price_text_input.value
-        if price and price.isdigit() and (price_int := int(price)) > 0:
+        if price and price.isdecimal() and (price_int := int(price)) > 0:
             self.new_price = price_int
         else:
             errors_bit_mask |= 0b0000001
@@ -375,11 +375,11 @@ class RoleEditModal(ManageRoleModalBase):
                 errors_bit_mask |= 0b0000010
             else:
                 salary: str = s_ans[0]
-                if salary.isdigit() and (salary_int := int(salary)) >= 0:
+                if salary.isdecimal() and (salary_int := int(salary)) >= 0:
                     self.new_salary = salary_int
                     
                     salary_cooldown: str = s_ans[1]
-                    if salary_cooldown.isdigit() and ((1 if salary_int else 0) <= (salary_cooldown_int := int(salary_cooldown)) <= 1008):
+                    if salary_cooldown.isdecimal() and ((1 if salary_int else 0) <= (salary_cooldown_int := int(salary_cooldown)) <= 1008):
                         self.new_salary_cooldown = salary_cooldown_int * 3600
                     else:
                         errors_bit_mask |= 0b0001000
@@ -390,20 +390,20 @@ class RoleEditModal(ManageRoleModalBase):
             self.new_salary_cooldown = 0
         
         role_type: str | None = self.r_type_text_input.value
-        if role_type and role_type.isdigit() and (role_type_int := int(role_type)) in {1, 2, 3}:
+        if role_type and role_type.isdecimal() and (role_type_int := int(role_type)) in {1, 2, 3}:
             self.new_role_type = role_type_int
         else:
             errors_bit_mask |= 0b0010000
 
         additional_salary: str | None = self.additional_salary_text_input.value
         if additional_salary:
-            if additional_salary.isdigit() and (additional_salary_int := int(additional_salary)) >= 0:
+            if additional_salary.isdecimal() and (additional_salary_int := int(additional_salary)) >= 0:
                 self.new_additional_salary = additional_salary_int
             else:
                 errors_bit_mask |= 0b0100000
 
         in_store_amount: str | None = self.in_store_amount_text_input.value
-        if in_store_amount and in_store_amount.isdigit() and (in_store_amount_int := int(in_store_amount)) >= 0:
+        if in_store_amount and in_store_amount.isdecimal() and (in_store_amount_int := int(in_store_amount)) >= 0:
             self.new_in_store_amount = in_store_amount_int
         else:
             errors_bit_mask |= 0b1000000
@@ -664,13 +664,13 @@ class ManageMemberCashXpModal(Modal):
         errors_bit_mask: int = 0b00
         
         cash_value: str | None = self.cash_text_input.value
-        if cash_value and cash_value.isdigit() and (new_cash := int(cash_value)) >= 0:
+        if cash_value and cash_value.isdecimal() and (new_cash := int(cash_value)) >= 0:
             self.new_cash = new_cash
         else:
             errors_bit_mask |= 0b01
         
         xp_value: str | None = self.xp_text_input.value
-        if xp_value and xp_value.isdigit() and (new_xp := int(xp_value)) >= 0:
+        if xp_value and xp_value.isdecimal() and (new_xp := int(xp_value)) >= 0:
             self.new_xp = new_xp
         else:
             errors_bit_mask |= 0b10
@@ -751,13 +751,13 @@ class XpSettingsModal(Modal):
         errors_bit_mask: int = 0b00
 
         xp_value: str | None = self.xp_text_input.value
-        if xp_value and xp_value.isdigit() and (xp_value_int := int(xp_value)) >= 0:
+        if xp_value and xp_value.isdecimal() and (xp_value_int := int(xp_value)) >= 0:
             self.new_xp = xp_value_int
         else:
             errors_bit_mask |= 0b01 
 
         xp_b_value: str | None = self.xp_b_text_input.value
-        if xp_b_value and xp_b_value.isdigit() and (xp_b_value_int := int(xp_b_value)) >= 1:
+        if xp_b_value and xp_b_value.isdecimal() and (xp_b_value_int := int(xp_b_value)) >= 1:
             self.new_xp_b = xp_b_value_int
         else:
             errors_bit_mask |= 0b10
@@ -814,7 +814,7 @@ class SelectLevelModal(Modal):
         self.add_item(self.level_selection)
     
     def check_level(self, value: str | None) -> int:
-        if value and value.isdigit() and (0 < (level := int(value)) < 101):
+        if value and value.isdecimal() and (0 < (level := int(value)) < 101):
             return level
         return 0
 

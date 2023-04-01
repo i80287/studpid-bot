@@ -278,7 +278,7 @@ async def add_role_async(guild_id: int, role_info: RoleInfo, members_id_with_rol
                 )
             else:
                 role_owners: str = result[0]
-                owners_ids_in_db: set[int] = {int(owner_id) for owner_id in role_owners.split('#') if owner_id.isdigit()}
+                owners_ids_in_db: set[int] = {int(owner_id) for owner_id in role_owners.split('#') if owner_id.isdecimal()}
                 owners_ids_in_db |= members_id_with_role
                 role_owners: str = '#' + '#'.join(map(str, owners_ids_in_db)) if owners_ids_in_db else ""
                 await base.execute(
@@ -326,7 +326,7 @@ async def verify_role_members_async(guild_id: int, role_info: PartialRoleInfo, m
             )
         else:
             role_owners: str = result[0]
-            owners_ids_in_db: set[int] = {int(owner_id) for owner_id in role_owners.split('#') if owner_id.isdigit()}
+            owners_ids_in_db: set[int] = {int(owner_id) for owner_id in role_owners.split('#') if owner_id.isdecimal()}
             owners_ids_in_db |= members_id_with_role
             role_owners: str = '#' + '#'.join(map(str, owners_ids_in_db)) if owners_ids_in_db else ""
             await base.execute("UPDATE salary_roles SET members = '" + role_owners + "' WHERE role_id = " + str_role_id)

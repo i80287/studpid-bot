@@ -53,7 +53,7 @@ class SalePriceModal(Modal):
     
     @staticmethod
     def check_ans(value: str | None) -> int:
-        if value is None or not value.isdigit() or \
+        if value is None or not value.isdecimal() or \
             not (1 <= (sale_role_percent := int(value)) <= 200):
             return 0
         return sale_role_percent

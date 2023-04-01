@@ -762,7 +762,7 @@ class EconomyView(ViewBase):
         if not user_input:
             return
 
-        if user_input.isdigit():
+        if user_input.isdecimal():
             await update_server_info_table_uncheck_async(interaction.guild_id, "mn_per_msg", user_input)
             
             assert interaction.message is not None
@@ -793,7 +793,7 @@ class EconomyView(ViewBase):
         if not user_input:
             return
 
-        if user_input.isdigit() and (60 <= (work_command_cooldown := int(user_input)) <= 604800):
+        if user_input.isdecimal() and (60 <= (work_command_cooldown := int(user_input)) <= 604800):
             await update_server_info_table_uncheck_async(interaction.guild_id, "w_cd", user_input)
             
             assert interaction.message is not None
@@ -821,14 +821,14 @@ class EconomyView(ViewBase):
         if len(splitted_ans) >= 2:
             arg1: str = splitted_ans[0]
             arg2: str = splitted_ans[1]
-            if arg1.isdigit() and arg2.isdigit():
+            if arg1.isdecimal() and arg2.isdecimal():
                 n1 = int(arg1)
                 n2 = int(arg2)
                 if 0 <= n1 <= n2:
                     fl = True
         elif len(splitted_ans):
             arg: str = splitted_ans[0]
-            if arg.isdigit() and (n1 := int(arg)) >= 0:
+            if arg.isdecimal() and (n1 := int(arg)) >= 0:
                 n2 = n1
                 fl = True
         if fl:
@@ -1264,7 +1264,7 @@ class EconomyRolesManageView(ViewBase):
             pass
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
-        assert values and values[0].isdigit()
+        assert values and values[0].isdecimal()
         if custom_id.startswith("80"):
             self.role = int(values[0])
 
@@ -1454,7 +1454,7 @@ class SettingsView(ViewBase):
                 emb2.add_field(name=mng_membs_text[lng][4], value=code_blocks[2].format(cnt_xp), inline=True)
 
                 emb3: Embed = Embed()
-                member_roles_ids: set[int] = {int(r) for r in memb_info[2].split("#") if r.isdigit()}
+                member_roles_ids: set[int] = {int(r) for r in memb_info[2].split("#") if r.isdecimal()}
                 if member_roles_ids:
                     dsc = [code_blocks[lng*5]] + [f"<@&{r}>**` - {r}`**" for r in member_roles_ids]
                 else:
@@ -2247,7 +2247,7 @@ class ManageMemberView(ViewBase):
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         assert len(values)
-        assert values[0].isdigit()
+        assert values[0].isdecimal()
         if custom_id.startswith("30"):
             self.role_id = int(values[0])
 

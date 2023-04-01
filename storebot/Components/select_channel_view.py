@@ -35,6 +35,6 @@ class SelectChannelView(ViewBase):
         return
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
-        if (value := values[0]).isdigit():
+        if (value := values[0]).isdecimal():
             self.channel_id = int(value)
             self.stop()
