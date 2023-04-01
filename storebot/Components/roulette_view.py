@@ -102,21 +102,24 @@ class RouletteView(ViewBase):
         result: int = getrandbits(4)
         while result >= 10:
             result = getrandbits(4)
-        result_1: int = result >> 2 # //= 4
+        result_1: int = result >> 1 # //= 2
 
         if not result_1:
+            # result == 0 or 1
             colors[8] = '⬛'
             if bet_color_num: # != 0
                 return (self.slot_panel.format(*colors), 0)
         elif result_1 == 1:
+            # result == 2 or 3
             colors[8] = '🟥'
             if bet_color_num != 1:
                 return (self.slot_panel.format(*colors), 0)
-        elif result == 8:
+        elif result == 4:
             colors[8] = '🟩'
             if bet_color_num != 2:
                 return (self.slot_panel.format(*colors), 0)
         else:
+            # result is [5; 9]
             # Player always lose in this case.
             # '⬛' ~ 0 => 2 ~ '🟥'
             # '🟥' ~ 1 => 1 ~ '🟩'
