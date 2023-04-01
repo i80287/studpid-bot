@@ -43,21 +43,21 @@ class RouletteView(ViewBase):
             0: "**`Roulette is disabled on this server`**",
             1: "Choose colour",
             2: "**`You have not chose the colour yet`**",
-            3: "**`To make bet on this color you need at least {0}`** {1} **`more`**",
+            3: "**`To make bet on this color you need at least {0:0,}`** {1} **`more`**",
             4: "**`Now colour is`** {0}",
-            5: "**`You made bet {0}`** {1} **`and won {2}`** {1}",
+            5: "**`You made bet {0:0,}`** {1} **`and won {2:0,}`** {1}",
             6: "Roulette bet",
-            7: "<@{0}> **`made bet {1}`** {2} **`and won {3}`** {2}"
+            7: "<@{0}> **`made bet {1:0,}`** {2} **`and won {3:0,}`** {2}"
         },
         1: {
             0: "**`Рулетка отключена на этом сервере`**",
             1: "Выберите цвет",
             2: "**`Вы ещё не выбрали цвет`**",
-            3: "**`Для того, чтобы сделать ставку на этот цвет, Вам нужно ещё хотя бы {0}`** {1}",
+            3: "**`Для того, чтобы сделать ставку на этот цвет, Вам нужно ещё хотя бы {0:0,}`** {1}",
             4: "**`Теперь цвет:`** {0}",
-            5: "**`Вы сделали ставку {0}`** {1} **`и выиграли {2}`** {1}",
+            5: "**`Вы сделали ставку {0:0,}`** {1} **`и выиграли {2:0,}`** {1}",
             6: "Ставка на рулетку",
-            7: "<@{0}> **`сделал(а, о) ставку {1}`** {2} **`и выиграл(а, о) {3}`** {2}"
+            7: "<@{0}> **`сделал(а, о) ставку {1:0,}`** {2} **`и выиграл(а, о) {3:0,}`** {2}"
         }
     }
 
@@ -90,7 +90,6 @@ class RouletteView(ViewBase):
     def process_bet(self) -> tuple[str, int]:
         bet_color_num: int = self.bet_color_number
         getrandbits = s_rnd.getrandbits
-        colors_table = ('⬛', '🟥', '🟩')
 
         # inlining random.randint
         # 0 <= getrandbits(k) < 2**k = 16
@@ -98,13 +97,34 @@ class RouletteView(ViewBase):
         #   0, if getrandbits(k) in [0; 6]
         #   1, if getrandbits(k) in [7; 13]
         #   2, if getrandbits(k) in [14; 15]
-        colors = [colors_table[getrandbits(4) // 7] for _ in range(17)]
-        slot_panel: str = self.slot_panel.format(*colors)
+        colors = [('⬛', '🟥', '🟩')[getrandbits(4) // 7] for _ in range(17)]
 
-        if colors_table[bet_color_num] != colors[8]:
-            return (slot_panel, 0)
+        result: int = getrandbits(4)
+        while result >= 10:
+            result = getrandbits(4)
+        result_1: int = result >> 2 # //= 4
+
+        if not result_1:
+            colors[8] = '⬛'
+            if bet_color_num: # != 0
+                return (self.slot_panel.format(*colors), 0)
+        elif result_1 == 1:
+            colors[8] = '🟥'
+            if bet_color_num != 1:
+                return (self.slot_panel.format(*colors), 0)
+        elif result == 8:
+            colors[8] = '🟩'
+            if bet_color_num != 2:
+                return (self.slot_panel.format(*colors), 0)
+        else:
+            # Player always win in this case.
+            # '⬛' ~ 0 => 2 ~ '🟥'
+            # '🟥' ~ 1 => 1 ~ '🟩'
+            # '🟩' ~ 2 => 0 ~ '⬛'
+            colors[8] = ('⬛', '🟩', '🟥')[2 - bet_color_num]
+            return (self.slot_panel.format(*colors), 0)
         
-        return (slot_panel, (2, 2, 3)[bet_color_num])
+        return (self.slot_panel.format(*colors), (2, 2, 3)[bet_color_num])
 
     @tasks.loop(count=None)
     async def roulette_hanlder(self, guild: Guild) -> None:
@@ -131,8 +151,13 @@ class RouletteView(ViewBase):
                 return
             
             (slot_panel, win_sum_cofficient) = self.process_bet()
-            win_sum: int = (win_sum_cofficient * bet) if win_sum_cofficient else -bet
-            member_cash += win_sum
+            if win_sum_cofficient:
+                win_sum: int = win_sum_cofficient * bet
+                member_cash += win_sum
+            else:
+                win_sum: int = 0
+                member_cash -= bet
+
             await update_member_cash_async(guild_id, member_id, member_cash)
 
             assert interaction.message is not None
