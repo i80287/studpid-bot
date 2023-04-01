@@ -27,6 +27,7 @@ class VerificationView(ViewBase):
         self.approved: bool | None = None
     
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
+        assert custom_id[0] in {"0", "1"}
         await interaction.response.defer()
         self.approved = custom_id[0] == "0"
         self.stop()
