@@ -117,7 +117,7 @@ class RouletteView(ViewBase):
             if bet_color_num != 2:
                 return (self.slot_panel.format(*colors), 0)
         else:
-            # Player always win in this case.
+            # Player always lose in this case.
             # '⬛' ~ 0 => 2 ~ '🟥'
             # '🟥' ~ 1 => 1 ~ '🟩'
             # '🟩' ~ 2 => 0 ~ '⬛'
