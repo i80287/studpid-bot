@@ -240,7 +240,8 @@ ec_text: dict[int, dict[int, str]] = {
         22: "**`You reseted log channel`**",
         23: "**`Are you sure you want to drop cash of all members on the server? This operation can not be undone`**",
         24: "**`You dropped cash for all members`**",
-        25: "**`You rejected operation`**"
+        25: "**`You rejected operation`**",
+        26: "**`Sorry, but only owner can reset cash of all members on the server`**",
     },
     1 : {
         0: "Настройки экономики",
@@ -268,7 +269,8 @@ ec_text: dict[int, dict[int, str]] = {
         22: "**`Вы сбросили канал логов`**",
         23: "**`Вы уверены, что хотите сбросить кэш всех пользователей на сервере? Эта операция не может быть отменена`**",
         24: "**`Вы сбросили кэш всех участников сервера`**",
-        25: "**`Вы отменили операцию сброса кэша`**"
+        25: "**`Вы отменили операцию сброса кэша`**",
+        27: "**`Извините, но только владелец сервера может сбрасывать кэш всем участникам сервера сразу`**"
     }
 }
 
@@ -950,10 +952,18 @@ class EconomyView(ViewBase):
             return
 
     async def drop_users_cash(self, interaction: Interaction) -> None:
+        assert interaction.guild is not None
+        assert interaction.guild.owner_id is not None
         assert interaction.guild_id is not None
         assert interaction.locale is not None
-        verification_view: VerificationView = VerificationView(self.author_id)
+        
         local_text: dict[int, str] = ec_text[self.lng]
+        author_id: int = self.author_id
+        if interaction.guild.owner_id != author_id:
+            await interaction.response.send_message(embed=Embed(description=local_text[27]))
+            return
+
+        verification_view: VerificationView = VerificationView(author_id)
         await interaction.response.send_message(embed=Embed(description=local_text[23]), view=verification_view)
         await verification_view.wait()
         try:
@@ -975,13 +985,14 @@ class EconomyView(ViewBase):
         roles_info_tuples, roles_counts = await listify_guild_roles(interaction.guild_id)
         server_roles_ids: set[int] = {role_info[0] for role_info in roles_info_tuples}
         if roles_info_tuples:
+            local_roles_types: dict[int, str] = self.roles_types[lng]
             description_lines: list[str] = [ec_text[lng][19]] + [
                 "<@&{0}> - **`{0}`** - **`{1}`** - **`{2}`** - **`{3}`** - **`{4}`** - **`{5}`** - **`{6}`**".format(
                     role_info[0],
                     role_info[1],
                     role_info[2],
                     role_info[3] // 3600,
-                    self.roles_types[lng][role_info[4]],
+                    local_roles_types[role_info[4]],
                     role_count,
                     role_info[5]
                 ) for role_info, role_count in zip(roles_info_tuples, roles_counts)
@@ -1034,6 +1045,7 @@ class EconomyView(ViewBase):
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.channel_id is not None
+        assert custom_id[:2].isdecimal()
         match int(custom_id[:2]):
             case 10:
                 await self.msg_salary(interaction)
@@ -1225,13 +1237,14 @@ class EconomyRolesManageView(ViewBase):
         roles_info_tuples: list[tuple[int, int, int, int, int, int]]
         roles_info_tuples, roles_counts = await listify_guild_roles(interaction.guild_id)
         if roles_info_tuples:
+            roles_types: dict[int, str] = EconomyView.roles_types[lng]
             description_lines: list[str] = [ec_text[lng][19]] + [
                 "<@&{0}> - **`{0}`** - **`{1}`** - **`{2}`** - **`{3}`** - **`{4}`** - **`{5}`** - **`{6}`**".format(
                     role_info[0],
                     role_info[1],
                     role_info[2],
                     role_info[3] // 3600,
-                    EconomyView.roles_types[lng][role_info[4]],
+                    roles_types[role_info[4]],
                     role_count,
                     role_info[5]
                 ) for role_info, role_count in zip(roles_info_tuples, roles_counts)
@@ -1287,11 +1300,10 @@ class SettingsView(ViewBase):
     @classmethod
     def check_ans(cls, guild: Guild, ans: str) -> tuple[Member | None, bool]:
         for member_id in cls.member_id_pattern.findall(ans):
-            if member := guild.get_member(int(member_id)):
-                return member, False
-        if ans == "cancel":
-            return None, False
-        return None, True
+            assert not isinstance(member_id, str) or (isinstance(member_id, str) and member_id.isdecimal())
+            if (member := guild.get_member(int(member_id))) is not None:
+                return (member, False)
+        return (None, ans != "cancel")
     
     @staticmethod
     async def try_delete(interaction: Interaction, view: ViewBase) -> None:
