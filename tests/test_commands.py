@@ -65,7 +65,9 @@ async def main() -> None:
         
         test_bot.load_extensions_from_module("storebot.Cogs")
         await test_slash_cog()
+        print("SlashCommandsCog tests passed")
         await test_add_cmds_cog()
+        print("AdditionalCommandsCog tests passed")
     except Exception as ex:
         exceptions.append(ex)
     finally:
@@ -274,9 +276,9 @@ def check_store_embed(payload: dict[str, Any], role_info: RoleInfo, time_added: 
         assert salary_cooldown != 0
         salary_per_week: int = 604800 * role_salary // salary_cooldown
         assert lines[5] == \
-            f"`Average passive salary per week` - `{salary_per_week:0,}` :coin:" \
+            (f"`Average passive salary per week` - `{salary_per_week:0,}` :coin:" \
             if not lng else \
-            f"`Средний пассивный доход за неделю` - `{salary_per_week:0,}` :coin:"
+            f"`Средний пассивный доход за неделю` - `{salary_per_week:0,}` :coin:")
     else:
         assert len(lines) == 6
     # Last line in lines must be empty
@@ -287,19 +289,19 @@ def check_store_embed(payload: dict[str, Any], role_info: RoleInfo, time_added: 
 
     price: int = role_info.price
     assert lines[1] == \
-        f"`Price` - `{price:0,}` :coin:" \
+        (f"`Price` - `{price:0,}` :coin:" \
         if not lng else \
-        f"`Цена` - `{price:0,}` :coin:"
+        f"`Цена` - `{price:0,}` :coin:")
 
     assert lines[2] == \
-        "`Left` - `1`" \
+        ("`Left` - `1`" \
         if not lng else \
-        "`Осталось` - `1`"
+        "`Осталось` - `1`")
 
     assert lines[3] == \
-        "`Listed for sale:`" \
-        if not lng else \
-        "`Выставленa на продажу:`"
+        ("`Listed for sale:`" \
+         if not lng else \
+        "`Выставленa на продажу:`")
 
     tzinfo: timezone = timezone(timedelta(hours=0))
     date: str = datetime.fromtimestamp(time_added, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
@@ -311,7 +313,7 @@ def check_store_embed(payload: dict[str, Any], role_info: RoleInfo, time_added: 
     assert "text" in footer
     text: str = footer["text"]
     assert isinstance(text, str)
-    assert text == "Page 1 from 1" if not lng else "Страница 1 из 1"
+    assert text == ("Page 1 from 1" if not lng else "Страница 1 из 1")
 
     assert "components" in payload
     components: list[dict[str, Any]] = payload["components"]
@@ -367,9 +369,9 @@ def check_store_embed(payload: dict[str, Any], role_info: RoleInfo, time_added: 
 
     assert "placeholder" in select_menu
     assert select_menu["placeholder"] == \
-        "Sort by..." \
+        ("Sort by..." \
         if not lng else \
-        "Сортировать по..."
+        "Сортировать по...")
 
     sorting_types_selects_action_row: dict[str, Any] = components[2]
     assert "type" in sorting_types_selects_action_row
@@ -404,9 +406,9 @@ def check_store_embed(payload: dict[str, Any], role_info: RoleInfo, time_added: 
 
     assert "placeholder" in select_menu
     assert select_menu["placeholder"] == \
-        "Sort from..." \
+        ("Sort from..." \
         if not lng else \
-        "Сортировать от..."
+        "Сортировать от...")
 
 def check_server_ember(interaction: DummyInteraction, lng: int = 0) -> None:
     payload: dict[str, Any] = interaction.payload
