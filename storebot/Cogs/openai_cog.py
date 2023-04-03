@@ -20,7 +20,10 @@ from nextcord.ext.commands import Cog
 from nextcord.channel import TextChannel
 from nextcord.threads import Thread
 
-from ..Tools.logger import Logger
+from ..Tools.logger import (
+    write_log_async,
+    write_one_log_async
+)
 from ..constants import BANNED_WORDS
 try:
     from ..config import OPENAI_API_KEY
@@ -89,7 +92,7 @@ class OpenAICog(Cog):
         lng: Literal[1, 0] = 1 if "ru" in str(interaction.locale) else 0
         if not isinstance(channel := interaction.channel, (TextChannel, Thread)):
             await interaction.response.send_message(embed=Embed(description=self.openai_cog_text[lng][3]))
-            return       
+            return
         
         if words_filter.findall(question):
             await interaction.response.send_message(embed=Embed(description=self.openai_cog_text[lng][0]))
@@ -98,7 +101,7 @@ class OpenAICog(Cog):
         try:
             await interaction.response.send_message(embed=Embed(description=self.openai_cog_text[lng][1].format(question)))
         except Exception as ex:
-            await Logger.write_one_log_async(
+            await write_one_log_async(
                     filename="error.log",
                     report=f"[FATAL] [ERROR] [could not response] [ask] [question: {question}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
                 )
@@ -118,7 +121,7 @@ class OpenAICog(Cog):
                         presence_penalty=0.0
                     )
                 except Exception as ex:
-                    await Logger.write_one_log_async(
+                    await write_one_log_async(
                         filename="error.log",
                         report=f"[FATAL] [ERROR] [ask] [question: {question}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
                     )
@@ -136,13 +139,13 @@ class OpenAICog(Cog):
                         await sleep(1.0)
                         await channel.send(embed=Embed(description=ans_part))
         except Exception as ex:
-            await Logger.write_one_log_async(
+            await write_one_log_async(
                 filename="error.log",
                 report=f"[FATAL] [ERROR] [ask] [question: {question}] [answer: {answer}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
             )
             await interaction.followup.send(embed=Embed(description=self.openai_cog_text[lng][5]), ephemeral=True)
         else:
-            await Logger.write_log_async(
+            await write_log_async(
                 "openai_logs.log",
                 f"member {interaction.user.id}:{interaction.user.name}",
                 f"guild {interaction.guild_id}:{interaction.guild.name}",

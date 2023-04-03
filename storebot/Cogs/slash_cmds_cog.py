@@ -55,7 +55,7 @@ from ..Tools.db_commands import (
     PartialRoleStoreInfo,
     CommandId
 )
-from ..Tools.logger import Logger
+from ..Tools.logger import write_guild_log_async
 from ..constants import DB_PATH
 if __debug__:
     from ..Components.custom_select import CustomSelect
@@ -908,7 +908,7 @@ class SlashCommandsCog(Cog):
             await member_buyer.add_roles(role)
         except:
             await self.respond_with_error_report(interaction, lng, self.buy_command_text[lng][0])
-            await Logger.write_guild_log_async(
+            await write_guild_log_async(
                 "error.log",
                 guild_id,
                 f"[ERROR] [buy command] [add_roles failed] [member: {memb_id}:{member_buyer.name}] [role: {str_role_id}:{role.name}]"

@@ -82,11 +82,6 @@ async def update_server_info_table_uncheck_async(guild_id: int, key_name: str, n
         await base.execute("UPDATE server_info SET value = " + new_value + " WHERE settings = '" + key_name + "';")
         await base.commit()
 
-def get_server_info_value(guild_id: int, key_name: str) -> int:
-    with closing(connect(DB_PATH.format(guild_id))) as base:
-        with closing(base.cursor()) as cur:
-            return cur.execute("SELECT value FROM server_info WHERE settings = '" + key_name + "';").fetchone()[0]
-
 async def get_server_info_value_async(guild_id: int, key_name: str) -> int:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute("SELECT value FROM server_info WHERE settings = '" + key_name + "';") as cur:
@@ -244,8 +239,8 @@ async def add_role_async(guild_id: int, role_info: RoleInfo, members_id_with_rol
         )    
         await base.commit()
 
+        str_role_id: str = str(role_id)
         if members_id_with_role:
-            str_role_id: str = '#' + str(role_id)
             for member_id in members_id_with_role:
                 async with base.execute("SELECT owned_roles FROM users WHERE memb_id = ?", (member_id,)) as cur:
                     result = await cur.fetchone()
@@ -254,18 +249,18 @@ async def add_role_async(guild_id: int, role_info: RoleInfo, members_id_with_rol
                 if result is not None:
                     owned_roles: str = result[0]
                     if str_role_id not in owned_roles:
-                        owned_roles += str_role_id
+                        owned_roles += ('#' + str_role_id)
                         await base.execute("UPDATE users SET owned_roles = ? WHERE memb_id = ?", (owned_roles, member_id))
                 else:
                     await base.execute(
                         "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
-                        (member_id, str_role_id)
+                        (member_id, '#' + str_role_id)
                     )
 
             await base.commit()
 
         if salary:
-            async with base.execute("SELECT members FROM salary_roles WHERE role_id = ?", (role_id,)) as cur:
+            async with base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id) as cur:
                 result = await cur.fetchone()
             assert result is None or isinstance(result, tuple)
 

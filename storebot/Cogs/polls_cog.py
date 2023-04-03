@@ -263,7 +263,7 @@ class Poll(View):
         max_votes: int = 0
         dsc: list[str] = [""]
         lng: int = self.lng
-        for ans_number, (voters_set, answer) in enumerate(zip(self.voters, self.answers), start=1):
+        for ans_number, (voters_set, answer) in enumerate(zip(self.voters, self.answers), 1):
             voters_for_ans_i: int = len(voters_set)
 
             if voters_for_ans_i == 1:
@@ -295,7 +295,9 @@ class Poll(View):
         emb: Embed = Embed(description="\n".join(dsc))
         
         for c in self.children:
-            c.disabled = True # type: ignore
+            assert isinstance(c, poll_custom_button)
+            c.disabled = True
+
         assert self.poll_final_message is not None
         await self.poll_final_message.edit(view=self, embed=emb)
         
@@ -604,8 +606,8 @@ class PollCog(Cog):
         poll.n = len(poll.answers)
         poll.thesis = question
 
-        poll.anon = True if anon in {"да", "yes"} else False
-        poll.mult = True if mult in {"да", "yes"} else False
+        poll.anon = anon in {"да", "yes"}
+        poll.mult = mult in {"да", "yes"}
 
         local_text: dict[int, str] = self.polls_text[lng]
         poll_description: list[str] = [f"**{question}**"]
@@ -620,8 +622,8 @@ class PollCog(Cog):
         poll_description.append(local_text[8].format(interaction.user.id))
         
         emb: Embed = Embed(description='\n'.join(poll_description), timestamp=poll.timestamp)
-        for i, i_answer in enumerate(poll.answers):
-            emb.add_field(name=f"{i+1} {local_text[2]}", value=f"{i_answer}\n{local_text[3]}")
+        for i, i_answer in enumerate(poll.answers, 1):
+            emb.add_field(name=f"{i} {local_text[2]}", value=f"{i_answer}\n{local_text[3]}")
         emb.set_author(name=local_text[3])
 
         poll.lng = lng

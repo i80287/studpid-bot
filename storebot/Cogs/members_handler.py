@@ -24,7 +24,7 @@ from ..Tools.db_commands import (
     remove_member_role_async,
     get_server_info_value_async
 )
-from ..Tools.logger import Logger
+from ..Tools.logger import write_guild_log_async
 
 
 class MembersHandlerCog(Cog):
@@ -94,7 +94,7 @@ class MembersHandlerCog(Cog):
             if not is_updated:
                 continue
 
-            await Logger.write_guild_log_async(
+            await write_guild_log_async(
                 "guild.log",
                 guild_id,
                 f"[role_change] [is_added: {is_role_added}] [guild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"
@@ -107,7 +107,7 @@ class MembersHandlerCog(Cog):
                 try:
                     await log_channel.send(embed=Embed(description=description))
                 except:
-                    await Logger.write_guild_log_async(
+                    await write_guild_log_async(
                         "guild.log",
                         guild_id,
                         f"[ERROR] [send log message failed] [role_change] [is_added: {is_role_added}] [guild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"

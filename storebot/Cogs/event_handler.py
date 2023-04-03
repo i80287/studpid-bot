@@ -33,7 +33,11 @@ from nextcord.ext.commands import Cog
 from nextcord.ext import tasks
 
 from .text_cmds_cog import TextComandsCog
-from ..Tools.logger import Logger
+from ..Tools.logger import (
+    write_guild_log_async,
+    write_log_async,
+    write_one_log_async
+)
 from ..Tools.db_commands import (
     check_db,
     make_backup,
@@ -98,7 +102,7 @@ class EventsHandlerCog(Cog):
 
     @Cog.listener()
     async def on_connect(self) -> None:
-        await Logger.write_log_async("common_logs.log", "on_connect")
+        await write_log_async("common_logs.log", "on_connect")
     
     @Cog.listener()
     async def on_ready(self) -> None:
@@ -124,7 +128,7 @@ class EventsHandlerCog(Cog):
             async with self.bot.text_lock:
                 self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
 
-            await Logger.write_log_async("common_logs.log", "correct_db func", str_guild_id, guild.name)
+            await write_log_async("common_logs.log", "correct_db func", str_guild_id, guild.name)
 
         from ..config import DEBUG
         if DEBUG:
@@ -132,7 +136,7 @@ class EventsHandlerCog(Cog):
 
         guilds_len_str: str = str(len(guilds))
         await self.bot.change_presence(activity=Game(f"/help on {guilds_len_str} servers"))
-        await Logger.write_log_async("common_logs.log", "on_ready", f"total {guilds_len_str} guilds")
+        await write_log_async("common_logs.log", "on_ready", f"total {guilds_len_str} guilds")
 
     @Cog.listener()
     async def on_guild_join(self, guild: Guild) -> None:
@@ -152,7 +156,7 @@ class EventsHandlerCog(Cog):
         guild_locale: str | None = guild.preferred_locale
         db_ignored_channels_data: list[tuple[int, int, int]] = check_db(guild_id, guild_locale)
         guild_name: str = guild.name
-        await Logger.write_log_async("common_logs.log", "correct_db func", str_guild_id, guild_name)
+        await write_log_async("common_logs.log", "correct_db func", str_guild_id, guild_name)
         async with self.bot.voice_lock:
             self.bot.members_in_voice[guild_id] = {}
             self.bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
@@ -169,14 +173,14 @@ class EventsHandlerCog(Cog):
             exceptions = [ex]
         
         for ex in exceptions:
-            await Logger.write_one_log_async(
+            await write_one_log_async(
                 filename="error.log",
                 report=f"[FATAL] [ERROR] [send_first_message] [guild: {str_guild_id}:{guild_name}] [{str(ex)}:{ex:!r}]\n"
             )
 
-        await Logger.write_log_async("guild.log", "guild_join", str_guild_id, guild_name)
-        await Logger.write_log_async("common_logs.log", "guild_join", str_guild_id, guild_name)
-        await Logger.write_guild_log_async(
+        await write_log_async("guild.log", "guild_join", str_guild_id, guild_name)
+        await write_log_async("common_logs.log", "guild_join", str_guild_id, guild_name)
+        await write_guild_log_async(
             filename="guild.log",
             guild_id=guild_id,
             report=f"[guild_join] [guild: {str_guild_id}:{guild_name}]"
@@ -192,8 +196,8 @@ class EventsHandlerCog(Cog):
         if guild_id in {260978723455631373, 1068135541360578590}:
             return
 
-        await Logger.write_log_async("guild", "guild_remove", str(guild_id), str(guild.name))
-        await Logger.write_log_async("common_logs", "guild_remove", str(guild_id), str(guild.name))
+        await write_log_async("guild", "guild_remove", str(guild_id), str(guild.name))
+        await write_log_async("common_logs", "guild_remove", str(guild_id), str(guild.name))
         
         await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"))
         async with self.bot.voice_lock:
@@ -296,7 +300,7 @@ class EventsHandlerCog(Cog):
         guild_report: str = f"[{guild.id}] [{guild.name}] " if (guild := interaction.guild) else ""
         command_report: str = f"[{interaction.application_command.name}] " if interaction.application_command else ""
         report: str = f"[ERROR] [slash_command] {command_report}{guild_report}[{str(exception)}]"
-        await Logger.write_one_log_async(filename="error.log", report=report)
+        await write_one_log_async(filename="error.log", report=report)
 
     @Cog.listener()
     async def on_command_error(self, ctx: Context, error) -> None:
@@ -307,7 +311,7 @@ class EventsHandlerCog(Cog):
             lines.append(f"[guild: {guild.id}:{guild.name}]")
         lines.append('[' + str(error) + ']')
         
-        await Logger.write_one_log_async(filename="error.log", report=' '.join(lines))
+        await write_one_log_async(filename="error.log", report=' '.join(lines))
 
 
 def setup(bot: StoreBot) -> None:
