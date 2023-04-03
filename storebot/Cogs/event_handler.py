@@ -111,7 +111,8 @@ class EventsHandlerCog(Cog):
         if not path.exists(CWD_PATH + "/logs/"):
             mkdir(CWD_PATH + "/logs/")
 
-        guilds: list[Guild] = self.bot.guilds.copy()
+        bot: StoreBot = self.bot
+        guilds: list[Guild] = bot.guilds.copy()
         for guild in guilds:
             guild_id: int = guild.id
             str_guild_id: str = str(guild_id)
@@ -122,20 +123,20 @@ class EventsHandlerCog(Cog):
                 mkdir(f"{CWD_PATH}/logs/logs_{str_guild_id}/")
 
             db_ignored_channels_data: list[tuple[int, int, int]] = check_db(guild_id, guild.preferred_locale)
-            async with self.bot.voice_lock:
-                self.bot.members_in_voice[guild_id] = {}
-                self.bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
-            async with self.bot.text_lock:
-                self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
+            async with bot.voice_lock:
+                bot.members_in_voice[guild_id] = {}
+                bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
+            async with bot.text_lock:
+                bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
 
             await write_log_async("common_logs.log", "correct_db func", str_guild_id, guild.name)
 
         from ..config import DEBUG
         if DEBUG:
-            print("[>>>]Logged into Discord as {0.user}".format(self.bot))
+            print("[>>>]Logged into Discord as {0.user}".format(bot))
 
         guilds_len_str: str = str(len(guilds))
-        await self.bot.change_presence(activity=Game(f"/help on {guilds_len_str} servers"))
+        await bot.change_presence(activity=Game(f"/help on {guilds_len_str} servers"))
         await write_log_async("common_logs.log", "on_ready", f"total {guilds_len_str} guilds")
 
     @Cog.listener()
@@ -157,11 +158,12 @@ class EventsHandlerCog(Cog):
         db_ignored_channels_data: list[tuple[int, int, int]] = check_db(guild_id, guild_locale)
         guild_name: str = guild.name
         await write_log_async("common_logs.log", "correct_db func", str_guild_id, guild_name)
-        async with self.bot.voice_lock:
-            self.bot.members_in_voice[guild_id] = {}
-            self.bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
-        async with self.bot.text_lock:
-            self.bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
+        bot: StoreBot = self.bot
+        async with bot.voice_lock:
+            bot.members_in_voice[guild_id] = {}
+            bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
+        async with bot.text_lock:
+            bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
         
         exceptions: list[Exception]
         try:
@@ -199,12 +201,13 @@ class EventsHandlerCog(Cog):
         await write_log_async("guild.log", "guild_remove", str(guild_id), str(guild.name))
         await write_log_async("common_logs.log", "guild_remove", str(guild_id), str(guild.name))
         
-        await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"))
-        async with self.bot.voice_lock:
-            del self.bot.members_in_voice[guild_id]
-            del self.bot.ignored_voice_channels[guild_id]
-        async with self.bot.text_lock:
-            del self.bot.ignored_text_channels[guild_id]
+        bot: StoreBot = self.bot
+        await bot.change_presence(activity=Game(f"/help on {len(bot.guilds)} servers"))
+        async with bot.voice_lock:
+            del bot.members_in_voice[guild_id]
+            del bot.ignored_voice_channels[guild_id]
+        async with bot.text_lock:
+            del bot.ignored_text_channels[guild_id]
     
     @tasks.loop(seconds=180.0)
     async def salary_roles_task(self) -> None:

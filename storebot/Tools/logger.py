@@ -12,7 +12,7 @@ async def write_log_async(filename: str, *report: str) -> None:
     #     filename += ".log"
 
     async with open(DIR_PATH + filename, mode="a+", encoding="utf-8") as f:
-        await f.write(f"[{datetime.utcnow() + _TZ_OFFSET}] [{'] ['.join(report)}]\n")
+        await f.write(f"[{datetime.utcnow() + _TZ_OFFSET}] [{'] ['.join(map(str, report))}]\n")
 
 async def write_one_log_async(filename: str, report: str) -> None:
     # if not filename.endswith(".log"):

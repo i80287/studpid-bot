@@ -58,19 +58,21 @@ class VoiceHandlerCog(Cog):
         if member.bot:
             return
         
+        await write_one_log_async("observations.log", f"[member: {member.id}:{member.name}] [guild: {member.guild.name}]")
         await self.voice_queue.put((member, before, after, int(time())))
     
     @tasks.loop()
     async def voice_processor(self) -> NoReturn:
         await write_one_log_async("common_logs.log", "[voice processor started]")
+        bot: StoreBot = self.bot
         while True:
             member, before, after, timestamp = await self.voice_queue.get()
 
             guild: Guild = member.guild
             guild_id: int = guild.id
-            async with self.bot.voice_lock:
-                if guild_id not in self.bot.ignored_voice_channels:
-                    self.bot.ignored_voice_channels[guild_id] = set()
+            async with bot.voice_lock:
+                if guild_id not in bot.ignored_voice_channels:
+                    bot.ignored_voice_channels[guild_id] = set()
 
             before_channel: VoiceChannel | StageChannel | None = before.channel
             after_channel: VoiceChannel | StageChannel | None = after.channel
@@ -83,53 +85,53 @@ class VoiceHandlerCog(Cog):
             money_for_voice: int = await get_server_info_value_async(guild_id, "mn_for_voice")       
             member_id: int = member.id
 
-            if before_channel_is_voice and after_channel_is_voice:
-                after_channel_id: int = after_channel.id
-                before_channel_id: int = before_channel.id
-                if after_channel_id == before_channel_id:
-                    continue
-                
-                await self.process_left_member(
-                    member_id=member_id,
-                    guild=guild,
-                    money_for_voice=money_for_voice,
-                    channel_id=before_channel_id,
-                    channel_name=before_channel.name,
-                    voice_left_time=timestamp
-                )
-                await self.process_joined_member(
-                    member_id=member_id,
-                    member=member,
-                    guild=guild,
-                    money_for_voice=money_for_voice,
-                    channel_id=after_channel_id,
-                    channel_name=after_channel.name,
-                    voice_join_time=timestamp
-                )
-
-                continue
-
             if before_channel_is_voice:
+                before_channel_id: int = before_channel.id
+                if after_channel_is_voice:
+                    after_channel_id: int = after_channel.id
+                    if after_channel_id == before_channel_id:
+                        continue
+                    
+                    await self.process_left_member(
+                        member_id,
+                        guild,
+                        money_for_voice,
+                        before_channel_id,
+                        before_channel.name,
+                        timestamp
+                    )
+                    await self.process_joined_member(
+                        member_id,
+                        member,
+                        guild,
+                        money_for_voice,
+                        after_channel_id,
+                        after_channel.name,
+                        timestamp
+                    )
+
+                    continue
+
                 await self.process_left_member(
-                    member_id=member_id,
-                    guild=guild,
-                    money_for_voice=money_for_voice,
-                    channel_id=before_channel.id,
-                    channel_name=before_channel.name,
-                    voice_left_time=timestamp
+                    member_id,
+                    guild,
+                    money_for_voice,
+                    before_channel_id,
+                    before_channel.name,
+                    timestamp
                 )
 
                 continue
 
             assert after_channel_is_voice
             await self.process_joined_member(
-                member_id=member_id,
-                member=member,
-                guild=guild,
-                money_for_voice=money_for_voice,
-                channel_id=after_channel.id,
-                channel_name=after_channel.name,
-                voice_join_time=timestamp
+                member_id,
+                member,
+                guild,
+                money_for_voice,
+                after_channel.id,
+                after_channel.name,
+                timestamp
             )
 
     @voice_processor.before_loop
@@ -137,26 +139,27 @@ class VoiceHandlerCog(Cog):
         await self.bot.wait_until_ready()
 
     async def process_left_member(self, member_id: int, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str, voice_left_time: int) -> None:
+        await write_one_log_async("observations.log", f"[member left] [member: {member_id}] [guild: {guild.name}]")
         guild_id: int = guild.id
         bot: StoreBot = self.bot
+        was_in_dict: bool = True
         async with bot.voice_lock:
             members_in_voice: dict[int, dict[int, Member]] = bot.members_in_voice
             if guild_id in members_in_voice:
                 if member_id in members_in_voice[guild_id]:
                     member_name: str = members_in_voice[guild_id].pop(member_id).name
                     voice_join_time: int = 0
-                    was_in_dict: bool = True
                 else:
                     # If member joined voice channel before the bot startup.
                     member_name: str = "not in dict;"
                     voice_join_time: int = bot.startup_time
-                    was_in_dict: bool = False
+                    was_in_dict = False
             else:
                 # If member left in time bot startuped
                 members_in_voice[guild_id] = {}
                 member_name: str = "guild not in dict;"
                 voice_join_time: int = bot.startup_time
-                was_in_dict: bool = False
+                was_in_dict = False
 
             if channel_id in bot.ignored_voice_channels[guild_id]:
                 await write_guild_log_async(
@@ -202,6 +205,7 @@ class VoiceHandlerCog(Cog):
                 pass
     
     async def process_joined_member(self, member_id: int, member: Member, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str, voice_join_time: int) -> None:
+        await write_one_log_async("observations.log", f"[member join] [member: {member_id}] [guild: {guild.name}]")        
         guild_id: int = guild.id
         bot: StoreBot = self.bot
         async with bot.voice_lock:
