@@ -24,20 +24,22 @@ class DebugCommandsCog(Cog):
 
     @command(name="fb_channel") # type: ignore
     @is_owner()
-    async def fb_channel(self, ctx: Context, chnl: TextChannel) -> None:
-        self.bot.bot_feedback_channel = chnl.id
-        await ctx.reply(embed=Embed(description=f"New feedback channel is <#{chnl.id}>"), mention_author=False, delete_after=10.0)
+    async def fb_channel(self, ctx: Context, channel: TextChannel) -> None:
+        channel_id: int = channel.id
+        self.bot.bot_feedback_channel = channel_id
+        await ctx.reply(embed=Embed(description=f"New feedback channel is <#{channel_id}>"), mention_author=False, delete_after=10.0)
 
     @command(name="load") # type: ignore
     @is_owner()
     async def load(self, ctx: Context, extension) -> None:
         if path.exists(CWD_PATH + f"/Cogs/{extension}.py"):
-            async with self.bot.text_lock:
-                async with self.bot.voice_lock:
-                    async with self.bot.statistic_lock:
+            bot = self.bot
+            async with bot.text_lock:
+                async with bot.voice_lock:
+                    async with bot.statistic_lock:
                         self.bot.load_extension(f"storebot.Cogs.{extension}")
             await sleep(1.0)
-            await self.bot.sync_all_application_commands()
+            await bot.sync_all_application_commands()
             await sleep(1.0)
             emb: Embed = Embed(description=f"**Loaded `{extension}`**")
         else:
@@ -48,12 +50,14 @@ class DebugCommandsCog(Cog):
     @is_owner()
     async def unload(self, ctx: Context, extension) -> None:
         if path.exists(CWD_PATH + f"/Cogs/{extension}.py"):
-            async with self.bot.text_lock:
-                async with self.bot.voice_lock:
-                    async with self.bot.statistic_lock:
-                        self.bot.unload_extension(f"storebot.Cogs.{extension}")
+            bot = self.bot
+            async with bot.text_lock:
+                async with bot.voice_lock:
+                    async with bot.statistic_lock:
+                        bot.unload_extension(f"storebot.Cogs.{extension}")
+
             await sleep(1.0)
-            await self.bot.sync_all_application_commands()
+            await bot.sync_all_application_commands()
             await sleep(1.0)
             emb: Embed = Embed(description=f"**`Unloaded {extension}`**")
         else:
@@ -64,14 +68,17 @@ class DebugCommandsCog(Cog):
     @is_owner()
     async def reload(self, ctx: Context, extension) -> None:
         if path.exists(CWD_PATH + f"/Cogs/{extension}.py"):
+            bot = self.bot
             await ctx.reply(embed=Embed(description="**`Started reloading`**"), mention_author=False, delete_after=10.0)
-            async with self.bot.text_lock:
-                async with self.bot.voice_lock:
-                    async with self.bot.statistic_lock:
-                        self.bot.unload_extension(f"storebot.Cogs.{extension}")
-                        self.bot.load_extension(f"storebot.Cogs.{extension}")
+            
+            async with bot.text_lock:
+                async with bot.voice_lock:
+                    async with bot.statistic_lock:
+                        bot.unload_extension(f"storebot.Cogs.{extension}")
+                        bot.load_extension(f"storebot.Cogs.{extension}")
+            
             await sleep(1.0)
-            await self.bot.sync_all_application_commands()
+            await bot.sync_all_application_commands()
             await sleep(1.0)
             emb: Embed = Embed(description=f"**`Reloaded {extension}`**")
         else:
@@ -122,9 +129,10 @@ class DebugCommandsCog(Cog):
             return
         
         k: int = 0
-        async with self.bot.voice_lock:
-            for guild_id, members_dict in self.bot.members_in_voice.items():
-                guild: Guild | None = self.bot.get_guild(guild_id)
+        bot = self.bot
+        async with bot.voice_lock:
+            for guild_id, members_dict in bot.members_in_voice.items():
+                guild: Guild | None = bot.get_guild(guild_id)
                 if not guild:
                     continue
                 for member_id, member in members_dict.items():
@@ -134,7 +142,7 @@ class DebugCommandsCog(Cog):
                         member=member
                     )
                     k += 1
-                self.bot.members_in_voice[guild_id] = {}
+                bot.members_in_voice[guild_id] = {}
 
         await ctx.reply(embed=Embed(description=f"**`Processed {k} members`**"), mention_author=False)
 

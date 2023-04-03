@@ -47,7 +47,7 @@ from ..Tools.db_commands import (
 from ..constants import CWD_PATH, DB_PATH
 
 
-command_match: Callable[[str, int, int], re.Match[str] | None] = re.compile(r"^(!work)|(!collect)", re.RegexFlag.IGNORECASE).match
+_command_match: Callable[[str, int, int], re.Match[str] | None] = re.compile(r"^(!work)|(!collect)", re.RegexFlag.IGNORECASE).match
 
 class EventsHandlerCog(Cog):
     event_handl_text: dict[int, dict[int, str]] = {
@@ -181,9 +181,9 @@ class EventsHandlerCog(Cog):
         await write_log_async("guild.log", "guild_join", str_guild_id, guild_name)
         await write_log_async("common_logs.log", "guild_join", str_guild_id, guild_name)
         await write_guild_log_async(
-            filename="guild.log",
-            guild_id=guild_id,
-            report=f"[guild_join] [guild: {str_guild_id}:{guild_name}]"
+            "guild.log",
+            guild_id,
+            f"[guild_join] [guild: {str_guild_id}:{guild_name}]"
         )
 
         await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"))
@@ -196,8 +196,8 @@ class EventsHandlerCog(Cog):
         if guild_id in {260978723455631373, 1068135541360578590}:
             return
 
-        await write_log_async("guild", "guild_remove", str(guild_id), str(guild.name))
-        await write_log_async("common_logs", "guild_remove", str(guild_id), str(guild.name))
+        await write_log_async("guild.log", "guild_remove", str(guild_id), str(guild.name))
+        await write_log_async("common_logs.log", "guild_remove", str(guild_id), str(guild.name))
         
         await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"))
         async with self.bot.voice_lock:
@@ -237,7 +237,7 @@ class EventsHandlerCog(Cog):
         g_id: int = guild.id
 
         if g_id in {1058854571239280721, 1057747986349821984, 750708076029673493, 863462268402532363} \
-            and command_match(message.content, 0, 8) is not None:
+            and _command_match(message.content, 0, 8) is not None:
             await TextComandsCog.work_command(await self.bot.get_context(message))
             return
 
@@ -300,7 +300,7 @@ class EventsHandlerCog(Cog):
         guild_report: str = f"[{guild.id}] [{guild.name}] " if (guild := interaction.guild) else ""
         command_report: str = f"[{interaction.application_command.name}] " if interaction.application_command else ""
         report: str = f"[ERROR] [slash_command] {command_report}{guild_report}[{str(exception)}]"
-        await write_one_log_async(filename="error.log", report=report)
+        await write_one_log_async("error.log", report)
 
     @Cog.listener()
     async def on_command_error(self, ctx: Context, error) -> None:
@@ -311,7 +311,7 @@ class EventsHandlerCog(Cog):
             lines.append(f"[guild: {guild.id}:{guild.name}]")
         lines.append('[' + str(error) + ']')
         
-        await write_one_log_async(filename="error.log", report=' '.join(lines))
+        await write_one_log_async("error.log", ' '.join(lines))
 
 
 def setup(bot: StoreBot) -> None:

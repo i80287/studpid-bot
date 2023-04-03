@@ -102,8 +102,8 @@ class OpenAICog(Cog):
             await interaction.response.send_message(embed=Embed(description=self.openai_cog_text[lng][1].format(question)))
         except Exception as ex:
             await write_one_log_async(
-                    filename="error.log",
-                    report=f"[FATAL] [ERROR] [could not response] [ask] [question: {question}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
+                    "error.log",
+                    f"[FATAL] [ERROR] [could not response] [ask] [question: {question}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
                 )
             await channel.send(embed=Embed(description=self.openai_cog_text[lng][4]))
             await interaction.response.defer()
@@ -122,13 +122,13 @@ class OpenAICog(Cog):
                     )
                 except Exception as ex:
                     await write_one_log_async(
-                        filename="error.log",
-                        report=f"[FATAL] [ERROR] [ask] [question: {question}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
+                        "error.log",
+                        f"[FATAL] [ERROR] [ask] [question: {question}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
                     )
                     await interaction.followup.send(embed=Embed(description=self.openai_cog_text[lng][4]), ephemeral=True)
                     return
 
-        answer: str = response.choices[0].text.strip('\n') # type: ignore
+        answer: str = str(response.choices[0].text).strip('\n') # type: ignore
         try:
             if ((length := len(answer)) < 3900):
                 await channel.send(embed=Embed(description=self.openai_cog_text[lng][2].format(answer)))
@@ -140,8 +140,8 @@ class OpenAICog(Cog):
                         await channel.send(embed=Embed(description=ans_part))
         except Exception as ex:
             await write_one_log_async(
-                filename="error.log",
-                report=f"[FATAL] [ERROR] [ask] [question: {question}] [answer: {answer}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
+                "error.log",
+                f"[FATAL] [ERROR] [ask] [question: {question}] [answer: {answer}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
             )
             await interaction.followup.send(embed=Embed(description=self.openai_cog_text[lng][5]), ephemeral=True)
         else:
