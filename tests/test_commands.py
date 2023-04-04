@@ -16,7 +16,7 @@ from nextcord import Colour, Member
 from nextcord.ui.view import View
 
 from storebot.constants import CWD_PATH, DB_PATH
-from storebot.Cogs.slash_cmds_cog import SlashCommandsCog
+from storebot.Cogs.slash_cmds_cog import SlashCommandsCog, text_slash as slash_commands_text
 from storebot.Cogs.add_cmds_cog import AdditionalCommandsCog
 from storebot.storebot import StoreBot
 from storebot.Tools import db_commands
@@ -198,6 +198,33 @@ async def test_slash_cog() -> None:
         task.cancel()
     
     check_store_embed(interaction.payload, role_info_member_has, time_added)
+    currency: str = await db_commands.get_server_currency_async(guild_id)
+
+    member_cash = 308
+    CONST_CASH = 38
+    bot_id: int = bot_member.id
+    await db_commands.update_member_cash_async(guild_id, member_id, member_cash)
+    assert await db_commands.get_member_cash_nocheck_async(guild_id, member_id) == member_cash
+    assert await db_commands.get_member_cash_async(guild_id, member_id) == member_cash
+    
+    interaction = build_interaction()
+    await cog.transfer(interaction, member_cash + CONST_CASH, bot_member)
+    check_embed(interaction, slash_commands_text[0][39].format(CONST_CASH, currency))
+
+    interaction = build_interaction()
+    interaction.locale = "ru"
+    await cog.transfer(interaction, member_cash + CONST_CASH, bot_member)
+    check_embed(interaction, slash_commands_text[1][39].format(CONST_CASH, currency))
+    
+    interaction = build_interaction()
+    await cog.transfer(interaction, CONST_CASH, bot_member)
+    check_embed(interaction, slash_commands_text[0][41].format(CONST_CASH, currency, bot_id), False)
+
+    interaction = build_interaction()
+    interaction.locale = "ru"
+    await cog.transfer(interaction, CONST_CASH, bot_member)
+    check_embed(interaction, slash_commands_text[1][41].format(CONST_CASH, currency, bot_id), False)
+
 
 async def test_add_cmds_cog():
     cog: AdditionalCommandsCog | None = test_bot.get_cog("AdditionalCommandsCog") # type: ignore
