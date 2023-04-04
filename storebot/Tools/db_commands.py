@@ -804,7 +804,7 @@ async def process_transfer_command_async(guild_id: int, member_id: int, target_i
 
             `(0, currency)` otherwise
     """
-
+    assert value > 0
     async with connect_async(DB_PATH.format(guild_id)) as base:
         currency: str = (await (await base.execute("SELECT str_value FROM server_info WHERE settings = 'currency';")).fetchone())[0] # type: ignore
 
