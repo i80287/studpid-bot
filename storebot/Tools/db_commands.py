@@ -141,6 +141,20 @@ async def get_member_nocheck_async(guild_id: int, member_id: int) -> tuple[int, 
         async with base.execute("SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = " + str(member_id)) as cur:
             return tuple(await cur.fetchone()) # type: ignore
 
+async def get_member_cash_async(guild_id: int, member_id: int) -> int:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        async with base.execute("SELECT money FROM users WHERE memb_id = " + str(member_id)) as cur:
+            res = await cur.fetchone()
+            if res:
+                return res[0]
+            
+            await base.execute(
+                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
+                (member_id, "")
+            )
+            await base.commit()
+            return 0
+
 async def get_member_cash_nocheck_async(guild_id: int, member_id: int) -> int:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute("SELECT money FROM users WHERE memb_id = " + str(member_id)) as cur:
@@ -695,7 +709,7 @@ async def process_work_command_async(guild_id: int, member_id: int) -> tuple[int
         member_id (int): id of the member
 
     Returns:
-        int:
+        `tuple`:
             `(-1, 0, None)` if guild's economy is disabled
 
             `(-2, time_lasted_for_cooldown_break, None)` if user should wait some time to use the command again
@@ -772,6 +786,59 @@ UNION SELECT * FROM cte;
         )
         await base.commit()
         return (salary, 0, None)
+
+async def process_transfer_command_async(guild_id: int, member_id: int, target_id: int, value: int) -> tuple[int, str]:
+    """Process `/transfer` command
+
+    Args:
+        guild_id (int): id of the guild (discord server)
+        member_id (int): id of the member
+
+    Returns:
+        `tuple`:
+            `(-1, currency)` if guild's economy is disabled
+
+            `(-2, currency)` if transfer command is disabled
+
+            `(member_cash + 1, currency)` if member has less money then `value`
+
+            `(0, currency)` otherwise
+    """
+
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        currency: str = (await (await base.execute("SELECT str_value FROM server_info WHERE settings = 'currency';")).fetchone())[0] # type: ignore
+
+        if not (await (await base.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled';")).fetchone())[0]: # type: ignore
+            return (-1, currency)
+        
+        assert CommandId.TRANSFER == 10
+        cmd_status = await (await base.execute("SELECT is_enabled FROM commands_settings WHERE command_id = 10;")).fetchone()
+        assert cmd_status is None or isinstance(cmd_status, tuple)
+        if not cmd_status or not cmd_status[0]:
+            return (-2, currency)
+
+        str_member_id = str(member_id)
+        member_cash_res = await (await base.execute("SELECT money FROM users WHERE memb_id = " + str_member_id)).fetchone()
+        assert member_cash_res is None or isinstance(member_cash_res, tuple)
+        if member_cash_res:
+            member_cash: int = member_cash_res[0]
+        else:
+            await base.execute(
+                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
+                (member_id, "")
+            )
+            await base.commit()
+            return (1, currency)
+
+        if member_cash < value:
+            return (member_cash + 1, currency)
+
+        await base.execute("UPDATE users SET money = money - ? WHERE memb_id = " + str_member_id, (value,))
+        await base.commit()
+        await base.execute("UPDATE users SET money = money + ? WHERE memb_id = " + str(target_id), (value,))
+        await base.commit()
+    
+    return (0, currency)            
 
 async def is_command_enabled_async(guild_id: int, command_id: CommandId) -> bool:
     async with connect_async(DB_PATH.format(guild_id)) as base:

@@ -52,6 +52,8 @@ from ..Tools.db_commands import (
     get_server_log_info_async,
     process_work_command_async,
     is_command_disabled_async,
+    get_member_cash_async,
+    process_transfer_command_async,
     PartialRoleStoreInfo,
     CommandId
 )
@@ -111,11 +113,11 @@ text_slash: dict[int, dict[int, str]] = {
         36: "won",
         37: "Duel",
         38: "<@{}> gained {} {}, <@{}> lost",
-        39: "**`Sorry, but for money transfering you need {}`** {} **`more`**",
+        39: "**`Sorry, but for money transfering you need {0:0,}`** {1} **`more`**",
         40: "Transaction completed",  # title
-        41: "**`You successfully transfered {}`** {} **`to`** {}",
+        41: "**`You successfully transfered {0:0,}`** {1} **`to the`** <@{2}>",
         42: "Transaction",
-        43: "{} transfered {} {} to {}",
+        43: "<@{0}> transfered `{1:0,}` {2} to the <@{3}>",
         44: "**`Store role number can not be less than 1`**",
         45: "**`There is no role with such number in the store`**",
         46: "**`Role is not found on the server. May be it was deleted`**",
@@ -155,11 +157,11 @@ text_slash: dict[int, dict[int, str]] = {
         36: "выиграл(a)",
         37: "Дуэль",
         38: "<@{}> заработал(a) {} {}, <@{}> - проиграл(a)",
-        39: "**`Извините, но для совершения перевода Вам не хватает {}`** {}",
+        39: "**`Извините, но для совершения перевода Вам не хватает {0:0,}`** {1}",
         40: "Перевод совершён",
-        41: "**`Вы успешно перевели {}`** {} **`пользователю`** {}",
+        41: "**`Вы успешно перевели {0:0,}`** {1} **`пользователю`** <@{2}>",
         42: "Транзакция",
-        43: "{} передал {} {} пользователю {}",
+        43: "<@{0}> передал `{1:0,}` {2} пользователю <@{3}>",
         44: "**`Номер роли в магазине не может быть меньше 1`**",
         45: "**`Роли с таким номером нет в магазине`**",
         46: "**`Роль не найдена на сервере. Возможно, она была удалена`**",
@@ -272,37 +274,33 @@ class BetView(ViewBase):
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert isinstance(interaction.user, Member)
-        memb_id: int = interaction.user.id
-        lng: int = self.lng
+        assert interaction.guild_id is not None
+        assert interaction.locale is not None
+        member_id: int = interaction.user.id
+        lng: int = 1 if "ru" in interaction.locale else 0
         if custom_id.startswith("36"):
-            if memb_id == self.author_id:
+            if member_id == self.author_id:
                 await interaction.response.send_message(embed=Embed(description=bet_text[lng][2]), ephemeral=True)
                 return
-            with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
-                with closing(base.cursor()) as cur:
-                    db_cash: Optional[tuple[int]] = cur.execute("SELECT money FROM users WHERE memb_id = ?", (memb_id,)).fetchone()
-                    if not db_cash:
-                        cur.execute(
-                            "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, ?, ?, ?, ?, ?)",
-                            (memb_id, 0, "", 0, 0, 0))
-                        base.commit()
-                        cash: int = 0
-                    else:
-                        cash: int = db_cash[0]
-
+            
+            cash: int = await get_member_cash_async(interaction.guild_id, member_id)
             if cash < self.bet:
-                emb: Embed = Embed(
-                    description=bet_text[lng][3].format(self.bet - cash, self.currency),
-                    colour=Colour.red()
+                await interaction.response.send_message(
+                    embed=Embed(
+                        description=bet_text[lng][3].format(self.bet - cash, self.currency),
+                        colour=Colour.red()
+                    ),
+                    ephemeral=True
                 )
-                await interaction.response.send_message(embed=emb, ephemeral=True)
                 return
-            self.dueler = memb_id
+
+            self.dueler = member_id
             self.stop()
         else:
-            if interaction.user.id != self.author_id:
+            if member_id != self.author_id:
                 await interaction.response.send_message(embed=Embed(description=bet_text[lng][4]), ephemeral=True)
                 return
+
             self.declined = True
             self.stop()
 
@@ -381,7 +379,7 @@ class StoreView(ViewBase):
                 # Reversed sort by date from lower to higher (early date is lower, goes first) 
                 # If dates are equal then item with lower price goes first
                 # tup[3] - price of the role, tup[4] - last date of adding role to the store.
-                self.db_store.sort(key=lambda tup: (tup[4], tup[3]), reverse=False)
+                self.db_store.sort(key=lambda tup: (tup[4], tup[3])) #[, reverse=False]
             return
         # If sort is not reversed
         if self.sort_by_price:
@@ -389,12 +387,12 @@ class StoreView(ViewBase):
             # If prices are equal sort by date from higher to lower (latest is higher, early date is lower)
             # tup[3] - price of the role, tup[4] - last date of adding role to the store.
             self.db_store.sort(key=lambda tup: tup[4], reverse=True)
-            self.db_store.sort(key=lambda tup: tup[3], reverse=False)
+            self.db_store.sort(key=lambda tup: tup[3]) #[, reverse=False]
         else:
             # Sort by date from higher to lower (latest is higher, early date is lower)
             # If dates are equal then item with lower price goes first
             # tup[3] - price of the role, tup[4] - last date of adding role to the store.
-            self.db_store.sort(key=lambda tup: tup[3], reverse=False)
+            self.db_store.sort(key=lambda tup: tup[3]) #[, reverse=False]
             self.db_store.sort(key=lambda tup: tup[4], reverse=True)
 
     async def update_menu(self, interaction: Interaction, click: Literal[0, 1, 2, 3, 4]) -> None:
@@ -431,7 +429,6 @@ class StoreView(ViewBase):
         currency: str = self.currency
         for role_number, role_id, q, price, d, salary, salary_cooldown, role_type in self.db_store[(page - 1) * self.in_row:min(page * self.in_row, self.l)]:
             date: str = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
-            role_info: str
             match role_type:
                 case 1:
                     role_info = store_text[lng][0].format(role_number, role_id, price, currency, date)
@@ -454,20 +451,8 @@ class StoreView(ViewBase):
                 await interaction.response.edit_message(embed=emb)
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
-        click: Literal[0, 1, 2, 3, 4]
-        match int(custom_id[:2]):
-            case 32:
-                click = 1
-            case 33:
-                click = 2
-            case 34:
-                click = 3
-            case 35:
-                click = 4
-            case _:
-                click = 0
-
-        await self.update_menu(interaction, click)
+        assert int(custom_id[:2]) in {32, 33, 34, 35}
+        await self.update_menu(interaction, int(custom_id[:2]) - 31) # type: ignore
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         assert values
@@ -535,12 +520,13 @@ class RatingView(ViewBase):
         self.pages: int = max(1, (l + in_row - 1) // in_row)
         self.currency: str = currency
         self.in_row: int = in_row
-        # True - show ranking by cash, False - by xp
-        self.sort_value: bool = True if ec_status else False        
-        self.add_item(CustomButton(custom_id=f"38_{auth_id}_" + urandom(4).hex(), emoji="⏮️"))
-        self.add_item(CustomButton(custom_id=f"39_{auth_id}_" + urandom(4).hex(), emoji="◀️"))
-        self.add_item(CustomButton(custom_id=f"40_{auth_id}_" + urandom(4).hex(), emoji="▶️"))
-        self.add_item(CustomButton(custom_id=f"41_{auth_id}_" + urandom(4).hex(), emoji="⏭"))
+        # True / 1 - show ranking by cash, False / 0 - by xp
+        self.sort_value: int = ec_status
+        add_item = self.add_item
+        add_item(CustomButton(custom_id=f"38_{auth_id}_" + urandom(4).hex(), emoji="⏮️"))
+        add_item(CustomButton(custom_id=f"39_{auth_id}_" + urandom(4).hex(), emoji="◀️"))
+        add_item(CustomButton(custom_id=f"40_{auth_id}_" + urandom(4).hex(), emoji="▶️"))
+        add_item(CustomButton(custom_id=f"41_{auth_id}_" + urandom(4).hex(), emoji="⏭"))
         if ec_status and rnk_status:
             opts: list[SelectOption] = [
                 SelectOption(
@@ -556,7 +542,7 @@ class RatingView(ViewBase):
                     default=False
                 )
             ]
-            self.add_item(item=CustomSelectWithOptions(
+            add_item(item=CustomSelectWithOptions(
                 custom_id=f"104_{auth_id}_" + urandom(4).hex(),
                 placeholder=rating_text[lng][3],
                 opts=opts
@@ -585,13 +571,13 @@ class RatingView(ViewBase):
             else:
                 page = total_pages
 
-        in_row = self.in_row
+        in_row: int = self.in_row
         counter_start: int = (page - 1) * in_row + 1
         lng: int = self.lng
         if self.sort_value:
             currency: str = self.currency
             emb: Embed = Embed(title=rating_text[lng][0], colour=Colour.dark_gray())
-            for counter, member_info in enumerate(self.cash_list[((page - 1) * in_row):min((page * in_row), len(self.cash_list))], start=counter_start):
+            for counter, member_info in enumerate(self.cash_list[((page - 1) * in_row):min((page * in_row), len(self.cash_list))], counter_start):
                 emb.add_field(
                     name=rating_text[lng][3].format(counter),
                     value=f"<@{member_info[0]}>\n{member_info[1]:0,} " + currency,
@@ -600,7 +586,7 @@ class RatingView(ViewBase):
         else:
             emb: Embed = Embed(title=rating_text[lng][1], colour=Colour.dark_gray())
             levels_xp_border: int = self.xp_b
-            for counter, member_info in enumerate(self.xp_list[((page - 1) * in_row):min((page * in_row), len(self.xp_list))], start=counter_start):
+            for counter, member_info in enumerate(self.xp_list[((page - 1) * in_row):min((page * in_row), len(self.xp_list))], counter_start):
                 emb.add_field(
                     name=rating_text[lng][3].format(counter),
                     value=f"<@{member_info[0]}>\n" + rating_text[lng][4].format((member_info[1] - 1) // levels_xp_border + 1),
@@ -614,33 +600,22 @@ class RatingView(ViewBase):
             await interaction.response.edit_message(embed=emb, view=self)
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
-        click: Literal[0, 1, 2, 3, 4]
-        match int(custom_id[:2]):
-            case 38:
-                click = 1
-            case 39:
-                click = 2
-            case 40:
-                click = 3
-            case 41:
-                click = 4
-            case _:
-                click = 0
-
-        await self.update_menu(interaction, click)
+        assert int(custom_id[:2]) in {38, 39, 40, 41}
+        await self.update_menu(interaction, int(custom_id[:2]) - 37) # type: ignore
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         assert values[0].isdecimal()
         assert custom_id.startswith("104_")
-        assert isinstance(self.children[4], CustomSelectWithOptions)
+        select_option = self.children[4]
+        assert isinstance(select_option, CustomSelectWithOptions)
         if int(values[0]):
             self.sort_value = False
-            self.children[4].options[0].default = False
-            self.children[4].options[1].default = True
+            select_option.options[0].default = False
+            select_option.options[1].default = True
         else:
             self.sort_value = True
-            self.children[4].options[0].default = True
-            self.children[4].options[1].default = False
+            select_option.options[0].default = True
+            select_option.options[1].default = False
 
         await self.update_menu(interaction, 0)
 
@@ -971,7 +946,7 @@ class SlashCommandsCog(Cog):
         # If prices are equal sort by date from higher to lower (latest is higher, early date is lower)
         # tup[3] - price of the role, tup[4] - last date of adding role to the store.
         db_store.sort(key=lambda tup: tup[4], reverse=True)
-        db_store.sort(key=lambda tup: tup[3], reverse=False)
+        db_store.sort(key=lambda tup: tup[3]) #[, reverse=False]
 
         store_list: list[str] = []
         tz_info: timezone = timezone(timedelta(hours=tz))
@@ -1247,10 +1222,11 @@ class SlashCommandsCog(Cog):
 
             # in case role(s) was(were) removed from user manually, we should update database
             if memb_roles != memb_server_db_roles:
+                new_owned_roles: str = \
+                    '#' + '#'.join(map(str, memb_server_db_roles)) \
+                    if memb_server_db_roles else ""
                 with closing(connect(DB_PATH.format(interaction.guild_id).format(interaction.guild_id))) as base:
                     with closing(base.cursor()) as cur:
-                        new_owned_roles: str = '#' + '#'.join(str(role_id) for role_id in memb_server_db_roles) \
-                            if memb_server_db_roles else ""
                         cur.execute(
                             "UPDATE users SET owned_roles = ? WHERE memb_id = ?",
                             (new_owned_roles, memb_id)
@@ -1638,31 +1614,19 @@ class SlashCommandsCog(Cog):
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
 
-        if await is_command_disabled_async(guild_id, CommandId.TRANSFER):
-            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
+        (ret_code, currency) = await process_transfer_command_async(guild_id, memb_id, t_id, value)
+        if ret_code:
+            if ret_code > 0:
+                await self.respond_with_error_report(interaction, lng, text_slash[lng][39].format(value - ret_code - 1, currency))
+            elif ret_code == -1:
+                await self.respond_with_error_report(interaction, lng, common_text[lng][2])
+            else:
+                await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
             return
-
-        act: tuple[int, int, str, int, int, int] = await get_member_async(guild_id, memb_id)
-        await check_member_async(guild_id, t_id)
-        with closing(connect(DB_PATH.format(guild_id))) as base:
-            with closing(base.cursor()) as cur:
-                if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
-                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=common_text[lng][2])
-                    return
-                
-                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
-                if value > act[1]:
-                    await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][39].format(value - act[1], currency))
-                    return
-
-                cur.execute('UPDATE users SET money = money - ? WHERE memb_id = ?', (value, memb_id))
-                base.commit()
-                cur.execute('UPDATE users SET money = money + ? WHERE memb_id = ?', (value, t_id))
-                base.commit()
 
         emb: Embed = Embed(
             title=text_slash[lng][40],
-            description=text_slash[lng][41].format(value, currency, f"<@{t_id}>"),
+            description=text_slash[lng][41].format(value, currency, t_id),
             colour=Colour.green()
         )
         await interaction.response.send_message(embed=emb)
@@ -1672,7 +1636,7 @@ class SlashCommandsCog(Cog):
             try:
                 await guild_log_channel.send(embed=Embed(
                     title=text_slash[server_lng][42],
-                    description=text_slash[server_lng][43].format(f"<@{memb_id}>", value, currency, f"<@{t_id}>")
+                    description=text_slash[server_lng][43].format(memb_id, value, currency, t_id)
                 ))
             except:
                 return
@@ -2136,7 +2100,8 @@ class SlashCommandsCog(Cog):
                 Locale.ru: "Переводимая сумма денег"
             },
             required=True,
-            min_value=1
+            min_value=1,
+            max_value=65535
         ),
         target: Member = SlashOption(
             name="target",
