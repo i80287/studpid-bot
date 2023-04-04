@@ -4,6 +4,8 @@ if TYPE_CHECKING:
     from typing import Literal, Optional, List, Any, Dict, Iterator
     from collections.abc import Iterable, Sequence
 
+    from nextcord.member import Member
+    from nextcord.types.snowflake import Snowflake
     from nextcord.mentions import AllowedMentions
     from nextcord.message import Attachment
     from nextcord.guild import Guild
@@ -11,7 +13,7 @@ if TYPE_CHECKING:
     from nextcord.role import Role
     from nextcord.ui import View
     from nextcord.state import ConnectionState
-    from nextcord.http import HTTPClient, Route
+    from nextcord.http import HTTPClient, Route, Response
 
 import asyncio
 import aiohttp
@@ -236,16 +238,45 @@ async def request(
     return object()
 
 http.request = request
-     
 
 guild: Guild = bot.guilds[0]
 GUILD_ROLES: list[Role] = guild.roles
+
+async def add_role(
+    guild_id: Snowflake,
+    user_id: Snowflake,
+    role_id: Snowflake,
+    *,
+    reason: Optional[str] = None,
+) -> Response[None]:
+    _member: Member | None = guild.get_member(int(user_id))
+    assert _member is not None
+    _member._roles.add(int(role_id))
+
+    return object() # type: ignore
+
+http.add_role = add_role # type: ignore
+
+async def remove_role(
+    guild_id: Snowflake,
+    user_id: Snowflake,
+    role_id: Snowflake,
+    *,
+    reason: Optional[str] = None,
+) -> Response[None]:
+    _member: Member | None = guild.get_member(int(user_id))
+    assert _member is not None
+    _member._roles.remove(int(role_id))
+
+    return object() # type: ignore
+
+http.remove_role = remove_role # type: ignore
 
 class DummyInteraction(Interaction):
     def __init__(self, *, data: InteractionPayLoads, state: ConnectionState) -> None:
         super().__init__(data=data, state=state)
         self.dummy_interaction_response: DummyInteractionResponse = DummyInteractionResponse(self)
-        self._payload: dict[str, Any] = {}
+        self.__payload: dict[str, Any] = {}
         self.__edit_payload: dict[str, Any] = {}
 
     @property

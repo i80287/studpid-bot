@@ -128,6 +128,17 @@ async def test_slash_cog() -> None:
     role_id_member_has: int = role.id
     role_info_member_has: RoleInfo = RoleInfo(role_id=role_id_member_has, price=ROLE_PRICE, salary=100, salary_cooldown=86400, role_type=1, additional_salary=42)
     time_added: int = await add_role_to_db(guild_id, role_info_member_has, {member_id})
+    interaction = build_interaction()
+    task = asyncio.create_task(cog.store(interaction=interaction))
+    view = await get_view()
+
+    assert isinstance(view, ViewBase)
+    await asyncio.sleep(1.0)
+    view.stop()
+    if not task.cancelled():
+        task.cancel()
+    
+    check_store_embed(interaction.payload, role_info_member_has, time_added)
 
     member_info: tuple[int, int, str, int, int, int] = await db_commands.get_member_async(guild_id, member_id)
     assert member_id == member_info[0]
@@ -137,32 +148,33 @@ async def test_slash_cog() -> None:
     await cog.buy(interaction=interaction, role=role)
     check_embed(interaction, "**`You already have this role`**")
 
-    role: Role = get_test_role(False)
+    role_member_does_not_have: Role = get_test_role(False)
+    role_id_to_add: int = role_member_does_not_have.id
+    assert not member._roles.has(role_id_to_add)
 
     interaction = build_interaction()
-    await cog.buy(interaction=interaction, role=role)
+    await cog.buy(interaction=interaction, role=role_member_does_not_have)
     check_embed(interaction, "**`This item not found. Please, check if you selected right role`**")
 
-    role_id_to_add: int = role.id
     role_info: RoleInfo = RoleInfo(role_id=role_id_to_add, price=ROLE_PRICE, salary=100, salary_cooldown=86400, role_type=1, additional_salary=42)
     await add_role_to_db(guild_id, role_info)
 
     interaction = build_interaction()
-    await cog.buy(interaction=interaction, role=role)
+    await cog.buy(interaction=interaction, role=role_member_does_not_have)
     check_embed(interaction, f"**`For purchasing this role you need {ROLE_PRICE} `:coin:` more`**")
 
     await db_commands.update_member_cash_async(guild_id, member_id, ROLE_PRICE - 1)
 
     interaction = build_interaction()
-    await cog.buy(interaction=interaction, role=role)
+    await cog.buy(interaction=interaction, role=role_member_does_not_have)
     check_embed(interaction, "**`For purchasing this role you need 1 `:coin:` more`**")
 
     MEMBER_INIT_CASH: int = ROLE_PRICE << 1
     await db_commands.update_member_cash_async(guild_id, member_id, MEMBER_INIT_CASH)
 
     interaction = build_interaction()
-    task: asyncio.Task[None] = asyncio.create_task(cog.buy(interaction=interaction, role=role))
-    view: View = await get_view()
+    task: asyncio.Task[None] = asyncio.create_task(cog.buy(interaction=interaction, role=role_member_does_not_have))
+    view: View | ViewBase = await get_view()
     
     assert isinstance(view, ViewBase)
     items = view.children
@@ -179,28 +191,73 @@ async def test_slash_cog() -> None:
     if not task.cancelled():
         task.cancel()
 
-    check_embed(interaction.edit_payload, "**`If your DM are open, then purchase confirmation will be messaged you`**", False)
-
-    member_info = await db_commands.get_member_async(guild_id, member_id)
-    member_cash: int = member_info[1] 
-    assert member_id == member_info[0]
-    assert MEMBER_INIT_CASH - ROLE_PRICE == member_cash
-    assert "#{0}#{1}".format(role_id_member_has, role_id_to_add) == member_info[2]
+    check_embed(interaction.edit_payload, slash_commands_text[0][11], False)
+    assert await db_commands.get_member_cash_nocheck_async(guild_id, member_id) == MEMBER_INIT_CASH - ROLE_PRICE
+    assert member._roles.has(role_id_to_add)
 
     interaction = build_interaction()
-    task = asyncio.create_task(cog.store(interaction=interaction))
+    interaction.locale = "ru"
+    await cog.buy(interaction=interaction, role=role_member_does_not_have)
+    check_embed(interaction, slash_commands_text[1][5])
+
+    await add_role_to_db(guild_id, role_info)
+
+    interaction = build_interaction()
+    interaction.locale = "ru"
+    await cog.buy(interaction=interaction, role=role_member_does_not_have)
+    check_embed(interaction, slash_commands_text[1][4])
+    member._roles.remove(role_id_to_add)
+    await db_commands.remove_member_role_async(guild_id, member_id, role_id_to_add)
+
+    interaction = build_interaction()
+    interaction.locale = "ru"
+    task = asyncio.create_task(cog.buy(interaction=interaction, role=role_member_does_not_have))
     view = await get_view()
 
     assert isinstance(view, ViewBase)
+    items = view.children
+    assert isinstance(items, list)
+    assert len(items) == 2
+    button1 = items[0]
+    button2 = items[1]
+    assert isinstance(button1, CustomButton)
+    assert isinstance(button2, CustomButton)
+    button_interaction: DummyInteraction = build_interaction()
+    button_interaction.locale = "ru"
+    await button1.callback(button_interaction)
+    
     await asyncio.sleep(1.0)
     view.stop()
     if not task.cancelled():
         task.cancel()
-    
-    check_store_embed(interaction.payload, role_info_member_has, time_added)
+
+    check_embed(interaction.edit_payload, slash_commands_text[1][11], False)
+    assert await db_commands.get_member_cash_nocheck_async(guild_id, member_id) == MEMBER_INIT_CASH - 2 * ROLE_PRICE
+    assert member._roles.has(role_id_to_add)
+    member_info = await db_commands.get_member_async(guild_id, member_id)
+    assert member_id == member_info[0]
+    assert "#{0}#{1}".format(role_id_member_has, role_id_to_add) == member_info[2]
+
+    await db_commands.update_member_cash_async(guild_id, member_id, 0)
     currency: str = await db_commands.get_server_currency_async(guild_id)
 
-    member_cash = 308
+    interaction = build_interaction()
+    await cog.sell(interaction, role_member_does_not_have)
+    check_embed(interaction, slash_commands_text[0][19].format(role_id_to_add, ROLE_PRICE, currency), False)
+    member_info = await db_commands.get_member_async(guild_id, member_id)
+    assert member_id == member_info[0]
+    assert member_info[1] == ROLE_PRICE
+    assert "#{0}".format(role_id_member_has) == member_info[2]
+
+    await db_commands.add_member_role_async(guild_id, member_id, role_id_to_add)
+    member._roles.add(role_id_to_add)
+
+    interaction = build_interaction()
+    interaction.locale = "ru"
+    await cog.sell(interaction, role_member_does_not_have)
+    check_embed(interaction, slash_commands_text[1][19].format(role_id_to_add, ROLE_PRICE, currency), False)
+
+    member_cash: int = 308
     CONST_CASH = 38
     bot_id: int = bot_member.id
     await db_commands.update_member_cash_async(guild_id, member_id, member_cash)
