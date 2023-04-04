@@ -98,7 +98,7 @@ text_slash: dict[int, dict[int, str]] = {
         16: "**`You can't sell the role that you don't have`**",
         17: "**`You can't sell that role because it isn't in the list of roles available for purchase/sale on the server`**",
         18: "The sale is completed",
-        19: "**`You sold role `**{}**` for {}`** {}\n**`If your DM are open, then confirmation of sale will be messaged you`**",
+        19: "**`You sold role `** <@&{0}> **` for {1:0,}`** {2}\n**`If your DM are open, then confirmation of sale will be messaged you`**",
         20: "Confirmation of sale",
         21: "**`You sold role {} for {}`** {}",
         22: "Role sale",
@@ -142,7 +142,7 @@ text_slash: dict[int, dict[int, str]] = {
         16: "**`Вы не можете продать роль, которой у Вас нет`**",
         17: "**`Продажа этой роли невозможна, т.к. она не находится в списке ролей, доступных для покупки/продажи на сервере`**",
         18: "Продажа совершена",  # title
-        19: "**`Вы продали роль `**{}**` за {}`** {}\n**`Если у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение продажи будет выслано Вам в личные сообщения`**",
+        19: "**`Вы продали роль `** <@&{0}> **` за {1:0,}`** {2}\n**`Если у Вас включена возможность получения личных сообщений от участников серверов, то подтверждение продажи будет выслано Вам в личные сообщения`**",
         20: "Подтверждение продажи",
         21: "**`Вы продали роль {} за {}`** {}",
         22: "Продажа роли",
@@ -1033,7 +1033,7 @@ class SlashCommandsCog(Cog):
         currency: str = await get_server_currency_async(guild_id)
         emb: Embed = Embed(
             title=text_slash[lng][18],
-            description=text_slash[lng][19].format(f"<@&{role_id}>", sale_price, currency),
+            description=text_slash[lng][19].format(role_id, sale_price, currency),
             colour=Colour.gold()
         )
         await interaction.response.send_message(embed=emb)
