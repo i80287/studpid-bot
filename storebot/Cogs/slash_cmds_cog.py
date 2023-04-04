@@ -1617,7 +1617,7 @@ class SlashCommandsCog(Cog):
         (ret_code, currency) = await process_transfer_command_async(guild_id, memb_id, t_id, value)
         if ret_code:
             if ret_code > 0:
-                await self.respond_with_error_report(interaction, lng, text_slash[lng][39].format(value - ret_code - 1, currency))
+                await self.respond_with_error_report(interaction, lng, text_slash[lng][39].format(value - (ret_code - 1), currency))
             elif ret_code == -1:
                 await self.respond_with_error_report(interaction, lng, common_text[lng][2])
             else:
