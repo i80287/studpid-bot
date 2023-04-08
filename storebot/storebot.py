@@ -3,23 +3,25 @@ from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from .Cogs.polls_cog import Poll
 
+    from nextcord import Member
+
 from asyncio import Lock
 from time import time
 
-from nextcord import Intents, Member
-from nextcord.ext.commands import Bot, when_mentioned_or
+from nextcord import Intents
+from nextcord.ext import commands
 
 try:
     from .config import prefix, FEEDBACK_CHANNEL
 except:
     from .config_example import prefix, FEEDBACK_CHANNEL
 
-class StoreBot(Bot):
+class StoreBot(commands.Bot):
     def __init__(self) -> None:
         super().__init__(
-            command_prefix=when_mentioned_or(prefix), 
-            case_insensitive=True, 
-            intents=Intents.all(), 
+            command_prefix=commands.when_mentioned_or(prefix),
+            case_insensitive=True,
+            intents=Intents.all(),
             help_command=None
         )
         
