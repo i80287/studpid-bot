@@ -143,9 +143,9 @@ class AdditionalCommandsCog(Cog):
         "<a:emoji:995806881048170518>", "<:sticker:995806680505921639>",  "<:summ:995804781006290974>",
         "<:online:995823257993363587>", "<:idle:995823256621813770>", "<:dnd:995823255199957032>", "<:offline:995823253878738944>"
     )
-    months: dict[int, list[str]] = {
-        0: ["January {}", "February {}", "Mart {}", "April {}", "May {}", "June {}", "Jule {}", "August {}", "September {}", "October {}", "November {}", "December {}"],
-        1: ["{} Января", "{} Февраля", "{} Марта", "{} Апреля", "{} Мая", "{} Июня", "{} Июля", "{} Августа", "{} Сентября", "{} Октября", "{} Ноября", "{} Декабря"]
+    months: dict[int, tuple[str, ...]] = {
+        0: ("January {}", "February {}", "Mart {}", "April {}", "May {}", "June {}", "Jule {}", "August {}", "September {}", "October {}", "November {}", "December {}"),
+        1: ("{} Января", "{} Февраля", "{} Марта", "{} Апреля", "{} Мая", "{} Июня", "{} Июля", "{} Августа", "{} Сентября", "{} Октября", "{} Ноября", "{} Декабря")
     }
     server_info_text: dict[int, dict[int, str]] = {
         0: {
@@ -223,8 +223,8 @@ class AdditionalCommandsCog(Cog):
             10: "**`Роли участника сервера:`**"
         }
     }
-    u_ec_cmds: dict[int, list[tuple[str, str]]] = {
-        0 : [
+    u_ec_cmds: dict[int, tuple[tuple[str, str], ...]] = {
+        0 : (
             ("`/store`", "Show store"),
             ("`/buy`", "Make a role purchase"),
             ("`/buy_by_number`", "Make a role purchase. Role is selected by number in the store"),
@@ -233,8 +233,10 @@ class AdditionalCommandsCog(Cog):
             ("`/accept_request`", "Accept role purchase request made by another member for you"),
             ("`/decline_request`", "Decline role purchase request made by another member for you or delete you role sale request"),
             ("`/leaders`", "Show top members by balance/xp"),
-        ],
-        1 : [
+            ("`/slots`", "Starts 'slots' game"),
+            ("`/roulette`", "Starts 'roulette' game"),
+        ),
+        1 : (
             ("`/store`", "Открывает меню магазина"),
             ("`/buy`", "Совершает покупку роли"),
             ("`/buy_by_number`", "Совершает покупку роли. Роль выбирается по номеру из магазина."),
@@ -243,52 +245,53 @@ class AdditionalCommandsCog(Cog):
             ("`/accept_request`", "Принимает запрос покупки роли, сделанный Вам другим участником"),
             ("`/decline_request`", "Отклоняет запрос покупки роли, сделанный Вам другим участником, или отменяет Ваш запрос продажи роли"),
             ("`/leaders`", "Показывет топ пользователей по балансу/опыту"),
-        ],
+            ("`/slots`", "Начинает игру в 'слоты'"),
+            ("`/roulette`", "Начинает игру в рулетку"),
+        ),
     }
-    u_pers_cmds: dict[int, list[tuple[str, str]]] = {
-        0 : [
+    u_pers_cmds: dict[int, tuple[tuple[str, str], ...]] = {
+        0 : (
             ("`/profile`", "Show your profile"), 
             ("`/work`", "Start working, so you get salary"),
             ("`/collect`", "Same as `/work`"),
             ("`/transfer`", "Transfer money to another member"), 
             ("`/duel`", "Make a bet"),
-        ],
-        1 : [
+        ),
+        1 : (
             ("`/profile`", "Показывает меню Вашего профиля"), 
             ("`/work`", "Начинает работу, за которую Вы полчите заработок"),
             ("`/collect`", "То же, что и `/work`"),
             ("`/transfer`", "Совершает перевод валюты другому пользователю"), 
             ("`/duel`", "Делает ставку"),
-            
-        ]
+        ),
     }
-    u_other_cmds: dict[int, list[tuple[str, str]]] = {
-        0 : [
+    u_other_cmds: dict[int, tuple[tuple[str, str], ...]] = {
+        0 : (
             ("`/poll`", "Make a poll"), 
             ("`/server`", "Show information about the server"),
             ("`/emoji`", "Show information about the emoji"),
             ("`/ask`", "Asks OpenAI anything"),
             ("`/member_info`", "Shows information about selected member or command caller"),
             ("`/user_info`", "Shows brief information about any Discord user or command caller"),
-        ],
-        1 : [
+        ),
+        1 : (
             ("`/poll`", "Создаёт полл (опрос)"), 
             ("`/server`", "Показывает информацию о сервере"),
             ("`/emoji`", "Показывает информацию о эмодзи"),
             ("`/ask`", "Спрашивает OpenAI о чём угодно"),
             ("`/member_info`", "Показывает информацию о выбранном участнике сервера или участнике, вызвавшем команду"),
             ("`/user_info`", "Показывает краткую информацию о любом пользователе Дискорда или пользователе, вызвавшем команду"),
-        ]
+        )
     }
-    m_cmds: dict[int, list[tuple[str, str]]] = {
-        0 : [
+    m_cmds: dict[int, tuple[tuple[str, str], ...]] = {
+        0 : (
             ("`/guide`", "Show guide about bot's system"), 
             ("`/settings`", "Call bot's settings menu"),
-        ],
-        1 : [
+        ),
+        1 : (
             ("`/guide`", "Показывает гайд о системе бота"), 
             ("`/settings`", "Вызывает меню настроек бота"),
-        ]
+        )
     }
     guide_text: dict[int, dict[int, str]] = {
         0 : {

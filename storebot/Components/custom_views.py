@@ -1331,8 +1331,7 @@ class SettingsView(ViewBase):
         lng: int = self.lng
         guild_id: int = interaction.guild_id
         author_id: int = self.author_id
-        int_custom_id: int = int(custom_id.split('_')[0])
-        match int_custom_id:
+        match int(custom_id.split('_')[0]):
             case 0:
                 with closing(connect(DB_PATH.format(guild_id))) as base:
                     with closing(base.cursor()) as cur:
