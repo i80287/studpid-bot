@@ -137,7 +137,7 @@ class EventsHandlerCog(Cog):
 
         guilds_len_str: str = str(len(guilds))
         await bot.change_presence(activity=Game(f"/help on {guilds_len_str} servers"))
-        await write_log_async("common_logs.log", "on_ready", f"total {guilds_len_str} guilds")
+        await write_log_async("common_logs.log", "on_ready", f"total {guilds_len_str} guilds; startup time: {bot.startup_time}")
 
     @Cog.listener()
     async def on_guild_join(self, guild: Guild) -> None:

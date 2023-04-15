@@ -18,10 +18,12 @@ except:
 
 class StoreBot(commands.Bot):
     def __init__(self) -> None:
+        intents: Intents = Intents.all()
+        intents.presences = False
         super().__init__(
             command_prefix=commands.when_mentioned_or(prefix),
             case_insensitive=True,
-            intents=Intents.all(),
+            intents=intents,
             help_command=None
         )
         
