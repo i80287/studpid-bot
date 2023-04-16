@@ -65,9 +65,9 @@ class VoiceHandlerCog(Cog):
     async def voice_processor(self) -> NoReturn:
         await write_one_log_async("common_logs.log", "[voice processor started]")
         bot: StoreBot = self.bot
-        next_voice_state_update_coro = self.voice_queue.get
+        next_voise_state_update_coro = self.voice_queue.get
         while True:
-            member, before, after, timestamp = await next_voice_state_update_coro()
+            member, before, after, timestamp = await next_voise_state_update_coro()
 
             guild: Guild = member.guild
             guild_id: int = guild.id
@@ -77,29 +77,38 @@ class VoiceHandlerCog(Cog):
 
             before_channel: VoiceChannel | StageChannel | None = before.channel
             after_channel: VoiceChannel | StageChannel | None = after.channel
+
             if before_channel is None and after_channel is None:
+                continue
+
+            before_channel_id: int | None = before_channel.id if before_channel is not None else None
+            after_channel_id: int | None = after_channel.id if after_channel is not None else None
+
+            if before_channel_id is after_channel_id or before_channel_id == after_channel_id:
                 continue
 
             money_for_voice: int = await get_server_info_value_async(guild_id, "mn_for_voice")       
             member_id: int = member.id
 
             if before_channel is not None:
+                assert before_channel_id is not None
                 await self.process_left_member(
                     member_id,
                     guild,
                     money_for_voice,
-                    before_channel.id,
+                    before_channel_id,
                     before_channel.name,
                     timestamp
                 )
 
             if after_channel is not None:
+                assert after_channel_id is not None
                 await self.process_joined_member(
                     member_id,
                     member,
                     guild,
                     money_for_voice,
-                    after_channel.id,
+                    after_channel_id,
                     after_channel.name,
                     timestamp
                 )
@@ -142,18 +151,18 @@ class VoiceHandlerCog(Cog):
         
         if was_in_dict:
             income, voice_join_time = await register_user_voice_channel_left(
-                guild_id,
-                member_id,
-                money_for_voice,
-                voice_left_time
+                guild_id=guild_id,
+                member_id=member_id,
+                money_for_voice=money_for_voice,
+                time_left=voice_left_time
             )
         else:
             income: int = await register_user_voice_channel_left_with_join_time(
-                guild_id,
-                member_id,
-                money_for_voice,
-                voice_join_time,
-                voice_left_time
+                guild_id=guild_id,
+                member_id=member_id,
+                money_for_voice=money_for_voice,
+                time_join=voice_join_time,
+                time_left=voice_left_time
             )
 
         if not money_for_voice:

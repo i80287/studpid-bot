@@ -32,7 +32,6 @@ from nextcord import (
 )
 from nextcord.ext.commands import Cog
 
-from .members_handler import MembersHandlerCog
 from ..Components.view_base import ViewBase
 from ..Components.custom_button import CustomButton
 from ..Components.custom_select import CustomSelectWithOptions
@@ -57,7 +56,6 @@ from ..Tools.db_commands import (
     PartialRoleStoreInfo,
     CommandId
 )
-from ..Tools.logger import write_guild_log_async
 from ..constants import DB_PATH
 if __debug__:
     from ..Components.custom_select import CustomSelect
@@ -737,6 +735,7 @@ class SlashCommandsCog(Cog):
         except:
             from ..config_example import in_row
         self.in_row: Literal[5] = in_row
+        self.bot: StoreBot = bot
 
     @staticmethod
     def bin_search_pairs(member_id: int, value: int, values: list[tuple[int, int]]) -> int:
@@ -842,8 +841,9 @@ class SlashCommandsCog(Cog):
         store: tuple[int, int, int, int] | None
         currency: str
         store, currency = await get_buy_command_params_async(guild_id, str_role_id)
+        local_text = text_slash[lng]
         if not store:
-            await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][5])
+            await self.respond_with_error_report(interaction, lng, local_text[5])
             return
 
         member_buyer: Member = interaction.user
@@ -853,19 +853,19 @@ class SlashCommandsCog(Cog):
         # if r_id in {int(x) for x in buyer[2].split("#") if x}:
         buyer_member_roles: str = buyer[2]
         if str_role_id in buyer_member_roles:
-            await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][4])
+            await self.respond_with_error_report(interaction, lng, local_text[4])
             return
 
         buyer_cash: int = buyer[1]
         role_price: int = store[1]
 
         if buyer_cash < role_price:
-            await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][6].format(role_price - buyer_cash, currency))
+            await self.respond_with_error_report(interaction, lng, local_text[6].format(role_price - buyer_cash, currency))
             return
 
-        emb: Embed = Embed(title=text_slash[lng][7], description=text_slash[lng][8].format(role.mention, role_price, currency))
+        emb: Embed = Embed(title=local_text[7], description=local_text[8].format(role.mention, role_price, currency))
 
-        view: BuyView = BuyView(timeout=30, auth_id=memb_id, lng=lng)
+        view: BuyView = BuyView(30, memb_id, lng)
         await interaction.response.send_message(embed=emb, view=view)
 
         await view.wait()
@@ -876,13 +876,15 @@ class SlashCommandsCog(Cog):
                 return
             return
 
-        async with MembersHandlerCog.bot_added_roles_lock:
-            MembersHandlerCog.bot_added_roles_queue.put_nowait(role_id)
-        
+        bot = self.bot
+        async with bot.bot_added_roles_lock:
+            bot.bot_added_roles_queue.put_nowait(role_id)
+
         try:
             await member_buyer.add_roles(role)
         except:
             await self.respond_with_error_report(interaction, lng, self.buy_command_text[lng][0])
+            from ..Tools.logger import write_guild_log_async
             await write_guild_log_async(
                 "error.log",
                 guild_id,
@@ -893,8 +895,8 @@ class SlashCommandsCog(Cog):
         role_info: PartialRoleStoreInfo = PartialRoleStoreInfo(role_id, role_price, store[2], store[0], store[3])
         await process_bought_role(guild_id, memb_id, buyer_member_roles, role_info)
 
-        emb.title = text_slash[lng][10]
-        emb.description = text_slash[lng][11]
+        emb.title = local_text[10]
+        emb.description = local_text[11]
         try:
             await interaction.edit_original_message(embed=emb, view=None)
         except:
@@ -902,8 +904,8 @@ class SlashCommandsCog(Cog):
 
         try:
             await member_buyer.send(embed=Embed(
-                title=text_slash[lng][7],
-                description=text_slash[lng][12].format(role.name, interaction.guild.name, role_price, currency),
+                title=local_text[7],
+                description=local_text[12].format(role.name, interaction.guild.name, role_price, currency),
                 colour=Colour.green()
             ))
         except:
@@ -912,9 +914,10 @@ class SlashCommandsCog(Cog):
         log_channel_id, server_lng = await get_server_log_info_async(guild_id)
         if log_channel_id and isinstance(guild_log_channel := interaction.guild.get_channel(log_channel_id), TextChannel):
             try:
+                local_text = text_slash[server_lng]
                 await guild_log_channel.send(embed=Embed(
-                    title=text_slash[server_lng][13],
-                    description=text_slash[server_lng][14].format(f"<@{memb_id}>", f"<@&{role_id}>", role_price, currency)
+                    title=local_text[13],
+                    description=local_text[14].format(f"<@{memb_id}>", f"<@&{role_id}>", role_price, currency)
                 ))
             except:
                 return
@@ -952,28 +955,29 @@ class SlashCommandsCog(Cog):
         tz_info: timezone = timezone(timedelta(hours=tz))
         in_row: Literal[5] = self.in_row
         db_l: int = len(db_store)
+        local_text = store_text[lng]
         for role_number, r, q, p, d, salary, salary_cooldown, role_type in db_store[:min(in_row, db_l)]:
             date: str = datetime.fromtimestamp(d, tz=tz_info).strftime("%H:%M %d-%m-%Y")
             role_info: str
             match role_type:
                 case 1:
-                    role_info = store_text[lng][0].format(role_number, r, p, currency, date)
+                    role_info = local_text[0].format(role_number, r, p, currency, date)
                 case 2:
-                    role_info = store_text[lng][1].format(role_number, r, p, currency, q, date)
+                    role_info = local_text[1].format(role_number, r, p, currency, q, date)
                 case 3:
-                    role_info = store_text[lng][1].format(role_number, r, p, currency, "∞", date)
+                    role_info = local_text[1].format(role_number, r, p, currency, "∞", date)
                 case _:
                     continue
             if salary:
-                role_info += store_text[lng][2].format(salary * 604800 // salary_cooldown, currency)
+                role_info += local_text[2].format(salary * 604800 // salary_cooldown, currency)
             store_list.append(role_info)
 
         emb: Embed = Embed(title=text_slash[lng][15], colour=Colour.dark_gray(), description='\n'.join(store_list))
 
         if db_l:
-            emb.set_footer(text=store_text[lng][3].format(1, (db_l + in_row - 1) // in_row))
+            emb.set_footer(text=local_text[3].format(1, (db_l + in_row - 1) // in_row))
         else:
-            emb.set_footer(text=store_text[lng][3].format(1, 1))
+            emb.set_footer(text=local_text[3].format(1, 1))
 
         store_view: StoreView = StoreView(
             timeout=60,
@@ -1016,32 +1020,39 @@ class SlashCommandsCog(Cog):
         member_id: int = interaction.user.id
 
         sale_price: int = await process_sell_command_async(guild_id, role_id, member_id)
+        local_text = text_slash[lng]
         if sale_price < 0:
             match sale_price:
                 case -1:
                     await self.respond_with_error_report(interaction, lng, common_text[lng][2])
                 case -2:
-                    await self.respond_with_error_report(interaction, lng, text_slash[lng][17])
+                    await self.respond_with_error_report(interaction, lng, local_text[17])
                 case _:
-                    await self.respond_with_error_report(interaction, lng, text_slash[lng][16])
+                    await self.respond_with_error_report(interaction, lng, local_text[16])
             return
 
-        async with MembersHandlerCog.bot_removed_roles_lock:
-            MembersHandlerCog.bot_removed_roles_queue.put_nowait(role_id)
-        await interaction.user.remove_roles(role)
+        bot = self.bot
+        async with bot.bot_removed_roles_lock:
+            bot.bot_removed_roles_queue.put_nowait(role_id)
+
+        try:
+            await interaction.user.remove_roles(role)
+        except:
+            # TODO
+            pass
 
         currency: str = await get_server_currency_async(guild_id)
         emb: Embed = Embed(
-            title=text_slash[lng][18],
-            description=text_slash[lng][19].format(role_id, sale_price, currency),
+            title=local_text[18],
+            description=local_text[19].format(role_id, sale_price, currency),
             colour=Colour.gold()
         )
         await interaction.response.send_message(embed=emb)
 
         try:
             await interaction.user.send(embed=Embed(
-                title=text_slash[lng][20],
-                description=text_slash[lng][21].format(role.name, sale_price, currency),
+                title=local_text[20],
+                description=local_text[21].format(role.name, sale_price, currency),
                 colour=Colour.green()
             ))
         except:
@@ -1096,7 +1107,6 @@ class SlashCommandsCog(Cog):
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][17])
                     return
 
-                
                 str_role_id: str = str(role_id)
                 if str_role_id not in user_owned_roles:
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][16])
@@ -1152,18 +1162,19 @@ class SlashCommandsCog(Cog):
                     cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
                 rnk_status: int = \
                     cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
-                if ec_status:
-                    membs_cash: list[tuple[int, int]] = \
-                        cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall()
-                    db_roles: set[int] = {role[0] for role in cur.execute("SELECT role_id FROM server_roles").fetchall()}
-                else:
-                    membs_cash: list[tuple[int, int]] = []
-                    db_roles: set[int] = set()
-                if rnk_status:
-                    membs_xp: list[tuple[int, int]] = \
-                        cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall()
-                else:
-                    membs_xp: list[tuple[int, int]] = []
+
+                membs_cash: list[tuple[int, int]] | None = \
+                    cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall() \
+                    if ec_status else None
+
+                db_roles: set[int] | None = \
+                    {role[0] for role in cur.execute("SELECT role_id FROM server_roles").fetchall()} \
+                    if ec_status else None
+
+                membs_xp: list[tuple[int, int]] | None = \
+                    cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall() \
+                    if rnk_status else None
+
                 sale_role_requests: list[tuple[int, int, int, int]] = cur.execute(
                     "SELECT request_id, target_id, role_id, price FROM sale_requests WHERE seller_id = ?",
                     (memb_id,)
@@ -1184,8 +1195,9 @@ class SlashCommandsCog(Cog):
         embs: list[Embed] = []
         local_text: dict[int, str] = self.profile_text[lng]
 
-        db_member_info: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
+        db_member_info: tuple[int, int, str, int, int, int] = await get_member_async(guild_id, memb_id)
         if ec_status:
+            assert membs_cash
             member_cash: int = db_member_info[1]
             index: int = self.bin_search_pairs(memb_id, member_cash, membs_cash)
 
@@ -1195,6 +1207,7 @@ class SlashCommandsCog(Cog):
             embs.append(emb1)
 
         if rnk_status:
+            assert membs_xp
             xp: int = db_member_info[4]
             index: int = self.bin_search_pairs(memb_id, xp, membs_xp)
             level: int = (xp + xp_b - 1) // xp_b
@@ -1211,6 +1224,7 @@ class SlashCommandsCog(Cog):
             embs.append(emb2)
 
         if ec_status:
+            assert db_roles is not None
             # roles_ids_on_server & roles_ids_in_db
             memb_server_db_roles: set[int] | set = set(interaction.user._roles) & db_roles
             memb_roles: set[int] | set = {int(role_id) for role_id in db_member_info[2].split("#") if role_id.isdecimal()} if db_member_info[2] else set()
@@ -1403,10 +1417,11 @@ class SlashCommandsCog(Cog):
                 base.commit()
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
         
-        async with MembersHandlerCog.bot_added_roles_lock:
-            MembersHandlerCog.bot_added_roles_queue.put_nowait(role_id)
-        async with MembersHandlerCog.bot_removed_roles_lock:
-            MembersHandlerCog.bot_removed_roles_queue.put_nowait(role_id)
+        bot = self.bot
+        async with bot.bot_added_roles_lock:
+            bot.bot_added_roles_queue.put_nowait(role_id)
+        async with bot.bot_removed_roles_lock:
+            bot.bot_removed_roles_queue.put_nowait(role_id)
 
         try:
             await seller.remove_roles(role)
@@ -1435,7 +1450,7 @@ class SlashCommandsCog(Cog):
         guild_id: int = interaction.guild_id
         memb_id: int = interaction.user.id
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-        
+
         if await is_command_disabled_async(guild_id, CommandId.DECLINE_REQUEST):
             await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
             return

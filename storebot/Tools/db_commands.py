@@ -729,15 +729,17 @@ async def process_work_command_async(guild_id: int, member_id: int) -> tuple[int
         assert isinstance(sal_l, int)
         assert isinstance(sal_r, int)
 
-        # inlining random.randint
-        getrandbits: Callable[[int], int] = _rnd.getrandbits
-        n: int = sal_r - sal_l
-        k: int = n.bit_length()  # don't use (n-1) here because n can be 1
-        r: int = getrandbits(k)  # 0 <= r < 2**k
-        while r > n:
-            r = getrandbits(k)
-        
-        salary: int = sal_l + r
+        salary: int = sal_l
+
+        if sal_l != sal_r:
+            # inlining random.randint
+            getrandbits: Callable[[int], int] = _rnd.getrandbits
+            n: int = sal_r - sal_l
+            k: int = n.bit_length()  # don't use (n-1) here because n can be 1
+            r: int = getrandbits(k)  # 0 <= r < 2**k
+            while r > n:
+                r = getrandbits(k)
+            salary += r
 
         result = await (await base.execute(
             "SELECT owned_roles, work_date FROM users WHERE memb_id = " + str_member_id
@@ -759,13 +761,12 @@ async def process_work_command_async(guild_id: int, member_id: int) -> tuple[int
 
         member_roles_ids: tuple[str, ...] = tuple(role_id for role_id in result[0].split('#') if role_id)
         if member_roles_ids:
-            query: LiteralString = """\
+            memb_roles_add_salary: list[tuple[int, int]] = await base.execute_fetchall(
+"""\
 WITH cte AS (SELECT role_id, additional_salary FROM server_roles WHERE role_id IN ({0}))
 SELECT 0, sum(additional_salary) FROM cte
-UNION SELECT * FROM cte;
-""".format(", ".join(member_roles_ids))
-
-            memb_roles_add_salary: list[tuple[int, int]] = await base.execute_fetchall(query) # type: ignore
+UNION SELECT * FROM cte;""".format(", ".join(member_roles_ids))
+            ) # type: ignore
             
             # `additional_salary` may be equal to 0.
             additional_salary: int = memb_roles_add_salary[0][1]

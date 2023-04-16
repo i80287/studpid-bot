@@ -1,0 +1,3 @@
+[2023-04-16 05:26:41.952590] Removed role 972494061569179718; Queue = <Queue at 0x28d30b4c250 maxsize=0 _queue=[972494061569179718] tasks=1>; Length = 1
+[2023-04-16 05:26:42.207749] Inside rem func; Locked? False; Length = 1; Fallback = 1
+[2023-04-16 05:26:42.210745] Rem queue: <Queue at 0x28d30b4c250 maxsize=0 _queue=[972494061569179718] tasks=1> <Queue at 0x28d30b4c250 maxsize=0 _queue=[972494061569179718] tasks=1>

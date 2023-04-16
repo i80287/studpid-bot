@@ -5,7 +5,7 @@ if TYPE_CHECKING:
 
     from nextcord import Member
 
-from asyncio import Lock
+import asyncio
 from time import time
 
 from nextcord import Intents
@@ -26,16 +26,22 @@ class StoreBot(commands.Bot):
             intents=intents,
             help_command=None
         )
+
+        self.bot_added_roles_lock: asyncio.Lock = asyncio.Lock()
+        self.bot_added_roles_queue: asyncio.Queue[int] = asyncio.Queue()
+
+        self.bot_removed_roles_lock: asyncio.Lock = asyncio.Lock()
+        self.bot_removed_roles_queue: asyncio.Queue[int] = asyncio.Queue()
         
-        self.statistic_lock: Lock = Lock()
+        self.statistic_lock: asyncio.Lock = asyncio.Lock()
         self.bot_feedback_channel: int = FEEDBACK_CHANNEL
         self.current_polls: list[Poll] = []
         
-        self.text_lock: Lock = Lock()
+        self.text_lock: asyncio.Lock = asyncio.Lock()
         # guild_id: {text_channel_id}
         self.ignored_text_channels: dict[int, set[int]] = {}
 
-        self.voice_lock: Lock = Lock()
+        self.voice_lock: asyncio.Lock = asyncio.Lock()
         self.startup_time: int = int(time())
         # guild_id: member_id: Member
         self.members_in_voice: dict[int, dict[int, Member]] = {}
