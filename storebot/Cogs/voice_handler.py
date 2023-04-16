@@ -68,13 +68,7 @@ class VoiceHandlerCog(Cog):
         next_voise_state_update_coro = self.voice_queue.get
         while True:
             member, before, after, timestamp = await next_voise_state_update_coro()
-
-            guild: Guild = member.guild
-            guild_id: int = guild.id
-            async with bot.voice_lock:
-                if guild_id not in bot.ignored_voice_channels:
-                    bot.ignored_voice_channels[guild_id] = set()
-
+            
             before_channel: VoiceChannel | StageChannel | None = before.channel
             after_channel: VoiceChannel | StageChannel | None = after.channel
 
@@ -87,6 +81,12 @@ class VoiceHandlerCog(Cog):
             if before_channel_id is after_channel_id or before_channel_id == after_channel_id:
                 continue
 
+            guild: Guild = member.guild
+            guild_id: int = guild.id
+            async with bot.voice_lock:
+                if guild_id not in bot.ignored_voice_channels:
+                    bot.ignored_voice_channels[guild_id] = set()
+            
             money_for_voice: int = await get_server_info_value_async(guild_id, "mn_for_voice")       
             member_id: int = member.id
 

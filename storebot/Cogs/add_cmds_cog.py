@@ -445,17 +445,17 @@ class AdditionalCommandsCog(Cog):
         emb: Embed = Embed(title=self.text_slash[lng][13], colour=Colour.dark_purple())
         guild: Guild = interaction.guild
 
-        onl: int = 0; idl: int = 0; dnd: int = 0; ofl: int = 0
-        for m in guild.members:
-            st: Status | str = m.status
-            if st == Status.online:
-                onl += 1
-            elif st == Status.idle:
-                idl += 1
-            elif st == Status.dnd:
-                dnd += 1
-            else:
-                ofl += 1
+        # onl: int = 0; idl: int = 0; dnd: int = 0; ofl: int = 0
+        # for m in guild.members:
+        #     st: Status | str = m.status
+        #     if st == Status.online:
+        #         onl += 1
+        #     elif st == Status.idle:
+        #         idl += 1
+        #     elif st == Status.dnd:
+        #         dnd += 1
+        #     else:
+        #         ofl += 1
 
         ca: datetime = guild.created_at
         time: str = f"{ca.strftime('%Y-%m-%d %H:%M:%S')}\n{self.months[lng][ca.month-1].format(ca.day)}, {ca.year}"
@@ -470,7 +470,7 @@ class AdditionalCommandsCog(Cog):
         i: int = 0
         emb.add_field(name=lc_s[i * 4], value=f"{self.emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{self.emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`") # type: ignore
 
-        emb.add_field(name=lc_s[12], value=f"{self.emojis[9]}`{lc_s[13]}` - `{onl}`\n{self.emojis[10]}`{lc_s[14]}` - `{idl}`\n{self.emojis[11]}`{lc_s[15]}` - `{dnd}`\n{self.emojis[12]}`{lc_s[16]}` - `{ofl}`")
+        # emb.add_field(name=lc_s[12], value=f"{self.emojis[9]}`{lc_s[13]}` - `{onl}`\n{self.emojis[10]}`{lc_s[14]}` - `{idl}`\n{self.emojis[11]}`{lc_s[15]}` - `{dnd}`\n{self.emojis[12]}`{lc_s[16]}` - `{ofl}`")
 
         for i in (1, 2):
             emb.add_field(name=lc_s[i * 4], value=f"{self.emojis[i*3]}`{lc_s[i * 4 + 1]}` - `{vls[i * 2]}`\n{self.emojis[i*3+1]}`{lc_s[i * 4 + 2]}` - `{vls[i * 2 + 1]}`\n{self.emojis[i*3+2]}`{lc_s[i * 4 + 3]}` - `{vls[i * 2] + vls[i * 2 + 1]}`") # type: ignore
@@ -528,13 +528,13 @@ class AdditionalCommandsCog(Cog):
         if (joined_at := member.joined_at):
             description_lines.append(info_description_lines[3].format(joined_at.strftime('%d/%m/%Y %H:%M:%S')))
         description_lines.append(info_description_lines[4].format(member.display_name))
-        if isinstance(status := member.status, Status):
-            description_lines.append(info_description_lines[5].format(status))
-        else:
-            description_lines.append(info_description_lines[6].format(status))
-        if (activities := member.activities):
-            activity_report: str = info_description_lines[7]
-            description_lines.extend(activity_report.format(name) for activity in activities if (name := activity.name))
+        # if isinstance(status := member.status, Status):
+        #     description_lines.append(info_description_lines[5].format(status))
+        # else:
+        #     description_lines.append(info_description_lines[6].format(status))
+        # if (activities := member.activities):
+        #     activity_report: str = info_description_lines[7]
+        #     description_lines.extend(activity_report.format(name) for activity in activities if (name := activity.name))
         if member.bot:
             description_lines.append(info_description_lines[8])
         else:
