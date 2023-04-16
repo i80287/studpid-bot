@@ -1,8 +1,8 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from nextcord import Guild
-    
+    from nextcord import Guild, Member
+
     from ..storebot import StoreBot
 
 from asyncio import sleep
@@ -145,6 +145,47 @@ class DebugCommandsCog(Cog):
                 bot.members_in_voice[guild_id] = {}
 
         await ctx.reply(embed=Embed(description=f"**`Processed {k} members`**"), mention_author=False)
+    
+    @command(name="guild_info") # type: ignore
+    @is_owner()
+    async def guild_info(self, ctx: Context, guild_id: int) -> None:
+        guild: Guild | None = self.bot.get_guild(guild_id)
+        if guild is not None:
+            report: str = f"**`Got guild: {guild_id}:" + guild.name + f"`**\n**`Members count: {guild.member_count}`**"
+            owner: Member | None = guild.owner
+            if owner is not None:
+                report += f"\n**`Owner: {owner.id}:" + owner.name+ "`**"
+
+            await ctx.reply(embed=Embed(description=report), mention_author=False)
+        else:
+            await ctx.reply(embed=Embed(description="**`Guild not found`**"), mention_author=False)
+    
+    @command(name="guild_member_info") # type: ignore
+    @is_owner()
+    async def guild_member_info(self, ctx: Context, guild_id: int, member_id: int) -> None:
+        guild: Guild | None = self.bot.get_guild(guild_id)
+        if guild is None:
+            await ctx.reply(embed=Embed(description="**`Guild not found`**"), mention_author=False)
+            return
+        
+        member: Member | None = guild.get_member(member_id)
+        if member is None:
+            await ctx.reply(embed=Embed(description="**`Member not found`**"), mention_author=False)
+            return
+        
+        report: list[str] = [
+            f"**`Got guild: {guild_id}:" + guild.name + "`**",
+            f"**`Got member: {member_id}:" + member.name + "`**"
+        ]
+        owner: Member | None = guild.owner
+        if owner is not None:
+            report.append(f"**`Guild owner: {owner.id}:" + owner.name + "`**")
+        
+        report.append("**`Member roles:`**")
+        report.extend(map(lambda role: f"**`{role.id}:" + role.name + "`**", member.roles))
+
+        await ctx.reply(embed=Embed(description='\n'.join(report)), mention_author=False)
+
 
 def setup(bot: StoreBot) -> None:
     bot.add_cog(DebugCommandsCog(bot))
