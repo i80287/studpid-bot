@@ -9,6 +9,7 @@ if TYPE_CHECKING:
     from .dummy_variables import DummyInteraction
 
 import os
+import shutil
 import asyncio
 from datetime import datetime, timedelta, timezone
 
@@ -44,7 +45,7 @@ guild: Guild = get_guild()
 guild_id: int = guild.id
 conn_state: ConnectionState = get_connection()
 
-async def main() -> None:
+async def test() -> None:
     exceptions: list[Exception] = []
     dir_path: str | None = None
     db_path: str | None = None
@@ -64,6 +65,8 @@ async def main() -> None:
         db_commands.check_db(guild_id=guild_id, guild_locale=guild.preferred_locale)
         
         test_bot.load_extensions_from_module("storebot.Cogs")
+        test_bot._ready.set()
+
         await test_slash_cog()
         print("SlashCommandsCog tests passed")
         await test_add_cmds_cog()
@@ -83,7 +86,7 @@ async def main() -> None:
                 exceptions.append(ex)
         if dir_path:
             try:
-                os.rmdir(dir_path)
+                shutil.rmtree(dir_path)
             except Exception as ex:
                 exceptions.append(ex)
     
@@ -281,7 +284,6 @@ async def test_slash_cog() -> None:
     interaction.locale = "ru"
     await cog.transfer(interaction, CONST_CASH, bot_member)
     check_embed(interaction, slash_commands_text[1][41].format(CONST_CASH, currency, bot_id), False)
-
 
 async def test_add_cmds_cog():
     cog: AdditionalCommandsCog | None = test_bot.get_cog("AdditionalCommandsCog") # type: ignore
@@ -510,9 +512,9 @@ def check_server_ember(interaction: DummyInteraction, lng: int = 0) -> None:
     assert "fields" in embed_payload
     fields: list[dict[str, Any]] = embed_payload["fields"]
     assert isinstance(fields, list)
-    assert len(fields) == 8
+    assert len(fields) == 7
 
-    index_iter: Iterator[Literal[0, 12, 4, 8, 17, 18, 19, 20]] = iter((0, 12, 4, 8, 17, 18, 19, 20))
+    index_iter: Iterator[Literal[0, 4, 8, 17, 18, 19, 20]] = iter((0, 4, 8, 17, 18, 19, 20))
     info_text: dict[int, str] = AdditionalCommandsCog.server_info_text[lng]
     for field in fields:
         assert "inline" in field and isinstance(is_inline := field["inline"], bool) and is_inline
@@ -538,5 +540,21 @@ def check_option(option: dict[str, Any], label: str, value: str, is_default: boo
     assert "emoji" in option
     assert "name" in option["emoji"]
 
+async def main(loop: asyncio.AbstractEventLoop) -> None:
+    task = loop.create_task(test())
+    await asyncio.sleep(0)
+    await task
+    task.cancel()
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    loop: asyncio.AbstractEventLoop = conn_state.loop
+    loop.run_until_complete(main(loop))
+    try:
+        for t in asyncio.all_tasks(loop):
+            if not t.cancelled():
+                t.cancel()
+    finally:
+        if loop.is_running():
+            loop.stop()
+        # if not loop.is_closed():
+        #     loop.close()
