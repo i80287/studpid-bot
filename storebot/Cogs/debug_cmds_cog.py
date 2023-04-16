@@ -37,7 +37,9 @@ class DebugCommandsCog(Cog):
             async with bot.text_lock:
                 async with bot.voice_lock:
                     async with bot.statistic_lock:
-                        self.bot.load_extension(f"storebot.Cogs.{extension}")
+                        async with bot.bot_added_roles_lock:
+                            async with bot.bot_removed_roles_lock:
+                                self.bot.load_extension(f"storebot.Cogs.{extension}")
             await sleep(1.0)
             await bot.sync_all_application_commands()
             await sleep(1.0)
@@ -54,7 +56,9 @@ class DebugCommandsCog(Cog):
             async with bot.text_lock:
                 async with bot.voice_lock:
                     async with bot.statistic_lock:
-                        bot.unload_extension(f"storebot.Cogs.{extension}")
+                        async with bot.bot_added_roles_lock:
+                            async with bot.bot_removed_roles_lock:
+                                bot.unload_extension(f"storebot.Cogs.{extension}")
 
             await sleep(1.0)
             await bot.sync_all_application_commands()
@@ -74,8 +78,10 @@ class DebugCommandsCog(Cog):
             async with bot.text_lock:
                 async with bot.voice_lock:
                     async with bot.statistic_lock:
-                        bot.unload_extension(f"storebot.Cogs.{extension}")
-                        bot.load_extension(f"storebot.Cogs.{extension}")
+                        async with bot.bot_added_roles_lock:
+                            async with bot.bot_removed_roles_lock:
+                                bot.unload_extension(f"storebot.Cogs.{extension}")
+                                bot.load_extension(f"storebot.Cogs.{extension}")
             
             await sleep(1.0)
             await bot.sync_all_application_commands()
@@ -96,17 +102,17 @@ class DebugCommandsCog(Cog):
                 if member_count := guild.member_count:
                     members_count += member_count
                 lines.append(fr"{{{guild.name} }}-{{{guild.id}}}-{{{member_count}}}-{{{guild.owner_id}}}")
-        
-        lines.extend((
-            f"\n**`Total guilds: {len(guilds)}`**",
-            f"\n**`Currently active polls: {len(self.bot.current_polls)}`**",
-            f"\n**`Members count: {members_count}`**",
-        ))
-        
-        half_size: int = len(lines) >> 1
 
+            lines.extend((
+                f"\n**`Total guilds: {len(guilds)}`**",
+                f"\n**`Currently active polls: {len(self.bot.current_polls)}`**",
+                f"\n**`Members count: {members_count}`**",
+            ))
+
+        half_size: int = len(lines) >> 1
         emb1: Embed = Embed(description='\n'.join(lines[:half_size]))
         emb2: Embed = Embed(description='\n'.join(lines[half_size:]))
+
         await ctx.reply(embed=emb1, mention_author=False, delete_after=30.0)
         await ctx.reply(embed=emb2, mention_author=False, delete_after=30.0)
 
