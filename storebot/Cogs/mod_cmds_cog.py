@@ -23,10 +23,10 @@ if __debug__:
     from ..Components.custom_select import CustomSelect
 
 class ModCommandsCog(Cog):
-    settings_text: dict[int, dict[int, str | list[str]]] = {
+    settings_text: dict[int, dict[int, str | tuple[str, ...]]] = {
         0 : {
             0 : "Choose section",
-            1: [
+            1: (
                 "⚙️ general settings",
                 "<:moder:1000090629897998336> manage moders' roles",
                 "<:user:1002245779089535006> manage members",
@@ -34,12 +34,12 @@ class ModCommandsCog(Cog):
                 "📈 ranking",
                 "🎰 slots",
                 ":no_entry_sign: manage ignored channels",
-                "📊 polls",
-            ],
+                # "📊 polls",
+            ),
         },
         1 : {
             0 : "Выберите раздел",
-            1 : [
+            1 : (
                 "⚙️ основные настройки",
                 "<:moder:1000090629897998336> настройка ролей модераторов",
                 "<:user:1002245779089535006> управление пользователями",
@@ -47,8 +47,8 @@ class ModCommandsCog(Cog):
                 "📈 ранговая система",
                 "🎰 слоты",
                 ":no_entry_sign: управление игнорируемыми каналами",
-                "📊 поллы",
-            ],
+                # "📊 поллы",
+            ),
         }
     }
 
@@ -90,7 +90,9 @@ class ModCommandsCog(Cog):
             timeout=120,
             bot=self.bot
         )
-        emb: Embed = Embed(title=self.settings_text[lng][0], description="\n".join(self.settings_text[lng][1]))
+        local_text = self.settings_text[lng]
+        assert len(local_text) == 2
+        emb: Embed = Embed(title=local_text[0], description="\n".join(local_text[1]))
         await interaction.response.send_message(embed=emb, view=st_view)
 
         await st_view.wait()
@@ -101,7 +103,7 @@ class ModCommandsCog(Cog):
             await interaction.edit_original_message(view=st_view)
         except:
             return
-    
+
 
 def setup(bot: StoreBot) -> None:
     bot.add_cog(ModCommandsCog(bot))

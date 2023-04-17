@@ -267,7 +267,7 @@ class AdditionalCommandsCog(Cog):
     }
     u_other_cmds: dict[int, tuple[tuple[str, str], ...]] = {
         0 : (
-            ("`/poll`", "Make a poll"), 
+            # ("`/poll`", "Make a poll"), 
             ("`/server`", "Show information about the server"),
             ("`/emoji`", "Show information about the emoji"),
             ("`/ask`", "Asks OpenAI anything"),
@@ -275,7 +275,7 @@ class AdditionalCommandsCog(Cog):
             ("`/user_info`", "Shows brief information about any Discord user or command caller"),
         ),
         1 : (
-            ("`/poll`", "Создаёт полл (опрос)"), 
+            # ("`/poll`", "Создаёт полл (опрос)"), 
             ("`/server`", "Показывает информацию о сервере"),
             ("`/emoji`", "Показывает информацию о эмодзи"),
             ("`/ask`", "Спрашивает OpenAI о чём угодно"),

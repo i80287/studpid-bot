@@ -1295,7 +1295,7 @@ class SettingsView(ViewBase):
         self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"4_{author_id}_" + urandom(4).hex(), emoji="📈", row=2))
         self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"64_{author_id}_" + urandom(4).hex(), emoji="🎰", row=2))
         self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"54_{author_id}_" + urandom(4).hex(), emoji="🚫", row=3))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"5_{author_id}_" + urandom(4).hex(), emoji="📊", row=3))
+        # self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"5_{author_id}_" + urandom(4).hex(), emoji="📊", row=3))
     
     @classmethod
     def check_ans(cls, guild: Guild, ans: str) -> tuple[Member | None, bool]:
@@ -1584,27 +1584,27 @@ class SettingsView(ViewBase):
                 await interaction.response.send_message(embed=emb, view=rnk_v)
                 await rnk_v.wait()
                 await self.try_delete(interaction, rnk_v)
-            case 5:
-                with closing(connect(DB_PATH.format(guild_id))) as base:
-                    with closing(base.cursor()) as cur:
-                        p_v_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
-                        p_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
+            # case 5:
+            #     with closing(connect(DB_PATH.format(guild_id))) as base:
+            #         with closing(base.cursor()) as cur:
+            #             p_v_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
+            #             p_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
                 
-                if p_v_c:
-                    dsc = [poll_text[lng][0].format(f"<#{p_v_c}>")]
-                else:
-                    dsc = [poll_text[lng][0].format(settings_text[lng][13])]
-                if p_c:
-                    dsc.append(poll_text[lng][1].format(f"<#{p_c}>"))
-                else:
-                    dsc.append(poll_text[lng][1].format(settings_text[lng][13]))
-                dsc.append(poll_text[lng][2])
-                dsc.append(poll_text[lng][3])
+            #     if p_v_c:
+            #         dsc = [poll_text[lng][0].format(f"<#{p_v_c}>")]
+            #     else:
+            #         dsc = [poll_text[lng][0].format(settings_text[lng][13])]
+            #     if p_c:
+            #         dsc.append(poll_text[lng][1].format(f"<#{p_c}>"))
+            #     else:
+            #         dsc.append(poll_text[lng][1].format(settings_text[lng][13]))
+            #     dsc.append(poll_text[lng][2])
+            #     dsc.append(poll_text[lng][3])
 
-                p_v: PollSettingsView = PollSettingsView(lng=lng, author_id=author_id, timeout=100)
-                await interaction.response.send_message(embed=Embed(description="\n\n".join(dsc)), view=p_v)
-                await p_v.wait()
-                await self.try_delete(interaction, p_v)
+            #     p_v: PollSettingsView = PollSettingsView(lng=lng, author_id=author_id, timeout=100)
+            #     await interaction.response.send_message(embed=Embed(description="\n\n".join(dsc)), view=p_v)
+            #     await p_v.wait()
+            #     await self.try_delete(interaction, p_v)
             case 54:
                 emb = Embed(description=SelectICView.select_ignored_channels_text[lng][0])
                 select_ic_view: SelectICView = SelectICView(
