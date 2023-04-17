@@ -23,10 +23,10 @@ if __debug__:
     from ..Components.custom_select import CustomSelect
 
 class ModCommandsCog(Cog):
-    settings_text: dict[int, dict[int, str | tuple[str, ...]]] = {
+    settings_text: dict[int, dict[int, str]] = {
         0 : {
             0 : "Choose section",
-            1: (
+            1: '\n'.join((
                 "⚙️ general settings",
                 "<:moder:1000090629897998336> manage moders' roles",
                 "<:user:1002245779089535006> manage members",
@@ -35,11 +35,11 @@ class ModCommandsCog(Cog):
                 "🎰 slots",
                 ":no_entry_sign: manage ignored channels",
                 # "📊 polls",
-            ),
+            )),
         },
         1 : {
             0 : "Выберите раздел",
-            1 : (
+            1 : '\n'.join((
                 "⚙️ основные настройки",
                 "<:moder:1000090629897998336> настройка ролей модераторов",
                 "<:user:1002245779089535006> управление пользователями",
@@ -48,7 +48,7 @@ class ModCommandsCog(Cog):
                 "🎰 слоты",
                 ":no_entry_sign: управление игнорируемыми каналами",
                 # "📊 поллы",
-            ),
+            )),
         }
     }
 
@@ -92,7 +92,7 @@ class ModCommandsCog(Cog):
         )
         local_text = self.settings_text[lng]
         assert len(local_text) == 2
-        emb: Embed = Embed(title=local_text[0], description="\n".join(local_text[1]))
+        emb: Embed = Embed(title=local_text[0], description=local_text[1])
         await interaction.response.send_message(embed=emb, view=st_view)
 
         await st_view.wait()
