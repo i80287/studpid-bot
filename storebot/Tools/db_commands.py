@@ -597,8 +597,8 @@ async def get_buy_command_params_async(guild_id: int, str_role_id: str) -> tuple
         currency: str = (await (await base.execute(
             "SELECT str_value FROM server_info WHERE settings = 'currency';"
         )).fetchone())[0] if store else "" # type: ignore
-    
-    return (store, currency)
+
+        return (store, currency)
 
 async def process_sell_command_async(guild_id: int, role_id: int, member_id: int) -> int:
     """Process role sale
@@ -705,7 +705,7 @@ async def process_sell_command_async(guild_id: int, role_id: int, member_id: int
                 await base.execute("UPDATE salary_roles SET members = '" + new_role_members + "' WHERE role_id = " + str_role_id)
                 await base.commit()
 
-    return sale_price
+        return sale_price
 
 async def process_work_command_async(guild_id: int, member_id: int) -> tuple[int, int, list[tuple[int, int]] | None]:
     """Process `/work` command
@@ -1037,7 +1037,7 @@ async def get_server_slots_table_async(guild_id: int) -> dict[int, int]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute("SELECT bet, income FROM slots_table;") as cur:
             pairs: Iterable[Row] = await cur.fetchall()
-        return {bet: income for bet, income in pairs}
+    return {bet: income for bet, income in pairs}
 
 async def update_server_slots_table_async(guild_id: int, slots_table: dict[int, int]) -> None:
     async with connect_async(DB_PATH.format(guild_id)) as base:
@@ -1066,8 +1066,8 @@ async def listify_guild_roles(guild_id: int) -> tuple[list[tuple[int, int, int, 
                 else:
                     role_count.append('∞')
 
-        assert len(roles) == len(role_count)
-        return (roles, role_count)
+    assert len(roles) == len(role_count)
+    return (roles, role_count)
 
 async def get_member_message_async(guild_id: int, is_join: bool) -> tuple[int, str]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
@@ -1075,9 +1075,10 @@ async def get_member_message_async(guild_id: int, is_join: bool) -> tuple[int, s
             "SELECT value, str_value FROM server_info WHERE settings = 'member_join_msg';" \
             if is_join else \
             "SELECT value, str_value FROM server_info WHERE settings = 'member_remove_msg';"
-        )).fetchone() 
-        assert isinstance(pair, tuple) and len(pair) == 2 and isinstance(pair[0], int) and isinstance(pair[1], str)
-        return pair
+        )).fetchone()
+
+    assert isinstance(pair, tuple) and len(pair) == 2 and isinstance(pair[0], int) and isinstance(pair[1], str)
+    return pair
 
 async def set_member_message_async(guild_id: int, text: str, is_join: bool) -> None:
     flag: int = 0b01 if '%s' in text else 0b00
