@@ -17,6 +17,7 @@ if __debug__:
     from nextcord import Member
 
 from ..Tools.db_commands import get_mod_roles_async
+from ..Components.view_base import ViewBase
 from ..Components.custom_views import SettingsView
 if __debug__:
     from ..Components.custom_button import CustomButton
@@ -98,14 +99,7 @@ class ModCommandsCog(Cog):
         await interaction.response.send_message(embed=emb, view=st_view)
 
         await st_view.wait()
-        for child_component in st_view.children:
-            assert isinstance(child_component, (CustomButton, CustomSelect))
-            child_component.disabled = True
-        try:
-            await interaction.edit_original_message(view=st_view)
-        except:
-            return
-
+        await ViewBase.try_delete(interaction, st_view)
 
 def setup(bot: StoreBot) -> None:
     bot.add_cog(ModCommandsCog(bot))

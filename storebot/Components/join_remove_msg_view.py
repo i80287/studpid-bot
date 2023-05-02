@@ -57,7 +57,7 @@ class JoinRemoveMsgView(ViewBase):
     }
 
     def __init__(self, lng: int, author_id: int, bot: StoreBot) -> None:
-        super().__init__(lng, author_id)
+        super().__init__(lng, author_id, 60)
         self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"68_{author_id}_" + urandom(4).hex(), emoji="➕"))
         self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"69_{author_id}_" + urandom(4).hex(), emoji="➖"))
         self.add_item(CustomButton(style=ButtonStyle.gray, custom_id=f"70_{author_id}_" + urandom(4).hex(), emoji="📗"))
