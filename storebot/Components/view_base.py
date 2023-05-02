@@ -21,12 +21,11 @@ class ViewBase(ABC, View):
     async def try_delete(interaction: Interaction, view: ViewBase) -> None:
         assert isinstance(interaction.channel, GuildChannel)
         assert interaction.guild is not None
-        if interaction.channel.permissions_for(interaction.guild.me).manage_messages:
-            try:
-                await interaction.delete_original_message()
-                return
-            except:
-                pass
+        try:
+            await interaction.delete_original_message()
+            return
+        except:
+            pass
 
         for child_component in view.children:
             if __debug__:
