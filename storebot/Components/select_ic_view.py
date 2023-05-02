@@ -58,10 +58,11 @@ class SelectICView(ViewBase):
         guild_voice_ignored_channels_ids: set[int] = {tup[0] for tup in db_ignored_channels if tup[2]}
         del db_ignored_channels
 
-        async with self.bot.text_lock:
-            self.bot.ignored_text_channels[guild_id] = guild_text_ignored_channels_ids
-        async with self.bot.voice_lock:
-            self.bot.ignored_voice_channels[guild_id] = guild_voice_ignored_channels_ids
+        bot = self.bot
+        async with bot.text_lock:
+            bot.ignored_text_channels[guild_id] = guild_text_ignored_channels_ids
+        async with bot.voice_lock:
+            bot.ignored_voice_channels[guild_id] = guild_voice_ignored_channels_ids
 
         lng: int = self.lng
         match int(custom_id[:2]):
@@ -83,7 +84,7 @@ class SelectICView(ViewBase):
                     chnls=guild_text_channels,
                     rem_dis=rd,
                     g_id=guild_id,
-                    bot=self.bot,
+                    bot=bot,
                     is_text=True
                 )
 
@@ -111,7 +112,7 @@ class SelectICView(ViewBase):
                     chnls=guild_voice_channels,
                     rem_dis=rd,
                     g_id=guild_id,
-                    bot=self.bot,
+                    bot=bot,
                     is_text=False
                 )
 

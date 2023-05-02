@@ -38,7 +38,7 @@ class CommandId(IntEnum):
     SLOTS = 12
     ROULETTE = 13
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, match_args=False)
 class RoleInfo:
     role_id: int
     price: int
@@ -52,14 +52,14 @@ class RoleInfo:
         return (self.role_id, self.price, self.salary, self.salary_cooldown, self.role_type, self.additional_salary)
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, match_args=False)
 class PartialRoleInfo:
     role_id: int
     salary: int
     salary_cooldown: int
 
 
-@dataclass(frozen=True)
+@dataclass(frozen=True, match_args=False)
 class PartialRoleStoreInfo:
     role_id: int
     price: int
@@ -77,7 +77,13 @@ def update_server_info_table(guild_id: int, key_name: str, new_value: int) -> No
             cur.execute("UPDATE server_info SET value = " + str(new_value) + " WHERE settings = '" + key_name + "';")
             base.commit()
 
+async def update_server_info_table_async(guild_id: int, key_name: str, new_value: int) -> None:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        await base.execute("UPDATE server_info SET value = " + str(new_value) + " WHERE settings = '" + key_name + "';")
+        await base.commit()
+
 async def update_server_info_table_uncheck_async(guild_id: int, key_name: str, new_value: str) -> None:
+    assert new_value.isdecimal()
     async with connect_async(DB_PATH.format(guild_id)) as base:
         await base.execute("UPDATE server_info SET value = " + new_value + " WHERE settings = '" + key_name + "';")
         await base.commit()
@@ -987,7 +993,10 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
                 ('economy_enabled', 1, ""),
                 ('ranking_enabled', 1, ""),
                 ('currency', 0, ":coin:"),
-                ('sale_price_perc', 100, "")
+                ('sale_price_perc', 100, ""),
+                ('memb_join_rem_chnl', 0, ""),
+                ('member_join_msg', 0, ""),
+                ('member_remove_msg', 0, "")
             )
             cur.executemany("INSERT OR IGNORE INTO server_info (settings, value, str_value) VALUES(?, ?, ?)", settings_params)
 
@@ -1056,6 +1065,30 @@ async def listify_guild_roles(guild_id: int) -> tuple[list[tuple[int, int, int, 
                     role_count.append(str(quantity_in_store[0]))
                 else:
                     role_count.append('∞')
-    
-    assert len(roles) == len(role_count)
-    return (roles, role_count)
+
+        assert len(roles) == len(role_count)
+        return (roles, role_count)
+
+async def get_member_message_async(guild_id: int, is_join: bool) -> tuple[int, str]:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        pair = await (await base.execute(
+            "SELECT value, str_value FROM server_info WHERE settings = 'member_join_msg';" \
+            if is_join else \
+            "SELECT value, str_value FROM server_info WHERE settings = 'member_remove_msg';"
+        )).fetchone() 
+        assert isinstance(pair, tuple) and len(pair) == 2 and isinstance(pair[0], int) and isinstance(pair[1], str)
+        return pair
+
+async def set_member_message_async(guild_id: int, text: str, is_join: bool) -> None:
+    flag: int = 0b01 if '%s' in text else 0b00
+    if '%m' in text:
+        flag |= 0b10
+
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        await base.execute(
+            "UPDATE server_info SET value = ?, str_value = ? WHERE settings = 'member_join_msg';" \
+            if is_join else \
+            "UPDATE server_info SET value = ?, str_value = ? WHERE settings = 'member_remove_msg';",
+            (flag, text)
+        )
+        await base.commit()

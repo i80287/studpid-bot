@@ -829,6 +829,8 @@ class SelectLevelModal(Modal):
 
 class OneTextInputModal(Modal):
     def __init__(self, title: str, label: str, placeholder: str | None = None, min_length: int = 0, max_length: int = 4000, default_value: str | None = None) -> None:
+        assert label is not None and len(label) <= 45
+        assert not placeholder or len(placeholder) <= 100
         super().__init__(title, timeout=30.0)
         self.text_input = TextInput(
             label=label,

@@ -43,6 +43,7 @@ from ..Tools.db_commands import (
     make_backup,
     process_salary_roles,
     check_member_level_async,
+    get_server_info_value_async
 )
 from ..constants import CWD_PATH, DB_PATH
 
@@ -104,23 +105,19 @@ class EventsHandlerCog(Cog):
     async def on_connect(self) -> None:
         await write_log_async("common_logs.log", "on_connect")
     
-    @Cog.listener()
-    async def on_ready(self) -> None:
-        if not path.exists(CWD_PATH + "/bases/"):
-            mkdir(CWD_PATH + "/bases/")
-        if not path.exists(CWD_PATH + "/logs/"):
-            mkdir(CWD_PATH + "/logs/")
-
-        bot: StoreBot = self.bot
-        guilds: list[Guild] = bot.guilds.copy()
+    @staticmethod
+    async def _process_guilds(bot: StoreBot, guilds: list[Guild]) -> None:
         for guild in guilds:
             guild_id: int = guild.id
             str_guild_id: str = str(guild_id)
-            
-            if not path.exists(f"{CWD_PATH}/bases/bases_{str_guild_id}/"):
-                mkdir(f"{CWD_PATH}/bases/bases_{str_guild_id}/")
-            if not path.exists(f"{CWD_PATH}/logs/logs_{str_guild_id}/"):
-                mkdir(f"{CWD_PATH}/logs/logs_{str_guild_id}/")
+
+            db_path: str = DB_PATH.format(str_guild_id)
+            if not path.exists(db_path):
+                mkdir(db_path)
+
+            logs_path: str = CWD_PATH + f"/logs/logs_{str_guild_id}/"
+            if not path.exists(logs_path):
+                mkdir(logs_path)
 
             db_ignored_channels_data: list[tuple[int, int, int]] = check_db(guild_id, guild.preferred_locale)
             async with bot.voice_lock:
@@ -128,8 +125,34 @@ class EventsHandlerCog(Cog):
                 bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
             async with bot.text_lock:
                 bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
+            
+            # Does not cached when set to 0
+            if (member_join_remove_channel_id := await get_server_info_value_async(guild_id, "memb_join_rem_chnl")):
+                async with bot.member_join_remove_lock:
+                    bot.join_remove_message_channels[guild_id] = member_join_remove_channel_id
 
             await write_log_async("common_logs.log", "correct_db func", str_guild_id, guild.name)
+
+    @Cog.listener()
+    async def on_ready(self) -> None:
+        db_path: str = CWD_PATH + "/bases/"
+        if not path.exists(db_path):
+            mkdir(db_path)
+
+        logs_path: str = CWD_PATH + "/logs/"
+        if not path.exists(logs_path):
+            mkdir(logs_path)
+
+        bot: StoreBot = self.bot
+        bot_guilds: list[Guild] = bot.guilds
+        guilds: list[Guild] = bot_guilds.copy()
+        await self._process_guilds(bot, guilds)
+        if len(guilds) != len(bot_guilds):
+            await self._process_guilds(bot, bot_guilds.copy())
+            await write_one_log_async(
+                filename="error.log",
+                report=f"[WARNING] [guilds count changed during the on_ready execution]\n"
+            )
 
         from ..config import DEBUG
         if DEBUG:
@@ -142,17 +165,20 @@ class EventsHandlerCog(Cog):
     @Cog.listener()
     async def on_guild_join(self, guild: Guild) -> None:
         guild_id: int = guild.id
-        
+
         # discord abusers
         if guild_id in {260978723455631373, 1068135541360578590}:
             await guild.leave()
             return
 
         str_guild_id: str = str(guild_id)
-        if not path.exists(CWD_PATH + "/bases/bases_{0}/".format(str_guild_id)):
-            mkdir(CWD_PATH + "/bases/bases_{0}/".format(str_guild_id))
-        if not path.exists(CWD_PATH + "/logs/logs_{0}/".format(str_guild_id)):
-            mkdir(CWD_PATH + "/logs/logs_{0}/".format(str_guild_id))
+        db_path: str = DB_PATH.format(str_guild_id)
+        if not path.exists(db_path):
+            mkdir(db_path)
+
+        db_path = CWD_PATH + "/logs/logs_{0}/".format(str_guild_id)
+        if not path.exists(db_path):
+            mkdir(db_path)
 
         guild_locale: str | None = guild.preferred_locale
         db_ignored_channels_data: list[tuple[int, int, int]] = check_db(guild_id, guild_locale)
@@ -164,7 +190,12 @@ class EventsHandlerCog(Cog):
             bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
         async with bot.text_lock:
             bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
-        
+
+        # Does not cached when set to 0
+        if (member_join_remove_channel_id := await get_server_info_value_async(guild_id, "memb_join_rem_chnl")):
+            async with bot.member_join_remove_lock:
+                bot.join_remove_message_channels[guild_id] = member_join_remove_channel_id
+
         exceptions: list[Exception]
         try:
             exceptions = await self.send_first_message(
@@ -173,7 +204,7 @@ class EventsHandlerCog(Cog):
             )
         except Exception as ex:
             exceptions = [ex]
-        
+
         for ex in exceptions:
             await write_one_log_async(
                 filename="error.log",
@@ -188,7 +219,7 @@ class EventsHandlerCog(Cog):
             f"[guild_join] [guild: {str_guild_id}:{guild_name}]"
         )
 
-        await self.bot.change_presence(activity=Game(f"/help on {len(self.bot.guilds)} servers"))
+        await bot.change_presence(activity=Game(f"/help on {len(bot.guilds)} servers"))
 
     @Cog.listener()
     async def on_guild_remove(self, guild: Guild) -> None:
@@ -200,15 +231,22 @@ class EventsHandlerCog(Cog):
 
         await write_log_async("guild.log", "guild_remove", str(guild_id), str(guild.name))
         await write_log_async("common_logs.log", "guild_remove", str(guild_id), str(guild.name))
-        
+
         bot: StoreBot = self.bot
         await bot.change_presence(activity=Game(f"/help on {len(bot.guilds)} servers"))
         async with bot.voice_lock:
-            del bot.members_in_voice[guild_id]
-            del bot.ignored_voice_channels[guild_id]
+            if guild_id in bot.members_in_voice:
+                del bot.members_in_voice[guild_id]
+            if guild_id in bot.ignored_voice_channels:
+                del bot.ignored_voice_channels[guild_id]
         async with bot.text_lock:
-            del bot.ignored_text_channels[guild_id]
-    
+            if guild_id in bot.ignored_text_channels:
+                del bot.ignored_text_channels[guild_id]
+        
+        async with bot.member_join_remove_lock:
+            if guild_id in bot.join_remove_message_channels:
+                del bot.join_remove_message_channels[guild_id]
+
     @tasks.loop(seconds=180.0)
     async def salary_roles_task(self) -> None:
         for guild in self.bot.guilds.copy():

@@ -43,6 +43,7 @@ from ..Tools.db_commands import (
     listify_guild_roles,
     enable_economy_commands_async,
     disable_economy_commands_async,
+    get_member_message_async,
     CommandId
 )
 from ..Tools.parse_tools import parse_emoji
@@ -54,6 +55,7 @@ from ..Components.select_ic_view import SelectICView
 from ..Components.verification_view import VerificationView
 from ..Components.select_channel_view import SelectChannelView
 from ..Components.slots_manage_view import SlotsManageView
+from ..Components.join_remove_msg_view import JoinRemoveMsgView
 
 from ..Modals.custom_modals import (
     RoleAddModal,
@@ -913,20 +915,18 @@ class EconomyView(ViewBase):
         assert interaction.guild is not None
         assert interaction.message is not None
         lng: int = self.lng
-        
-        guild_self_bot: Member = interaction.guild.me
+
+        guild = interaction.guild
+        guild_self_bot: Member = guild.me
         verify_permissions: Callable[[Permissions], bool] = \
             lambda permissions: permissions.read_message_history and permissions.read_messages and permissions.send_messages
-        channels_options: list[tuple[str, str]] = [(c.name, str(c.id)) for c in interaction.guild.text_channels if verify_permissions(c.permissions_for(guild_self_bot))]
+        channels_options: list[tuple[str, str]] = [(c.name, str(c.id)) for c in guild.text_channels if verify_permissions(c.permissions_for(guild_self_bot))]
 
         select_channel_view: SelectChannelView = SelectChannelView(lng, self.author_id, 40, channels_options)
-        await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=select_channel_view, ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=select_channel_view)
         await select_channel_view.wait()
 
-        try:
-            await interaction.delete_original_message()
-        except:
-            pass
+        await self.try_delete(interaction, select_channel_view)
 
         if (channel_id := select_channel_view.channel_id) is None:
             return
@@ -939,15 +939,15 @@ class EconomyView(ViewBase):
         emb: Embed = interaction.message.embeds[0]
         assert emb.description is not None
         dsc: list[str] = emb.description.split("\n\n")
-        dsc[5] = ec_text[lng][7].format(f"<#{channel_id}>") if channel_id else ec_text[lng][7].format(settings_text[lng][13])
+        local_text = ec_text[lng]
+        dsc[5] = local_text[7].format(f"<#{channel_id}>" if channel_id else settings_text[lng][13])
         emb.description = "\n\n".join(dsc)
         await interaction.message.edit(embed=emb)
 
+        response: str = local_text[17].format(f"<#{channel_id}>") \
+            if channel_id else local_text[22]
         try:
-            if channel_id:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][17].format(f"<#{channel_id}>")))
-            else:
-                await interaction.edit_original_message(embed=Embed(description=ec_text[lng][22]))
+            await interaction.followup.send(embed=Embed(description=response), ephemeral=True)
         except:
             return
 
@@ -1270,7 +1270,7 @@ class EconomyRolesManageView(ViewBase):
             indexes: tuple[int, int, int, int, int] = (0, quad_index, middle_index, length - quad_index, length)
             from itertools import pairwise
             embeds: list[Embed] = [Embed(description='\n'.join(description_lines[l:r])) for l, r in pairwise(indexes)]
-        
+
         try:
             await interaction.message.edit(embeds=embeds)
         except:
@@ -1284,19 +1284,34 @@ class EconomyRolesManageView(ViewBase):
 
 class SettingsView(ViewBase):
     member_id_pattern: re.Pattern[str] = re.compile(r"\d+", flags=re.RegexFlag.MULTILINE | re.RegexFlag.IGNORECASE)
+    join_remove_text: dict[int, dict[int, str]] = {
+        0: {
+            0: "You can add member and server name to the\nmessage using **`%m`** and **`%s`** accordingly\n**`Example:`**\n**`Hello, %m, welcome to the %s!`**",
+            1: "➕**`Message sent when member joins:`**\n",
+            2: "➖**`Message sent when member leaves:`**\n",
+            3: "📗**`Channel for messages:`**\n",
+        },
+        1: {
+            0: "**`You can add member and server name to the message using %m and %s accordingly`**\n**`Example:`**\n**`Hello, %m, welcome to the %s!`**",
+            1: "**`Message sent when member joins:`**\n",
+            2: "**`Message sent when member leaves:`**\n",
+            3: "**`Channel for messages:`**\n",
+        }
+    }
 
     def __init__(self, lng: int, author_id: int, timeout: int, bot: StoreBot) -> None:
-        super().__init__(lng=lng, author_id=author_id, timeout=timeout)
+        super().__init__(lng, author_id, timeout)
         self.bot: StoreBot = bot
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"0_{author_id}_" + urandom(4).hex(), emoji="⚙️"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"1_{author_id}_" + urandom(4).hex(), emoji="<:moder:1000090629897998336>"))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=None, custom_id=f"2_{author_id}_" + urandom(4).hex(), emoji="<:user:1002245779089535006>"))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"3_{author_id}_" + urandom(4).hex(), emoji="💰", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"4_{author_id}_" + urandom(4).hex(), emoji="📈", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=None, custom_id=f"64_{author_id}_" + urandom(4).hex(), emoji="🎰", row=2))
-        self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"54_{author_id}_" + urandom(4).hex(), emoji="🚫", row=3))
+        self.add_item(CustomButton(style=ButtonStyle.red, custom_id=f"0_{author_id}_" + urandom(4).hex(), emoji="⚙️"))
+        self.add_item(CustomButton(style=ButtonStyle.red, custom_id=f"1_{author_id}_" + urandom(4).hex(), emoji="<:moder:1000090629897998336>"))
+        self.add_item(CustomButton(style=ButtonStyle.red, custom_id=f"2_{author_id}_" + urandom(4).hex(), emoji="<:user:1002245779089535006>"))
+        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"3_{author_id}_" + urandom(4).hex(), emoji="💰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"4_{author_id}_" + urandom(4).hex(), emoji="📈", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.green, custom_id=f"64_{author_id}_" + urandom(4).hex(), emoji="🎰", row=2))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, custom_id=f"54_{author_id}_" + urandom(4).hex(), emoji="🚫", row=3))
+        self.add_item(CustomButton(style=ButtonStyle.blurple, custom_id=f"67_{author_id}_" + urandom(4).hex(), emoji="👋", row=3))
         # self.add_item(CustomButton(style=ButtonStyle.blurple, label=None, custom_id=f"5_{author_id}_" + urandom(4).hex(), emoji="📊", row=3))
-    
+
     @classmethod
     def check_ans(cls, guild: Guild, ans: str) -> tuple[Member | None, bool]:
         for member_id in cls.member_id_pattern.findall(ans):
@@ -1304,25 +1319,6 @@ class SettingsView(ViewBase):
             if (member := guild.get_member(int(member_id))) is not None:
                 return (member, False)
         return (None, ans != "cancel")
-    
-    @staticmethod
-    async def try_delete(interaction: Interaction, view: ViewBase) -> None:
-        assert isinstance(interaction.channel, GuildChannel)
-        assert interaction.guild is not None
-        if interaction.channel.permissions_for(interaction.guild.me).manage_messages:
-            try:
-                await interaction.delete_original_message()
-                return
-            except:
-                pass
-
-        for child_component in view.children:
-            assert isinstance(child_component, (CustomButton, CustomSelect))
-            child_component.disabled = True
-        try:
-            await interaction.edit_original_message(view=view)
-        except:
-            return
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert interaction.guild_id is not None
@@ -1341,18 +1337,20 @@ class SettingsView(ViewBase):
                         ec_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
                         rnk_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
 
-                dsc = [gen_settings_text[lng][0].format(languages[lng][s_lng])]
-                if tz >= 0:
-                    dsc.append(gen_settings_text[lng][1].format(f"+{tz}"))
-                else:
-                    dsc.append(gen_settings_text[lng][1].format(f"{tz}"))
-                dsc.append(gen_settings_text[lng][2].format(currency))
-                dsc.append(gen_settings_text[lng][3].format(system_status[lng][ec_status]))
-                dsc.append(gen_settings_text[lng][4].format(system_status[lng][rnk_status]))
-                dsc.extend(gen_settings_text[lng][i] for i in (5, 6, 7))
-                dsc.append(gen_settings_text[lng][8].format(system_status[lng][ec_status+2]))
-                dsc.append(gen_settings_text[lng][9].format(system_status[lng][rnk_status+2]))
-                
+                local_text = gen_settings_text[lng]
+                dsc = [
+                    local_text[0].format(languages[lng][s_lng]),
+                    local_text[1].format(f"+{tz}" if tz >= 0 else str(tz)),
+                    local_text[2].format(currency),
+                    local_text[3].format(system_status[lng][ec_status]),
+                    local_text[4].format(system_status[lng][rnk_status]),
+                    local_text[5],
+                    local_text[6],
+                    local_text[7],
+                    local_text[8].format(system_status[lng][ec_status+2]),
+                    local_text[9].format(system_status[lng][rnk_status+2])
+                ]
+
                 gen_view: GenSettingsView = GenSettingsView(
                     t_out=50,
                     auth_id=author_id,
@@ -1361,21 +1359,22 @@ class SettingsView(ViewBase):
                     ec_status=ec_status,
                     rnk_status=rnk_status
                 )
-                await interaction.response.send_message(embed=Embed(description="\n".join(dsc)), view=gen_view)
+                await interaction.response.send_message(embed=Embed(description='\n'.join(dsc)), view=gen_view)
                 await gen_view.wait()
                 await self.try_delete(interaction, gen_view)
             case 1:
                 with closing(connect(DB_PATH.format(guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         db_m_rls: list[tuple[int]] = cur.execute("SELECT role_id FROM mod_roles").fetchall()
-                emb = Embed(title=mod_roles_text[lng][0])
+                local_text = mod_roles_text[lng]
+                emb = Embed(title=local_text[0])
                 if db_m_rls:
                     m_rls: set[int] = {x[0] for x in db_m_rls}
-                    emb.description = "\n".join([mod_roles_text[lng][2]] + [f"<@&{i}> - {i}" for i in m_rls])
+                    emb.description = "\n".join([local_text[2]] + [f"<@&{i}> - {i}" for i in m_rls])
                     rem_dis: bool = False
                     del db_m_rls
                 else:
-                    emb.description=mod_roles_text[lng][1]
+                    emb.description=local_text[1]
                     m_rls: set[int] = set()
                     rem_dis: bool = True
 
@@ -1414,13 +1413,13 @@ class SettingsView(ViewBase):
                     await interaction.delete_original_message()
                 except:
                     pass
-                
+
                 if memb is None:
                     return
-                
+
                 memb_id: int = memb.id
                 memb_info: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
-                
+
                 with closing(connect(DB_PATH.format(guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
@@ -1441,10 +1440,11 @@ class SettingsView(ViewBase):
                     while cnt_cash > 1 and memb_id != membs_cash[cnt_cash-1][0]:
                         cnt_cash -= 1
 
+                local_text = mng_membs_text[lng]
                 emb1: Embed = Embed()
-                emb1.description = mng_membs_text[lng][5].format(memb_id, memb_id)
-                emb1.add_field(name=mng_membs_text[lng][1], value=code_blocks[1].format(cash), inline=True)
-                emb1.add_field(name=mng_membs_text[lng][4], value=code_blocks[1].format(cnt_cash), inline=True)
+                emb1.description = local_text[5].format(memb_id, memb_id)
+                emb1.add_field(name=local_text[1], value=code_blocks[1].format(cash), inline=True)
+                emb1.add_field(name=local_text[4], value=code_blocks[1].format(cnt_cash), inline=True)
 
                 # cnt_cash is a place in the rating sorded by xp
                 xp: int = memb_info[4]
@@ -1458,20 +1458,19 @@ class SettingsView(ViewBase):
                         cnt_xp -= 1
 
                 level: int = (xp + xp_b - 1) // xp_b
-                
-                emb2: Embed = Embed()
-                emb2.add_field(name=mng_membs_text[lng][2], value=code_blocks[2].format(f"{xp}/{level * xp_b + 1}"), inline=True)
-                emb2.add_field(name=mng_membs_text[lng][3], value=code_blocks[2].format(level), inline=True)
-                emb2.add_field(name=mng_membs_text[lng][4], value=code_blocks[2].format(cnt_xp), inline=True)
 
-                emb3: Embed = Embed()
+                emb2: Embed = Embed()
+                emb2.add_field(name=local_text[2], value=code_blocks[2].format(f"{xp}/{level * xp_b + 1}"), inline=True)
+                emb2.add_field(name=local_text[3], value=code_blocks[2].format(level), inline=True)
+                emb2.add_field(name=local_text[4], value=code_blocks[2].format(cnt_xp), inline=True)
+
                 member_roles_ids: set[int] = {int(r) for r in memb_info[2].split("#") if r.isdecimal()}
-                if member_roles_ids:
-                    dsc = [code_blocks[lng*5]] + [f"<@&{r}>**` - {r}`**" for r in member_roles_ids]
-                else:
-                    dsc = [mng_membs_text[lng][6]]
-                emb3.description = "\n".join(dsc)
-                rem_dis: bool = True if len(dsc) == 1 else False
+
+                dsc = [code_blocks[lng*5]] + [f"<@&{r}>**` - {r}`**" for r in member_roles_ids] \
+                    if member_roles_ids else [local_text[6]]
+
+                emb3: Embed = Embed(description='\n'.join(dsc))
+                rem_dis: bool = len(dsc) == 1
 
                 if db_roles:
                     db_roles_set: set[int] = {x[0] for x in db_roles}
@@ -1561,14 +1560,15 @@ class SettingsView(ViewBase):
                         xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
                         lvl_c_a: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c'").fetchone()[0]
 
+                local_text = ranking_text[lng]
                 emb = Embed()
-                dsc = [ranking_text[lng][0].format(xp_p_m)]
-                dsc.append(ranking_text[lng][1].format(xp_b))
+                dsc = [local_text[0].format(xp_p_m)]
+                dsc.append(local_text[1].format(xp_b))
                 if lvl_c_a == 0:
-                    dsc.append(ranking_text[lng][2].format(settings_text[lng][13]))
+                    dsc.append(local_text[2].format(settings_text[lng][13]))
                 else:
-                    dsc.append(ranking_text[lng][2].format(f"<#{lvl_c_a}>"))
-                dsc.extend(ranking_text[lng][i] for i in (4, 6))
+                    dsc.append(local_text[2].format(f"<#{lvl_c_a}>"))
+                dsc.extend(local_text[i] for i in (4, 6))
 
                 emb.description = "\n\n".join(dsc)
                 rnk_v: RankingView = RankingView(
@@ -1584,27 +1584,6 @@ class SettingsView(ViewBase):
                 await interaction.response.send_message(embed=emb, view=rnk_v)
                 await rnk_v.wait()
                 await self.try_delete(interaction, rnk_v)
-            # case 5:
-            #     with closing(connect(DB_PATH.format(guild_id))) as base:
-            #         with closing(base.cursor()) as cur:
-            #             p_v_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
-            #             p_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
-                
-            #     if p_v_c:
-            #         dsc = [poll_text[lng][0].format(f"<#{p_v_c}>")]
-            #     else:
-            #         dsc = [poll_text[lng][0].format(settings_text[lng][13])]
-            #     if p_c:
-            #         dsc.append(poll_text[lng][1].format(f"<#{p_c}>"))
-            #     else:
-            #         dsc.append(poll_text[lng][1].format(settings_text[lng][13]))
-            #     dsc.append(poll_text[lng][2])
-            #     dsc.append(poll_text[lng][3])
-
-            #     p_v: PollSettingsView = PollSettingsView(lng=lng, author_id=author_id, timeout=100)
-            #     await interaction.response.send_message(embed=Embed(description="\n\n".join(dsc)), view=p_v)
-            #     await p_v.wait()
-            #     await self.try_delete(interaction, p_v)
             case 54:
                 emb = Embed(description=SelectICView.select_ignored_channels_text[lng][0])
                 select_ic_view: SelectICView = SelectICView(
@@ -1636,6 +1615,73 @@ class SettingsView(ViewBase):
                 await interaction.response.send_message(embed=emb, view=slots_manage_view)
                 await slots_manage_view.wait()
                 await self.try_delete(interaction, slots_manage_view)
+            case 67:
+                text: dict[int, str] = self.join_remove_text[lng]
+                assert len(text) >= 4
+                join_message: str = (await get_member_message_async(guild_id, True))[1]
+                remove_message: str = (await get_member_message_async(guild_id, False))[1]
+                bot = self.bot
+                async with bot.member_join_remove_lock:
+                    log_channel_id: int = bot.join_remove_message_channels.get(guild_id, 0)
+
+                emb1 = Embed(description=text[0])
+                emb2 = Embed(description=text[1] + join_message)
+                emb3 = Embed(description=text[2] + remove_message)
+                emb4 = Embed(description=text[3] + (settings_text[lng][13] if not log_channel_id else f"<#{log_channel_id}>"))
+                msg_view = JoinRemoveMsgView(lng, author_id, bot)
+
+                try:
+                    await interaction.response.send_message(embeds=[emb1, emb2, emb3, emb4], view=msg_view)
+                except Exception as ex:
+                    from ..Tools.logger import write_one_log_async
+                    await write_one_log_async(
+                        "error.log",
+                        f"[FATAL] [ERROR] [was not able to send join/remove message edit view] [{ex}:{ex:!r}]\n"
+                    )
+                    
+                    emb = Embed(
+                        description="Sorry, something went wrong while responding\nPlease let us know via /feedback command or on the support server in the bot's bio"
+                    )
+
+                    handler = interaction.response
+                    if not handler._responded:
+                        await handler.send_message(embed=emb, ephemeral=True)
+                        return
+
+                    handler = interaction.followup
+                    if handler.token is not None:
+                        await handler.send(embed=emb, ephemeral=True)
+                        return
+
+                    from nextcord.channel import TextChannel
+                    if isinstance(handler := interaction.channel, TextChannel):
+                        await handler.send(embed=emb)
+                    return
+
+                await msg_view.wait()
+                await self.try_delete(interaction, msg_view)
+            case 5:
+                # with closing(connect(DB_PATH.format(guild_id))) as base:
+                #     with closing(base.cursor()) as cur:
+                #         p_v_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_v_c'").fetchone()[0]
+                #         p_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'poll_c'").fetchone()[0]
+                
+                # if p_v_c:
+                #     dsc = [poll_text[lng][0].format(f"<#{p_v_c}>")]
+                # else:
+                #     dsc = [poll_text[lng][0].format(settings_text[lng][13])]
+                # if p_c:
+                #     dsc.append(poll_text[lng][1].format(f"<#{p_c}>"))
+                # else:
+                #     dsc.append(poll_text[lng][1].format(settings_text[lng][13]))
+                # dsc.append(poll_text[lng][2])
+                # dsc.append(poll_text[lng][3])
+
+                # p_v: PollSettingsView = PollSettingsView(lng=lng, author_id=author_id, timeout=100)
+                # await interaction.response.send_message(embed=Embed(description="\n\n".join(dsc)), view=p_v)
+                # await p_v.wait()
+                # await self.try_delete(interaction, p_v)
+                pass
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         return
@@ -1663,10 +1709,7 @@ class PollSettingsView(ViewBase):
 
         await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=v_c)
         await v_c.wait()
-        try:
-            await interaction.delete_original_message()
-        except:
-            return
+        await self.try_delete(interaction, v_c)
 
         new_channel_id: int | None = v_c.channel_id
         if new_channel_id is None:
@@ -1780,13 +1823,10 @@ class RankingView(ViewBase):
         channels_options: list[tuple[str, str]] = [(c.name, str(c.id)) for c in interaction.guild.text_channels if verify_permissions(c.permissions_for(guild_self_bot))]
 
         level_channel_select_view: SelectChannelView = SelectChannelView(lng, self.author_id, 30, channels_options)
-        await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=level_channel_select_view, ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=settings_text[lng][11]), view=level_channel_select_view)
         await level_channel_select_view.wait()
 
-        try:
-            await interaction.delete_original_message()
-        except:
-            pass
+        await self.try_delete(interaction, level_channel_select_view)
 
         if (level_channel_id := level_channel_select_view.channel_id) is None:
             return
@@ -1830,10 +1870,7 @@ class RankingView(ViewBase):
         )
         await interaction.response.send_message(embed=emb, view=lr_v)
         await lr_v.wait()
-        try:
-            await interaction.delete_original_message()
-        except:
-            return
+        await self.try_delete(interaction, lr_v)
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         match int(custom_id[:2]):

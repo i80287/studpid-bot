@@ -22,7 +22,8 @@ from nextcord.ext.commands import Cog
 from ..Tools.db_commands import (
     add_member_role_async,
     remove_member_role_async,
-    get_server_info_value_async
+    get_server_info_value_async,
+    get_member_message_async
 )
 from ..Tools.logger import write_guild_log_async
 
@@ -43,6 +44,58 @@ class MembersHandlerCog(Cog):
         self.bot: StoreBot = bot
         self.members_queue: asyncio.Queue[tuple[Guild, int, SnowflakeList, SnowflakeList, bool]] = asyncio.Queue()
         self.roles_updates_loop.start()
+
+    @Cog.listener()
+    async def on_member_join(self, member: Member) -> None:
+        guild: Guild = member.guild
+        guild_id: int = guild.id
+        bot: StoreBot = self.bot
+        async with bot.member_join_remove_lock:
+            if (channel_id := bot.join_remove_message_channels.get(guild_id, None)) is None:
+                return
+
+        if isinstance(channel := guild.get_channel(channel_id), TextChannel) and channel.permissions_for(guild.me).send_messages:
+            (flag, text) = await get_member_message_async(guild_id, True)
+            assert isinstance(text, str) and isinstance(flag, int)
+            if not text:
+                return
+
+            if flag:
+                if flag & 0b01:
+                    text = text.replace('%s', guild.name)
+                if flag & 0b10:
+                    text = text.replace('%m', f"<@{member.id}>")
+
+            try:
+                await channel.send(embed=Embed(description=text))
+            except:
+                return
+
+    @Cog.listener()
+    async def on_member_remove(self, member: Member) -> None:
+        guild: Guild = member.guild
+        guild_id: int = guild.id
+        bot: StoreBot = self.bot
+        async with bot.member_join_remove_lock:
+            if (channel_id := bot.join_remove_message_channels.get(guild_id, None)) is None:
+                return
+
+        if isinstance(channel := guild.get_channel(channel_id), TextChannel) and channel.permissions_for(guild.me).send_messages:
+            (flag, text) = await get_member_message_async(guild_id, False)
+            assert isinstance(text, str) and isinstance(flag, int)
+            if not text:
+                return
+
+            if flag:
+                if flag & 0b01:
+                    text = text.replace('%s', guild.name)
+                if flag & 0b10:
+                    text = text.replace('%m', f"<@{member.id}>")
+
+            try:
+                await channel.send(embed=Embed(description=text))
+            except:
+                return
 
     @Cog.listener()
     async def on_member_update(self, before: Member, after: Member) -> None:

@@ -15,7 +15,6 @@ if __debug__:
 class CustomButton(Button):    
     def __init__(
         self,
-        *,
         style: ButtonStyle = ButtonStyle.secondary,
         label: str | None = None,
         disabled: bool = False,
