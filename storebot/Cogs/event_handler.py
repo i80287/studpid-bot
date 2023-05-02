@@ -300,7 +300,13 @@ class EventsHandlerCog(Cog):
                 if channel_id and isinstance(channel := guild.get_channel(channel_id), TextChannel):
                     lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
                     emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(member.mention, new_level))
-                    await channel.send(embed=emb)
+                    try:
+                        await channel.send(embed=emb)
+                    except Exception as ex:
+                        await write_one_log_async(
+                            "error.log",
+                            f"[WARNING] [guild: {g_id}:{guild.name}] [was not able to send new level message in on_message] [{str(ex)}{ex:!r}]\n"
+                        )
 
                 db_lvl_rls: list[tuple[int, int]] | list = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level").fetchall()
                 
