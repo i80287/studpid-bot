@@ -1,0 +1,3 @@
+[submodule "typehint_preprocessor"]
+	path = typehint_preprocessor
+	url = https://github.com/i80287/typehint_preprocessor
