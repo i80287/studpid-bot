@@ -186,6 +186,7 @@ class RouletteView(ViewBase):
         self.events_queue.put_nowait(interaction)
     
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
+        assert values and values[0].isdecimal()
         self.bet_select.options[self.bet_color_number].default = False
         new_bet_color_number: int = int(values[0])
         self.bet_select.options[new_bet_color_number].default = True
@@ -208,8 +209,11 @@ class RouletteView(ViewBase):
         )
     
     async def on_timeout(self) -> None:
-        self.finalize()
-    
+        # inlined self.finalize()
+        self.is_running = False
+        self.roulette_hanlder.cancel()
+        self.stop()
+
     def finalize(self) -> None:
         self.is_running = False
         self.roulette_hanlder.cancel()
