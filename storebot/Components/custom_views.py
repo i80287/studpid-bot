@@ -2048,6 +2048,17 @@ class LevelRolesView(ViewBase):
 
 
 class ManageMemberView(ViewBase):
+    manage_member_view_text = {
+        0: {
+            0: "We are sorry, an error occured while adding role. Please, check bot's permissions",
+            1: "We are sorry, an error occured while removing role. Please, check bot's permissions"
+        },
+        1: {
+            0: "Извините, при добавлении роли произошла ошибка. Пожалуйста, проверьте права бота",
+            1: "Извините, при снятии роли произошла ошибка. Пожалуйста, проверьте права бота"
+        }
+    }
+
     def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set[int], \
                 rls: list[tuple[str, str]], cur_money: int, cur_xp: int, rem_dis: bool, g_id: int, member: Member, bot: StoreBot) -> None:
         super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
@@ -2115,16 +2126,16 @@ class ManageMemberView(ViewBase):
                 base.commit()
 
         role: Role | None = interaction.guild.get_role(role_id)
-        if role is not None:
-            bot = self.bot
-            async with bot.bot_added_roles_lock:
-                bot.bot_added_roles_queue.put_nowait(role_id)
-            try:
-                await self.member.add_roles(role)
-            except:
-                #TODO:
-                pass
-        
+        assert role is not None
+        bot = self.bot
+        async with bot.bot_added_roles_lock:
+            bot.bot_added_roles_queue.put_nowait(role_id)
+        try:
+            await self.member.add_roles(role)
+        except:
+            await interaction.response.send_message(embed=Embed(description=self.manage_member_view_text[lng][0]))
+            return
+
         assert interaction.message is not None
         embs: list[Embed] = interaction.message.embeds
         emb3: Embed = embs[2]
@@ -2187,9 +2198,9 @@ class ManageMemberView(ViewBase):
         try:
             await self.member.remove_roles(role)
         except:
-            # TODO:
-            pass
-        
+            await interaction.response.send_message(embed=Embed(description=self.manage_member_view_text[lng][1]))
+            return
+
         assert interaction.message is not None
         embs: list[Embed] = interaction.message.embeds
         emb3: Embed = embs[2]
