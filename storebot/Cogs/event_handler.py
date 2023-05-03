@@ -111,7 +111,7 @@ class EventsHandlerCog(Cog):
             guild_id: int = guild.id
             str_guild_id: str = str(guild_id)
 
-            db_path: str = DB_PATH.format(str_guild_id)
+            db_path: str = CWD_PATH + f"/bases/bases_{str_guild_id}/"
             if not path.exists(db_path):
                 mkdir(db_path)
 
