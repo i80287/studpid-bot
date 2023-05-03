@@ -30,7 +30,6 @@ from nextcord import (
 )
 if __debug__:
     from nextcord import Member
-    from nextcord.abc import GuildChannel
 
 from ..Tools.db_commands import (
     get_member_async,
@@ -1481,28 +1480,27 @@ class SettingsView(ViewBase):
                 del db_roles
 
                 mng_v: ManageMemberView = ManageMemberView(
-                    timeout=110, 
-                    lng=lng, 
-                    auth_id=author_id, 
-                    memb_id=memb_id, 
-                    memb_rls=member_roles_ids, 
-                    rls=roles,
-                    cur_money=cash,
-                    cur_xp=xp,
-                    rem_dis=rem_dis,
-                    g_id=guild_id,
-                    member=memb
+                    110, 
+                    lng, 
+                    author_id, 
+                    memb_id, 
+                    member_roles_ids, 
+                    roles,
+                    cash,
+                    xp,
+                    rem_dis,
+                    guild_id,
+                    memb,
+                    self.bot
                 )
 
                 message = await interaction.send(embeds=[emb1, emb2, emb3], view=mng_v)
                 await mng_v.wait()
-                assert isinstance(interaction.channel, GuildChannel)
-                if interaction.channel.permissions_for(interaction.guild.me).manage_messages:
-                    try:
-                        await message.delete()
-                        return
-                    except:
-                        pass
+                try:
+                    await message.delete()
+                    return
+                except:
+                    pass
                 for child_component in mng_v.children:
                     assert isinstance(child_component, (CustomButton, CustomSelect))
                     child_component.disabled = True
@@ -2051,7 +2049,7 @@ class LevelRolesView(ViewBase):
 
 class ManageMemberView(ViewBase):
     def __init__(self, timeout: int, lng: int, auth_id: int, memb_id: int, memb_rls: set[int], \
-                rls: list[tuple[str, str]], cur_money: int, cur_xp: int, rem_dis: bool, g_id: int, member: Member) -> None:
+                rls: list[tuple[str, str]], cur_money: int, cur_xp: int, rem_dis: bool, g_id: int, member: Member, bot: StoreBot) -> None:
         super().__init__(lng=lng, author_id=auth_id, timeout=timeout)
 
         self.add_item(CustomButton(
@@ -2089,6 +2087,7 @@ class ManageMemberView(ViewBase):
         self.xp: int = cur_xp
         self.g_id: int = g_id
         self.member: Member = member
+        self.bot: StoreBot = bot
 
     async def add_role(self, interaction: Interaction) -> None:
         assert interaction.guild is not None
@@ -2117,7 +2116,14 @@ class ManageMemberView(ViewBase):
 
         role: Role | None = interaction.guild.get_role(role_id)
         if role is not None:
-            await self.member.add_roles(role)
+            bot = self.bot
+            async with bot.bot_added_roles_lock:
+                bot.bot_added_roles_queue.put_nowait(role_id)
+            try:
+                await self.member.add_roles(role)
+            except:
+                #TODO:
+                pass
         
         assert interaction.message is not None
         embs: list[Embed] = interaction.message.embeds
@@ -2175,7 +2181,14 @@ class ManageMemberView(ViewBase):
 
         role: Role | None = interaction.guild.get_role(role_id)
         assert role is not None
-        await self.member.remove_roles(role)
+        bot = self.bot
+        async with bot.bot_removed_roles_lock:
+            bot.bot_removed_roles_queue.put_nowait(role_id)
+        try:
+            await self.member.remove_roles(role)
+        except:
+            # TODO:
+            pass
         
         assert interaction.message is not None
         embs: list[Embed] = interaction.message.embeds

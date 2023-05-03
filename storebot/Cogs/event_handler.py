@@ -321,8 +321,12 @@ class EventsHandlerCog(Cog):
             guild_roles: dict[int, Role] = guild._roles.copy()
             memb_roles: set[int] = {role_id for role_id in member._roles if role_id in guild_roles}
 
+            bot = self.bot
+
             new_level_role_id: int = lvl_rls[new_level]
             if new_level_role_id not in memb_roles and (role := guild_roles.get(new_level_role_id)):
+                async with bot.bot_added_roles_lock:
+                    bot.bot_added_roles_queue.put_nowait(new_level_role_id)
                 try: 
                     await member.add_roles(role, reason=f"Member gained new level {new_level}")
                 except: 
@@ -331,6 +335,8 @@ class EventsHandlerCog(Cog):
             # Bin search, realized in Python, will be slower here, as predicted ~ len(new_level_index) < 32 (very small)
             new_level_index: int = levels.index(new_level)
             if new_level_index and ((old_role_id := lvl_rls[levels[new_level_index-1]]) in memb_roles) and (role := guild_roles.get(old_role_id)):
+                async with bot.bot_removed_roles_lock:
+                    bot.bot_removed_roles_queue.put_nowait(old_role_id)
                 try: 
                     await member.remove_roles(role, reason=f"Member gained new level {new_level}")
                 except: 
