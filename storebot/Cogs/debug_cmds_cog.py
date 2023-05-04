@@ -191,7 +191,27 @@ class DebugCommandsCog(Cog):
         report.extend(map(lambda role: f"**`{role.id}:" + role.name + "`**", member.roles))
 
         await ctx.reply(embed=Embed(description='\n'.join(report)), mention_author=False)
+    
+    @command(name="check_db") # type: ignore
+    @is_owner()
+    async def check_db_command(self, ctx: Context, guild_id: int) -> None:
+        try:
+            from ..Tools.db_commands import check_db
+            from os import mkdir
+            str_guild_id = str(guild_id)
 
+            db_path: str = CWD_PATH + f"/bases/bases_{str_guild_id}/"
+            if not path.exists(db_path):
+                mkdir(db_path)
+
+            logs_path: str = CWD_PATH + f"/logs/logs_{str_guild_id}/"
+            if not path.exists(logs_path):
+                mkdir(logs_path)
+
+            check_db(guild_id, None)
+            await ctx.reply(embed=Embed(description=f"**`Updated info for the guild {guild_id}`**"), mention_author=False)
+        except Exception as ex:
+            await ctx.reply(embed=Embed(description=f"{ex} : {ex!r}"), mention_author=False)
 
 def setup(bot: StoreBot) -> None:
     bot.add_cog(DebugCommandsCog(bot))
