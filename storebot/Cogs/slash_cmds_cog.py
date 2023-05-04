@@ -12,6 +12,7 @@ if TYPE_CHECKING:
     from ..storebot import StoreBot
 
 from datetime import datetime, timedelta, timezone
+from aiosqlite import connect as connect_async
 from sqlite3 import connect, Cursor
 from contextlib import closing
 from random import randint
@@ -1154,35 +1155,33 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
         guild_id: int = interaction.guild_id
 
-        with closing(connect(DB_PATH.format(guild_id))) as base:
-            with closing(base.cursor()) as cur:
-                xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
-                currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
-                ec_status: int = \
-                    cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
-                rnk_status: int = \
-                    cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
+        async with connect_async(DB_PATH.format(guild_id)) as base:
+            xp_b: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_border';")).fetchone())[0] # type: ignore
+            currency: str = (await (await base.execute("SELECT str_value FROM server_info WHERE settings = 'currency';")).fetchone())[0] # type: ignore
+            ec_status: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled';")).fetchone())[0] # type: ignore
+            rnk_status: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled';")).fetchone())[0] # type: ignore
 
-                membs_cash: list[tuple[int, int]] | None = \
-                    cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall() \
-                    if ec_status else None
+            membs_cash: list[tuple[int, int]] | None = \
+                await (await base.execute("SELECT memb_id, money FROM users ORDER BY money DESC;")).fetchall() \
+                if ec_status else None # type: ignore
 
-                db_roles: set[int] | None = \
-                    {role[0] for role in cur.execute("SELECT role_id FROM server_roles").fetchall()} \
-                    if ec_status else None
+            db_roles: set[int] | None = \
+                {role[0] for role in (await (await base.execute("SELECT role_id FROM server_roles")).fetchall())} \
+                if ec_status else None
 
-                membs_xp: list[tuple[int, int]] | None = \
-                    cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall() \
-                    if rnk_status else None
+            membs_xp: list[tuple[int, int]] | None = \
+                await (await base.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;")).fetchall() \
+                if rnk_status else None # type: ignore
 
-                sale_role_requests: list[tuple[int, int, int, int]] = cur.execute(
-                    "SELECT request_id, target_id, role_id, price FROM sale_requests WHERE seller_id = ?",
-                    (memb_id,)
-                ).fetchall()
-                buy_role_requests: list[tuple[int, int, int, int]] = cur.execute(
-                    "SELECT request_id, seller_id, role_id, price FROM sale_requests WHERE target_id = ?",
-                    (memb_id,)
-                ).fetchall()
+            sale_role_requests: list[tuple[int, int, int, int]] = await (await base.execute(
+                "SELECT request_id, target_id, role_id, price FROM sale_requests WHERE seller_id = ?",
+                (memb_id,)
+            )).fetchall() # type: ignore
+
+            buy_role_requests: list[tuple[int, int, int, int]] = await (await base.execute(
+                "SELECT request_id, seller_id, role_id, price FROM sale_requests WHERE target_id = ?",
+                (memb_id,)
+            )).fetchall() # type: ignore
 
         if not (ec_status or rnk_status):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)

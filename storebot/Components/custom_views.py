@@ -21,6 +21,7 @@ from asyncio import (
 )
 
 from contextlib import closing
+from aiosqlite import connect as connect_async
 from sqlite3 import connect
 from os import urandom
 
@@ -1328,13 +1329,12 @@ class SettingsView(ViewBase):
         author_id: int = self.author_id
         match int(custom_id.split('_')[0]):
             case 0:
-                with closing(connect(DB_PATH.format(guild_id))) as base:
-                    with closing(base.cursor()) as cur:
-                        s_lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang'").fetchone()[0]
-                        tz: int = cur.execute("SELECT value FROM server_info WHERE settings = 'tz'").fetchone()[0]
-                        currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
-                        ec_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]
-                        rnk_status: int = cur.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'").fetchone()[0]
+                async with connect_async(DB_PATH.format(guild_id)) as base:
+                    s_lng: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'lang'")).fetchone())[0] # type: ignore
+                    tz: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'tz'")).fetchone())[0] # type: ignore
+                    currency: str = (await (await base.execute("SELECT str_value FROM server_info WHERE settings = 'currency'")).fetchone())[0] # type: ignore
+                    ec_status: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'")).fetchone())[0] # type: ignore
+                    rnk_status: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'")).fetchone())[0] # type: ignore
 
                 local_text = gen_settings_text[lng]
                 dsc = [
@@ -1362,9 +1362,8 @@ class SettingsView(ViewBase):
                 await gen_view.wait()
                 await self.try_delete(interaction, gen_view)
             case 1:
-                with closing(connect(DB_PATH.format(guild_id))) as base:
-                    with closing(base.cursor()) as cur:
-                        db_m_rls: list[tuple[int]] = cur.execute("SELECT role_id FROM mod_roles").fetchall()
+                async with connect_async(DB_PATH.format(guild_id)) as base:
+                    db_m_rls: list[tuple[int]] = await (await base.execute("SELECT role_id FROM mod_roles")).fetchall() # type: ignore
                 local_text = mod_roles_text[lng]
                 emb = Embed(title=local_text[0])
                 if db_m_rls:
@@ -1419,12 +1418,11 @@ class SettingsView(ViewBase):
                 memb_id: int = memb.id
                 memb_info: tuple[int, int, str, int, int, int] = await get_member_async(guild_id=guild_id, member_id=memb_id)
 
-                with closing(connect(DB_PATH.format(guild_id))) as base:
-                    with closing(base.cursor()) as cur:
-                        xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
-                        membs_cash: list[tuple[int, int]] = cur.execute("SELECT memb_id, money FROM users ORDER BY money DESC;").fetchall()
-                        membs_xp: list[tuple[int, int]] = cur.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;").fetchall()
-                        db_roles: list[tuple[int]] = cur.execute("SELECT role_id FROM server_roles").fetchall()
+                async with connect_async(DB_PATH.format(guild_id)) as base:
+                    xp_b: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_border'")).fetchone())[0] # type: ignore
+                    membs_cash: list[tuple[int, int]] = await (await base.execute("SELECT memb_id, money FROM users ORDER BY money DESC;")).fetchall() # type: ignore
+                    membs_xp: list[tuple[int, int]] = await (await base.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;")).fetchall() # type: ignore
+                    db_roles: list[tuple[int]] = await (await base.execute("SELECT role_id FROM server_roles")).fetchall() # type: ignore
 
                 l: int = len(membs_cash)     
 
@@ -1509,16 +1507,15 @@ class SettingsView(ViewBase):
                 except:
                     return
             case 3:
-                with closing(connect(DB_PATH.format(guild_id))) as base:
-                    with closing(base.cursor()) as cur:
-                        money_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';").fetchone()[0]
-                        w_cd: int = cur.execute("SELECT value FROM server_info WHERE settings = 'w_cd';").fetchone()[0]
-                        sal_l: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_l';").fetchone()[0]
-                        sal_r: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sal_r';").fetchone()[0]
-                        e_l_c: int = cur.execute("SELECT value FROM server_info WHERE settings = 'log_c';").fetchone()[0]
-                        sale_price_percent: int = cur.execute("SELECT value FROM server_info WHERE settings = 'sale_price_perc';").fetchone()[0]
-                        voice_income: int = cur.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice';").fetchone()[0]
-                        currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency';").fetchone()[0]
+                async with connect_async(DB_PATH.format(guild_id)) as base:
+                    money_p_m: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'mn_per_msg';")).fetchone())[0] # type: ignore
+                    w_cd: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'w_cd';")).fetchone())[0] # type: ignore
+                    sal_l: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'sal_l';")).fetchone())[0] # type: ignore
+                    sal_r: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'sal_r';")).fetchone())[0] # type: ignore
+                    e_l_c: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'log_c';")).fetchone())[0] # type: ignore
+                    sale_price_percent: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'sale_price_perc';")).fetchone())[0] # type: ignore
+                    voice_income: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice';")).fetchone())[0] # type: ignore
+                    currency: str = (await (await base.execute("SELECT str_value FROM server_info WHERE settings = 'currency';")).fetchone())[0] # type: ignore
 
                 local_text: dict[int, str] = ec_text[lng]
                 emb: Embed = Embed(title=local_text[0])
@@ -1552,11 +1549,10 @@ class SettingsView(ViewBase):
                 await ec_v.wait()
                 await self.try_delete(interaction, ec_v)
             case 4:
-                with closing(connect(DB_PATH.format(guild_id))) as base:
-                    with closing(base.cursor()) as cur:
-                        xp_p_m: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg'").fetchone()[0]
-                        xp_b: int = cur.execute("SELECT value FROM server_info WHERE settings = 'xp_border'").fetchone()[0]
-                        lvl_c_a: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c'").fetchone()[0]
+                async with connect_async(DB_PATH.format(guild_id)) as base:
+                    xp_p_m: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg'")).fetchone())[0] # type: ignore
+                    xp_b: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_border'")).fetchone())[0] # type: ignore
+                    lvl_c_a: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'lvl_c'")).fetchone())[0] # type: ignore
 
                 local_text = ranking_text[lng]
                 emb = Embed()
@@ -1684,6 +1680,7 @@ class SettingsView(ViewBase):
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         return
 
+
 class PollSettingsView(ViewBase):
     def __init__(self, lng: int, author_id: int, timeout: int) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
@@ -1775,6 +1772,7 @@ class PollSettingsView(ViewBase):
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         return
+
 
 class RankingView(ViewBase):
     def __init__(self, lng: int, author_id: int, timeout: int, g_id: int, cur_xp_pm: int, cur_xpb: int, bot: StoreBot) -> None:
