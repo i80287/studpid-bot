@@ -62,14 +62,14 @@ class OpenAICog(Cog):
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
     
-    @slash_command(
-        name="ask",
-        description="Ask OpenAI anything",
-        description_localizations={
-            Locale.ru: "Спросить OpenAI о чём угодно"
-        },
-        dm_permission=False
-    )
+    # @slash_command(
+    #     name="ask",
+    #     description="Ask OpenAI anything",
+    #     description_localizations={
+    #         Locale.ru: "Спросить OpenAI о чём угодно"
+    #     },
+    #     dm_permission=False
+    # )
     async def ask_openai(
         self,
         interaction: Interaction,
