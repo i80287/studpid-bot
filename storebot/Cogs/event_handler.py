@@ -63,15 +63,15 @@ class EventsHandlerCog(Cog):
         "Thanks for adding bot!\nUse **`/guide`** to see guide about bot's system\n**`/settings`** to manage bot\nand **`/help`** to see available commands",
         "Благодарим за добавление бота!\nИспользуйте **`/guide`** для просмотра гайда о системе бота\n**`/settings`** для управления ботом\nи **`/help`** для просмотра доступных команд",
     )
-    new_level_text: dict[int, dict[int, str]] = {
-        0: {
-            0: "New level!",
-            1: "{}, you raised level to **{}**!",
-        },
-        1: {
-            0: "Новый уровень!",
-            1: "{}, Вы подняли уровень до **{}**!",
-        }
+    new_level_text: dict[int, tuple[str, str]] = {
+        0: (
+            "New level!",
+            "{}, you raised level to **{}**!",
+        ),
+        1: (
+            "Новый уровень!",
+            "{}, Вы подняли уровень до **{}**!",
+        )
     }
 
     def __init__(self, bot: StoreBot) -> None:
@@ -104,7 +104,7 @@ class EventsHandlerCog(Cog):
     @Cog.listener()
     async def on_connect(self) -> None:
         await write_log_async("common_logs.log", "on_connect")
-    
+
     @staticmethod
     async def _process_guilds(bot: StoreBot, guilds: list[Guild]) -> None:
         for guild in guilds:
@@ -125,7 +125,7 @@ class EventsHandlerCog(Cog):
                 bot.ignored_voice_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[2]}
             async with bot.text_lock:
                 bot.ignored_text_channels[guild_id] = {tup[0] for tup in db_ignored_channels_data if tup[1]}
-            
+
             # Does not cached when set to 0
             if (member_join_remove_channel_id := await get_server_info_value_async(guild_id, "memb_join_rem_chnl")):
                 async with bot.member_join_remove_lock:
@@ -172,13 +172,15 @@ class EventsHandlerCog(Cog):
             return
 
         str_guild_id: str = str(guild_id)
-        db_path: str = DB_PATH.format(str_guild_id)
+        db_path: str = CWD_PATH + f"/bases/bases_{str_guild_id}"
         if not path.exists(db_path):
             mkdir(db_path)
+        del db_path
 
-        db_path = CWD_PATH + "/logs/logs_{0}/".format(str_guild_id)
-        if not path.exists(db_path):
-            mkdir(db_path)
+        logs_path: str = CWD_PATH + f"/logs/logs_{str_guild_id}/"
+        if not path.exists(logs_path):
+            mkdir(logs_path)
+        del logs_path
 
         guild_locale: str | None = guild.preferred_locale
         db_ignored_channels_data: list[tuple[int, int, int]] = check_db(guild_id, guild_locale)
@@ -299,7 +301,9 @@ class EventsHandlerCog(Cog):
                 channel_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
                 if channel_id and isinstance(channel := guild.get_channel(channel_id), TextChannel):
                     lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
-                    emb: Embed = Embed(title=self.new_level_text[lng][0], description=self.new_level_text[lng][1].format(member.mention, new_level))
+                    new_lvl_text: tuple[str, str] = self.new_level_text[lng]
+                    assert len(new_lvl_text) >= 2
+                    emb: Embed = Embed(title=new_lvl_text[0], description=new_lvl_text[1].format(member.mention, new_level))
                     try:
                         await channel.send(embed=emb)
                     except Exception as ex:
