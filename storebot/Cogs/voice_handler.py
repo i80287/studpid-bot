@@ -24,7 +24,7 @@ from nextcord.ext import tasks
 from nextcord.ext.commands import Cog
 
 from ..Tools.db_commands import (
-    get_server_info_value_async,
+    get_money_and_xp_async,
     get_server_log_info_async,
     get_server_currency_async,
     register_user_voice_channel_join,
@@ -37,16 +37,16 @@ from ..Tools.logger import (
 )
 
 class VoiceHandlerCog(Cog):
-    voice_handler_text: dict[int, dict[int, str]] = {
-        0: {
-            0: "**`Member`** <@{}> **`joined voice channel`** <#{}>",
-            1: "**`Member`** <@{}> **`left voice channel`** <#{}> **`and gained {}`** {}"
-        },
-        1: {
-            0: "**`Участник`** <@{}> **`присоединился к голосовому каналу`** <#{}>",
-            1: "**`Участник`** <@{}> **`покинул голосовой канал`** <#{}> **`и заработал {}`** {}",
-        }
-    }
+    voice_handler_text: tuple[tuple[str, str], tuple[str, str]] = (
+        (
+            "**`Member`** <@{}> **`joined voice channel`** <#{}>",
+            "**`Member`** <@{}> **`left voice channel`** <#{}> **`and gained {} xp and {}`** {}"
+        ),
+        (
+            "**`Участник`** <@{}> **`присоединился к голосовому каналу`** <#{}>",
+            "**`Участник`** <@{}> **`покинул голосовой канал`** <#{}> **`и заработал {} опыта и {}`** {}"
+        )
+    )
 
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
@@ -66,6 +66,9 @@ class VoiceHandlerCog(Cog):
         await write_one_log_async("common_logs.log", "[voice processor started]")
         bot: StoreBot = self.bot
         next_voise_state_update_coro = self.voice_queue.get
+        process_left_member_coro = self.process_left_member
+        process_joined_member_coro = self.process_joined_member
+
         while True:
             member, before, after, timestamp = await next_voise_state_update_coro()
             
@@ -87,15 +90,16 @@ class VoiceHandlerCog(Cog):
                 if guild_id not in bot.ignored_voice_channels:
                     bot.ignored_voice_channels[guild_id] = set()
             
-            money_for_voice: int = await get_server_info_value_async(guild_id, "mn_for_voice")       
+            money_for_voice, xp_for_voice = await get_money_and_xp_async(guild_id)
             member_id: int = member.id
 
             if before_channel is not None:
                 assert before_channel_id is not None
-                await self.process_left_member(
+                await process_left_member_coro(
                     member_id,
                     guild,
                     money_for_voice,
+                    xp_for_voice,
                     before_channel_id,
                     before_channel.name,
                     timestamp
@@ -103,11 +107,12 @@ class VoiceHandlerCog(Cog):
 
             if after_channel is not None:
                 assert after_channel_id is not None
-                await self.process_joined_member(
+                await process_joined_member_coro(
                     member_id,
                     member,
                     guild,
                     money_for_voice,
+                    xp_for_voice,
                     after_channel_id,
                     after_channel.name,
                     timestamp
@@ -117,7 +122,15 @@ class VoiceHandlerCog(Cog):
     async def before_voice_processor(self) -> None:
         await self.bot.wait_until_ready()
 
-    async def process_left_member(self, member_id: int, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str, voice_left_time: int) -> None:
+    async def process_left_member(
+            self,
+            member_id: int,
+            guild: Guild,
+            money_for_voice: int,
+            xp_for_voice: int,
+            channel_id: int,
+            channel_name: str,
+            voice_left_time: int) -> None:
         await write_one_log_async("observations.log", f"[member left] [member: {member_id}] [guild: {guild.name}]")
         guild_id: int = guild.id
         bot: StoreBot = self.bot
@@ -148,30 +161,33 @@ class VoiceHandlerCog(Cog):
                     f"[member {member_id}:{member_name} left ignored channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}] [money_for_voice: {money_for_voice}] [join time: {voice_join_time}] [left time: {voice_left_time}]"
                 )
                 money_for_voice = 0
+                xp_for_voice = 0
         
         if was_in_dict:
-            income, voice_join_time = await register_user_voice_channel_left(
-                guild_id=guild_id,
-                member_id=member_id,
-                money_for_voice=money_for_voice,
-                time_left=voice_left_time
+            income, xp_income, voice_join_time = await register_user_voice_channel_left(
+                guild_id,
+                member_id,
+                money_for_voice,
+                xp_for_voice,
+                voice_left_time
             )
         else:
-            income: int = await register_user_voice_channel_left_with_join_time(
-                guild_id=guild_id,
-                member_id=member_id,
-                money_for_voice=money_for_voice,
-                time_join=voice_join_time,
-                time_left=voice_left_time
+            income, xp_income = await register_user_voice_channel_left_with_join_time(
+                guild_id,
+                member_id,
+                money_for_voice,
+                xp_for_voice,
+                voice_join_time,
+                voice_left_time
             )
 
-        if not money_for_voice:
+        if not money_for_voice and not xp_for_voice:
             return
-        
+
         await write_guild_log_async(
             "voice_logs.log",
             guild_id,
-            f"[member {member_id}:{member_name} left channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}] [income: {income}] [join time: {voice_join_time}] [left time: {voice_left_time}] [money_for_voice: {money_for_voice}]"
+            f"[member {member_id}:{member_name} left channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}] [income: {income}] [xp_income: {xp_income}] [join time: {voice_join_time}] [left time: {voice_left_time}] [money_for_voice: {money_for_voice}]"
         )
 
         log_channel_id, server_lng = await get_server_log_info_async(guild_id)
@@ -179,19 +195,27 @@ class VoiceHandlerCog(Cog):
             currency: str = await get_server_currency_async(guild_id)
             try:
                 await log_channel.send(embed=Embed(
-                    description=self.voice_handler_text[server_lng][1].format(member_id, channel_id, income, currency)
+                    description=self.voice_handler_text[server_lng][1].format(member_id, channel_id, xp_income, income, currency)
                 ))
             except:
                 pass
     
-    async def process_joined_member(self, member_id: int, member: Member, guild: Guild, money_for_voice: int, channel_id: int, channel_name: str, voice_join_time: int) -> None:
+    async def process_joined_member(
+            self, member_id: int,
+            member: Member,
+            guild: Guild,
+            money_for_voice: int,
+            xp_for_voice: int,
+            channel_id: int,
+            channel_name: str,
+            voice_join_time: int) -> None:
         await write_one_log_async("observations.log", f"[member join] [member: {member_id}] [guild: {guild.name}]")        
         guild_id: int = guild.id
         bot: StoreBot = self.bot
         async with bot.voice_lock:
             members_in_voice: dict[int, dict[int, Member]] = bot.members_in_voice
-            if guild_id in members_in_voice:
-                members_in_voice[guild_id][member_id] = member
+            if (guild_members_in_voice := members_in_voice.get(guild_id, None)) is not None:
+                guild_members_in_voice[member_id] = member
             else:
                 members_in_voice[guild_id] = {member_id: member}
 
@@ -206,17 +230,17 @@ class VoiceHandlerCog(Cog):
                 await write_guild_log_async(
                     "voice_logs.log",
                     guild_id,
-                    f"[member {member_id}:{member.name}] [joined ignored channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}; money_for_voice: {money_for_voice}] [join time: {voice_join_time}]"
+                    f"[member {member_id}:{member.name}] [joined ignored channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}; money_for_voice: {money_for_voice}; xp_for_voice: {xp_for_voice}] [join time: {voice_join_time}]"
                 )
                 return
 
         await write_guild_log_async(
             "voice_logs.log",
             guild_id,
-            f"[member {member_id}:{member.name}] [joined channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}; money_for_voice: {money_for_voice}] [join time: {voice_join_time}]"
+            f"[member {member_id}:{member.name}] [joined channel {channel_id}:{channel_name}] [guild {guild_id}:{guild.name}; money_for_voice: {money_for_voice}; xp_for_voice: {xp_for_voice}] [join time: {voice_join_time}]"
         )
 
-        if not money_for_voice:
+        if not money_for_voice and not xp_for_voice:
             return
 
         log_channel_id, server_lng = await get_server_log_info_async(guild_id)
@@ -228,37 +252,39 @@ class VoiceHandlerCog(Cog):
             except:
                 pass
 
-    async def process_member_on_bot_shutdown(self, guild: Guild, member_id: int, member: Member) -> None:
-        if not member.voice:
-            return
-
-        current_channel: VoiceChannel | StageChannel | None = member.voice.channel
-        if not isinstance(current_channel, VoiceChannel):
-            return
-
-        channel_id: int = current_channel.id
+    async def process_member_on_bot_shutdown(self, guild: Guild, members_dict: dict[int, Member]) -> None:
         guild_id: int = guild.id
-        
-        # self.bot.voice_lock is already locked.
-        if channel_id not in self.bot.ignored_voice_channels[guild_id]:
-            money_for_voice: int = await get_server_info_value_async(guild_id=guild_id, key_name="mn_for_voice")
-        else:
-            money_for_voice = 0
-        
-        voice_left_time: int = int(time())
-        income, voice_join_time = await register_user_voice_channel_left(
-            guild_id=guild_id,
-            member_id=member_id,
-            money_for_voice=money_for_voice,
-            time_left=voice_left_time
-        )
+        guild_name: str = guild.name
+        ignored_voice_channels = self.bot.ignored_voice_channels
 
-        await write_guild_log_async(
-            "voice_logs.log",
-            guild_id,
-            f"[member {member_id}:{member.name} processed as left from channel {channel_id}:{current_channel.name}] [guild: {guild_id}:{guild.name}] [income: {income}] [join time: {voice_join_time}] [left time: {voice_left_time}] [money_for_voice: {money_for_voice}]"
-        )
+        for member_id, member in members_dict.items():
+            if not member.voice:
+                continue
 
+            current_channel: VoiceChannel | StageChannel | None = member.voice.channel
+            if not isinstance(current_channel, VoiceChannel):
+                continue
+
+            channel_id: int = current_channel.id
+            # self.bot.voice_lock is already locked.
+            money_for_voice, xp_for_voice = \
+                await get_money_and_xp_async(guild_id) \
+                if channel_id not in ignored_voice_channels[guild_id] else (0, 0)
+
+            voice_left_time: int = int(time())
+            income, xp_income, voice_join_time = await register_user_voice_channel_left(
+                guild_id,
+                member_id,
+                money_for_voice,
+                xp_for_voice,
+                voice_left_time
+            )
+
+            await write_guild_log_async(
+                "voice_logs.log",
+                guild_id,
+                f"[member {member_id}:{member.name} processed as left from channel {channel_id}:{current_channel.name}] [guild: {guild_id}:{guild_name}] [income: {income}] [xp_income: {xp_income}] [join time: {voice_join_time}] [left time: {voice_left_time}] [money_for_voice: {money_for_voice}]"
+            )
 
 def setup(bot: StoreBot) -> None:
     bot.add_cog(VoiceHandlerCog(bot))

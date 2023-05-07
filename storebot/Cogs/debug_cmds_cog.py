@@ -137,18 +137,13 @@ class DebugCommandsCog(Cog):
         k: int = 0
         bot = self.bot
         async with bot.voice_lock:
-            for guild_id, members_dict in bot.members_in_voice.items():
-                guild: Guild | None = bot.get_guild(guild_id)
-                if not guild:
+            members_in_voice = bot.members_in_voice
+            for guild_id, members_dict in members_in_voice.items():
+                if (guild := bot.get_guild(guild_id)) is None:
                     continue
-                for member_id, member in members_dict.items():
-                    await cog.process_member_on_bot_shutdown(
-                        guild=guild,
-                        member_id=member_id,
-                        member=member
-                    )
-                    k += 1
-                bot.members_in_voice[guild_id] = {}
+                await cog.process_member_on_bot_shutdown(guild, members_dict)
+                k += len(members_dict)
+                members_in_voice[guild_id] = {}
 
         await ctx.reply(embed=Embed(description=f"**`Processed {k} members`**"), mention_author=False)
     

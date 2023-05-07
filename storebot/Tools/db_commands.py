@@ -93,17 +93,40 @@ async def get_server_info_value_async(guild_id: int, key_name: str) -> int:
         async with base.execute("SELECT value FROM server_info WHERE settings = '" + key_name + "';") as cur:
             return (await cur.fetchone())[0] # type: ignore
 
+async def get_money_and_xp_async(guild_id: int) -> tuple[int, int]:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        async with base.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice';") as cur:
+            money_for_voice: int = (await cur.fetchone())[0] # type: ignore
+        async with base.execute("SELECT value FROM server_info WHERE settings = 'xp_for_voice';") as cur:
+            xp_for_voice: int = (await cur.fetchone())[0] # type: ignore
+
+    return (money_for_voice, xp_for_voice)
+
 async def get_server_log_info_async(guild_id: int) -> tuple[int, int]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute("SELECT value FROM server_info WHERE settings = 'log_c';") as cur:
             log_channel_id: int = (await cur.fetchone())[0] # type: ignore
-        
+
         if log_channel_id:
             async with base.execute("SELECT value FROM server_info WHERE settings = 'lang';") as cur:
                 lng: int = (await cur.fetchone())[0] # type: ignore
             return (log_channel_id, lng)
-        
+
         return (0, 0)
+
+async def get_server_lvllog_info_async(guild_id: int) -> tuple[list[tuple[int, int]], int, int] | list[tuple[int, int]]:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        db_lvl_rls: list[tuple[int, int]] = await base.execute_fetchall("SELECT level, role_id FROM rank_roles ORDER BY level;") # type: ignore
+
+        async with base.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';") as cur:
+            lvl_log_channel_id: int = (await cur.fetchone())[0] # type: ignore
+
+        if lvl_log_channel_id:
+            async with base.execute("SELECT value FROM server_info WHERE settings = 'lang';") as cur:
+                lng: int = (await cur.fetchone())[0] # type: ignore
+            return (db_lvl_rls, lvl_log_channel_id, lng)
+
+        return db_lvl_rls
 
 async def get_server_currency_async(guild_id: int) -> str:
     async with connect_async(DB_PATH.format(guild_id)) as base:
@@ -218,7 +241,7 @@ async def register_user_voice_channel_join(guild_id: int, member_id: int, time_j
             
         await base.commit()
 
-async def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_voice: int, time_left: int) -> tuple[int, int]:
+async def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_voice: int, xp_for_voice: int, time_left: int) -> tuple[int, int, int]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute("SELECT voice_join_time FROM users WHERE memb_id = " + str(member_id)) as cur:
             result = await cur.fetchone()
@@ -226,28 +249,39 @@ async def register_user_voice_channel_left(guild_id: int, member_id: int, money_
 
         if result is not None:    
             if not (voice_join_time := result[0]):
-                return (0, 0)
+                return (0, 0, 0)
         else:
             await base.execute(
                 "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
                 (member_id, "")
             )
             await base.commit()
-            return (0, 0)
+            return (0, 0, 0)
 
-        income_for_voice: int = (time_left - voice_join_time) * money_for_voice // 600
-        await base.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
+        time_delta = time_left - voice_join_time
+        money_for_voice = (time_delta * money_for_voice) // 600
+        xp_for_voice = (time_delta * xp_for_voice) // 600
+        await base.execute(
+            "UPDATE users SET money = money + ?, xp = xp + ?, voice_join_time = 0 WHERE memb_id = ?",
+            (money_for_voice, xp_for_voice, member_id)
+        )
         await base.commit()
 
-    return (income_for_voice, voice_join_time)
+    return (money_for_voice, xp_for_voice, voice_join_time)
 
-async def register_user_voice_channel_left_with_join_time(guild_id: int, member_id: int, money_for_voice: int, time_join: int, time_left: int) -> int:
+async def register_user_voice_channel_left_with_join_time(guild_id: int, member_id: int, money_for_voice: int, xp_for_voice: int, time_join: int, time_left: int) -> tuple[int, int]:
+    time_delta: int = time_left - time_join
+    money_for_voice = (time_delta * money_for_voice) // 600
+    xp_for_voice = (time_delta * xp_for_voice) // 600
+
     async with connect_async(DB_PATH.format(guild_id)) as base:
-        income_for_voice: int = (time_left - time_join) * money_for_voice // 600
-        await base.execute("UPDATE users SET money = money + ?, voice_join_time = 0 WHERE memb_id = ?", (income_for_voice, member_id))
+        await base.execute(
+            "UPDATE users SET money = money + ?, xp = xp + ?, voice_join_time = 0 WHERE memb_id = ?",
+            (money_for_voice, xp_for_voice, member_id)
+        )
         await base.commit()
     
-    return income_for_voice
+    return (money_for_voice, xp_for_voice)
 
 async def add_role_async(guild_id: int, role_info: RoleInfo, members_id_with_role: set[int]) -> None:
     role_id: int = role_info.role_id

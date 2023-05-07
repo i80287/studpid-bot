@@ -43,7 +43,8 @@ from ..Tools.db_commands import (
     make_backup,
     process_salary_roles,
     check_member_level_async,
-    get_server_info_value_async
+    get_server_info_value_async,
+    get_server_lvllog_info_async
 )
 from ..constants import CWD_PATH, DB_PATH
 
@@ -292,28 +293,27 @@ class EventsHandlerCog(Cog):
             else:
                 ignored_text_channels[g_id] = set()
 
-        new_level: int = await check_member_level_async(guild_id=g_id, member_id=member.id)
+        new_level: int = await check_member_level_async(g_id, member.id)
         if not new_level:
             return
 
-        with closing(connect(DB_PATH.format(g_id))) as base:
-            with closing(base.cursor()) as cur:
-                channel_id: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lvl_c';").fetchone()[0]
-                if channel_id and isinstance(channel := guild.get_channel(channel_id), TextChannel):
-                    lng: int = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()[0]
-                    new_lvl_text: tuple[str, str] = self.new_level_text[lng]
-                    assert len(new_lvl_text) >= 2
-                    emb: Embed = Embed(title=new_lvl_text[0], description=new_lvl_text[1].format(member.mention, new_level))
-                    try:
-                        await channel.send(embed=emb)
-                    except Exception as ex:
-                        await write_one_log_async(
-                            "error.log",
-                            f"[WARNING] [guild: {g_id}:{guild.name}] [was not able to send new level message in on_message] [{str(ex)}{ex:!r}]\n"
-                        )
+        res: tuple[list[tuple[int, int]], int, int] | list[tuple[int, int]] = await get_server_lvllog_info_async(g_id)
+        if isinstance(res, tuple):
+            db_lvl_rls, channel_id, server_lng = res
+            if isinstance(channel := guild.get_channel(channel_id), TextChannel):
+                new_lvl_text: tuple[str, str] = self.new_level_text[server_lng]
+                assert len(new_lvl_text) >= 2
+                emb: Embed = Embed(title=new_lvl_text[0], description=new_lvl_text[1].format(member.mention, new_level))
+                try:
+                    await channel.send(embed=emb)
+                except Exception as ex:
+                    await write_one_log_async(
+                        "error.log",
+                        f"[WARNING] [guild: {g_id}:{guild.name}] [was not able to send new level message in on_message] [{str(ex)}{ex:!r}]\n"
+                    )
+        else:
+            db_lvl_rls = res
 
-                db_lvl_rls: list[tuple[int, int]] | list = cur.execute("SELECT level, role_id FROM rank_roles ORDER BY level").fetchall()
-                
         if not db_lvl_rls:
             return
 

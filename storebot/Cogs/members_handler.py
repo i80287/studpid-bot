@@ -22,23 +22,23 @@ from nextcord.ext.commands import Cog
 from ..Tools.db_commands import (
     add_member_role_async,
     remove_member_role_async,
-    get_server_info_value_async,
+    get_server_log_info_async,
     get_member_message_async
 )
 from ..Tools.logger import write_guild_log_async
 
 
 class MembersHandlerCog(Cog):
-    members_handler_text: dict[int, dict[int, str]] = {
-        0: {
-            0: "**`Role`** <@&{0}> **`was added to the member`** <@{1}> **`without bot tools and therefore was added to member's balance`**",
-            1: "**`Role`** <@&{0}> **`was removed from the member`** <@{1}> **`without bot tools and therefore was removed from the member's balance`**"
-        },
-        1: {
-            0: "**`Роль`** <@&{0}> **`была добавлена пользователю`** <@{1}> **`без использования бота, и поэтому была добавлена на баланс пользователя автоматически`**",
-            1: "**`Роль`** <@&{0}> **`была убрана у пользователя`** <@{1}> **`без использования бота, и поэтому была убрана из баланса пользователя автоматически`**"
-        }
-    }
+    members_handler_text: tuple[tuple[str, str], tuple[str, str]] = (
+        (
+            "**`Role`** <@&{0}> **`was added to the member`** <@{1}> **`without bot tools and therefore was added to member's balance`**",
+            "**`Role`** <@&{0}> **`was removed from the member`** <@{1}> **`without bot tools and therefore was removed from the member's balance`**"
+        ),
+        (
+            "**`Роль`** <@&{0}> **`была добавлена пользователю`** <@{1}> **`без использования бота, и поэтому была добавлена на баланс пользователя автоматически`**",
+            "**`Роль`** <@&{0}> **`была убрана у пользователя`** <@{1}> **`без использования бота, и поэтому была убрана из баланса пользователя автоматически`**"
+        )
+    )
 
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
@@ -115,51 +115,59 @@ class MembersHandlerCog(Cog):
         s_members_handler_text = self.members_handler_text
         changed_role_id: int = 0
         is_updated: bool = False
+
         while True:
-            guild, member_id, before_roles, after_roles, is_role_added = await next_member_update_coro()
-            guild_id: int = guild.id
-            is_updated = False
-            
-            if is_role_added:
-                for role_id in after_roles:
-                    if not before_roles.has(role_id):
-                        if await m_check_bot_added_roles(role_id):
-                            is_updated = await add_member_role_async(guild_id, member_id, role_id)
-                            changed_role_id = role_id
-                            break
-                        else:
-                            continue
-            else:
-                for role_id in before_roles:
-                    if not after_roles.has(role_id):
-                        if await m_check_bot_removed_roles(role_id):
-                            is_updated = await remove_member_role_async(guild_id, member_id, role_id)
-                            changed_role_id = role_id
-                            break
-                        else:
-                            continue
-            
-            if not is_updated:
-                continue
+            try:
+                guild, member_id, before_roles, after_roles, is_role_added = await next_member_update_coro()
+                guild_id: int = guild.id
+                is_updated = False
 
-            await write_guild_log_async(
-                "guild.log",
-                guild_id,
-                f"[role_change] [is_added: {is_role_added}] [guild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"
-            )
+                if is_role_added:
+                    for role_id in after_roles:
+                        if not before_roles.has(role_id):
+                            if await m_check_bot_added_roles(role_id):
+                                is_updated = await add_member_role_async(guild_id, member_id, role_id)
+                                changed_role_id = role_id
+                                break
+                            else:
+                                continue
+                else:
+                    for role_id in before_roles:
+                        if not after_roles.has(role_id):
+                            if await m_check_bot_removed_roles(role_id):
+                                is_updated = await remove_member_role_async(guild_id, member_id, role_id)
+                                changed_role_id = role_id
+                                break
+                            else:
+                                continue
 
-            log_channel_id: int = await get_server_info_value_async(guild_id, "log_c") 
-            if log_channel_id and isinstance(log_channel := guild.get_channel(log_channel_id), TextChannel):
-                server_lng: int = await get_server_info_value_async(guild_id, "lang")
-                description: str = s_members_handler_text[server_lng][0 if is_role_added else 1].format(changed_role_id, member_id)
-                try:
-                    await log_channel.send(embed=Embed(description=description))
-                except:
-                    await write_guild_log_async(
-                        "guild.log",
-                        guild_id,
-                        f"[ERROR] [send log message failed] [role_change] [is_added: {is_role_added}] [guild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"
-                    )
+                if not is_updated:
+                    continue
+
+                await write_guild_log_async(
+                    "guild.log",
+                    guild_id,
+                    f"[role_change] [is_added: {is_role_added}] [guild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"
+                )
+
+                log_channel_id, server_lng = await get_server_log_info_async(guild_id)
+                if log_channel_id and isinstance(log_channel := guild.get_channel(log_channel_id), TextChannel):
+                    description: str = s_members_handler_text[server_lng][0 if is_role_added else 1].format(changed_role_id, member_id)
+                    try:
+                        await log_channel.send(embed=Embed(description=description))
+                    except:
+                        await write_guild_log_async(
+                            "guild.log",
+                            guild_id,
+                            f"[ERROR] [send log message failed] [role_change] [is_added: {is_role_added}] [guild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"
+                        )
+
+            except Exception as ex:
+                from ..Tools.logger import write_one_log_async
+                await write_one_log_async(
+                    "error.log",
+                    f"[FATAL] [ERROR] [error in roles_updates_loop] [{ex}:{ex!r}]"
+                )
 
     @roles_updates_loop.before_loop
     async def before_voice_processor(self) -> None:
