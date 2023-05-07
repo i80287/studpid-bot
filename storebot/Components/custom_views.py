@@ -422,7 +422,7 @@ code_blocks: dict[int, str] = {
 
 class GenSettingsView(ViewBase):
     def __init__(self, t_out: int, auth_id: int, bot: StoreBot, lng: int, ec_status: int, rnk_status: int) -> None:
-        super().__init__(lng=lng, author_id=auth_id, timeout=t_out)
+        super().__init__(lng, auth_id, t_out)
         self.bot: StoreBot = bot
         self.lang: int | None = None
         self.tz: int | None = None
@@ -472,13 +472,14 @@ class GenSettingsView(ViewBase):
         if tz is None:
             await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][23]), ephemeral=True)
             return
+
         with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("UPDATE server_info SET value = ? WHERE settings = 'tz'", (tz,))
                 base.commit()
-        
+
         assert interaction.message is not None
-        formatted_tz: str =  f"+{tz}" if tz >= 0 else str(tz)
+        formatted_tz: str = f"+{tz}" if tz >= 0 else str(tz)
         emb: Embed = interaction.message.embeds[0]
         assert emb.description is not None
         dsc: list[str] = emb.description.split("\n")
@@ -526,16 +527,17 @@ class GenSettingsView(ViewBase):
 
     async def change_ec_system(self, interaction: Interaction) -> None:
         assert interaction.guild_id is not None
-        self.ec_status ^= 1
+        ec_status = self.ec_status ^ 1
+        self.ec_status = ec_status
         guild_id: int = interaction.guild_id
         with closing(connect(DB_PATH.format(guild_id))) as base:
             with closing(base.cursor()) as cur:
-                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'economy_enabled'", (self.ec_status,))
-                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (self.ec_status,))
-                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_for_voice'", (self.ec_status*6,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'economy_enabled'", (ec_status,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_per_msg'", (ec_status,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'mn_for_voice'", (ec_status * 6,))
                 base.commit()
         
-        if self.ec_status:
+        if ec_status:
             await enable_economy_commands_async(guild_id)
         else:
             await disable_economy_commands_async(guild_id)
@@ -545,20 +547,23 @@ class GenSettingsView(ViewBase):
         assert emb.description is not None
         dsc: list[str] = emb.description.split("\n")
         lng: int = self.lng
-        dsc[3] = gen_settings_text[lng][3].format(system_status[lng][self.ec_status])
-        dsc[8] = gen_settings_text[lng][8].format(system_status[lng][self.ec_status+2])
+        local_text = gen_settings_text[lng]
+        local_system_text = system_status[lng]
+        dsc[3] = local_text[3].format(local_system_text[ec_status])
+        dsc[8] = local_text[8].format(local_system_text[ec_status+2])
         emb.description = "\n".join(dsc)
         await interaction.message.edit(embed=emb)
 
-        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][27].format(system_status[lng][self.ec_status+4])), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=local_text[27].format(local_system_text[ec_status + 4])), ephemeral=True)
 
     async def change_rnk_system(self, interaction: Interaction) -> None:
-        self.rnk_status ^= 1
+        rnk_status = self.rnk_status ^ 1
+        self.rnk_status = rnk_status
         with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
             with closing(base.cursor()) as cur:
-                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'ranking_enabled'", (self.rnk_status,))
-                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_per_msg'", (self.rnk_status,))
-                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_for_voice'", (self.rnk_status*6,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'ranking_enabled'", (rnk_status,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_per_msg'", (rnk_status,))
+                cur.execute("UPDATE server_info SET value = ? WHERE settings = 'xp_for_voice'", (rnk_status * 6,))
                 base.commit()
         
         assert interaction.message is not None
@@ -566,12 +571,14 @@ class GenSettingsView(ViewBase):
         assert emb.description is not None
         dsc: list[str] = emb.description.split("\n")
         lng: int = self.lng
-        dsc[4] = gen_settings_text[lng][4].format(system_status[lng][self.rnk_status])
-        dsc[9] = gen_settings_text[lng][9].format(system_status[lng][self.rnk_status+2])
+        local_text = gen_settings_text[lng]
+        local_system_text = system_status[lng]
+        dsc[4] = local_text[4].format(local_system_text[rnk_status])
+        dsc[9] = local_text[9].format(local_system_text[rnk_status + 2])
         emb.description = "\n".join(dsc)
         await interaction.message.edit(embed=emb)
             
-        await interaction.response.send_message(embed=Embed(description=gen_settings_text[lng][28].format(system_status[lng][self.rnk_status+4])), ephemeral=True)
+        await interaction.response.send_message(embed=Embed(description=local_text[28].format(local_system_text[rnk_status + 4])), ephemeral=True)
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         match custom_id[:2]:
@@ -587,6 +594,7 @@ class GenSettingsView(ViewBase):
                 await self.change_rnk_system(interaction=interaction)
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
+        assert values and values[0].isdecimal()
         if custom_id.startswith("100_"):
             self.lang = int(values[0])
         elif custom_id.startswith("101_"):
@@ -598,36 +606,49 @@ class ModRolesView(ViewBase):
         super().__init__(lng=lng, author_id=auth_id, timeout=t_out)
         self.m_rls: set[int] = m_rls
         self.role: int | None = None
-        for i in range((len(rls) + 24) // 25):
+        local_text = settings_text[lng]
+        for i in range(min((len(rls) + 24) // 25, 4)):
             self.add_item(CustomSelect(
-                custom_id=f"{200+i}_{auth_id}_" + urandom(4).hex(),
-                placeholder=settings_text[lng][2],
+                custom_id=f"{200 + i}_{auth_id}_" + urandom(4).hex(),
+                placeholder=local_text[2],
                 options=rls[(i * 25):(min(len(rls), (i + 1) * 25))]
             ))
-        self.add_item(CustomButton(style=ButtonStyle.green, label=settings_text[lng][4], emoji="<:add01:999663315804500078>", custom_id=f"8_{auth_id}_" + urandom(4).hex()))
-        self.add_item(CustomButton(style=ButtonStyle.red, label=settings_text[lng][5], emoji="<:remove01:999663428689997844>", custom_id=f"9_{auth_id}_" + urandom(4).hex(), disabled=rem_dis))
-    
+
+        self.add_item(CustomButton(
+            style=ButtonStyle.green,
+            label=local_text[4],
+            emoji="<:add01:999663315804500078>",
+            custom_id=f"8_{auth_id}_" + urandom(4).hex()
+        ))
+        self.add_item(CustomButton(
+            style=ButtonStyle.red,
+            label=local_text[5],
+            emoji="<:remove01:999663428689997844>",
+            custom_id=f"9_{auth_id}_" + urandom(4).hex(),
+            disabled=rem_dis
+        ))
 
     async def add_role(self, interaction: Interaction) -> None:
         assert interaction.message is not None
         assert self.role is not None
         rl_id: int = self.role
         lng: int = self.lng
-        if rl_id in self.m_rls:
+        mod_roles = self.m_rls
+        if rl_id in mod_roles:
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][7]), ephemeral=True)
             return       
-                
+
         with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("INSERT OR IGNORE INTO mod_roles(role_id) VALUES(?)", (rl_id,))
                 base.commit()
 
-        self.m_rls.add(rl_id)
-        
+        mod_roles.add(rl_id)
+
         emb: Embed = interaction.message.embeds[0]
         assert emb.description is not None
         dsc: list[str] = emb.description.split("\n")
-        if len(self.m_rls) == 1:
+        if len(mod_roles) == 1:
             assert isinstance(self.children[-1], CustomButton)
             self.children[-1].disabled = False
             emb.description = f"{mod_roles_text[lng][2]}\n<@&{rl_id}> - {rl_id}"
@@ -645,18 +666,20 @@ class ModRolesView(ViewBase):
         assert self.role is not None
         rl_id: int = self.role
         lng: int = self.lng
-        if not rl_id in self.m_rls:
+        mod_roles = self.m_rls
+        if not rl_id in mod_roles:
             await interaction.response.send_message(embed=Embed(description=mod_roles_text[lng][9]), ephemeral=True)
             return
-        
+
         with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
             with closing(base.cursor()) as cur:
                 cur.execute("DELETE FROM mod_roles WHERE role_id = ?", (rl_id,))
                 base.commit()
-        self.m_rls.remove(rl_id)
-        emb: Embed = interaction.message.embeds[0]
 
-        if self.m_rls:
+        mod_roles.remove(rl_id)
+
+        emb: Embed = interaction.message.embeds[0]
+        if mod_roles:
             assert emb.description is not None
             dsc: list[str] = emb.description.split("\n")
             dsc.remove(f"<@&{rl_id}> - {rl_id}")
