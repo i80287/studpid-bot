@@ -106,7 +106,7 @@ class MembersHandlerCog(Cog):
         after_roles: SnowflakeList = after._roles
         if (l1 := len(before_roles)) != (l2 := len(after_roles)):
             self.members_queue.put_nowait((after.guild, after.id, before_roles, after_roles, l1 < l2))
-    
+
     @tasks.loop()
     async def roles_updates_loop(self) -> NoReturn:
         next_member_update_coro = self.members_queue.get
@@ -147,7 +147,7 @@ class MembersHandlerCog(Cog):
                 await write_guild_log_async(
                     "guild.log",
                     guild_id,
-                    f"[role_change] [is_added: {is_role_added}] [guild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"
+                    f"[role_change without bot's tools] [is_added: {is_role_added}] [guild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"
                 )
 
                 log_channel_id, server_lng = await get_server_log_info_async(guild_id)
@@ -174,6 +174,14 @@ class MembersHandlerCog(Cog):
         await self.bot.wait_until_ready()
 
     async def check_bot_added_roles(self, role_id: int) -> bool:
+        """Method to check whether role was not added by the bot
+
+        Args:
+            `role_id` (`int`): id of the role
+
+        Returns:
+            `bool`: `False` if was added by the bot and `True` otherwise
+        """
         bot = self.bot
         added_roles_lock = bot.bot_added_roles_lock
         added_roles_queue = bot.bot_added_roles_queue
@@ -182,10 +190,10 @@ class MembersHandlerCog(Cog):
                 return True
             
             bot_added_role_id_1: int = await added_roles_queue.get()
-    
+
         if bot_added_role_id_1 == role_id:
             return False
-        
+
         async with added_roles_lock:
             if added_roles_queue.empty():
                 added_roles_queue.put_nowait(bot_added_role_id_1)
@@ -201,6 +209,14 @@ class MembersHandlerCog(Cog):
         return True
 
     async def check_bot_removed_roles(self, role_id: int) -> bool:
+        """Method to check whether role was not removed by the bot
+
+        Args:
+            `role_id` (`int`): id of the role
+
+        Returns:
+            `bool`: `False` if was removed by the bot and `True` otherwise
+        """
         bot = self.bot
         removed_roles_lock = bot.bot_removed_roles_lock
         removed_roles_queue = bot.bot_removed_roles_queue

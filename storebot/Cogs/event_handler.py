@@ -44,7 +44,9 @@ from ..Tools.db_commands import (
     process_salary_roles,
     check_member_level_async,
     get_server_info_value_async,
-    get_server_lvllog_info_async
+    get_server_lvllog_info_async,
+    add_member_role_async,
+    remove_member_role_async
 )
 from ..constants import CWD_PATH, DB_PATH
 
@@ -52,28 +54,24 @@ from ..constants import CWD_PATH, DB_PATH
 _command_match: Callable[[str, int, int], re.Match[str] | None] = re.compile(r"^(!work)|(!collect)", re.RegexFlag.IGNORECASE).match
 
 class EventsHandlerCog(Cog):
-    event_handl_text: dict[int, dict[int, str]] = {
-        0: {
-            0: "**`Sorry, but you don't have enough permissions to use this command`**",
-        },
-        1: {
-            0: "**`Извините, но у Вас недостаточно прав для использования этой команды`**",
-        },
-    }
+    event_handl_text: tuple[str, str] = (
+        "**`Sorry, but you don't have enough permissions to use this command`**",
+        "**`Извините, но у Вас недостаточно прав для использования этой команды`**",
+    )
     greetings: tuple[str, str] = (
         "Thanks for adding bot!\nUse **`/guide`** to see guide about bot's system\n**`/settings`** to manage bot\nand **`/help`** to see available commands",
         "Благодарим за добавление бота!\nИспользуйте **`/guide`** для просмотра гайда о системе бота\n**`/settings`** для управления ботом\nи **`/help`** для просмотра доступных команд",
     )
-    new_level_text: dict[int, tuple[str, str]] = {
-        0: (
+    new_level_text: tuple[tuple[str, str], tuple[str, str]] = (
+        (
             "New level!",
             "{}, you raised level to **{}**!",
         ),
-        1: (
+        (
             "Новый уровень!",
             "{}, Вы подняли уровень до **{}**!",
         )
-    }
+    )
 
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
@@ -279,14 +277,15 @@ class EventsHandlerCog(Cog):
         assert message.guild is not None
         guild: Guild = message.guild
         g_id: int = guild.id
+        bot = self.bot
 
         if g_id in {1058854571239280721, 1057747986349821984, 750708076029673493, 863462268402532363} \
             and _command_match(message.content, 0, 8) is not None:
-            await TextComandsCog.work_command(await self.bot.get_context(message))
+            await TextComandsCog.work_command(await bot.get_context(message))
             return
 
-        async with self.bot.text_lock:
-            ignored_text_channels: dict[int, set[int]] = self.bot.ignored_text_channels
+        async with bot.text_lock:
+            ignored_text_channels = bot.ignored_text_channels
             if g_id in ignored_text_channels:
                 if message.channel.id in ignored_text_channels[g_id]:
                     return
@@ -297,11 +296,17 @@ class EventsHandlerCog(Cog):
         if not new_level:
             return
 
-        res: tuple[list[tuple[int, int]], int, int] | list[tuple[int, int]] = await get_server_lvllog_info_async(g_id)
+        await self.process_new_lvl(guild, member, new_level, bot)
+
+    @classmethod
+    async def process_new_lvl(cls, guild: Guild, member: Member, new_level: int, bot: StoreBot) -> None:
+        assert new_level != 0
+        guild_id = guild.id
+        res: tuple[list[tuple[int, int]], int, int] | list[tuple[int, int]] = await get_server_lvllog_info_async(guild_id)
         if isinstance(res, tuple):
             db_lvl_rls, channel_id, server_lng = res
             if isinstance(channel := guild.get_channel(channel_id), TextChannel):
-                new_lvl_text: tuple[str, str] = self.new_level_text[server_lng]
+                new_lvl_text: tuple[str, str] = cls.new_level_text[server_lng]
                 assert len(new_lvl_text) >= 2
                 emb: Embed = Embed(title=new_lvl_text[0], description=new_lvl_text[1].format(member.mention, new_level))
                 try:
@@ -309,7 +314,7 @@ class EventsHandlerCog(Cog):
                 except Exception as ex:
                     await write_one_log_async(
                         "error.log",
-                        f"[WARNING] [guild: {g_id}:{guild.name}] [was not able to send new level message in on_message] [{str(ex)}{ex:!r}]\n"
+                        f"[WARNING] [guild: {guild_id}:{guild.name}] [was not able to send new level message in on_message] [{str(ex)}{ex:!r}]\n"
                     )
         else:
             db_lvl_rls = res
@@ -325,15 +330,14 @@ class EventsHandlerCog(Cog):
             guild_roles: dict[int, Role] = guild._roles.copy()
             memb_roles: set[int] = {role_id for role_id in member._roles if role_id in guild_roles}
 
-            bot = self.bot
-
             new_level_role_id: int = lvl_rls[new_level]
             if new_level_role_id not in memb_roles and (role := guild_roles.get(new_level_role_id)):
                 async with bot.bot_added_roles_lock:
                     bot.bot_added_roles_queue.put_nowait(new_level_role_id)
                 try: 
                     await member.add_roles(role, reason=f"Member gained new level {new_level}")
-                except: 
+                    await add_member_role_async(guild_id, member.id, new_level_role_id)
+                except:
                     pass
 
             # Bin search, realized in Python, will be slower here, as predicted ~ len(new_level_index) < 32 (very small)
@@ -343,7 +347,8 @@ class EventsHandlerCog(Cog):
                     bot.bot_removed_roles_queue.put_nowait(old_role_id)
                 try: 
                     await member.remove_roles(role, reason=f"Member gained new level {new_level}")
-                except: 
+                    await remove_member_role_async(guild_id, member.id, old_role_id)
+                except:
                     pass
 
     @Cog.listener()
@@ -351,7 +356,7 @@ class EventsHandlerCog(Cog):
         if isinstance(exception, ApplicationCheckFailure):
             assert interaction.locale is not None
             lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-            await interaction.response.send_message(embed=Embed(description=self.event_handl_text[lng][0]), ephemeral=True)
+            await interaction.response.send_message(embed=Embed(description=self.event_handl_text[lng]), ephemeral=True)
             return
 
         guild_report: str = f"[{guild.id}] [{guild.name}] " if (guild := interaction.guild) else ""

@@ -379,7 +379,8 @@ ranking_text: dict[int, dict[int, str]] = {
     0 : {
         0 : "✨ Xp gained per message:\n**`{}`**",
         1 : "✨ Amount of xp between adjacent levels:\n**`{}`**",
-        2 : "📗 Channel for the notification about new levels:\n{}",
+        2: "🎤 Xp gained from presence in voice channel (for ten minutes):\n**`{}`**",
+        3: "📗 Channel for the notification about new levels:\n{}",
         4 : "> To manage setting press button with corresponding emoji\n",
         6 : "> Press 🥇 to manage roles given for levels",
         24 : "level",
@@ -396,7 +397,8 @@ ranking_text: dict[int, dict[int, str]] = {
     1 : {
         0 : "✨ Опыт, получаемый за одно сообщение:\n**`{}`**",
         1 : "✨ Количество опыта между соседними уровнями:\n**`{}`**",
-        2 : "📗 Канал для оповещений о получении нового уровня:\n{}",
+        2: "🎤 Опыт от присутствия в голосовом канале (получаемый опыт указан за 10 минут):\n**`{}`**",
+        3: "📗 Канал для оповещений о получении нового уровня:\n{}",
         4 : "> Для управления настройкой нажмите на кнопку с соответствующим эмодзи\n",
         6 : "> Нажмите 🥇 для управления ролями, выдаваемыми за уровни",
         24 : "уровень",
@@ -761,10 +763,10 @@ class EconomyView(ViewBase):
         }
     }
 
-    def __init__(self, lng: int, author_id: int, timeout: int, sale_price_percent: int, voice_income: int, currency: str, bot: StoreBot) -> None:
+    def __init__(self, lng: int, author_id: int, timeout: int, sale_price_percent: int, money_income: int, currency: str, bot: StoreBot) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
         self.sale_price_percent: int = sale_price_percent
-        self.voice_income: int = voice_income
+        self.money_income: int = money_income
         self.currency: str = currency
         self.bot: StoreBot = bot
         self.add_item(CustomButton(style=ButtonStyle.blurple, custom_id=f"10_{author_id}_" + urandom(4).hex(), emoji="💸"))
@@ -893,17 +895,12 @@ class EconomyView(ViewBase):
 
     async def update_voice_income(self, interaction: Interaction) -> None:
         lng: int = self.lng
-        voice_income_modal: VoiceIncomeModal = VoiceIncomeModal(
-            timeout=30,
-            lng=lng,
-            auth_id=self.author_id,
-            voice_income=self.voice_income
-        )
+        voice_income_modal = VoiceIncomeModal(lng, self.money_income, True)
         await interaction.response.send_modal(voice_income_modal)
 
         await voice_income_modal.wait()
-        if (new_voice_income := voice_income_modal.voice_income) != self.voice_income:
-            self.voice_income = new_voice_income
+        if (new_voice_income := voice_income_modal.income) != self.money_income:
+            self.money_income = new_voice_income
             assert interaction.message is not None
             emb: Embed = interaction.message.embeds[0]
             assert emb.description is not None
@@ -911,10 +908,10 @@ class EconomyView(ViewBase):
             descript_lines[3] = ec_text[lng][5].format(new_voice_income, self.currency)
             emb.description = "\n\n".join(descript_lines)
             await interaction.message.edit(embed=emb)
-    
+
     async def update_sale_role_price(self, interaction: Interaction) -> None:
         lng: int = self.lng
-        sale_price_modal: SalePriceModal = SalePriceModal(
+        sale_price_modal = SalePriceModal(
             timeout=40,
             lng=lng,
             auth_id=self.author_id,
@@ -1360,7 +1357,7 @@ class SettingsView(ViewBase):
                     rnk_status: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled'")).fetchone())[0] # type: ignore
 
                 local_text = gen_settings_text[lng]
-                dsc = [
+                dsc = (
                     local_text[0].format(languages[lng][s_lng]),
                     local_text[1].format(f"+{tz}" if tz >= 0 else str(tz)),
                     local_text[2].format(currency),
@@ -1371,7 +1368,7 @@ class SettingsView(ViewBase):
                     local_text[7],
                     local_text[8].format(system_status[lng][ec_status+2]),
                     local_text[9].format(system_status[lng][rnk_status+2])
-                ]
+                )
 
                 gen_view: GenSettingsView = GenSettingsView(
                     t_out=50,
@@ -1426,7 +1423,7 @@ class SettingsView(ViewBase):
                         try_get_member_flag = False
                     else:
                         memb, try_get_member_flag = self.check_ans(guild=interaction.guild, ans=message_answer.content)
-                        try: 
+                        try:
                             await message_answer.delete()
                         except:
                             pass
@@ -1486,11 +1483,11 @@ class SettingsView(ViewBase):
 
                 member_roles_ids: set[int] = {int(r) for r in memb_info[2].split("#") if r.isdecimal()}
 
-                dsc = [code_blocks[lng*5]] + [f"<@&{r}>**` - {r}`**" for r in member_roles_ids] \
-                    if member_roles_ids else [local_text[6]]
-
-                emb3: Embed = Embed(description='\n'.join(dsc))
-                rem_dis: bool = len(dsc) == 1
+                emb3: Embed = Embed(
+                    description=code_blocks[lng*5] + '\n' + '\n'.join((f"<@&{r}>**` - {r}`**" for r in member_roles_ids)) \
+                        if member_roles_ids else local_text[6]
+                )
+                rem_dis: bool = not member_roles_ids
 
                 if db_roles:
                     db_roles_set: set[int] = {x[0] for x in db_roles}
@@ -1537,67 +1534,69 @@ class SettingsView(ViewBase):
                     sal_r: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'sal_r';")).fetchone())[0] # type: ignore
                     e_l_c: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'log_c';")).fetchone())[0] # type: ignore
                     sale_price_percent: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'sale_price_perc';")).fetchone())[0] # type: ignore
-                    voice_income: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice';")).fetchone())[0] # type: ignore
+                    money_voice_income: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice';")).fetchone())[0] # type: ignore
                     currency: str = (await (await base.execute("SELECT str_value FROM server_info WHERE settings = 'currency';")).fetchone())[0] # type: ignore
 
                 local_text: dict[int, str] = ec_text[lng]
                 emb: Embed = Embed(title=local_text[0])
-                dsc: list[str] = [local_text[1].format(money_p_m, currency)]
-                dsc.append(local_text[2].format(w_cd))
-                if sal_l == sal_r:
-                    dsc.append(local_text[3].format(sal_l, currency))
-                else:
-                    dsc.append(local_text[3].format(local_text[4].format(sal_l, sal_r), currency))
-                dsc.append(local_text[5].format(voice_income, currency))
-                dsc.append(local_text[6].format(sale_price_percent))
-                if e_l_c:
-                    dsc.append(local_text[7].format(f"<#{e_l_c}>"))
-                else:
-                    dsc.append(local_text[7].format(settings_text[lng][13]))
-                dsc.append(local_text[10])
-                dsc.append(local_text[8])
-                dsc.append(local_text[9])
+                dsc: tuple[str, ...] = (
+                    local_text[1].format(money_p_m, currency),
+                    local_text[2].format(w_cd),
+                    local_text[3].format(sal_l, currency) if sal_l == sal_r else local_text[3].format(local_text[4].format(sal_l, sal_r), currency),
+                    local_text[5].format(money_voice_income, currency),
+                    local_text[6].format(sale_price_percent),
+                    local_text[7].format(f"<#{e_l_c}>" if e_l_c else settings_text[lng][13]),
+                    local_text[10],
+                    local_text[8],
+                    local_text[9]
+                )
                 emb.description = "\n\n".join(dsc)
-                
-                ec_v: EconomyView = EconomyView(
-                    lng=lng, 
-                    author_id=self.author_id,
-                    timeout=110,
-                    sale_price_percent=sale_price_percent,
-                    voice_income=voice_income,
-                    currency=currency,
-                    bot=self.bot
+
+                ec_v = EconomyView(
+                    lng, 
+                    self.author_id,
+                    110,
+                    sale_price_percent,
+                    money_voice_income,
+                    currency,
+                    self.bot
                 )
                 await interaction.response.send_message(embed=emb, view=ec_v)
                 await ec_v.wait()
                 await self.try_delete(interaction, ec_v)
+
             case 4:
                 async with connect_async(DB_PATH.format(guild_id)) as base:
                     xp_p_m: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_per_msg'")).fetchone())[0] # type: ignore
                     xp_b: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_border'")).fetchone())[0] # type: ignore
                     lvl_c_a: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'lvl_c'")).fetchone())[0] # type: ignore
+                    xp_voice_income: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_for_voice';")).fetchone())[0] # type: ignore
 
                 local_text = ranking_text[lng]
                 emb = Embed()
-                dsc = [local_text[0].format(xp_p_m)]
-                dsc.append(local_text[1].format(xp_b))
-                if lvl_c_a == 0:
-                    dsc.append(local_text[2].format(settings_text[lng][13]))
-                else:
-                    dsc.append(local_text[2].format(f"<#{lvl_c_a}>"))
-                dsc.extend(local_text[i] for i in (4, 6))
+                dsc = (
+                    local_text[0].format(xp_p_m),
+                    local_text[1].format(xp_b),
+                    local_text[2].format(xp_voice_income),
+                    local_text[3].format(
+                        f"<#{lvl_c_a}>" if lvl_c_a else settings_text[lng][13]
+                    ),
+                    local_text[4],
+                    local_text[6]
+                )
 
                 emb.description = "\n\n".join(dsc)
                 rnk_v: RankingView = RankingView(
-                    lng=lng,
-                    author_id=author_id,
-                    timeout=90,
-                    g_id=guild_id,
-                    cur_xp_pm=xp_p_m,
-                    cur_xpb=xp_b,
-                    bot=self.bot
+                    lng,
+                    author_id,
+                    90,
+                    guild_id,
+                    xp_p_m,
+                    xp_b,
+                    xp_voice_income,
+                    self.bot
                 )
-                
+
                 await interaction.response.send_message(embed=emb, view=rnk_v)
                 await rnk_v.wait()
                 await self.try_delete(interaction, rnk_v)
@@ -1798,13 +1797,15 @@ class PollSettingsView(ViewBase):
 
 
 class RankingView(ViewBase):
-    def __init__(self, lng: int, author_id: int, timeout: int, g_id: int, cur_xp_pm: int, cur_xpb: int, bot: StoreBot) -> None:
+    def __init__(self, lng: int, author_id: int, timeout: int, g_id: int, cur_xp_pm: int, cur_xpb: int, xp_voice_income: int, bot: StoreBot) -> None:
         super().__init__(lng=lng, author_id=author_id, timeout=timeout)
         self.add_item(CustomButton(style=ButtonStyle.green, emoji="✨", custom_id=f"21_{author_id}_" + urandom(4).hex()))
-        self.add_item(CustomButton(style=ButtonStyle.grey, emoji="📗", custom_id=f"22_{author_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(style=ButtonStyle.grey, emoji="🎤", custom_id=f"22_{author_id}_" + urandom(4).hex()))
+        self.add_item(CustomButton(style=ButtonStyle.grey, emoji="📗", custom_id=f"23_{author_id}_" + urandom(4).hex()))
         self.add_item(CustomButton(style=ButtonStyle.red, emoji="🥇", custom_id=f"24_{author_id}_" + urandom(4).hex()))
         self.cur_xp_pm: int = cur_xp_pm
         self.cur_xpb: int = cur_xpb
+        self.xp_voice_income: int = xp_voice_income
         self.g_id: int = g_id
         self.lvl_chnl: int | None = None
         self.bot: StoreBot = bot
@@ -1823,13 +1824,42 @@ class RankingView(ViewBase):
             emb: Embed = interaction.message.embeds[0]
             assert emb.description is not None
             dsc: list[str] = emb.description.split("\n\n")
-            dsc[0] = ranking_text[lng][0].format(self.cur_xp_pm)
-            dsc[1] = ranking_text[lng][1].format(self.cur_xpb)
+            assert len(dsc) >= 4
+            local_text = ranking_text[lng]
+            dsc[0] = local_text[0].format(self.cur_xp_pm)
+            dsc[1] = local_text[1].format(self.cur_xpb)
             emb.description = "\n\n".join(dsc)
             try:
                 await interaction.message.edit(embed=emb)
             except:
                 pass
+
+    async def voice_xp_income(self, interaction: Interaction) -> None:
+        lng = self.lng
+        xp_voice_income = self.xp_voice_income
+        voice_modal = VoiceIncomeModal(lng, xp_voice_income, False)
+        await interaction.response.send_modal(voice_modal)
+
+        await voice_modal.wait()
+        if (new_xp_voice_income := voice_modal.income) != xp_voice_income:
+            self.xp_voice_income = new_xp_voice_income
+            assert interaction.message is not None
+            emb: Embed = interaction.message.embeds[0]
+            assert emb.description is not None
+            descript_lines: list[str] = emb.description.split("\n\n")
+            descript_lines[2] = ranking_text[lng][2].format(new_xp_voice_income)
+            emb.description = "\n\n".join(descript_lines)
+            try:
+                await interaction.message.edit(embed=emb)
+            except Exception as ex:
+                from ..Tools.logger import write_guild_log_async
+                assert interaction.guild_id is not None
+                assert interaction.guild is not None
+                await write_guild_log_async(
+                    "guild.log",
+                    interaction.guild_id,
+                    f"[ERROR] [RankingView::voice_xp_income line 1853] [{interaction.guild.name}] [{ex}:{ex!r}]"
+                )
 
     async def level_channel(self, interaction: Interaction) -> None:
         assert interaction.guild is not None
@@ -1858,7 +1888,8 @@ class RankingView(ViewBase):
         emb: Embed = interaction.message.embeds[0]
         assert emb.description is not None
         dsc: list[str] = emb.description.split("\n\n")
-        dsc[2] = ranking_text[lng][2].format(f"<#{level_channel_id}>") if level_channel_id else ranking_text[lng][2].format(settings_text[lng][13])
+        assert len(dsc) >= 4
+        dsc[3] = ranking_text[lng][3].format(f"<#{level_channel_id}>" if level_channel_id else settings_text[lng][13])
         emb.description = "\n\n".join(dsc)
 
         try:
@@ -1894,11 +1925,13 @@ class RankingView(ViewBase):
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         match int(custom_id[:2]):
             case 21:
-                await self.xp_change(interaction=interaction)
+                await self.xp_change(interaction)
             case 22:
-                await self.level_channel(interaction=interaction)
+                await self.voice_xp_income(interaction)
+            case 23:
+                await self.level_channel(interaction)
             case 24:
-                await self.lvl_roles(interaction=interaction)
+                await self.lvl_roles(interaction)
     
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
         return

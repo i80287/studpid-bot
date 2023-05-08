@@ -71,12 +71,6 @@ async def get_mod_roles_async(guild_id: int) -> list[tuple[int]] | list:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         return await base.execute_fetchall("SELECT * FROM mod_roles;") # type: ignore
 
-def update_server_info_table(guild_id: int, key_name: str, new_value: int) -> None:
-    with closing(connect(DB_PATH.format(guild_id))) as base:
-        with closing(base.cursor()) as cur:
-            cur.execute("UPDATE server_info SET value = " + str(new_value) + " WHERE settings = '" + key_name + "';")
-            base.commit()
-
 async def update_server_info_table_async(guild_id: int, key_name: str, new_value: int) -> None:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         await base.execute("UPDATE server_info SET value = " + str(new_value) + " WHERE settings = '" + key_name + "';")
@@ -241,22 +235,29 @@ async def register_user_voice_channel_join(guild_id: int, member_id: int, time_j
             
         await base.commit()
 
-async def register_user_voice_channel_left(guild_id: int, member_id: int, money_for_voice: int, xp_for_voice: int, time_left: int) -> tuple[int, int, int]:
+async def register_user_voice_channel_left(
+        guild_id: int,
+        member_id: int,
+        money_for_voice: int,
+        xp_for_voice: int,
+        time_left: int) -> tuple[int, int, int, int]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
-        async with base.execute("SELECT voice_join_time FROM users WHERE memb_id = " + str(member_id)) as cur:
+        async with base.execute("SELECT xp, voice_join_time FROM users WHERE memb_id = " + str(member_id)) as cur:
             result = await cur.fetchone()
-        assert result is None or isinstance(result, tuple)
+        assert result is None or (isinstance(result, tuple) and len(result) == 2)
 
         if result is not None:    
-            if not (voice_join_time := result[0]):
-                return (0, 0, 0)
+            if not (voice_join_time := result[1]):
+                return (0, 0, 0, 0)
+
+            xp = result[0]
         else:
             await base.execute(
                 "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
                 (member_id, "")
             )
             await base.commit()
-            return (0, 0, 0)
+            return (0, 0, 0, 1)
 
         time_delta = time_left - voice_join_time
         money_for_voice = (time_delta * money_for_voice) // 600
@@ -267,9 +268,19 @@ async def register_user_voice_channel_left(guild_id: int, member_id: int, money_
         )
         await base.commit()
 
-    return (money_for_voice, xp_for_voice, voice_join_time)
+        xp_border: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_border';")).fetchone())[0] # type: ignore
+        old_level: int = (xp - 1) // xp_border + 1
+        new_level: int = (xp + xp_for_voice - 1) // xp_border + 1
 
-async def register_user_voice_channel_left_with_join_time(guild_id: int, member_id: int, money_for_voice: int, xp_for_voice: int, time_join: int, time_left: int) -> tuple[int, int]:
+    return (money_for_voice, xp_for_voice, voice_join_time, (0 if old_level == new_level else new_level))
+
+async def register_user_voice_channel_left_with_join_time(
+        guild_id: int,
+        member_id: int,
+        money_for_voice: int,
+        xp_for_voice: int,
+        time_join: int,
+        time_left: int) -> tuple[int, int, int]:
     time_delta: int = time_left - time_join
     money_for_voice = (time_delta * money_for_voice) // 600
     xp_for_voice = (time_delta * xp_for_voice) // 600
@@ -280,8 +291,13 @@ async def register_user_voice_channel_left_with_join_time(guild_id: int, member_
             (money_for_voice, xp_for_voice, member_id)
         )
         await base.commit()
-    
-    return (money_for_voice, xp_for_voice)
+
+        xp: int = (await (await base.execute("SELECT xp FROM users WHERE memb_id = " + str(member_id))).fetchone())[0] # type: ignore
+        xp_border: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_border';")).fetchone())[0] # type: ignore
+        old_level: int = (xp - 1) // xp_border + 1
+        new_level: int = (xp + xp_for_voice - 1) // xp_border + 1
+
+    return (money_for_voice, xp_for_voice, (0 if old_level == new_level else new_level))
 
 async def add_role_async(guild_id: int, role_info: RoleInfo, members_id_with_role: set[int]) -> None:
     role_id: int = role_info.role_id
@@ -454,26 +470,26 @@ async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) 
             result = await cur.fetchone()
         assert result is None or isinstance(result, tuple)
 
-        is_added: bool = False
+        is_removed: bool = False
         if result is None:
             await base.execute(
                 "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
                 (member_id, "")
             )
             await base.commit()
-            is_added = True
+            is_removed = True
         else:
             str_member_roles_ids: str = result[0]
             if str_role_id in str_member_roles_ids:
                 await base.execute("UPDATE users SET owned_roles = '" + str_member_roles_ids.replace('#' + str_role_id, "") + "' WHERE memb_id = " + str_member_id)
                 await base.commit()
-                is_added = True
+                is_removed = True
             del str_member_roles_ids
         del result
 
         salary: int = role_info_row[0]
         if not salary:
-            return is_added
+            return is_removed
         
         # If role has salary.
         async with base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id) as cur:
@@ -481,7 +497,7 @@ async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) 
         assert result is None or isinstance(result, tuple)
 
         if result is None:
-            return is_added
+            return is_removed
         
         str_role_owners_ids: str = result[0]
         if str_member_id in str_role_owners_ids:
@@ -492,7 +508,7 @@ async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) 
                 await base.execute("DELETE FROM salary_roles WHERE role_id = " + str_role_id)
             await base.commit()
         
-        return is_added
+        return is_removed
 
 async def process_bought_role(guild_id: int, member_id: int, buyer_member_roles: str, role_info: PartialRoleStoreInfo) -> None:
     role_id: int = role_info.role_id

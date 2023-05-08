@@ -68,6 +68,8 @@ class VoiceHandlerCog(Cog):
         next_voise_state_update_coro = self.voice_queue.get
         process_left_member_coro = self.process_left_member
         process_joined_member_coro = self.process_joined_member
+        from .event_handler import EventsHandlerCog
+        process_new_lvl_coro = EventsHandlerCog.process_new_lvl
 
         while True:
             member, before, after, timestamp = await next_voise_state_update_coro()
@@ -95,7 +97,7 @@ class VoiceHandlerCog(Cog):
 
             if before_channel is not None:
                 assert before_channel_id is not None
-                await process_left_member_coro(
+                new_level = await process_left_member_coro(
                     member_id,
                     guild,
                     money_for_voice,
@@ -104,6 +106,10 @@ class VoiceHandlerCog(Cog):
                     before_channel.name,
                     timestamp
                 )
+                if not new_level:
+                    continue
+
+                await process_new_lvl_coro(guild, member, new_level, bot)
 
             if after_channel is not None:
                 assert after_channel_id is not None
@@ -130,7 +136,7 @@ class VoiceHandlerCog(Cog):
             xp_for_voice: int,
             channel_id: int,
             channel_name: str,
-            voice_left_time: int) -> None:
+            voice_left_time: int) -> int:
         await write_one_log_async("observations.log", f"[member left] [member: {member_id}] [guild: {guild.name}]")
         guild_id: int = guild.id
         bot: StoreBot = self.bot
@@ -162,9 +168,9 @@ class VoiceHandlerCog(Cog):
                 )
                 money_for_voice = 0
                 xp_for_voice = 0
-        
+
         if was_in_dict:
-            income, xp_income, voice_join_time = await register_user_voice_channel_left(
+            income, xp_income, voice_join_time, new_level = await register_user_voice_channel_left(
                 guild_id,
                 member_id,
                 money_for_voice,
@@ -172,7 +178,7 @@ class VoiceHandlerCog(Cog):
                 voice_left_time
             )
         else:
-            income, xp_income = await register_user_voice_channel_left_with_join_time(
+            income, xp_income, new_level = await register_user_voice_channel_left_with_join_time(
                 guild_id,
                 member_id,
                 money_for_voice,
@@ -182,7 +188,7 @@ class VoiceHandlerCog(Cog):
             )
 
         if not money_for_voice and not xp_for_voice:
-            return
+            return 0
 
         await write_guild_log_async(
             "voice_logs.log",
@@ -199,6 +205,8 @@ class VoiceHandlerCog(Cog):
                 ))
             except:
                 pass
+
+        return new_level
     
     async def process_joined_member(
             self, member_id: int,
@@ -256,6 +264,8 @@ class VoiceHandlerCog(Cog):
         guild_id: int = guild.id
         guild_name: str = guild.name
         ignored_voice_channels = self.bot.ignored_voice_channels
+        from .event_handler import EventsHandlerCog
+        process_new_lvl_coro = EventsHandlerCog.process_new_lvl
 
         for member_id, member in members_dict.items():
             if not member.voice:
@@ -272,7 +282,7 @@ class VoiceHandlerCog(Cog):
                 if channel_id not in ignored_voice_channels[guild_id] else (0, 0)
 
             voice_left_time: int = int(time())
-            income, xp_income, voice_join_time = await register_user_voice_channel_left(
+            income, xp_income, voice_join_time, new_level = await register_user_voice_channel_left(
                 guild_id,
                 member_id,
                 money_for_voice,
@@ -285,6 +295,11 @@ class VoiceHandlerCog(Cog):
                 guild_id,
                 f"[member {member_id}:{member.name} processed as left from channel {channel_id}:{current_channel.name}] [guild: {guild_id}:{guild_name}] [income: {income}] [xp_income: {xp_income}] [join time: {voice_join_time}] [left time: {voice_left_time}] [money_for_voice: {money_for_voice}]"
             )
+
+            if not new_level:
+                continue
+
+            await process_new_lvl_coro(guild, member, new_level, self.bot)
 
 def setup(bot: StoreBot) -> None:
     bot.add_cog(VoiceHandlerCog(bot))

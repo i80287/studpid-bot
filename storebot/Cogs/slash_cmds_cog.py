@@ -1155,6 +1155,8 @@ class SlashCommandsCog(Cog):
         memb_id: int = interaction.user.id
         guild_id: int = interaction.guild_id
 
+        db_member_info: tuple[int, int, str, int, int, int] = await get_member_async(guild_id, memb_id)
+
         async with connect_async(DB_PATH.format(guild_id)) as base:
             xp_b: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'xp_border';")).fetchone())[0] # type: ignore
             currency: str = (await (await base.execute("SELECT str_value FROM server_info WHERE settings = 'currency';")).fetchone())[0] # type: ignore
@@ -1162,26 +1164,26 @@ class SlashCommandsCog(Cog):
             rnk_status: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled';")).fetchone())[0] # type: ignore
 
             membs_cash: list[tuple[int, int]] | None = \
-                await (await base.execute("SELECT memb_id, money FROM users ORDER BY money DESC;")).fetchall() \
+                (await base.execute_fetchall("SELECT memb_id, money FROM users ORDER BY money DESC;")) \
                 if ec_status else None # type: ignore
 
             db_roles: set[int] | None = \
-                {role[0] for role in (await (await base.execute("SELECT role_id FROM server_roles")).fetchall())} \
+                {role[0] for role in (await base.execute_fetchall("SELECT role_id FROM server_roles;"))} \
                 if ec_status else None
 
             membs_xp: list[tuple[int, int]] | None = \
-                await (await base.execute("SELECT memb_id, xp FROM users ORDER BY xp DESC;")).fetchall() \
+                (await base.execute_fetchall("SELECT memb_id, xp FROM users ORDER BY xp DESC;")) \
                 if rnk_status else None # type: ignore
 
-            sale_role_requests: list[tuple[int, int, int, int]] = await (await base.execute(
+            sale_role_requests: list[tuple[int, int, int, int]] = await base.execute_fetchall(
                 "SELECT request_id, target_id, role_id, price FROM sale_requests WHERE seller_id = ?",
                 (memb_id,)
-            )).fetchall() # type: ignore
+            ) # type: ignore
 
-            buy_role_requests: list[tuple[int, int, int, int]] = await (await base.execute(
+            buy_role_requests: list[tuple[int, int, int, int]] = await base.execute_fetchall(
                 "SELECT request_id, seller_id, role_id, price FROM sale_requests WHERE target_id = ?",
                 (memb_id,)
-            )).fetchall() # type: ignore
+            ) # type: ignore
 
         if not (ec_status or rnk_status):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
@@ -1194,7 +1196,6 @@ class SlashCommandsCog(Cog):
         embs: list[Embed] = []
         local_text: dict[int, str] = self.profile_text[lng]
 
-        db_member_info: tuple[int, int, str, int, int, int] = await get_member_async(guild_id, memb_id)
         if ec_status:
             assert membs_cash
             member_cash: int = db_member_info[1]
@@ -1238,7 +1239,7 @@ class SlashCommandsCog(Cog):
                 new_owned_roles: str = \
                     '#' + '#'.join(map(str, memb_server_db_roles)) \
                     if memb_server_db_roles else ""
-                with closing(connect(DB_PATH.format(interaction.guild_id).format(interaction.guild_id))) as base:
+                with closing(connect(DB_PATH.format(interaction.guild_id))) as base:
                     with closing(base.cursor()) as cur:
                         cur.execute(
                             "UPDATE users SET owned_roles = ? WHERE memb_id = ?",
@@ -1295,7 +1296,7 @@ class SlashCommandsCog(Cog):
             avatar_url: str = avatar.url
             embs[0].set_thumbnail(avatar_url)
             embs[0].set_author(name=member.display_name, url=avatar_url, icon_url=avatar_url)
-        
+
         await interaction.response.send_message(embeds=embs)
 
     async def accept_request(self, interaction: Interaction, request_id: int) -> None:

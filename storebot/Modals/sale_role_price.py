@@ -14,7 +14,7 @@ from nextcord.ui import (
     Modal
 )
 
-from ..Tools.db_commands import update_server_info_table
+from ..Tools.db_commands import update_server_info_table_async
 
 
 class SalePriceModal(Modal):
@@ -53,8 +53,7 @@ class SalePriceModal(Modal):
     
     @staticmethod
     def check_ans(value: str | None) -> int:
-        if value is None or not value.isdecimal() or \
-            not (1 <= (sale_role_percent := int(value)) <= 200):
+        if value is None or not value.isdecimal() or not (1 <= (sale_role_percent := int(value)) <= 200):
             return 0
         return sale_role_percent
 
@@ -67,7 +66,8 @@ class SalePriceModal(Modal):
             )
             self.stop()
             return
-        update_server_info_table(interaction.guild_id, "sale_price_perc", sale_role_percent)
+
+        await update_server_info_table_async(interaction.guild_id, "sale_price_perc", sale_role_percent)
         self.new_sale_role_percent = sale_role_percent
         await interaction.response.send_message(
             embed=Embed(
