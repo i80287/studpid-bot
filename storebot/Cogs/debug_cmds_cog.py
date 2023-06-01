@@ -109,12 +109,35 @@ class DebugCommandsCog(Cog):
                 f"\n**`Members count: {members_count}`**",
             ))
 
-        half_size: int = len(lines) >> 1
-        emb1: Embed = Embed(description='\n'.join(lines[:half_size]))
-        emb2: Embed = Embed(description='\n'.join(lines[half_size:]))
+        half_size = len(lines) >> 1
+        quat_size = half_size >> 1
+        await ctx.reply(
+            embed=Embed(description='\n'.join(lines[:quat_size])),
+            mention_author=False,
+            delete_after=30.0
+        )
+        await sleep(0.5)
 
-        await ctx.reply(embed=emb1, mention_author=False, delete_after=30.0)
-        await ctx.reply(embed=emb2, mention_author=False, delete_after=30.0)
+        await ctx.reply(
+            embed=Embed(description='\n'.join(lines[quat_size:half_size])),
+            mention_author=False,
+            delete_after=30.0
+        )
+        await sleep(0.5)
+
+        quat_size += half_size
+        await ctx.reply(
+            embed=Embed(description='\n'.join(lines[half_size:quat_size])),
+            mention_author=False,
+            delete_after=30.0
+        )
+        await sleep(0.5)
+
+        await ctx.reply(
+            embed=Embed(description='\n'.join(lines[quat_size:])),
+            mention_author=False,
+            delete_after=30.0
+        )
 
     @command(name="update_status") # type: ignore
     @is_owner()
