@@ -57,8 +57,11 @@ class VoiceHandlerCog(Cog):
     async def on_voice_state_update(self, member: Member, before: VoiceState, after: VoiceState) -> None:
         if member.bot:
             return
-        
-        await write_one_log_async("observations.log", f"[member: {member.id}:{member.name}] [guild: {member.guild.name}]")
+
+        await write_one_log_async(
+            "observations.log",
+            f"[member: {member.id}:{member.name}] [guild: {member.guild.id}:{member.guild.name}]"
+        )
         await self.voice_queue.put((member, before, after, int(time())))
     
     @tasks.loop()
@@ -72,56 +75,66 @@ class VoiceHandlerCog(Cog):
         process_new_lvl_coro = EventsHandlerCog.process_new_lvl
 
         while True:
-            member, before, after, timestamp = await next_voise_state_update_coro()
-            
-            before_channel: VoiceChannel | StageChannel | None = before.channel
-            after_channel: VoiceChannel | StageChannel | None = after.channel
+            try:
+                member, before, after, timestamp = await next_voise_state_update_coro()
 
-            if before_channel is None and after_channel is None:
-                continue
+                before_channel: VoiceChannel | StageChannel | None = before.channel
+                after_channel: VoiceChannel | StageChannel | None = after.channel
 
-            before_channel_id: int | None = before_channel.id if before_channel is not None else None
-            after_channel_id: int | None = after_channel.id if after_channel is not None else None
-
-            if before_channel_id is after_channel_id or before_channel_id == after_channel_id:
-                continue
-
-            guild: Guild = member.guild
-            guild_id: int = guild.id
-            async with bot.voice_lock:
-                if guild_id not in bot.ignored_voice_channels:
-                    bot.ignored_voice_channels[guild_id] = set()
-            
-            money_for_voice, xp_for_voice = await get_money_and_xp_async(guild_id)
-            member_id: int = member.id
-
-            if before_channel is not None:
-                assert before_channel_id is not None
-                new_level = await process_left_member_coro(
-                    member_id,
-                    guild,
-                    money_for_voice,
-                    xp_for_voice,
-                    before_channel_id,
-                    before_channel.name,
-                    timestamp
-                )
-                if not new_level:
+                if before_channel is None and after_channel is None:
                     continue
 
-                await process_new_lvl_coro(guild, member, new_level, bot)
+                before_channel_id: int | None = before_channel.id if before_channel is not None else None
+                after_channel_id: int | None = after_channel.id if after_channel is not None else None
 
-            if after_channel is not None:
-                assert after_channel_id is not None
-                await process_joined_member_coro(
-                    member_id,
-                    member,
-                    guild,
-                    money_for_voice,
-                    xp_for_voice,
-                    after_channel_id,
-                    after_channel.name,
-                    timestamp
+                if before_channel_id is after_channel_id or before_channel_id == after_channel_id:
+                    await write_one_log_async(
+                        "observations.log",
+                        f"[continuation on line 87] [member: {member.id}] [guild: {member.guild.id}]"
+                    )
+                    continue
+
+                guild: Guild = member.guild
+                guild_id: int = guild.id
+                async with bot.voice_lock:
+                    if guild_id not in bot.ignored_voice_channels:
+                        bot.ignored_voice_channels[guild_id] = set()
+
+                money_for_voice, xp_for_voice = await get_money_and_xp_async(guild_id)
+                member_id: int = member.id
+
+                if before_channel is not None:
+                    assert before_channel_id is not None
+                    new_level = await process_left_member_coro(
+                        member_id,
+                        guild,
+                        money_for_voice,
+                        xp_for_voice,
+                        before_channel_id,
+                        before_channel.name,
+                        timestamp
+                    )
+                    if not new_level:
+                        continue
+
+                    await process_new_lvl_coro(guild, member, new_level, bot)
+
+                if after_channel is not None:
+                    assert after_channel_id is not None
+                    await process_joined_member_coro(
+                        member_id,
+                        member,
+                        guild,
+                        money_for_voice,
+                        xp_for_voice,
+                        after_channel_id,
+                        after_channel.name,
+                        timestamp
+                    )
+            except Exception as ex:
+                await write_one_log_async(
+                    "error.log",
+                    f"[FATAL] [ERROR] [{ex}:{ex!r}]\n"
                 )
 
     @voice_processor.before_loop
