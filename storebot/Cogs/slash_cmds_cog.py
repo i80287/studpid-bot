@@ -178,77 +178,76 @@ buy_approve_text: dict[int, dict[int, str]] = {
     }
 }
 
-store_text: dict[int, dict[int, str]] = {
-    0: {
-        0: "{0} **•** <@&{1}>\n`Price` - `{2:0,}` {3}\n`Left` - `1`\n`Listed for sale:`\n*{4}*\n",
-        1: "{0} **•** <@&{1}>\n`Price` - `{2:0,}` {3}\n`Left` - `{4}`\n`Last listed for sale:`\n*{5}*\n",
-        2: "`Average passive salary per week` - `{0:0,}` {1}\n",
-        3: "Page {0} from {1}",
-        4: "Sort by...",
-        5: "Sort by price",
-        6: "Sort by date",
-        7: "Sort from...",
-        8: "From the lower price / newer role",
-        9: "From the higher price / older role",
-        10: "Roles for sale:"
+store_text: tuple[tuple[str, ...], tuple[str, ...]] = (
+    (
+        "{0} **•** <@&{1}>\n`Price` - `{2:0,}` {3}\n`Left` - `1`\n`Listed for sale:`\n*{4}*\n",
+        "{0} **•** <@&{1}>\n`Price` - `{2:0,}` {3}\n`Left` - `{4}`\n`Last listed for sale:`\n*{5}*\n",
+        "`Average passive salary per week` - `{0:0,}` {1}\n",
+        "Page {0} from {1}",
+        "Sort by...",
+        "Sort by price",
+        "Sort by date",
+        "Sort from...",
+        "From the lower price / newer role",
+        "From the higher price / older role",
+        "Roles for sale:"
+    ),
+    (
+        "{0} **•** <@&{1}>\n`Цена` - `{2:0,}` {3}\n`Осталось` - `1`\n`Выставленa на продажу:`\n*{4}*\n",
+        "{0} **•** <@&{1}>\n`Цена` - `{2:0,}` {3}\n`Осталось` - `{4}`\n`Последний раз выставленa на продажу:`\n*{5}*\n",
+        "`Средний пассивный доход за неделю` - `{0:0,}` {1}\n",
+        "Страница {0} из {1}",
+        "Сортировать по...",
+        "Сортировать по цене",
+        "Сортировать по дате",
+        "Сортировать от...",
+        "От меньшей цены / более свежого товара",
+        "От большей цены / более старого товара",
+        "Роли на продажу:"
+    )
+)
 
-    },
-    1: {
-        0: "{0} **•** <@&{1}>\n`Цена` - `{2:0,}` {3}\n`Осталось` - `1`\n`Выставленa на продажу:`\n*{4}*\n",
-        1: "{0} **•** <@&{1}>\n`Цена` - `{2:0,}` {3}\n`Осталось` - `{4}`\n`Последний раз выставленa на продажу:`\n*{5}*\n",
-        2: "`Средний пассивный доход за неделю` - `{0:0,}` {1}\n",
-        3: "Страница {0} из {1}",
-        4: "Сортировать по...",
-        5: "Сортировать по цене",
-        6: "Сортировать по дате",
-        7: "Сортировать от...",
-        8: "От меньшей цены / более свежого товара",
-        9: "От большей цены / более старого товара",
-        10: "Роли на продажу:"
-    }
-}
+bet_text: tuple[tuple[str, ...], tuple[str, ...]] = (
+    (
+        "Make a counter bet",
+        "Cancel bet",
+        "**`Sorry, but you can't make counter bet for yourself`**",
+        "**`Sorry, but you can't make counter bet, because you need at least {}`** {}",
+        "**`Sorry, but you can't control bet made by another user`**",
+        "**`Bet was cancelled by user`**"
+    ),
+    (
+        "Сделать встречную ставку",
+        "Отменить ставку",
+        "**`Извините, но Вы не можете делать встречную ставку самому себе`**",
+        "**`Извините, но Вы не можете сделать встречную ставку, так как Вам не хватает {}`** {}",
+        "**`Извините, но Вы не можете управлять чужой ставкой`**",
+        "**`Ставка была отменена пользователем`**"
+    )
+)
 
-bet_text: dict[int, dict[int, str]] = {
-    0: {
-        0: "Make a counter bet",
-        1: "Cancel bet",
-        2: "**`Sorry, but you can't make counter bet for yourself`**",
-        3: "**`Sorry, but you can't make counter bet, because you need at least {}`** {}",
-        4: "**`Sorry, but you can't control bet made by another user`**",
-        5: "**`Bet was cancelled by user`**"
-    },
-    1: {
-        0: "Сделать встречную ставку",
-        1: "Отменить ставку",
-        2: "**`Извините, но Вы не можете делать встречную ставку самому себе`**",
-        3: "**`Извините, но Вы не можете сделать встречную ставку, так как Вам не хватает {}`** {}",
-        4: "**`Извините, но Вы не можете управлять чужой ставкой`**",
-        5: "**`Ставка была отменена пользователем`**"
-    }
-}
-
-rating_text: dict[int, dict[int, str]] = {
-    0: {
-        0: "Top members by balance",
-        1: "Top members by xp",
-        2: "Page {0} from {1}",
-        3: "{0} place",
-        4: "{0} level",
-        5: "Sort by...",
-        6: "Sort by cash",
-        7: "Sort by xp",
-    },
-    1: {
-        0: "Топ пользователей по балансу",
-        1: "Топ пользователей по опыту",
-        2: "Страница {0} из {1}",
-        3: "{0} место",
-        4: "{0} уровень",
-        5: "Сортировать по...",
-        6: "Сортировать по кэшу",
-        7: "Сортировать по опыту",
-    }
-}
+rating_text: tuple[tuple[str, ...], tuple[str, ...]] = (
+    (
+        "Top members by balance",
+        "Top members by xp",
+        "Page {0} from {1}",
+        "{0} place",
+        "{0} level",
+        "Sort by...",
+        "Sort by cash",
+        "Sort by xp",
+    ),
+    (
+        "Топ пользователей по балансу",
+        "Топ пользователей по опыту",
+        "Страница {0} из {1}",
+        "{0} место",
+        "{0} уровень",
+        "Сортировать по...",
+        "Сортировать по кэшу",
+        "Сортировать по опыту",
+    )
+)
 
 
 class BetView(ViewBase):
@@ -328,15 +327,17 @@ class StoreView(ViewBase):
         self.add_item(CustomButton(custom_id=f"34_{auth_id}_" + urandom(4).hex(), emoji="▶️"))
         self.add_item(CustomButton(custom_id=f"35_{auth_id}_" + urandom(4).hex(), emoji="⏭"))
 
+        local_text = store_text[lng]
+        assert len(local_text) >= 1
         sort_by_what_options: list[SelectOption] = [
             SelectOption(
-                label=store_text[lng][5],
+                label=local_text[5],
                 value="0",
                 emoji="💰",
                 default=True
             ),
             SelectOption(
-                label=store_text[lng][6],
+                label=local_text[6],
                 value="1",
                 emoji="📅",
                 default=False
@@ -344,18 +345,18 @@ class StoreView(ViewBase):
         ]
         self.add_item(CustomSelectWithOptions(
             custom_id=f"102_{auth_id}_" + urandom(4).hex(),
-            placeholder=store_text[lng][4],
+            placeholder=local_text[4],
             opts=sort_by_what_options
         ))
         sort_how_options: list[SelectOption] = [
             SelectOption(
-                label=store_text[lng][8],
+                label=local_text[8],
                 value="0",
                 emoji="↗️",
                 default=True
             ),
             SelectOption(
-                label=store_text[lng][9],
+                label=local_text[9],
                 value="1",
                 emoji="↘️",
                 default=False
@@ -363,7 +364,7 @@ class StoreView(ViewBase):
         ]
         self.add_item(CustomSelectWithOptions(
             custom_id=f"103_{auth_id}_" + urandom(4).hex(),
-            placeholder=store_text[lng][7],
+            placeholder=local_text[7],
             opts=sort_how_options
         ))
 
@@ -378,7 +379,7 @@ class StoreView(ViewBase):
                 # Reversed sort by date from lower to higher (early date is lower, goes first) 
                 # If dates are equal then item with lower price goes first
                 # tup[3] - price of the role, tup[4] - last date of adding role to the store.
-                self.db_store.sort(key=lambda tup: (tup[4], tup[3])) #[, reverse=False]
+                self.db_store.sort(key=lambda tup: (tup[4], tup[3])) # [, reverse=False]
             return
         # If sort is not reversed
         if self.sort_by_price:
@@ -386,20 +387,22 @@ class StoreView(ViewBase):
             # If prices are equal sort by date from higher to lower (latest is higher, early date is lower)
             # tup[3] - price of the role, tup[4] - last date of adding role to the store.
             self.db_store.sort(key=lambda tup: tup[4], reverse=True)
-            self.db_store.sort(key=lambda tup: tup[3]) #[, reverse=False]
+            self.db_store.sort(key=lambda tup: tup[3]) # [, reverse=False]
         else:
             # Sort by date from higher to lower (latest is higher, early date is lower)
             # If dates are equal then item with lower price goes first
             # tup[3] - price of the role, tup[4] - last date of adding role to the store.
-            self.db_store.sort(key=lambda tup: tup[3]) #[, reverse=False]
+            self.db_store.sort(key=lambda tup: tup[3]) # [, reverse=False]
             self.db_store.sort(key=lambda tup: tup[4], reverse=True)
 
     async def update_menu(self, interaction: Interaction, click: Literal[0, 1, 2, 3, 4]) -> None:
         assert interaction.message is not None
         assert interaction.message.embeds[0].footer.text is not None
+        assert click in {0, 1, 2, 3, 4}
         lng: int = self.lng
         text: str = interaction.message.embeds[0].footer.text
         if lng:
+            assert lng == 1
             t1: int = text.find('Ст')
             t2: int = text.find('из', t1)
             page: int = int(text[t1 + 9:t2 - 1])
@@ -426,58 +429,62 @@ class StoreView(ViewBase):
         store_list: list[str] = []
         tzinfo: timezone = timezone(timedelta(hours=self.tz))
         currency: str = self.currency
+        local_text = store_text[lng]
+        assert len(local_text) >= 1
+        assert len(local_text) >= 11
         for role_number, role_id, q, price, d, salary, salary_cooldown, role_type in self.db_store[(page - 1) * self.in_row:min(page * self.in_row, self.l)]:
             date: str = datetime.fromtimestamp(d, tz=tzinfo).strftime("%H:%M %d-%m-%Y")
             match role_type:
                 case 1:
-                    role_info = store_text[lng][0].format(role_number, role_id, price, currency, date)
+                    role_info = local_text[0].format(role_number, role_id, price, currency, date)
                 case 2:
-                    role_info = store_text[lng][1].format(role_number, role_id, price, currency, q, date)
+                    role_info = local_text[1].format(role_number, role_id, price, currency, q, date)
                 case 3:
-                    role_info = store_text[lng][1].format(role_number, role_id, price, currency, "∞", date)
+                    role_info = local_text[1].format(role_number, role_id, price, currency, "∞", date)
                 case _:
                     continue
             if salary:
-                role_info += store_text[lng][2].format(salary * 604800 // salary_cooldown, currency)
+                role_info += local_text[2].format(salary * 604800 // salary_cooldown, currency)
             store_list.append(role_info)
 
         if store_list:
-            emb: Embed = Embed(title=store_text[lng][10], colour=Colour.dark_gray(), description='\n'.join(store_list))
-            emb.set_footer(text=store_text[lng][3].format(page, self.pages))
-            if click == 0:
+            emb: Embed = Embed(title=local_text[10], colour=Colour.dark_gray(), description='\n'.join(store_list))
+            emb.set_footer(text=local_text[3].format(page, self.pages))
+            if not click: # <=> click == 0
                 await interaction.response.edit_message(embed=emb, view=self)
             else:
                 await interaction.response.edit_message(embed=emb)
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
-        assert int(custom_id[:2]) in {32, 33, 34, 35}
+        assert isinstance(custom_id, str) and int(custom_id[:2]) in {32, 33, 34, 35}
         await self.update_menu(interaction, int(custom_id[:2]) - 31) # type: ignore
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
-        assert values
-        assert values[0] in {"0", "1"}
-        assert custom_id.startswith("102_") or custom_id.startswith("103_")
-        assert isinstance(self.children[4], CustomSelectWithOptions)
-        assert isinstance(self.children[5], CustomSelectWithOptions)
+        assert isinstance(values, list) and values and values[0] in {"0", "1"}
+        assert isinstance(custom_id, str) and (custom_id.startswith("102_") or custom_id.startswith("103_"))
 
         if custom_id.startswith("102"):
+            assert isinstance(self.children[4], CustomSelectWithOptions)
+            options = self.children[4].options
             if values[0] == "1":
                 self.sort_by_price = False
-                self.children[4].options[0].default = False
-                self.children[4].options[1].default = True
+                options[0].default = False
+                options[1].default = True
             else:
                 self.sort_by_price = True
-                self.children[4].options[0].default = True
-                self.children[4].options[1].default = False
+                options[0].default = True
+                options[1].default = False
         else:
+            assert isinstance(self.children[5], CustomSelectWithOptions)
+            options = self.children[5].options
             if values[0] == "1":
                 self.sort_reversed = True
-                self.children[5].options[0].default = False
-                self.children[5].options[1].default = True
+                options[0].default = False
+                options[1].default = True
             else:
                 self.sort_reversed = False
-                self.children[5].options[0].default = True
-                self.children[5].options[1].default = False
+                options[0].default = True
+                options[1].default = False
 
         self.sort_store()
         await self.update_menu(interaction, 0)
@@ -603,18 +610,18 @@ class RatingView(ViewBase):
         await self.update_menu(interaction, int(custom_id[:2]) - 37) # type: ignore
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
-        assert values[0].isdecimal()
-        assert custom_id.startswith("104_")
-        select_option = self.children[4]
-        assert isinstance(select_option, CustomSelectWithOptions)
+        assert values and isinstance(values[0], str) and values[0].isdecimal()
+        assert isinstance(custom_id, str) and custom_id.startswith("104_")
+        assert isinstance(self.children[4], CustomSelectWithOptions)
+        options = self.children[4].options
         if int(values[0]):
             self.sort_value = False
-            select_option.options[0].default = False
-            select_option.options[1].default = True
+            options[0].default = False
+            options[1].default = True
         else:
             self.sort_value = True
-            select_option.options[0].default = True
-            select_option.options[1].default = False
+            options[0].default = True
+            options[1].default = False
 
         await self.update_menu(interaction, 0)
 
@@ -837,7 +844,7 @@ class SlashCommandsCog(Cog):
             return
 
         role_id: int = role.id
-        str_role_id: str = role_id.__str__()
+        str_role_id: str = str(role_id)
         
         store: tuple[int, int, int, int] | None
         currency: str
@@ -1074,24 +1081,25 @@ class SlashCommandsCog(Cog):
         assert interaction.locale is not None
         assert interaction.user is not None
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
-        if not await self.can_role(interaction=interaction, role=role, lng=lng):
+        if not await self.can_role(interaction, role, lng):
             return
-        memb_id: int = interaction.user.id
-        guild_id: int = interaction.guild_id
 
+        guild_id: int = interaction.guild_id
         if await is_command_disabled_async(guild_id, CommandId.SELL_TO):
             await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
             return
 
+        memb_id: int = interaction.user.id
         target_id: int = target.id
         if memb_id == target_id:
             await self.respond_with_error_report(interaction=interaction, lng=lng, answer=self.sell_to_text[lng][0])
             return
-        
-        role_id: int = role.id
 
-        user_owned_roles: list[str] = ((await get_member_async(guild_id=guild_id, member_id=memb_id))[2]).split("#")
-        target_owned_roles: list[str] = ((await get_member_async(guild_id=guild_id, member_id=target_id))[2]).split("#")
+        user_owned_roles: list[str] = ((await get_member_async(guild_id, memb_id))[2]).split("#")
+        target_owned_roles: list[str] = ((await get_member_async(guild_id, target_id))[2]).split("#")
+        role_id: int = role.id
+        str_role_id: str = str(role_id)
+
         with closing(connect(DB_PATH.format(guild_id))) as base:
             with closing(base.cursor()) as cur:
                 if not cur.execute("SELECT value FROM server_info WHERE settings = 'economy_enabled'").fetchone()[0]:
@@ -1100,29 +1108,23 @@ class SlashCommandsCog(Cog):
                         ephemeral=True
                     )
                     return
-                is_role_added_to_server: int = cur.execute(
-                    "SELECT count() FROM server_roles WHERE role_id = ?",
-                    (role_id,)
-                ).fetchone()[0]
-                if not is_role_added_to_server:
+
+                if not cur.execute("SELECT count() FROM server_roles WHERE role_id = " + str_role_id).fetchone()[0]:
+                    # if not is_role_added_to_server
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][17])
                     return
 
-                str_role_id: str = str(role_id)
                 if str_role_id not in user_owned_roles:
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=text_slash[lng][16])
                     return
-                
+
                 del user_owned_roles
-                
-                is_role_already_being_sold_by_user: int = cur.execute(
-                    "SELECT count() FROM sale_requests WHERE seller_id = ? AND role_id = ?",
-                    (memb_id, role_id)
-                ).fetchone()[0]
-                if is_role_already_being_sold_by_user:
+
+                if cur.execute("SELECT count() FROM sale_requests WHERE seller_id = ? AND role_id = " + str_role_id, (memb_id,)).fetchone()[0]:
+                    # if not is_role_already_being_sold_by_user
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=self.sell_to_text[lng][1].format(str_role_id))
                     return
-                
+
                 if str_role_id in target_owned_roles:
                     await self.respond_with_error_report(interaction=interaction, lng=lng, answer=self.sell_to_text[lng][2].format(target_id, str_role_id))
                     return
@@ -1136,11 +1138,12 @@ class SlashCommandsCog(Cog):
                 )
                 base.commit()
                 currency: str = cur.execute("SELECT str_value FROM server_info WHERE settings = 'currency'").fetchone()[0]
-        
+
+        local_text = self.sell_to_text[lng]
         await interaction.response.send_message(
             embed=Embed(
-                title=self.sell_to_text[lng][3],
-                description=self.sell_to_text[lng][4].format(str_role_id, target_id, price, currency),
+                title=local_text[3],
+                description=local_text[4].format(str_role_id, target_id, price, currency),
                 colour=Colour.green()
             ),
             ephemeral=True
@@ -1294,15 +1297,16 @@ class SlashCommandsCog(Cog):
         member: Member = interaction.user
         if (avatar := member.display_avatar) is not None:
             avatar_url: str = avatar.url
+            assert embs, __file__ + " at line 1300"
             embs[0].set_thumbnail(avatar_url)
             embs[0].set_author(name=member.display_name, url=avatar_url, icon_url=avatar_url)
 
         await interaction.response.send_message(embeds=embs)
 
     async def accept_request(self, interaction: Interaction, request_id: int) -> None:
-        assert interaction.guild_id is not None
-        assert interaction.guild is not None
-        assert interaction.locale is not None
+        assert interaction.guild_id is not None, __file__ + " at line 1307"
+        assert interaction.guild is not None, __file__ + " at line 1308"
+        assert interaction.locale is not None, __file__ + " at line 1309"
         assert isinstance(interaction.user, Member)
         guild_id: int = interaction.guild_id
         memb_id: int = interaction.user.id
@@ -1444,9 +1448,9 @@ class SlashCommandsCog(Cog):
             ))
 
     async def decline_request(self, interaction: Interaction, request_id: int) -> None:
-        assert interaction.guild_id is not None
-        assert interaction.locale is not None
-        assert isinstance(interaction.user, Member)
+        assert interaction.guild_id is not None, __file__ + " at line 1451"
+        assert interaction.locale is not None, __file__ + " at line 1452"
+        assert isinstance(interaction.user, Member), __file__ + " at line 1453"
         guild_id: int = interaction.guild_id
         memb_id: int = interaction.user.id
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
@@ -1479,10 +1483,10 @@ class SlashCommandsCog(Cog):
         )
 
     async def work(self, interaction: Interaction) -> None:
-        assert interaction.guild_id is not None
-        assert interaction.guild is not None
-        assert interaction.locale is not None
-        assert isinstance(interaction.user, Member)
+        assert interaction.guild_id is not None, __file__ + " at line 1486"
+        assert interaction.guild is not None, __file__ + " at line 1487"
+        assert interaction.locale is not None, __file__ + " at line 1488"
+        assert isinstance(interaction.user, Member), __file__ + " at line 1489"
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id
         member_id: int = interaction.user.id

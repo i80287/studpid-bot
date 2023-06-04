@@ -150,7 +150,7 @@ class EventsHandlerCog(Cog):
             await self._process_guilds(bot, bot_guilds.copy())
             await write_one_log_async(
                 filename="error.log",
-                report=f"[WARNING] [guilds count changed during the on_ready execution]\n"
+                report=f"[WARNING] [guilds count changed during the on_ready execution]"
             )
 
         from ..config import DEBUG
@@ -209,7 +209,7 @@ class EventsHandlerCog(Cog):
         for ex in exceptions:
             await write_one_log_async(
                 filename="error.log",
-                report=f"[FATAL] [ERROR] [send_first_message] [guild: {str_guild_id}:{guild_name}] [{str(ex)}:{ex:!r}]\n"
+                report=f"[FATAL] [ERROR] [send_first_message] [guild: {str_guild_id}:{guild_name}] [{str(ex)}:{ex:!r}]"
             )
 
         await write_log_async("guild.log", "guild_join", str_guild_id, guild_name)
@@ -314,7 +314,7 @@ class EventsHandlerCog(Cog):
                 except Exception as ex:
                     await write_one_log_async(
                         "error.log",
-                        f"[WARNING] [guild: {guild_id}:{guild.name}] [was not able to send new level message in on_message] [{str(ex)}{ex:!r}]\n"
+                        f"[WARNING] [guild: {guild_id}:{guild.name}] [was not able to send new level message in on_message] [{str(ex)}{ex:!r}]"
                     )
         else:
             db_lvl_rls = res
@@ -359,14 +359,18 @@ class EventsHandlerCog(Cog):
             await interaction.response.send_message(embed=Embed(description=self.event_handl_text[lng]), ephemeral=True)
             return
 
-        guild_report: str = f"[{guild.id}] [{guild.name}] " if (guild := interaction.guild) else ""
-        command_report: str = f"[{interaction.application_command.name}] " if interaction.application_command else ""
-        report: str = f"[ERROR] [slash_command] {command_report}{guild_report}[{str(exception)}]"
-        await write_one_log_async("error.log", report)
+        report: list[str] = ["[ERROR] [slash_command]"]
+        if guild := interaction.guild:
+            report.append(f"[{guild.id}] [{guild.name}]")
+        if app_cmd := interaction.application_command:
+            report.append('[' + str(app_cmd.name) + ']')
+        report.append('[' + str(exception) + ']')
+
+        await write_one_log_async("error.log", ' '.join(report))
 
     @Cog.listener()
     async def on_command_error(self, ctx: Context, error) -> None:
-        lines: list[str] = ["[ERROR]"]
+        lines: list[str] = ["[ERROR] [on_command_error]"]
         if (member := ctx.author):
             lines.append(f"[member: {member.id}:{member.name}]")
         if (guild := ctx.guild):

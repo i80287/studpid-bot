@@ -1656,7 +1656,7 @@ class SettingsView(ViewBase):
                     from ..Tools.logger import write_one_log_async
                     await write_one_log_async(
                         "error.log",
-                        f"[FATAL] [ERROR] [was not able to send join/remove message edit view] [{ex}:{ex:!r}]\n"
+                        f"[FATAL] [ERROR] [was not able to send join/remove message edit view] [{ex}:{ex:!r}]"
                     )
                     
                     emb = Embed(

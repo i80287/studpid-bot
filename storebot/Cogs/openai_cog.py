@@ -103,7 +103,7 @@ class OpenAICog(Cog):
         except Exception as ex:
             await write_one_log_async(
                 "error.log",
-                f"[FATAL] [ERROR] [could not response] [ask] [question: {question}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
+                f"[FATAL] [ERROR] [could not response] [ask] [question: {question}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]"
             )
             await channel.send(embed=Embed(description=self.openai_cog_text[lng][4]))
             await interaction.response.defer()
@@ -123,7 +123,7 @@ class OpenAICog(Cog):
                 except Exception as ex:
                     await write_one_log_async(
                         "error.log",
-                        f"[FATAL] [ERROR] [ask] [question: {question}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
+                        f"[FATAL] [ERROR] [ask] [question: {question}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]"
                     )
                     await interaction.followup.send(embed=Embed(description=self.openai_cog_text[lng][4]), ephemeral=True)
                     return
@@ -141,7 +141,7 @@ class OpenAICog(Cog):
         except Exception as ex:
             await write_one_log_async(
                 "error.log",
-                f"[FATAL] [ERROR] [ask] [question: {question}] [answer: {answer}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]\n"
+                f"[FATAL] [ERROR] [ask] [question: {question}] [answer: {answer}] [guild: {interaction.guild_id}:{interaction.guild.name}] [{str(ex)}]"
             )
             await interaction.followup.send(embed=Embed(description=self.openai_cog_text[lng][5]), ephemeral=True)
         else:

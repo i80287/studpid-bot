@@ -132,7 +132,7 @@ class VoiceHandlerCog(Cog):
             except Exception as ex:
                 await write_one_log_async(
                     "error.log",
-                    f"[FATAL] [ERROR] [voice_processor global loop] [{ex}:{ex!r}]\n"
+                    f"[FATAL] [ERROR] [voice_processor global loop] [{ex}:{ex!r}]"
                 )
 
     @voice_processor.before_loop

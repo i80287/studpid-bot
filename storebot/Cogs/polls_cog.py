@@ -292,7 +292,7 @@ class Poll(View):
         won_results_description.append(f"{self.poll_class_text[lng][8]}")
         dsc[0] = '\n'.join(won_results_description)
         
-        emb: Embed = Embed(description="\n".join(dsc))
+        emb: Embed = Embed(description='\n'.join(dsc))
         
         for c in self.children:
             assert isinstance(c, poll_custom_button)
