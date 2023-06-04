@@ -114,10 +114,8 @@ class VoiceHandlerCog(Cog):
                         before_channel.name,
                         timestamp
                     )
-                    if not new_level:
-                        continue
-
-                    await process_new_lvl_coro(guild, member, new_level, bot)
+                    if new_level:
+                        await process_new_lvl_coro(guild, member, new_level, bot)
 
                 if after_channel is not None:
                     assert after_channel_id is not None
@@ -134,7 +132,7 @@ class VoiceHandlerCog(Cog):
             except Exception as ex:
                 await write_one_log_async(
                     "error.log",
-                    f"[FATAL] [ERROR] [{ex}:{ex!r}]\n"
+                    f"[FATAL] [ERROR] [voice_processor global loop] [{ex}:{ex!r}]\n"
                 )
 
     @voice_processor.before_loop
