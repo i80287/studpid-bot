@@ -31,12 +31,12 @@ from ..Tools.logger import write_guild_log_async
 class MembersHandlerCog(Cog):
     members_handler_text: tuple[tuple[str, str], tuple[str, str]] = (
         (
-            "**`Role`** <@&{0}> **`was added to the member`** <@{1}> **`without bot tools and therefore was added to member's balance`**",
-            "**`Role`** <@&{0}> **`was removed from the member`** <@{1}> **`without bot tools and therefore was removed from the member's balance`**"
+            "**`Role`** <@&{}> **`was added to the member`** <@{}> **`without bot tools and therefore was added to member's balance`**",
+            "**`Role`** <@&{}> **`was removed from the member`** <@{}> **`without bot tools and therefore was removed from the member's balance`**"
         ),
         (
-            "**`Роль`** <@&{0}> **`была добавлена пользователю`** <@{1}> **`без использования бота, и поэтому была добавлена на баланс пользователя автоматически`**",
-            "**`Роль`** <@&{0}> **`была убрана у пользователя`** <@{1}> **`без использования бота, и поэтому была убрана из баланса пользователя автоматически`**"
+            "**`Роль`** <@&{}> **`была добавлена пользователю`** <@{}> **`без использования бота, и поэтому была добавлена на баланс пользователя автоматически`**",
+            "**`Роль`** <@&{}> **`была убрана у пользователя`** <@{}> **`без использования бота, и поэтому была убрана из баланса пользователя автоматически`**"
         )
     )
 
@@ -101,10 +101,8 @@ class MembersHandlerCog(Cog):
     async def on_member_update(self, before: Member, after: Member) -> None:
         if before.bot:
             return
-        
-        before_roles: SnowflakeList = before._roles
-        after_roles: SnowflakeList = after._roles
-        if (l1 := len(before_roles)) != (l2 := len(after_roles)):
+
+        if (l1 := len(before_roles := before._roles)) != (l2 := len(after_roles := after._roles)):
             self.members_queue.put_nowait((after.guild, after.id, before_roles, after_roles, l1 < l2))
 
     @tasks.loop()
@@ -124,6 +122,7 @@ class MembersHandlerCog(Cog):
 
                 if is_role_added:
                     for role_id in after_roles:
+                        assert isinstance(role_id, int)
                         if not before_roles.has(role_id):
                             if await m_check_bot_added_roles(role_id):
                                 is_updated = await add_member_role_async(guild_id, member_id, role_id)
@@ -133,6 +132,7 @@ class MembersHandlerCog(Cog):
                                 continue
                 else:
                     for role_id in before_roles:
+                        assert isinstance(role_id, int)
                         if not after_roles.has(role_id):
                             if await m_check_bot_removed_roles(role_id):
                                 is_updated = await remove_member_role_async(guild_id, member_id, role_id)
@@ -162,7 +162,6 @@ class MembersHandlerCog(Cog):
                             guild_id,
                             f"[ERROR] [send log message failed] [role_change] [is_added: {is_role_added}] [guild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"
                         )
-
             except Exception as ex:
                 from ..Tools.logger import write_one_log_async
                 await write_one_log_async(
@@ -189,7 +188,7 @@ class MembersHandlerCog(Cog):
         async with added_roles_lock:
             if added_roles_queue.empty():
                 return True
-            
+
             bot_added_role_id_1: int = await added_roles_queue.get()
 
         if bot_added_role_id_1 == role_id:
@@ -199,10 +198,10 @@ class MembersHandlerCog(Cog):
             if added_roles_queue.empty():
                 added_roles_queue.put_nowait(bot_added_role_id_1)
                 return True
-        
+
             bot_added_role_id_2: int = await added_roles_queue.get()
             added_roles_queue.put_nowait(bot_added_role_id_1)
-        
+
         if bot_added_role_id_2 == role_id:
             return False
 
@@ -224,12 +223,12 @@ class MembersHandlerCog(Cog):
         async with removed_roles_lock:
             if removed_roles_queue.empty():
                 return True
-            
+
             bot_removed_role_id_1: int = await removed_roles_queue.get()
         
         if bot_removed_role_id_1 == role_id:
             return False
-        
+
         async with removed_roles_lock:
             if removed_roles_queue.empty():
                 removed_roles_queue.put_nowait(bot_removed_role_id_1)
@@ -237,7 +236,7 @@ class MembersHandlerCog(Cog):
 
             bot_removed_role_id_2: int = await removed_roles_queue.get()
             removed_roles_queue.put_nowait(bot_removed_role_id_1)
-        
+
         if bot_removed_role_id_2 == role_id:
             return False
 
