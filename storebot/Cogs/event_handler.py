@@ -300,7 +300,7 @@ class EventsHandlerCog(Cog):
 
     @classmethod
     async def process_new_lvl(cls, guild: Guild, member: Member, new_level: int, bot: StoreBot) -> None:
-        assert new_level != 0
+        assert isinstance(new_level, int) and new_level != 0
         guild_id = guild.id
         res: tuple[list[tuple[int, int]], int, int] | list[tuple[int, int]] = await get_server_lvllog_info_async(guild_id)
         if isinstance(res, tuple):

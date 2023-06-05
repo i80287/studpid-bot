@@ -81,17 +81,15 @@ class VoiceHandlerCog(Cog):
                 before_channel: VoiceChannel | StageChannel | None = before.channel
                 after_channel: VoiceChannel | StageChannel | None = after.channel
 
-                if before_channel is None and after_channel is None:
-                    continue
-
                 before_channel_id: int | None = before_channel.id if before_channel is not None else None
                 after_channel_id: int | None = after_channel.id if after_channel is not None else None
 
                 if before_channel_id is after_channel_id or before_channel_id == after_channel_id:
-                    await write_one_log_async(
-                        "observations.log",
-                        f"[continuation on line 87] [member: {member.id}] [guild: {member.guild.id}]"
-                    )
+                    if __debug__:
+                        await write_one_log_async(
+                            "observations.log",
+                            f"[continuation on line 87] [member: {member.id}] [guild: {member.guild.id}]"
+                        )
                     continue
 
                 guild: Guild = member.guild
@@ -105,7 +103,7 @@ class VoiceHandlerCog(Cog):
 
                 if before_channel is not None:
                     assert before_channel_id is not None
-                    new_level = await process_left_member_coro(
+                    if new_level := await process_left_member_coro(
                         member_id,
                         guild,
                         money_for_voice,
@@ -113,8 +111,7 @@ class VoiceHandlerCog(Cog):
                         before_channel_id,
                         before_channel.name,
                         timestamp
-                    )
-                    if new_level:
+                    ):
                         await process_new_lvl_coro(guild, member, new_level, bot)
 
                 if after_channel is not None:

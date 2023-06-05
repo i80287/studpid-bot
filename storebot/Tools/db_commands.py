@@ -18,6 +18,7 @@ from aiosqlite import connect as connect_async
 from contextlib import closing
 from itertools import pairwise
 
+from .logger import write_one_log_async
 from ..constants import CWD_PATH, DB_PATH
 
 _rnd: Random = Random()
@@ -72,17 +73,19 @@ async def get_mod_roles_async(guild_id: int) -> list[tuple[int]] | list:
         return await base.execute_fetchall("SELECT * FROM mod_roles;") # type: ignore
 
 async def update_server_info_table_async(guild_id: int, key_name: str, new_value: int) -> None:
+    assert isinstance(key_name, str)
     async with connect_async(DB_PATH.format(guild_id)) as base:
         await base.execute("UPDATE server_info SET value = " + str(new_value) + " WHERE settings = '" + key_name + "';")
         await base.commit()
 
 async def update_server_info_table_uncheck_async(guild_id: int, key_name: str, new_value: str) -> None:
-    assert new_value.isdecimal()
+    assert isinstance(key_name, str) and isinstance(new_value, str) and new_value.isdecimal()
     async with connect_async(DB_PATH.format(guild_id)) as base:
         await base.execute("UPDATE server_info SET value = " + new_value + " WHERE settings = '" + key_name + "';")
         await base.commit()
 
 async def get_server_info_value_async(guild_id: int, key_name: str) -> int:
+    assert isinstance(key_name, str)
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute("SELECT value FROM server_info WHERE settings = '" + key_name + "';") as cur:
             return (await cur.fetchone())[0] # type: ignore
@@ -90,11 +93,26 @@ async def get_server_info_value_async(guild_id: int, key_name: str) -> int:
 async def get_money_and_xp_async(guild_id: int) -> tuple[int, int]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute("SELECT value FROM server_info WHERE settings = 'mn_for_voice';") as cur:
-            money_for_voice: int = (await cur.fetchone())[0] # type: ignore
-        async with base.execute("SELECT value FROM server_info WHERE settings = 'xp_for_voice';") as cur:
-            xp_for_voice: int = (await cur.fetchone())[0] # type: ignore
+            if res := await cur.fetchone():
+                money_for_voice: int = res[0]
+            else:
+                await write_one_log_async(
+                    "error.log",
+                    f"[FATAL] [ERROR] [empty 'mn_for_voice' fetch result in get_money_and_xp_async line 93] [res: {res}] [guild_id: {guild_id}]"
+                )
+                money_for_voice = 6
 
-    return (money_for_voice, xp_for_voice)
+        async with base.execute("SELECT value FROM server_info WHERE settings = 'xp_for_voice';") as cur:
+            if res := await cur.fetchone():
+                # xp_for_voice: int = res[0]
+                return (money_for_voice, res[0])
+            else:
+                await write_one_log_async(
+                    "error.log",
+                    f"[FATAL] [ERROR] [empty 'xp_for_voice' fetch result in get_money_and_xp_async line 103] [res: {res}] [guild_id: {guild_id}]"
+                )
+                # xp_for_voice = 6
+                return (money_for_voice, 6)
 
 async def get_server_log_info_async(guild_id: int) -> tuple[int, int]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
@@ -226,7 +244,6 @@ async def register_user_voice_channel_join(guild_id: int, member_id: int, time_j
                 "UPDATE users SET voice_join_time = ? WHERE memb_id = " + str_member_id,
                 (time_join,)
             )
-        
         else:
             await base.execute(
                 "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, ?)",
