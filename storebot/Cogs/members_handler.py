@@ -81,7 +81,7 @@ class MembersHandlerCog(Cog):
                 return
 
         if isinstance(channel := guild.get_channel(channel_id), TextChannel) and channel.permissions_for(guild.me).send_messages:
-            (flag, text) = await get_member_message_async(guild_id, False)
+            flag, text = await get_member_message_async(guild_id, False)
             assert isinstance(text, str) and isinstance(flag, int)
             if not text:
                 return
@@ -152,7 +152,7 @@ class MembersHandlerCog(Cog):
 
                 log_channel_id, server_lng = await get_server_log_info_async(guild_id)
                 if log_channel_id and isinstance(log_channel := guild.get_channel(log_channel_id), TextChannel):
-                    assert server_lng in {0, 1}
+                    assert server_lng in {0, 1} and changed_role_id != 0
                     description: str = s_members_handler_text[server_lng][0 if is_role_added else 1].format(changed_role_id, member_id)
                     try:
                         await log_channel.send(embed=Embed(description=description))

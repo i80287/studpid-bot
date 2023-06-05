@@ -148,25 +148,23 @@ class VoiceHandlerCog(Cog):
         await write_one_log_async("observations.log", f"[member left] [member: {member_id}] [guild: {guild.name}]")
         guild_id: int = guild.id
         bot: StoreBot = self.bot
-        was_in_dict: bool = True
+        voice_join_time: int = 0
+
         async with bot.voice_lock:
             members_in_voice: dict[int, dict[int, Member]] = bot.members_in_voice
-            if guild_id in members_in_voice:
-                if (member := members_in_voice[guild_id].pop(member_id, None)) is not None:
-                    member_name: str = member.name
-                    voice_join_time: int = 0
+            if ((guild_dict := members_in_voice.get(guild_id, None)) is not None) and ((member := guild_dict.pop(member_id, None)) is not None):
+                member_name: str = member.name
+            else:
+                time_now = int(time())
+                voice_join_time = (time_now - (time_now >> 2)) + (bot.startup_time >> 2)
+
+                if guild_dict is not None:
+                    # If member left in time bot startuped
+                    member_name = "not in dict;"
                 else:
                     # If member joined voice channel before the bot startup.
-                    member_name: str = "not in dict;"
-                    time_now = int(time())
-                    voice_join_time: int = (time_now - (time_now >> 2)) + (bot.startup_time >> 2)
-                    was_in_dict = False
-            else:
-                # If member left in time bot startuped
-                members_in_voice[guild_id] = {}
-                member_name: str = "guild not in dict;"
-                voice_join_time: int = int(time())
-                was_in_dict = False
+                    member_name = "guild not in dict;"
+                    members_in_voice[guild_id] = {}
 
             if channel_id in bot.ignored_voice_channels[guild_id]:
                 await write_guild_log_async(
@@ -177,7 +175,7 @@ class VoiceHandlerCog(Cog):
                 money_for_voice = 0
                 xp_for_voice = 0
 
-        if was_in_dict:
+        if not voice_join_time:
             income, xp_income, voice_join_time, new_level = await register_user_voice_channel_left(
                 guild_id,
                 member_id,
