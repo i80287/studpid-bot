@@ -209,7 +209,7 @@ class EventsHandlerCog(Cog):
         for ex in exceptions:
             await write_one_log_async(
                 filename="error.log",
-                report=f"[FATAL] [ERROR] [send_first_message] [guild: {str_guild_id}:{guild_name}] [{str(ex)}:{ex:!r}]"
+                report=f"[FATAL] [ERROR] [send_first_message] [guild: {str_guild_id}:{guild_name}] [{ex} : {ex!r}]"
             )
 
         await write_log_async("guild.log", "guild_join", str_guild_id, guild_name)
@@ -314,7 +314,7 @@ class EventsHandlerCog(Cog):
                 except Exception as ex:
                     await write_one_log_async(
                         "error.log",
-                        f"[WARNING] [guild: {guild_id}:{guild.name}] [was not able to send new level message in on_message] [{str(ex)}{ex:!r}]"
+                        f"[WARNING] [guild: {guild_id}:{guild.name}] [was not able to send new level message in on_message] [{ex} : {ex!r}]"
                     )
         else:
             db_lvl_rls = res

@@ -166,7 +166,7 @@ class MembersHandlerCog(Cog):
                 from ..Tools.logger import write_one_log_async
                 await write_one_log_async(
                     "error.log",
-                    f"[FATAL] [ERROR] [error in roles_updates_loop] [{ex}:{ex!r}]"
+                    f"[FATAL] [ERROR] [error in roles_updates_loop] [{ex} : {ex!r}]"
                 )
 
     @roles_updates_loop.before_loop

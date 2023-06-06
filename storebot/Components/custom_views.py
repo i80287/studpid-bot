@@ -1656,7 +1656,7 @@ class SettingsView(ViewBase):
                     from ..Tools.logger import write_one_log_async
                     await write_one_log_async(
                         "error.log",
-                        f"[FATAL] [ERROR] [was not able to send join/remove message edit view] [{ex}:{ex:!r}]"
+                        f"[FATAL] [ERROR] [was not able to send join/remove message edit view] [{ex} : {ex!r}]"
                     )
                     
                     emb = Embed(
@@ -1862,7 +1862,7 @@ class RankingView(ViewBase):
                 await write_guild_log_async(
                     "guild.log",
                     interaction.guild_id,
-                    f"[ERROR] [RankingView::voice_xp_income line 1853] [{interaction.guild.name}] [{ex}:{ex!r}]"
+                    f"[ERROR] [RankingView::voice_xp_income line 1853] [{interaction.guild.name}] [{ex} : {ex!r}]"
                 )
 
     async def level_channel(self, interaction: Interaction) -> None:
