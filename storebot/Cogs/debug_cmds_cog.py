@@ -1,7 +1,7 @@
 from __future__ import annotations
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
-    from nextcord import Guild, Member
+    from nextcord import Guild
 
     from ..storebot import StoreBot
 
@@ -22,12 +22,33 @@ class DebugCommandsCog(Cog):
     def __init__(self, bot: StoreBot) -> None:
         self.bot: StoreBot = bot
 
+    @command(name="lst") # type: ignore
+    @is_owner()
+    async def lst(self, ctx: Context) -> None:
+        await ctx.reply(
+            embed=Embed(description="`fb_channel` `text channel`\n"
+                                    "`load` `extension`\n"
+                                    "`unload` `extension`\n"
+                                    "`reload` `extension`\n"
+                                    "`statistics`\n"
+                                    "`update_status` [`any text` | `default`]\n"
+                                    "`shutdown`\n"
+                                    "`guild_info` `guild_id`\n"
+                                    "`guild_member_info` `guild_id` `member_id`\n"
+                                    "`check_db` `guild_id`"),
+            mention_author=False
+        )
+
     @command(name="fb_channel") # type: ignore
     @is_owner()
     async def fb_channel(self, ctx: Context, channel: TextChannel) -> None:
         channel_id: int = channel.id
         self.bot.bot_feedback_channel = channel_id
-        await ctx.reply(embed=Embed(description=f"New feedback channel is <#{channel_id}>"), mention_author=False, delete_after=10.0)
+        await ctx.reply(
+            embed=Embed(description=f"New feedback channel is <#{channel_id}>"),
+            mention_author=False,
+            delete_after=10.0
+        )
 
     @command(name="load") # type: ignore
     @is_owner()
@@ -46,6 +67,7 @@ class DebugCommandsCog(Cog):
             emb: Embed = Embed(description=f"**Loaded `{extension}`**")
         else:
             emb: Embed = Embed(description=f"**`{extension}` not found**")
+
         await ctx.reply(embed=emb, mention_author=False, delete_after=10.0)
     
     @command(name="unload") # type: ignore
@@ -66,6 +88,7 @@ class DebugCommandsCog(Cog):
             emb: Embed = Embed(description=f"**`Unloaded {extension}`**")
         else:
             emb: Embed = Embed(description=f"**`{extension} not found`**")
+
         await ctx.reply(embed=emb, mention_author=False, delete_after=10.0)
 
     @command(name="reload") # type: ignore
@@ -89,6 +112,7 @@ class DebugCommandsCog(Cog):
             emb: Embed = Embed(description=f"**`Reloaded {extension}`**")
         else:
             emb: Embed = Embed(description=f"**`{extension}` not found**")
+
         await ctx.reply(embed=emb, mention_author=False, delete_after=10.0)
 
     @command(aliases=["statistics"]) # type: ignore
@@ -147,77 +171,87 @@ class DebugCommandsCog(Cog):
         else:
             await self.bot.change_presence(activity=Game(' '.join(text)), status=Status.dnd)
         await ctx.reply(embed=Embed(description=f"**`Changed status to {' '.join(text)}`**"), mention_author=False)
-    
+
     @command(name="shutdown") # type: ignore
     @is_owner()
     async def shutdown(self, ctx: Context) -> None:
         cog: Cog | None = self.bot.cogs.get("VoiceHandlerCog")
-        
+
         from storebot.Cogs.voice_handler import VoiceHandlerCog
         if not isinstance(cog, VoiceHandlerCog):
             return
-        
-        k: int = 0
+
+        invoice_members_count: int = 0
         bot = self.bot
         async with bot.voice_lock:
             members_in_voice = bot.members_in_voice
             for guild_id, members_dict in members_in_voice.items():
-                if (guild := bot.get_guild(guild_id)) is None:
-                    continue
-                await cog.process_member_on_bot_shutdown(guild, members_dict)
-                k += len(members_dict)
-                members_in_voice[guild_id] = {}
+                if (guild := bot.get_guild(guild_id)) is not None:
+                    await cog.process_member_on_bot_shutdown(guild, members_dict)
+                    invoice_members_count += len(members_dict)
+                    members_in_voice[guild_id] = {}
 
-        await ctx.reply(embed=Embed(description=f"**`Processed {k} members`**"), mention_author=False)
-    
+        await ctx.reply(embed=Embed(description=f"**`Processed {invoice_members_count} members`**"), mention_author=False)
+
     @command(name="guild_info") # type: ignore
     @is_owner()
     async def guild_info(self, ctx: Context, guild_id: int) -> None:
-        guild: Guild | None = self.bot.get_guild(guild_id)
-        if guild is not None:
-            report: str = f"**`Got guild: {guild_id}:" + guild.name + f"`**\n**`Members count: {guild.member_count}`**"
-            owner: Member | None = guild.owner
-            if owner is not None:
-                report += f"\n**`Owner: {owner.id}:" + owner.name+ "`**"
-
-            await ctx.reply(embed=Embed(description=report), mention_author=False)
-        else:
+        if (guild := self.bot.get_guild(guild_id)) is None:
             await ctx.reply(embed=Embed(description="**`Guild not found`**"), mention_author=False)
-    
+            return
+
+        report: list[str] = [f"**`Got guild: {guild_id}:" + guild.name + f"`**\n**`Members count: {guild.member_count}`**"]
+        if (owner := guild.owner) is not None:
+            report.append(f"**`Owner: {owner.id}:" + owner.name+ "`**")
+
+        bot = self.bot
+        async with bot.voice_lock:
+            if (guild_dict := bot.members_in_voice.get(guild_id)) is not None:
+                if guild_dict:
+                    report.append("**`Guild members in voice:`**")
+                    report.extend(f"**`{member.id}:{member.name}`**" for member in guild_dict.values())
+                else:
+                    report.append("**`No guild members are in voice now`**")
+
+        if (lines_count := len(report)) <= 64:
+            await ctx.reply(embed=Embed(description='\n'.join(report)), mention_author=False)
+            return
+
+        half_lines = lines_count >> 1
+        await ctx.reply(embed=Embed(description='\n'.join(report[:half_lines])), mention_author=False)
+        await ctx.reply(embed=Embed(description='\n'.join(report[half_lines:])), mention_author=False)
+
     @command(name="guild_member_info") # type: ignore
     @is_owner()
     async def guild_member_info(self, ctx: Context, guild_id: int, member_id: int) -> None:
-        guild: Guild | None = self.bot.get_guild(guild_id)
-        if guild is None:
+        if (guild := self.bot.get_guild(guild_id)) is None:
             await ctx.reply(embed=Embed(description="**`Guild not found`**"), mention_author=False)
             return
-        
-        member: Member | None = guild.get_member(member_id)
-        if member is None:
+
+        if (member := guild.get_member(member_id)) is None:
             await ctx.reply(embed=Embed(description="**`Member not found`**"), mention_author=False)
             return
-        
+
         report: list[str] = [
             f"**`Got guild: {guild_id}:" + guild.name + "`**",
             f"**`Got member: {member_id}:" + member.name + "`**"
         ]
-        owner: Member | None = guild.owner
-        if owner is not None:
+        if (owner := guild.owner) is not None:
             report.append(f"**`Guild owner: {owner.id}:" + owner.name + "`**")
         
         report.append("**`Member roles:`**")
         report.extend(map(lambda role: f"**`{role.id}:" + role.name + "`**", member.roles))
 
         await ctx.reply(embed=Embed(description='\n'.join(report)), mention_author=False)
-    
+
     @command(name="check_db") # type: ignore
     @is_owner()
     async def check_db_command(self, ctx: Context, guild_id: int) -> None:
         try:
             from ..Tools.db_commands import check_db
             from os import mkdir
-            str_guild_id = str(guild_id)
 
+            str_guild_id = str(guild_id)
             db_path: str = CWD_PATH + f"/bases/bases_{str_guild_id}/"
             if not path.exists(db_path):
                 mkdir(db_path)
@@ -229,7 +263,7 @@ class DebugCommandsCog(Cog):
             check_db(guild_id, None)
             await ctx.reply(embed=Embed(description=f"**`Updated info for the guild {guild_id}`**"), mention_author=False)
         except Exception as ex:
-            await ctx.reply(embed=Embed(description=f"{ex} : {ex!r}"), mention_author=False)
+            await ctx.reply(embed=Embed(description=f"Exception occured: {ex} : {ex!r}"), mention_author=False)
 
 def setup(bot: StoreBot) -> None:
     bot.add_cog(DebugCommandsCog(bot))
