@@ -1339,7 +1339,7 @@ class SettingsView(ViewBase):
     @classmethod
     def check_ans(cls, guild: Guild, ans: str) -> tuple[Member | None, bool]:
         for member_id in cls.member_id_pattern.findall(ans):
-            assert not isinstance(member_id, str) or (isinstance(member_id, str) and member_id.isdecimal())
+            assert isinstance(member_id, str) and member_id.isdecimal()
             if (member := guild.get_member(int(member_id))) is not None:
                 return (member, False)
         return (None, ans != "cancel")
