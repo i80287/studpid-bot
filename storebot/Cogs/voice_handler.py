@@ -176,22 +176,36 @@ class VoiceHandlerCog(Cog):
                 xp_for_voice = 0
 
         if not voice_join_time:
-            income, xp_income, voice_join_time, new_level = await register_user_voice_channel_left(
-                guild_id,
-                member_id,
-                money_for_voice,
-                xp_for_voice,
-                voice_left_time
-            )
+            try:
+                income, xp_income, voice_join_time, new_level = await register_user_voice_channel_left(
+                    guild_id,
+                    member_id,
+                    money_for_voice,
+                    xp_for_voice,
+                    voice_left_time
+                )
+            except Exception as ex:
+                await write_one_log_async(
+                    "error.log",
+                    f"[FATAL] [ERROR] [voice_processor global loop] [register_user_voice_channel_left] [{ex} : {ex!r}]"
+                )
+                return 0
         else:
-            income, xp_income, new_level = await register_user_voice_channel_left_with_join_time(
-                guild_id,
-                member_id,
-                money_for_voice,
-                xp_for_voice,
-                voice_join_time,
-                voice_left_time
-            )
+            try:
+                income, xp_income, new_level = await register_user_voice_channel_left_with_join_time(
+                    guild_id,
+                    member_id,
+                    money_for_voice,
+                    xp_for_voice,
+                    voice_join_time,
+                    voice_left_time
+                )
+            except Exception as ex:
+                await write_one_log_async(
+                    "error.log",
+                    f"[FATAL] [ERROR] [voice_processor global loop] [register_user_voice_channel_left_with_join_time] [{ex} : {ex!r}]"
+                )
+                return 0
 
         if not money_for_voice and not xp_for_voice:
             return 0
@@ -233,11 +247,18 @@ class VoiceHandlerCog(Cog):
             else:
                 members_in_voice[guild_id] = {member_id: member}
 
-        await register_user_voice_channel_join(
-            guild_id=guild_id,
-            member_id=member_id,
-            time_join=voice_join_time
-        )
+        try:
+            await register_user_voice_channel_join(
+                guild_id=guild_id,
+                member_id=member_id,
+                time_join=voice_join_time
+            )
+        except Exception as ex:
+            await write_one_log_async(
+                "error.log",
+                f"[FATAL] [ERROR] [voice_processor global loop] [register_user_voice_channel_join] [{ex} : {ex!r}]"
+            )
+            return
 
         async with bot.voice_lock:
             if channel_id in bot.ignored_voice_channels[guild_id]:
