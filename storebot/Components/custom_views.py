@@ -557,8 +557,7 @@ class GenSettingsView(ViewBase):
         try:
             await interaction.message.edit(embed=emb)
         except:
-            # TODO:
-            pass
+            pass # TODO:
 
         await interaction.response.send_message(embed=Embed(description=local_text[27].format(local_system_text[ec_status + 4])), ephemeral=True)
 
@@ -582,8 +581,11 @@ class GenSettingsView(ViewBase):
         dsc[4] = local_text[4].format(local_system_text[rnk_status])
         dsc[9] = local_text[9].format(local_system_text[rnk_status + 2])
         emb.description = "\n".join(dsc)
-        await interaction.message.edit(embed=emb)
-            
+        try:
+            await interaction.message.edit(embed=emb)
+        except:
+            pass # TODO:
+
         await interaction.response.send_message(embed=Embed(description=local_text[28].format(local_system_text[rnk_status + 4])), ephemeral=True)
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
