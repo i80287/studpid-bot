@@ -98,7 +98,7 @@ async def get_money_and_xp_async(guild_id: int) -> tuple[int, int]:
             else:
                 await write_one_log_async(
                     "error.log",
-                    f"[FATAL] [ERROR] [empty 'mn_for_voice' fetch result in get_money_and_xp_async line 93] [res: {res}] [guild_id: {guild_id}]"
+                    f"[FATAL] [ERROR] [empty 'mn_for_voice' fetch result in get_money_and_xp_async line 101] [res: {res}] [guild_id: {guild_id}]"
                 )
                 money_for_voice = 6
 
@@ -109,7 +109,7 @@ async def get_money_and_xp_async(guild_id: int) -> tuple[int, int]:
             else:
                 await write_one_log_async(
                     "error.log",
-                    f"[FATAL] [ERROR] [empty 'xp_for_voice' fetch result in get_money_and_xp_async line 103] [res: {res}] [guild_id: {guild_id}]"
+                    f"[FATAL] [ERROR] [empty 'xp_for_voice' fetch result in get_money_and_xp_async line 112] [res: {res}] [guild_id: {guild_id}]"
                 )
                 # xp_for_voice = 6
                 return (money_for_voice, 6)
@@ -304,8 +304,12 @@ async def register_user_voice_channel_left_with_join_time(
 
     async with connect_async(DB_PATH.format(guild_id)) as base:
         await base.execute(
-            "UPDATE users SET money = money + ?, xp = xp + ?, voice_join_time = 0 WHERE memb_id = ?",
-            (money_for_voice, xp_for_voice, member_id)
+            "INSERT INTO users(memb_id,money,owned_roles,work_date,xp,voice_join_time)"
+            f"VALUES({member_id},{money_for_voice},'',0,{xp_for_voice},0)"
+            "ON CONFLICT(memb_id) DO UPDATE SET"
+            " money=money+excluded.money,"
+            " xp=xp+excluded.xp,"
+            " voice_join_time=0;"
         )
         await base.commit()
 
@@ -519,10 +523,10 @@ async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) 
         str_role_owners_ids: str = result[0]
         if str_member_id in str_role_owners_ids:
             str_role_owners_ids = str_role_owners_ids.replace('#' + str_member_id, "")
-            if str_role_owners_ids:
-                await base.execute("UPDATE salary_roles SET members = '" + str_role_owners_ids + "' WHERE role_id = " + str_role_id)
-            else:
-                await base.execute("DELETE FROM salary_roles WHERE role_id = " + str_role_id)
+            # if str_role_owners_ids:
+            await base.execute("UPDATE salary_roles SET members = '" + str_role_owners_ids + "' WHERE role_id = " + str_role_id)
+            # else:
+            #     await base.execute("DELETE FROM salary_roles WHERE role_id = " + str_role_id)
             await base.commit()
         
         return is_removed

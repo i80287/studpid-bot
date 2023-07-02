@@ -123,23 +123,17 @@ class MembersHandlerCog(Cog):
                 if is_role_added:
                     for role_id in after_roles:
                         assert isinstance(role_id, int)
-                        if not before_roles.has(role_id):
-                            if await m_check_bot_added_roles(role_id):
-                                is_updated = await add_member_role_async(guild_id, member_id, role_id)
-                                changed_role_id = role_id
-                                break
-                            else:
-                                continue
+                        if not before_roles.has(role_id) and (await m_check_bot_added_roles(role_id)):
+                            is_updated = await add_member_role_async(guild_id, member_id, role_id)
+                            changed_role_id = role_id
+                            break
                 else:
                     for role_id in before_roles:
                         assert isinstance(role_id, int)
-                        if not after_roles.has(role_id):
-                            if await m_check_bot_removed_roles(role_id):
-                                is_updated = await remove_member_role_async(guild_id, member_id, role_id)
-                                changed_role_id = role_id
-                                break
-                            else:
-                                continue
+                        if not after_roles.has(role_id) and (await m_check_bot_removed_roles(role_id)):
+                            is_updated = await remove_member_role_async(guild_id, member_id, role_id)
+                            changed_role_id = role_id
+                            break
 
                 if not is_updated:
                     continue
@@ -147,7 +141,7 @@ class MembersHandlerCog(Cog):
                 await write_guild_log_async(
                     "guild.log",
                     guild_id,
-                    f"[role_change without bot's tools] [is_added: {is_role_added}] [guild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"
+                    f"[role change without bot's tools] [is_added: {is_role_added}] [guild: {guild_id}:{guild.name}] [member_id: {member_id}] [role_id: {changed_role_id}]"
                 )
 
                 log_channel_id, server_lng = await get_server_log_info_async(guild_id)
@@ -174,7 +168,7 @@ class MembersHandlerCog(Cog):
         await self.bot.wait_until_ready()
 
     async def check_bot_added_roles(self, role_id: int) -> bool:
-        """Method to check whether role was not added by the bot
+        """Method to check whether role was added not by the bot
 
         Args:
             `role_id` (`int`): id of the role
@@ -209,7 +203,7 @@ class MembersHandlerCog(Cog):
         return True
 
     async def check_bot_removed_roles(self, role_id: int) -> bool:
-        """Method to check whether role was not removed by the bot
+        """Method to check whether role was removed not by the bot
 
         Args:
             `role_id` (`int`): id of the role
