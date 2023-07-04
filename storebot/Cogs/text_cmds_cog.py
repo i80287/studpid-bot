@@ -78,12 +78,12 @@ class TextComandsCog(Cog):
                 "<@{0}> **`заработал {1:0,}`** {2} **`от команды /work (/collect) и {3:0,}`** {2} **`от ролей`**" \
                 if server_lng else \
                 "<@{0}> **`gained {1:0,}`** {2} **`from the /work (/collect) command and {3:0,}`** {2} **`from the roles`**" \
-            
+
             if not success:
                 log_text += \
-                    f"\nAn error occured while sending message. Check bot permissions in the <#{ctx.channel.id}> channel" \
+                    f"\nПри отправке сообщения возникла ошибка. Проверьте права бота в канале <#{ctx.channel.id}>" \
                     if server_lng else \
-                    f"\nПри отправке сообщения возникла ошибка. Проверьте права бота в канале <#{ctx.channel.id}>"
+                    f"\nAn error occured while sending message. Check bot permissions in the <#{ctx.channel.id}> channel"
 
             try:
                 await guild_log_channel.send(embed=Embed(description=log_text.format(
