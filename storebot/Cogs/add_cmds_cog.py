@@ -144,7 +144,7 @@ class AdditionalCommandsCog(Cog):
         "<:online:995823257993363587>", "<:idle:995823256621813770>", "<:dnd:995823255199957032>", "<:offline:995823253878738944>"
     )
     months: dict[int, tuple[str, ...]] = {
-        0: ("January {}", "February {}", "Mart {}", "April {}", "May {}", "June {}", "Jule {}", "August {}", "September {}", "October {}", "November {}", "December {}"),
+        0: ("January {}", "February {}", "Mart {}", "April {}", "May {}", "June {}", "July {}", "August {}", "September {}", "October {}", "November {}", "December {}"),
         1: ("{} Января", "{} Февраля", "{} Марта", "{} Апреля", "{} Мая", "{} Июня", "{} Июля", "{} Августа", "{} Сентября", "{} Октября", "{} Ноября", "{} Декабря")
     }
     server_info_text: dict[int, dict[int, str]] = {
