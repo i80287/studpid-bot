@@ -224,8 +224,12 @@ for guild_data in data["guilds"]:
 # end immitate
 
 http: HTTPClient = conn_state.http
+loop = asyncio.new_event_loop()
+if http.connector is not None:
+    http.connector._loop = loop
 http.__session = aiohttp.ClientSession(
     connector=http.connector,
+    loop=loop,
     ws_response_class=DiscordClientWebSocketResponse
 )
 async def request(
