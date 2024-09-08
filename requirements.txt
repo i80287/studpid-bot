@@ -1,8 +1,8 @@
 emoji
 cython
-nextcord>=2.4
+nextcord==2.4.2
 nextcord[speed]
 nextcord[voice]
-aiosqlite
-aiofiles
+aiosqlite==0.18.0
+aiofiles==23.1.0
 openai

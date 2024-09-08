@@ -82,6 +82,10 @@ class EventsHandlerCog(Cog):
     async def send_first_message(cls, guild: Guild, embed: Embed) -> list[Exception]:
         exceptions: list[Exception] = []
         guild_me: Member = guild.me
+        if not guild_me:
+            exceptions.append(TypeError("guild_me is None"))
+            return exceptions
+
         for channel in guild.text_channels:
             permission: bool = False
             try:
@@ -97,7 +101,7 @@ class EventsHandlerCog(Cog):
                 except Exception as ex:
                     exceptions.append(ex)
                     continue
-        
+
         return exceptions
 
     @Cog.listener()

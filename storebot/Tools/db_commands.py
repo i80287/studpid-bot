@@ -39,6 +39,11 @@ class CommandId(IntEnum):
     SLOTS = 12
     ROULETTE = 13
 
+
+PROMOCODE_FOR_ANY_USER_ID = -1
+PROMOCODE_INF_COUNT = -1
+
+
 @dataclass(frozen=True, match_args=False)
 class RoleInfo:
     role_id: int
@@ -971,7 +976,7 @@ async def disable_economy_commands_async(guild_id: int) -> None:
 def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, int]]:
     with closing(connect(DB_PATH.format(guild_id))) as base:
         with closing(base.cursor()) as cur:
-            cur.executescript("""\
+            cur.executescript(f"""\
             CREATE TABLE IF NOT EXISTS users (
                 memb_id INTEGER PRIMARY KEY,
                 money INTEGER NOT NULL DEFAULT 0,
@@ -1036,6 +1041,12 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
             CREATE TABLE IF NOT EXISTS commands_settings (
                 command_id INTEGER PRIMARY KEY,
                 is_enabled INTEGER NOT NULL DEFAULT 0
+            );
+            CREATE TABLE IF NOT EXISTS promocodes (
+                promo_id INTEGER PRIMARY KEY,
+                money INTEGER NOT NULL DEFAULT 0,
+                for_user_id INTEGER NOT NULL DEFAULT {PROMOCODE_FOR_ANY_USER_ID},
+                instances_count INTEGER NOT NULL DEFAULT {PROMOCODE_INF_COUNT}
             )
             """)
             base.commit()

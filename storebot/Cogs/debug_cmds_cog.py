@@ -20,6 +20,8 @@ from ..constants import CWD_PATH
 
 class DebugCommandsCog(Cog):
     def __init__(self, bot: StoreBot) -> None:
+        import atexit
+        atexit.register(self.shutdown, None)
         self.bot: StoreBot = bot
 
     @command(name="lst") # type: ignore
@@ -174,7 +176,7 @@ class DebugCommandsCog(Cog):
 
     @command(name="shutdown") # type: ignore
     @is_owner()
-    async def shutdown(self, ctx: Context) -> None:
+    async def shutdown(self, ctx: Context | None = None) -> None:
         cog: Cog | None = self.bot.cogs.get("VoiceHandlerCog")
 
         from storebot.Cogs.voice_handler import VoiceHandlerCog
@@ -189,9 +191,9 @@ class DebugCommandsCog(Cog):
                 if (guild := bot.get_guild(guild_id)) is not None:
                     await cog.process_member_on_bot_shutdown(guild, members_dict)
                     invoice_members_count += len(members_dict)
-                    members_in_voice[guild_id] = {}
-
-        await ctx.reply(embed=Embed(description=f"**`Processed {invoice_members_count} members`**"), mention_author=False)
+                    members_dict.clear()
+        if (ctx):
+            await ctx.reply(embed=Embed(description=f"**`Processed {invoice_members_count} members`**"), mention_author=False)
 
     @command(name="guild_info") # type: ignore
     @is_owner()
