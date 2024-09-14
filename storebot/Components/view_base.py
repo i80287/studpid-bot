@@ -49,9 +49,9 @@ class ViewBase(ABC, View):
     async def interaction_check(self, interaction: Interaction) -> bool:
         assert isinstance(interaction.user, Member)
         assert interaction.locale is not None
-        if interaction.user.id != self.author_id:
+        if ((user := interaction.user) is None) or (user.id != self.author_id):
             description = "**`Извините, но Вы не можете управлять меню, которое вызвано другим пользователем`**" \
-                if "ru" in interaction.locale else \
+                if (locale := interaction.locale) and "ru" in locale else \
                 "**`Sorry, but you can't manage menu called by another user`**"
             await interaction.response.send_message(
                 embed=Embed(description=description),

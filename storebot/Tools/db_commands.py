@@ -1,4 +1,5 @@
 from __future__ import annotations
+from sqlite3.dbapi2 import Row
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     from typing import (
@@ -518,7 +519,7 @@ async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) 
             return is_removed
         
         # If role has salary.
-        async with base.execute("SELECT members FROM salary_roles WHERE role_id = " + str_role_id) as cur:
+        async with base.execute(f"SELECT members FROM salary_roles WHERE role_id = {str_role_id}") as cur:
             result = await cur.fetchone()
         assert result is None or isinstance(result, tuple)
 
@@ -527,9 +528,9 @@ async def remove_member_role_async(guild_id: int, member_id: int, role_id: int) 
         
         str_role_owners_ids: str = result[0]
         if str_member_id in str_role_owners_ids:
-            str_role_owners_ids = str_role_owners_ids.replace('#' + str_member_id, "")
+            str_role_owners_ids = str_role_owners_ids.replace(f"#{str_member_id}", "")
             # if str_role_owners_ids:
-            await base.execute("UPDATE salary_roles SET members = '" + str_role_owners_ids + "' WHERE role_id = " + str_role_id)
+            await base.execute(f"UPDATE salary_roles SET members = '{str_role_owners_ids}' WHERE role_id = {str_role_id}")
             # else:
             #     await base.execute("DELETE FROM salary_roles WHERE role_id = " + str_role_id)
             await base.commit()
@@ -1174,4 +1175,80 @@ async def set_member_message_async(guild_id: int, text: str, is_join: bool) -> N
             "UPDATE server_info SET value = ?, str_value = ? WHERE settings = 'member_remove_msg';",
             (flag, text)
         )
+        await base.commit()
+
+
+@dataclass(frozen=True, match_args=False)
+class Promocode:
+    promo_id: int
+    money: int
+    for_user_id: int
+    count: int
+
+    @staticmethod
+    def from_row(row: Row) -> Promocode:
+        return Promocode(*tuple(row))
+
+    def str_promo_id(self) -> str:
+        return str(self.promo_id)
+
+    def str_money(self) -> str:
+        return str(self.money)
+
+    def str_for_user_id(self) -> str:
+        return str(self.for_user_id) if self.for_user_id != PROMOCODE_FOR_ANY_USER_ID else "everyone can use"
+
+    def str_count(self) -> str:
+        return str(self.count) if self.count != PROMOCODE_INF_COUNT else "+oo"
+
+    def str_components(self) -> tuple[str, str, str, str]:
+        return (
+            self.str_promo_id(),
+            self.str_money(),
+            self.str_for_user_id(),
+            self.str_count(),
+        )
+
+
+async def get_promocodes_async(guild_id: int) -> list[Promocode]:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        return list(map(Promocode.from_row, await base.execute_fetchall("SELECT promo_id, money, for_user_id, instances_count FROM promocodes;")))
+
+
+async def get_promocode_async(guild_id: int, promocode_id: int) -> Promocode | None:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        async with base.execute(f"SELECT promo_id, money, for_user_id, instances_count FROM promocodes WHERE promo_id = {promocode_id};") as cur:
+            row: Row | None = await cur.fetchone()
+    return None if row is None else Promocode.from_row(row)
+
+
+async def add_promocode_async(guild_id: int, promocode_money: int, promocode_count: int, for_user_id: int) -> Promocode:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        async with base.execute(
+            "INSERT INTO promocodes (money, for_user_id, instances_count)"
+            f" VALUES({promocode_money}, {for_user_id}, {promocode_count})"
+            " ON CONFLICT (promo_id) DO UPDATE SET"
+            " money=excluded.money,"
+            " for_user_id=excluded.for_user_id,"
+            " instances_count=excluded.instances_count;"
+        ) as cur:
+            promo_id = cur.lastrowid
+            await base.commit()
+
+    return Promocode(promo_id=promo_id, money=promocode_money, for_user_id=for_user_id, count=promocode_count)
+
+
+async def update_promocode_async(guild_id: int, promocode_id: int, promocode_money: int, promocode_count: int, for_user_id: int) -> Promocode:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        await base.execute(
+            f"UPDATE promocodes SET money = {promocode_money}, for_user_id = {for_user_id}, instances_count = {promocode_count} WHERE promo_id = {promocode_id};"
+        )
+        await base.commit()
+
+    return Promocode(promo_id=promocode_id, money=promocode_money, for_user_id=for_user_id, count=promocode_count)
+
+
+async def delete_promocode_async(guild_id: int, promocode_id: int) -> None:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        await base.execute(f"DELETE FROM promocodes WHERE promo_id = {promocode_id};")
         await base.commit()

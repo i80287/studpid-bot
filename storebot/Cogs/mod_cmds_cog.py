@@ -5,6 +5,8 @@ if TYPE_CHECKING:
 
     from ..storebot import StoreBot
 
+from copy import copy
+
 from nextcord import (
     Embed,
     Locale,
@@ -13,15 +15,12 @@ from nextcord import (
 )
 from nextcord.ext import application_checks
 from nextcord.ext.commands import Cog
-if __debug__:
-    from nextcord import Member
+from nextcord import Member
 
 from ..Tools.db_commands import get_mod_roles_async
 from ..Components.view_base import ViewBase
 from ..Components.custom_views import SettingsView
-if __debug__:
-    from ..Components.custom_button import CustomButton
-    from ..Components.custom_select import CustomSelect
+
 
 class ModCommandsCog(Cog):
     settings_text: dict[int, dict[int, str]] = {
@@ -59,18 +58,16 @@ class ModCommandsCog(Cog):
         self.bot: StoreBot = bot
 
     async def mod_check(interaction: Interaction) -> bool: # type: ignore # Wait for fix in the framework?
-        assert isinstance(interaction.user, Member)
         assert interaction.guild_id is not None
-        member: Member = interaction.user
+        member = interaction.user
+        if not isinstance(member, Member):
+            return False
+
         if member.guild_permissions.administrator or member.guild_permissions.manage_guild:
             return True
 
-        mod_roles_ids_list: list[tuple[int]] | list = await get_mod_roles_async(interaction.guild_id)
-        if mod_roles_ids_list:
-            return not {role_id_tuple[0] for role_id_tuple in mod_roles_ids_list}.isdisjoint(member._roles.__copy__())
-            # mod_roles_ids_set: set[int] = {x[0] for x in mod_roles_ids_list}
-            # del mod_roles_ids_list
-            # return not mod_roles_ids_set.isdisjoint(member._roles.__copy__())
+        if (mod_roles_ids_list := await get_mod_roles_async(interaction.guild_id)):
+            return not {role_id_tuple[0] for role_id_tuple in mod_roles_ids_list}.isdisjoint(copy(member._roles))
 
         return False
 
