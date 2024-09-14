@@ -54,6 +54,7 @@ from ..Tools.db_commands import (
     is_command_disabled_async,
     get_member_cash_async,
     process_transfer_command_async,
+    get_member_promocodes_async,
     PartialRoleStoreInfo,
     CommandId
 )
@@ -665,22 +666,35 @@ class SlashCommandsCog(Cog):
             8: "**`id предложения: {} роль:`** <@&{}> **`цена: {}`** {} **`продавец:`** <@{}>",
         }
     }
-    code_blocks: dict[int, dict[int, str]] = {
-        0: {
-            0: "```\nMember's personal roles\n```",
-            1: "```yaml\nRole sale requests made by you\n```",
-            2: "```yaml\nRole purchase requests made for you\n```",
-        },
-        1: {
-            0: "```\nЛичные роли пользователя\n```",
-            1: "```yaml\n`Запросы продажи роли, сделанные вами\n```",
-            2: "```yaml\nЗапросы покупки роли, сделанные вам\n```",
-        },
-        2: {
-            1: "```fix\n{}\n```",
-            2: "```fix\n{}\n```",
-        }       
-    }
+    code_blocks = (
+        (
+            "```\nMember's personal roles\n```",
+            "```yaml\nRole sale requests made by you\n```",
+            "```yaml\nRole purchase requests made for you\n```",
+        ),
+        (
+            "```\nЛичные роли пользователя\n```",
+            "```yaml\n`Запросы продажи роли, сделанные вами\n```",
+            "```yaml\nЗапросы покупки роли, сделанные вам\n```",
+        ),
+        (
+            "",
+            "```fix\n{}\n```",
+            "```fix\n{}\n```",
+        ),  
+    )
+    promocodes_text = (
+        (
+            "```\nPersonal promocodes (ids)```",
+            "money",
+            "number of promocodes",
+        ),
+        (
+            "```\nЛичные промокоды (ids)```",
+            "валюты",
+            "количество промокодов",
+        ),
+    )
     manage_requests_text: dict[int, dict[int, str]] = {
         0: {
             0: "**`You have not received role purchase/sale request with such id`**",
@@ -1167,7 +1181,7 @@ class SlashCommandsCog(Cog):
             rnk_status: int = (await (await base.execute("SELECT value FROM server_info WHERE settings = 'ranking_enabled';")).fetchone())[0] # type: ignore
 
             membs_cash: list[tuple[int, int]] | None = \
-                (await base.execute_fetchall("SELECT memb_id, money FROM users ORDER BY money DESC;")) \
+                list(await base.execute_fetchall("SELECT memb_id, money FROM users ORDER BY money DESC;")) \
                 if ec_status else None # type: ignore
 
             db_roles: set[int] | None = \
@@ -1175,18 +1189,23 @@ class SlashCommandsCog(Cog):
                 if ec_status else None
 
             membs_xp: list[tuple[int, int]] | None = \
-                (await base.execute_fetchall("SELECT memb_id, xp FROM users ORDER BY xp DESC;")) \
+                list(await base.execute_fetchall("SELECT memb_id, xp FROM users ORDER BY xp DESC;")) \
                 if rnk_status else None # type: ignore
 
-            sale_role_requests: list[tuple[int, int, int, int]] = await base.execute_fetchall(
+            sale_role_requests: list[tuple[int, int, int, int]] = list(await base.execute_fetchall(
                 "SELECT request_id, target_id, role_id, price FROM sale_requests WHERE seller_id = ?",
                 (memb_id,)
-            ) # type: ignore
+            )) # type: ignore
 
-            buy_role_requests: list[tuple[int, int, int, int]] = await base.execute_fetchall(
+            buy_role_requests: list[tuple[int, int, int, int]] = list(await base.execute_fetchall(
                 "SELECT request_id, seller_id, role_id, price FROM sale_requests WHERE target_id = ?",
                 (memb_id,)
-            ) # type: ignore
+            )) # type: ignore
+
+        assert isinstance(xp_b, int)
+        assert isinstance(currency, str)
+        assert isinstance(ec_status, int)
+        assert isinstance(rnk_status, int)
 
         if not (ec_status or rnk_status):
             await interaction.response.send_message(embed=Embed(description=common_text[lng][1]), ephemeral=True)
@@ -1294,6 +1313,14 @@ class SlashCommandsCog(Cog):
                     )
                 embs.append(Embed(description=embed_5_description))
 
+        if (promocodes := await get_member_promocodes_async(guild_id, memb_id)):
+            local_promo_text = self.promocodes_text[lng]
+            embed_6_description = '\n'.join([local_promo_text[0]] + [
+                f"**`{promo.str_promo_id()}`** - **`{promo.str_money()} {local_promo_text[1]}`** - **`{local_promo_text[2]}: {promo.str_count()}`**" \
+                    for promo in promocodes
+            ])
+            embs.append(Embed(description=embed_6_description))
+
         member: Member = interaction.user
         if (avatar := member.display_avatar) is not None:
             avatar_url: str = avatar.url
@@ -1304,9 +1331,9 @@ class SlashCommandsCog(Cog):
         await interaction.response.send_message(embeds=embs)
 
     async def accept_request(self, interaction: Interaction, request_id: int) -> None:
-        assert interaction.guild_id is not None, __file__ + " at line 1307"
-        assert interaction.guild is not None, __file__ + " at line 1308"
-        assert interaction.locale is not None, __file__ + " at line 1309"
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
         assert isinstance(interaction.user, Member)
         guild_id: int = interaction.guild_id
         memb_id: int = interaction.user.id
@@ -1448,9 +1475,9 @@ class SlashCommandsCog(Cog):
             ))
 
     async def decline_request(self, interaction: Interaction, request_id: int) -> None:
-        assert interaction.guild_id is not None, __file__ + " at line 1451"
-        assert interaction.locale is not None, __file__ + " at line 1452"
-        assert isinstance(interaction.user, Member), __file__ + " at line 1453"
+        assert interaction.guild_id is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
         guild_id: int = interaction.guild_id
         memb_id: int = interaction.user.id
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
@@ -1483,9 +1510,9 @@ class SlashCommandsCog(Cog):
         )
 
     async def work(self, interaction: Interaction) -> None:
-        assert interaction.guild_id is not None, __file__ + " at line 1486"
-        assert interaction.guild is not None, __file__ + " at line 1487"
-        assert interaction.locale is not None, __file__ + " at line 1488"
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
         assert isinstance(interaction.user, Member), __file__ + " at line 1489"
         lng: Literal[1, 0] = 1 if "ru" in interaction.locale else 0
         guild_id: int = interaction.guild_id

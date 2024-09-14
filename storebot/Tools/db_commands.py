@@ -1252,3 +1252,10 @@ async def delete_promocode_async(guild_id: int, promocode_id: int) -> None:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         await base.execute(f"DELETE FROM promocodes WHERE promo_id = {promocode_id};")
         await base.commit()
+
+async def get_member_promocodes_async(guild_id: int, member_id: int) -> list[Promocode]:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        return list(map(
+            Promocode.from_row,
+            await base.execute_fetchall(f"SELECT promo_id, money, for_user_id, instances_count FROM promocodes WHERE for_user_id = {member_id};")
+        ))
