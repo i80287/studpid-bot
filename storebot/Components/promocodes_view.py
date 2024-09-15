@@ -29,11 +29,10 @@ from ..Tools.db_commands import (
     Promocode
 )
 
-PROMOCODE_ID_SELECT_MENU_ID = 12377
 ADD_PROMOCODE_BUTTON_ID = 12378
 EDIT_PROMOCODE_BUTTON_ID = 12379
 DELETE_PROMOCODE_BUTTON_ID = 12380
-
+PROMOCODE_ID_SELECT_MENU_BASE_ID = 13000
 
 logger = logging.getLogger(__name__)
 
@@ -57,39 +56,46 @@ promocodes_view_text = (
 class PromocodesView(ViewBase):
     def __init__(self, lng: int, author_id: int, promocodes: list[Promocode]) -> None:
         super().__init__(lng, author_id)
-        self.add_item(CustomSelect(
-            custom_id=f"{PROMOCODE_ID_SELECT_MENU_ID}_{author_id}_{urandom(4).hex()}",
-            placeholder=promocodes_view_text[lng][0],
-            options=[(str(promo.promo_id), str(promo.promo_id)) for promo in promocodes]
-        ))
+        self.__refresh_components(promocodes)
+
+    async def __update_promocodes_message(self, interaction: Interaction, promocodes: list[Promocode]) -> None:
+        assert interaction.guild_id is not None
+        _, embed = await PromocodesView.make_promocodes_embed(interaction.guild_id)
+        self.__refresh_components(promocodes)
+        if (message := interaction.message) is not None:
+            try:
+                await message.edit(embed=embed, view=self)
+            except Exception as ex:
+                logger.error(f"could not edit original message in the add_promocode: {ex}")
+
+    def __refresh_components(self, promocodes: list[Promocode]) -> None:
+        self.clear_items()
         self.add_item(CustomButton(
             style=ButtonStyle.green,
-            custom_id=f"{ADD_PROMOCODE_BUTTON_ID}_{author_id}_{urandom(4).hex()}",
+            custom_id=f"{ADD_PROMOCODE_BUTTON_ID}_{self.author_id}_{urandom(4).hex()}",
             emoji="<:add01:999663315804500078>"
         ))
         self.add_item(CustomButton(
             style=ButtonStyle.gray,
-            custom_id=f"{EDIT_PROMOCODE_BUTTON_ID}_{author_id}_{urandom(4).hex()}",
+            custom_id=f"{EDIT_PROMOCODE_BUTTON_ID}_{self.author_id}_{urandom(4).hex()}",
             emoji="🛠️",
             disabled=len(promocodes) == 0
         ))
         self.add_item(CustomButton(
             style=ButtonStyle.red,
-            custom_id=f"{DELETE_PROMOCODE_BUTTON_ID}_{author_id}_{urandom(4).hex()}",
+            custom_id=f"{DELETE_PROMOCODE_BUTTON_ID}_{self.author_id}_{urandom(4).hex()}",
             emoji="<:remove01:999663428689997844>",
             disabled=len(promocodes) == 0
         ))
+        pairs = [(str(promo.promo_id), str(promo.promo_id)) for promo in promocodes]
+        text = promocodes_view_text[self.lng][0]
+        for i in range(min(((length := len(promocodes)) + 24) // 25, 4)):
+            self.add_item(CustomSelect(
+                custom_id=f"{PROMOCODE_ID_SELECT_MENU_BASE_ID + i}_{self.author_id}_{urandom(4).hex()}", 
+                placeholder=text,
+                options=pairs[(i*25):min(length, (i + 1)*25)]
+            ))
         self.__selected_promocode_id = None
-
-    @staticmethod
-    async def __update_promocodes_message(interaction: Interaction) -> None:
-        assert interaction.guild_id is not None
-        _, embed = await PromocodesView.make_promocodes_embed(interaction.guild_id)
-        if (message := interaction.message) is not None:
-            try:
-                await message.edit(embed=embed)
-            except Exception as ex:
-                logger.error(f"could not edit original message in the add_promocode: {ex}")
 
     @staticmethod
     def __parse_promocode_id(value) -> int | None:
@@ -129,7 +135,8 @@ class PromocodesView(ViewBase):
         await interaction.response.send_modal(modal)
         await modal.wait()
         if modal.added_promocode is not None:
-            await PromocodesView.__update_promocodes_message(interaction)
+            assert interaction.guild_id is not None
+            await self.__update_promocodes_message(interaction, await get_promocodes_async(interaction.guild_id))
 
     async def edit_promocode(self, interaction: Interaction) -> None:
         if (promocode := await self.__get_current_promocode(interaction)) is None:
@@ -139,7 +146,8 @@ class PromocodesView(ViewBase):
         await interaction.response.send_modal(modal)
         await modal.wait()
         if modal.edited_promocode is not None:
-            await PromocodesView.__update_promocodes_message(interaction)
+            assert interaction.guild_id is not None
+            await self.__update_promocodes_message(interaction, await get_promocodes_async(interaction.guild_id))
 
     async def delete_promocode(self, interaction: Interaction) -> None:
         if (promocode := await self.__get_current_promocode(interaction)) is None:
@@ -151,7 +159,7 @@ class PromocodesView(ViewBase):
             embed=Embed(description=promocodes_view_text[self.lng][3].format(promocode.promo_id)),
             ephemeral=True,
         )
-        await PromocodesView.__update_promocodes_message(interaction)
+        await self.__update_promocodes_message(interaction, await get_promocodes_async(interaction.guild_id))
 
     async def click_button(self, interaction: Interaction, custom_id: str) -> None:
         assert ADD_PROMOCODE_BUTTON_ID == 12378
@@ -167,7 +175,7 @@ class PromocodesView(ViewBase):
 
 
     async def click_select_menu(self, interaction: Interaction, custom_id: str, values: list[str]) -> None:
-        assert int(custom_id[:custom_id.find('_')]) == PROMOCODE_ID_SELECT_MENU_ID
+        assert PROMOCODE_ID_SELECT_MENU_BASE_ID <= int(custom_id[:custom_id.find('_')]) < PROMOCODE_ID_SELECT_MENU_BASE_ID + 25
         assert len(values) == 1
         assert isinstance(values[0], str)
         assert values[0].isdecimal()
