@@ -55,10 +55,12 @@ from ..Tools.db_commands import (
     get_member_cash_async,
     process_transfer_command_async,
     get_member_promocodes_async,
+    use_promocode_async,
     PartialRoleStoreInfo,
     CommandId
 )
 from ..constants import DB_PATH
+from ..Tools.logger import write_guild_log_async, write_one_log_async
 if __debug__:
     from ..Components.custom_select import CustomSelect
 
@@ -121,6 +123,8 @@ text_slash: dict[int, dict[int, str]] = {
         44: "**`Store role number can not be less than 1`**",
         45: "**`There is no role with such number in the store`**",
         46: "**`Role is not found on the server. May be it was deleted`**",
+        47: "Promocode use",
+        48: "<@{0}> used promocode with id {1} that gave them {2} {4} and now their cash is {3} {4}",
     },
     1: {
         0: "Ошибка",  # title
@@ -165,6 +169,8 @@ text_slash: dict[int, dict[int, str]] = {
         44: "**`Номер роли в магазине не может быть меньше 1`**",
         45: "**`Роли с таким номером нет в магазине`**",
         46: "**`Роль не найдена на сервере. Возможно, она была удалена`**",
+        47: "Использование промокода",
+        48: "<@{0}> использовал промокод с id {1}, который принёс им {2} {4} и теперь их баланс: {3} {4}",
     }
 }
 
@@ -731,22 +737,33 @@ class SlashCommandsCog(Cog):
             0: "**`Во время добавления роли возникла ошибка. Ваши деньги не были списаны. Пожалуйста, проверьте права и разрешения бота`**"
         }
     }
-    work_command_text: dict[int, dict[int, str]] = {
-        0: {
-            0: "**`Please, wait {0}:{1}:{2} before using this command`**",
-            1: "**`Income from the command: {0:0,}`** {1}",
-            2: "**`Total income from the roles: {0:0,}`** {1}",
-            3: "<@{0}> **`gained {1:0,}`** {2} **`from the /work (/collect) command and {3:0,}`** {2} **`from the roles`**",
-
-        },
-        1: {
-            0: "**`Пожалуйста, подождите {0}:{1}:{2} перед тем, как снова использовать эту команду`**",
-            1: "**`Доход от команды: {0:0,}`** {1}",
-            2: "**`Общий доход от ролей: {0:0,}`** {1}",
-            3: "<@{0}> **`заработал {1:0,}`** {2} **`от команды /work (/collect) и {3:0,}`** {2} **`от ролей`**",
-        }
-    }
-    slash_commands_text: tuple[LiteralString, LiteralString] = (
+    work_command_text = (
+        (
+            "**`Please, wait {0}:{1}:{2} before using this command`**",
+            "**`Income from the command: {0:0,}`** {1}",
+            "**`Total income from the roles: {0:0,}`** {1}",
+            "<@{0}> **`gained {1:0,}`** {2} **`from the /work (/collect) command and {3:0,}`** {2} **`from the roles`**",
+        ),
+        (
+            "**`Пожалуйста, подождите {0}:{1}:{2} перед тем, как снова использовать эту команду`**",
+            "**`Доход от команды: {0:0,}`** {1}",
+            "**`Общий доход от ролей: {0:0,}`** {1}",
+            "<@{0}> **`заработал {1:0,}`** {2} **`от команды /work (/collect) и {3:0,}`** {2} **`от ролей`**",
+        ),
+    )
+    use_promocode_command_text = (
+        (
+            "**`Sorry, could not use the promocode`**",
+            "**`Promocode with id {0} doesn't exist or you can't use it`**",
+            "**`You used promocode with id {0} that gave you {1}`** {3} **`and now your cash is {2}`** {3}",
+        ),
+        (
+            "**`Не удалось применить промокод`**",
+            "**`Промокод с id {0} не существует или Вы не можете использовать его`**",
+            "**`Вы использовали промокод с id {0}, который принёс {1}`** {3} **`и теперь у Вас {2}`** {3}",
+        ),
+    )
+    slash_commands_text = (
         "**`This command is disabled on this server`**",
         "**`Эта команда отключена на этом сервере`**"
     )
@@ -904,13 +921,12 @@ class SlashCommandsCog(Cog):
 
         try:
             await member_buyer.add_roles(role)
-        except:
+        except Exception as ex:
             await self.respond_with_error_report(interaction, lng, self.buy_command_text[lng][0])
-            from ..Tools.logger import write_guild_log_async
             await write_guild_log_async(
                 "error.log",
                 guild_id,
-                f"[ERROR] [buy command] [add_roles failed] [member: {memb_id}:{member_buyer.name}] [role: {str_role_id}:{role.name}]"
+                f"[ERROR] [buy command] [add_roles failed] [member: {memb_id}:{member_buyer.name}] [role: {str_role_id}:{role.name}] [ex: {ex}]"
             )
             return
 
@@ -1540,7 +1556,7 @@ class SlashCommandsCog(Cog):
             return
         
         currency: str = await get_server_currency_async(guild_id)
-        local_text: dict[int, str] = self.work_command_text[lng]
+        local_text = self.work_command_text[lng]
         description_lines: list[str] = [local_text[1].format(salary, currency)]
         if roles:
             assert additional_salary != 0
@@ -2211,7 +2227,74 @@ class SlashCommandsCog(Cog):
         )
     ) -> None:
         await self.roulette(interaction, bet)
-        
+
+    @slash_command(
+        name="use_promocode",
+        description="Use promocode in order to get money",
+        description_localizations={
+            Locale.ru: "Использовать промокод для получения валюты"
+        },
+        dm_permission=False
+    )
+    async def use_promocode(
+        self,
+        interaction: Interaction,
+        promo_id: int = SlashOption(
+            name="id",
+            description="Id of the promocode to use",
+            description_localizations={
+                Locale.ru: "Id промокода, который надо использовать"
+            },
+            required=True,
+            min_value=-((1 << 53) - 1),
+            max_value=(1 << 53) - 1
+        )
+    ) -> None:
+        assert interaction.guild_id is not None
+        assert interaction.guild is not None
+        assert interaction.locale is not None
+        assert isinstance(interaction.user, Member)
+
+        lng = 1 if "ru" in interaction.locale else 0
+        guild_id: int = interaction.guild_id
+
+        if not (await get_server_info_value_async(guild_id, 'economy_enabled')):
+            await self.respond_with_error_report(interaction, lng, common_text[lng][2])
+            return
+
+        if await is_command_disabled_async(guild_id, CommandId.USE_PROMOCODE):
+            await self.respond_with_error_report(interaction, lng, self.slash_commands_text[lng])
+            return
+
+        member_id = interaction.user.id
+        try:
+            new_member_cash, promo_money = await use_promocode_async(guild_id, member_id, promo_id)
+        except Exception as ex:
+            await self.respond_with_error_report(interaction, lng, self.use_promocode_command_text[lng][0])
+            report = f"[ERROR] [use_promocode command] [use_promocode_async failed] [member: {member_id}:{interaction.user.name}] [promocode_id: {promo_id}] [ex: {ex}:{ex!r}]"
+            await write_guild_log_async("error.log", guild_id, report)
+            await write_one_log_async("error.log", report)
+            return
+
+        if new_member_cash is None or promo_money is None:
+            await self.respond_with_error_report(interaction, lng, self.use_promocode_command_text[lng][1].format(promo_id))
+            return
+
+        server_currency = await get_server_currency_async(guild_id)
+        await interaction.response.send_message(embed=Embed(
+            description=self.use_promocode_command_text[lng][2].format(promo_id, promo_money, new_member_cash, server_currency),
+            colour=Colour.green()
+        ))
+
+        log_channel_id, server_lng = await get_server_log_info_async(guild_id)
+        if log_channel_id and isinstance(guild_log_channel := interaction.guild.get_channel(log_channel_id), TextChannel):
+            try:
+                await guild_log_channel.send(embed=Embed(
+                    title=text_slash[server_lng][47],
+                    description=text_slash[server_lng][48].format(member_id, promo_id, promo_money, new_member_cash, server_currency)
+                ))
+            except:
+                return
 
 def setup(bot: StoreBot) -> None:
     bot.add_cog(SlashCommandsCog(bot))

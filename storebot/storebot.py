@@ -51,7 +51,3 @@ class StoreBot(commands.Bot):
         self.member_join_remove_lock: asyncio.Lock = asyncio.Lock()
         # guild_id: channel_id
         self.join_remove_message_channels: dict[int, int] = {}
-
-    # Dummy listener.
-    async def on_application_command_error(*args) -> None:
-        return

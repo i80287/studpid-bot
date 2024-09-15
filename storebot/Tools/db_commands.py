@@ -39,6 +39,7 @@ class CommandId(IntEnum):
     LEADERS = 11
     SLOTS = 12
     ROULETTE = 13
+    USE_PROMOCODE = 14
 
 
 PROMOCODE_FOR_ANY_USER_ID = -1
@@ -149,18 +150,20 @@ async def get_server_lvllog_info_async(guild_id: int) -> tuple[list[tuple[int, i
 async def get_server_currency_async(guild_id: int) -> str:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute("SELECT str_value FROM server_info WHERE settings = 'currency';") as cur:
-            return (await cur.fetchone())[0] # type: ignore
+            row = await cur.fetchone()
+    assert row is not None and isinstance(row, tuple) and len(row) == 1 and isinstance(row[0], str)
+    return row[0]
 
 async def get_member_async(guild_id: int, member_id: int) -> tuple[int, int, str, int, int, int]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute(
             "SELECT memb_id, money, owned_roles, work_date, xp, voice_join_time FROM users WHERE memb_id = " + str(member_id)
         ) as cur:
-            result = await cur.fetchone()
-        assert result is None or isinstance(result, tuple)
+            row = await cur.fetchone()
+        assert row is None or isinstance(row, tuple)
 
-        if result is not None:
-            return tuple(result)
+        if row is not None:
+            return tuple(row)
 
         await base.execute(
             "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
@@ -171,17 +174,17 @@ async def get_member_async(guild_id: int, member_id: int) -> tuple[int, int, str
         return (member_id, 0, "", 0, 0, 0)
 
 async def check_member_async(guild_id: int, member_id: int) -> None:
-    async with connect_async(DB_PATH.format(guild_id)) as base:
-        async with base.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)) as cur:
-            result = await cur.fetchone()
-        assert result is None or isinstance(result, tuple)
+    async with connect_async(DB_PATH.format(guild_id)) as conn:
+        async with conn.execute("SELECT rowid FROM users WHERE memb_id = ?", (member_id,)) as cur:
+            row = await cur.fetchone()
+        assert row is None or isinstance(row, tuple)
 
-        if result is None:
-            await base.execute(
+        if row is None:
+            await conn.execute(
                 "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
                 (member_id, "")
             )
-            await base.commit()
+            await conn.commit()
 
 async def get_member_nocheck_async(guild_id: int, member_id: int) -> tuple[int, int, str, int, int, int]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
@@ -191,16 +194,15 @@ async def get_member_nocheck_async(guild_id: int, member_id: int) -> tuple[int, 
 async def get_member_cash_async(guild_id: int, member_id: int) -> int:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute("SELECT money FROM users WHERE memb_id = " + str(member_id)) as cur:
-            res = await cur.fetchone()
-            if res:
-                return res[0]
-            
-            await base.execute(
-                "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
-                (member_id, "")
-            )
-            await base.commit()
-            return 0
+            if (row := await cur.fetchone()):
+                return row[0]
+
+        await base.execute(
+            "INSERT INTO users (memb_id, money, owned_roles, work_date, xp, voice_join_time) VALUES (?, 0, ?, 0, 0, 0)",
+            (member_id, "")
+        )
+        await base.commit()
+        return 0
 
 async def get_member_cash_nocheck_async(guild_id: int, member_id: int) -> int:
     async with connect_async(DB_PATH.format(guild_id)) as base:
@@ -208,9 +210,9 @@ async def get_member_cash_nocheck_async(guild_id: int, member_id: int) -> int:
             return (await cur.fetchone())[0] # type: ignore
 
 async def update_member_cash_async(guild_id: int, member_id: int, cash: int) -> None:
-    async with connect_async(DB_PATH.format(guild_id)) as base:
-        await base.execute("UPDATE users SET money = ? WHERE memb_id = ?", (cash, member_id))
-        await base.commit()
+    async with connect_async(DB_PATH.format(guild_id)) as conn:
+        await conn.execute(f"UPDATE users SET money = {cash} WHERE memb_id = {member_id}")
+        await conn.commit()
 
 async def check_member_level_async(guild_id: int, member_id: int) -> int:
     async with connect_async(DB_PATH.format(guild_id)) as base:
@@ -949,7 +951,8 @@ async def enable_economy_commands_async(guild_id: int) -> None:
                 (CommandId.DUEL,),
                 (CommandId.TRANSFER,),
                 (CommandId.SLOTS,),
-                (CommandId.ROULETTE,)
+                (CommandId.ROULETTE,),
+                (CommandId.USE_PROMOCODE,),
             )
         )
         await base.commit()
@@ -969,7 +972,8 @@ async def disable_economy_commands_async(guild_id: int) -> None:
                 (CommandId.DUEL,),
                 (CommandId.TRANSFER,),
                 (CommandId.SLOTS,),
-                (CommandId.ROULETTE,)
+                (CommandId.ROULETTE,),
+                (CommandId.USE_PROMOCODE,),
             )
         )
         await base.commit()
@@ -1096,7 +1100,8 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
                 (CommandId.TRANSFER, 1),
                 (CommandId.LEADERS, 1),
                 (CommandId.SLOTS, 1),
-                (CommandId.ROULETTE, 1)
+                (CommandId.ROULETTE, 1),
+                (CommandId.USE_PROMOCODE, 1),
             )
             cur.executemany("INSERT OR IGNORE INTO commands_settings (command_id, is_enabled) VALUES(?, ?)", commands_settings)
 
@@ -1247,15 +1252,50 @@ async def update_promocode_async(guild_id: int, promocode_id: int, promocode_mon
 
     return Promocode(promo_id=promocode_id, money=promocode_money, for_user_id=for_user_id, count=promocode_count)
 
+async def delete_promocode_async(guild_id: int, promo_id: int):
+    async with connect_async(DB_PATH.format(guild_id)) as conn:
+        await conn.execute(f"DELETE FROM promocodes WHERE promo_id = {promo_id};")
+        await conn.commit()
 
-async def delete_promocode_async(guild_id: int, promocode_id: int) -> None:
-    async with connect_async(DB_PATH.format(guild_id)) as base:
-        await base.execute(f"DELETE FROM promocodes WHERE promo_id = {promocode_id};")
-        await base.commit()
+async def delete_and_return_promocode_async(guild_id: int, promo_id: int):
+    async with connect_async(DB_PATH.format(guild_id)) as conn:
+        async with conn.execute(f"DELETE FROM promocodes WHERE promo_id = {promo_id} RETURNING *;") as cur:
+            deleted_promo = await cur.fetchone()
+            await conn.commit()
+    return Promocode.from_row(deleted_promo) if deleted_promo is not None else None
 
 async def get_member_promocodes_async(guild_id: int, member_id: int) -> list[Promocode]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
-        return list(map(
-            Promocode.from_row,
-            await base.execute_fetchall(f"SELECT promo_id, money, for_user_id, instances_count FROM promocodes WHERE for_user_id = {member_id};")
-        ))
+        rows = await base.execute_fetchall(f"SELECT promo_id, money, for_user_id, instances_count FROM promocodes WHERE for_user_id = {member_id};")
+    return list(map(
+        Promocode.from_row,
+        rows
+    ))
+
+async def use_promocode_async(guild_id: int, member_id: int, promocode_id: int):
+    await check_member_async(guild_id, member_id)
+    async with connect_async(DB_PATH.format(guild_id)) as conn:
+        async with conn.execute(f"""\
+UPDATE promocodes \
+SET instances_count = CASE WHEN instances_count = {PROMOCODE_INF_COUNT} THEN instances_count ELSE instances_count - 1 END \
+WHERE promo_id = {promocode_id} \
+AND (for_user_id = {member_id} OR for_user_id = -1) \
+RETURNING instances_count, money""") as cur:
+            row = await cur.fetchone()
+        if row is None:
+            return None, None
+
+        promo_count, promo_money = tuple(row)
+        assert promo_count >= 0 or promo_count == PROMOCODE_INF_COUNT, "Invalid promo_count: {promo_count}"
+
+        async with conn.execute(f"UPDATE users SET money = money + {promo_money} WHERE memb_id = {member_id} RETURNING money") as cur:
+            row = await cur.fetchone()
+
+        assert row is not None
+        cash_after_promo = int(row[0])
+        if not promo_count:
+            await conn.execute(f"DELETE FROM promocodes WHERE promo_id = {promocode_id}")
+
+        await conn.commit()
+
+    return cash_after_promo, promo_money

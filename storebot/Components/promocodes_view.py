@@ -95,7 +95,7 @@ class PromocodesView(ViewBase):
     def __parse_promocode_id(value) -> int | None:
         try:
             int_value = value if isinstance(value, int) else int(str(value))
-            if -(1 << 63) <= int_value < (1 << 63):
+            if -((1 << 53) - 1) <= int_value <= ((1 << 53) - 1):
                 return int_value
         except:
             pass
