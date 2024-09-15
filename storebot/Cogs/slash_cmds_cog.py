@@ -124,7 +124,7 @@ text_slash: dict[int, dict[int, str]] = {
         45: "**`There is no role with such number in the store`**",
         46: "**`Role is not found on the server. May be it was deleted`**",
         47: "Promocode use",
-        48: "<@{0}> used promocode with id {1} that gave them {2} {4} and now their cash is {3} {4}",
+        48: "<@{0}> **`used promocode with id {1} that gave them {2}`** {4} **`and now their cash is {3}`** {4}",
     },
     1: {
         0: "Ошибка",  # title
@@ -170,7 +170,7 @@ text_slash: dict[int, dict[int, str]] = {
         45: "**`Роли с таким номером нет в магазине`**",
         46: "**`Роль не найдена на сервере. Возможно, она была удалена`**",
         47: "Использование промокода",
-        48: "<@{0}> использовал промокод с id {1}, который принёс им {2} {4} и теперь их баланс: {3} {4}",
+        48: "<@{0}> **`использовал промокод с id {1}, который принёс им {2}`** {4} **`и теперь их баланс: {3}`** {4}",
     }
 }
 
@@ -739,13 +739,13 @@ class SlashCommandsCog(Cog):
     }
     work_command_text = (
         (
-            "**`Please, wait {0}:{1}:{2} before using this command`**",
+            "**`Please, wait {0} hours, {1} minutes and {2} seconds before using this command`**",
             "**`Income from the command: {0:0,}`** {1}",
             "**`Total income from the roles: {0:0,}`** {1}",
             "<@{0}> **`gained {1:0,}`** {2} **`from the /work (/collect) command and {3:0,}`** {2} **`from the roles`**",
         ),
         (
-            "**`Пожалуйста, подождите {0}:{1}:{2} перед тем, как снова использовать эту команду`**",
+            "**`Пожалуйста, подождите {0} часов, {1} минут и {2} секунд перед тем, как снова использовать эту команду`**",
             "**`Доход от команды: {0:0,}`** {1}",
             "**`Общий доход от ролей: {0:0,}`** {1}",
             "<@{0}> **`заработал {1:0,}`** {2} **`от команды /work (/collect) и {3:0,}`** {2} **`от ролей`**",
