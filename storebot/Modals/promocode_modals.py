@@ -1,8 +1,4 @@
 from __future__ import annotations
-from typing import TYPE_CHECKING
-
-if TYPE_CHECKING:
-    from typing import Awaitable, Callable
 
 from nextcord import (
     Embed,
@@ -14,7 +10,6 @@ from nextcord.ui import Modal, TextInput
 from ..Tools.db_commands import (
     add_promocode_async,
     update_promocode_async,
-    get_promocode_async,
     PROMOCODE_INF_COUNT,
     PROMOCODE_FOR_ANY_USER_ID,
     Promocode
@@ -31,7 +26,7 @@ promocode_modals_text = (
         f"Input {PROMOCODE_FOR_ANY_USER_ID} if everyone should be able to use promocode",
 
         "**`Could not parse promocode money value: integer number >= 0 is expected`**",
-        f"**`Could not parse promocode count: integer number >= 0 or {PROMOCODE_INF_COUNT} for the infinite number of the promocodes is expected`**",
+        f"**`Could not parse promocode count: integer number > 0 or {PROMOCODE_INF_COUNT} for the infinite number of the promocodes is expected`**",
         f"**`Could not parse promocode owner id: integer number in [0; 2^63) or {PROMOCODE_FOR_ANY_USER_ID} for any user is expected`**",
 
         "**`You have not changed anything in the promocode date`**",
@@ -45,11 +40,11 @@ promocode_modals_text = (
         "Количество валюты, получаемой за промокод",
         "Количество промокодов",
         f"Введите {PROMOCODE_INF_COUNT}, если количество промокодов бесконечно (промокод не может закончиться)",
-        "Id пользователя, который может использовать промокод",
+        "Id юзера, который может использовать промокод",
         f"Введите {PROMOCODE_FOR_ANY_USER_ID}, если промокод может использовать любой пользователь",
 
         "**`Не удалось распарсить количество валюты, начисляемой за промокод: ожидалось целое число >= 0`**",
-        f"**`Не удалось распарсить количество промокодов: ожидалось целое число >= 0 или {PROMOCODE_INF_COUNT} для бесконечного количества промокодов`**",
+        f"**`Не удалось распарсить количество промокодов: ожидалось целое число > 0 или {PROMOCODE_INF_COUNT} для бесконечного количества промокодов`**",
         f"**`Не удалось распарсить id владельца промокода: ожидалось целое число из полуинтервала [0; 2^63) или {PROMOCODE_FOR_ANY_USER_ID} для любого пользователя`**",
 
         "**`Вы ничего не изменили в характеристиках промокоде`**",
@@ -70,7 +65,7 @@ def _parse_promocode_count(value: str | None) -> tuple[bool, int]:
     if value is not None:
         try:
             int_value = int(value)
-            if int_value >= 0 or int_value == PROMOCODE_INF_COUNT:
+            if int_value > 0 or int_value == PROMOCODE_INF_COUNT:
                 return (True, int_value)
         except:
             pass
@@ -91,6 +86,9 @@ def _parse_promocode_for_user_id(value: str | None) -> tuple[bool, int]:
 class AddPromocodeModal(Modal):
     def __init__(self, lng: int) -> None:
         locale_text = promocode_modals_text[lng]
+        if __debug__:
+            for i in (2, 3, 5):
+                assert len(promocode_modals_text[lng][i]) <= 45, "Modal label must be 45 or fewer in length"
         super().__init__(locale_text[1], timeout=40.0)
         self.__promocode_money_text_input = TextInput(
             label=locale_text[2],
