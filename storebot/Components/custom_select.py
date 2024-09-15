@@ -22,7 +22,18 @@ class CustomSelect(StringSelect):
         disabled: bool = False,
         row: int | None = None
     ) -> None:
-        opts: list[SelectOption] = [SelectOption(label=r[0], value=r[1]) for r in options]
+        opts = [SelectOption(label=r[0], value=r[1]) for r in options]
+        if not opts:
+            from nextcord.utils import MISSING
+            opts = MISSING
+        elif len(opts) > 25:
+            try:
+                import logging
+                logging.getLogger(__name__).error(f"Options must be between 1 and 25 in length: {opts}")
+            except:
+                pass
+            opts = opts[:25]
+
         super().__init__(custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, options=opts, disabled=disabled, row=row)
     
     async def callback(self, interaction: Interaction) -> None:
