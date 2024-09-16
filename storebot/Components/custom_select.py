@@ -12,6 +12,22 @@ if __debug__:
     from ..Components.view_base import ViewBase
 
 
+def _validate_options(opts: list[SelectOption]) -> list[SelectOption]:
+    assert len(opts) <= 25
+    if len(opts) > 25:
+        logging.getLogger(__name__).error(f"Options must be between 1 and 25 in length: {opts}")
+        opts = opts[:25]
+    for opt in opts:
+        assert len(opt.label) <= 100
+        if len(opt.label) > 100:
+            logging.getLogger(__name__).error(f"Option label must be less than or equal to 100 in length: {opt.label}")
+            opt.label = f"{opt.label[:97]}..."
+        assert len(opt.value) <= 100
+        if len(opt.value) > 100:
+            logging.getLogger(__name__).error(f"Option value must be less than or equal to 100 in length: {opt.label}")
+            opt.value = f"{opt.value[:97]}..."
+    return opts
+
 class CustomSelect(StringSelect):
     def __init__(
         self,
@@ -25,11 +41,7 @@ class CustomSelect(StringSelect):
         row: int | None = None
     ) -> None:
         opts = [SelectOption(label=r[0], value=r[1]) for r in options]
-        if len(opts) > 25:
-            logging.getLogger(__name__).error(f"Options must be between 1 and 25 in length: {opts}")
-            opts = opts[:25]
-
-        super().__init__(custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, options=opts, disabled=disabled, row=row)
+        super().__init__(custom_id=custom_id, placeholder=placeholder, min_values=min_values, max_values=max_values, options=_validate_options(opts), disabled=disabled, row=row)
     
     async def callback(self, interaction: Interaction) -> None:
         assert isinstance(self.view, ViewBase)
@@ -38,7 +50,7 @@ class CustomSelect(StringSelect):
 
 class CustomSelectWithOptions(StringSelect):
     def __init__(self, custom_id: str, placeholder: str, opts: list[SelectOption]) -> None:
-        super().__init__(custom_id=custom_id, placeholder=placeholder, options=opts)
+        super().__init__(custom_id=custom_id, placeholder=placeholder, options=_validate_options(opts))
 
     async def callback(self, interaction: Interaction) -> None:
         assert isinstance(self.view, ViewBase)

@@ -56,6 +56,7 @@ from ..Tools.db_commands import (
     process_transfer_command_async,
     get_member_promocodes_async,
     use_promocode_async,
+    PROMOCODE_NAME_MAX_LENGTH,
     PartialRoleStoreInfo,
     CommandId
 )
@@ -124,7 +125,7 @@ text_slash: dict[int, dict[int, str]] = {
         45: "**`There is no role with such number in the store`**",
         46: "**`Role is not found on the server. May be it was deleted`**",
         47: "Promocode use",
-        48: "<@{0}> **`used promocode with id {1} that gave them {2}`** {4} **`and now their cash is {3}`** {4}",
+        48: "<@{0}> **`used promocode {1} with id {2} that gave them {3}`** {5} **`and now their cash is {4}`** {5}",
     },
     1: {
         0: "Ошибка",  # title
@@ -170,7 +171,7 @@ text_slash: dict[int, dict[int, str]] = {
         45: "**`Роли с таким номером нет в магазине`**",
         46: "**`Роль не найдена на сервере. Возможно, она была удалена`**",
         47: "Использование промокода",
-        48: "<@{0}> **`использовал промокод с id {1}, который принёс им {2}`** {4} **`и теперь их баланс: {3}`** {4}",
+        48: "<@{0}> **`использовал промокод {1} с id {2}, который принёс им {3}`** {5} **`и теперь их баланс: {4}`** {5}",
     }
 }
 
@@ -691,13 +692,11 @@ class SlashCommandsCog(Cog):
     )
     promocodes_text = (
         (
-            "```\nPersonal promocodes (ids)```",
-            "money",
+            "```\nPersonal promocodes```",
             "number of promocodes",
         ),
         (
-            "```\nЛичные промокоды (ids)```",
-            "валюты",
+            "```\nЛичные промокоды```",
             "количество промокодов",
         ),
     )
@@ -754,13 +753,13 @@ class SlashCommandsCog(Cog):
     use_promocode_command_text = (
         (
             "**`Sorry, could not use the promocode`**",
-            "**`Promocode with id {0} doesn't exist or you can't use it`**",
-            "**`You used promocode with id {0} that gave you {1}`** {3} **`and now your cash is {2}`** {3}",
+            "**`Promocode {0} doesn't exist or you can't use it`**",
+            "**`You used promocode {0} that gave you {1}`** {3} **`and now your cash is {2}`** {3}",
         ),
         (
             "**`Не удалось применить промокод`**",
-            "**`Промокод с id {0} не существует или Вы не можете использовать его`**",
-            "**`Вы использовали промокод с id {0}, который принёс {1}`** {3} **`и теперь у Вас {2}`** {3}",
+            "**`Промокод {0} не существует или Вы не можете использовать его`**",
+            "**`Вы использовали промокод {0}, который принёс {1}`** {3} **`и теперь у Вас {2}`** {3}",
         ),
     )
     slash_commands_text = (
@@ -1332,7 +1331,7 @@ class SlashCommandsCog(Cog):
         if (promocodes := await get_member_promocodes_async(guild_id, memb_id)):
             local_promo_text = self.promocodes_text[lng]
             embed_6_description = '\n'.join([local_promo_text[0]] + [
-                f"**`{promo.str_promo_id()}`** - **`{promo.str_money()} {local_promo_text[1]}`** - **`{local_promo_text[2]}: {promo.str_count()}`**" \
+                f"**`{promo.str_promo_name()}`** - **`{promo.str_money()}`** {currency} - **`{local_promo_text[1]}: {promo.str_count()}`**" \
                     for promo in promocodes
             ])
             embs.append(Embed(description=embed_6_description))
@@ -1820,7 +1819,7 @@ class SlashCommandsCog(Cog):
         await slots_view.wait()
         for c in slots_view.children:
             assert isinstance(c, (CustomButton, CustomSelect))
-            c.disabled = True
+            c.disabled = True # type: ignore
         try:
             await interaction.edit_original_message(view=slots_view)
         except:
@@ -1850,7 +1849,7 @@ class SlashCommandsCog(Cog):
         await roulette_view.wait()
         for c in roulette_view.children:
             assert isinstance(c, (CustomButton, CustomSelect))
-            c.disabled = True
+            c.disabled = True # type: ignore
         try:
             await interaction.edit_original_message(view=roulette_view)
         except:
@@ -2239,15 +2238,14 @@ class SlashCommandsCog(Cog):
     async def use_promocode(
         self,
         interaction: Interaction,
-        promo_id: int = SlashOption(
-            name="id",
-            description="Id of the promocode to use",
+        promocode_name: str = SlashOption(
+            name="promocode",
+            description="Name of the promocode to use",
             description_localizations={
-                Locale.ru: "Id промокода, который надо использовать"
+                Locale.ru: "Название промокода, который надо использовать"
             },
             required=True,
-            min_value=-((1 << 53) - 1),
-            max_value=(1 << 53) - 1
+            max_length=PROMOCODE_NAME_MAX_LENGTH
         )
     ) -> None:
         assert interaction.guild_id is not None
@@ -2268,21 +2266,22 @@ class SlashCommandsCog(Cog):
 
         member_id = interaction.user.id
         try:
-            new_member_cash, promo_money = await use_promocode_async(guild_id, member_id, promo_id)
+            res = await use_promocode_async(guild_id, member_id, promocode_name)
         except Exception as ex:
             await self.respond_with_error_report(interaction, lng, self.use_promocode_command_text[lng][0])
-            report = f"[ERROR] [use_promocode command] [use_promocode_async failed] [member: {member_id}:{interaction.user.name}] [promocode_id: {promo_id}] [ex: {ex}:{ex!r}]"
+            report = f"[ERROR] [use_promocode command] [use_promocode_async failed] [member: {member_id}:{interaction.user.name}] [promocode_name: {promocode_name}] [ex: {ex}:{ex!r}]"
             await write_guild_log_async("error.log", guild_id, report)
             await write_one_log_async("error.log", report)
             return
 
-        if new_member_cash is None or promo_money is None:
-            await self.respond_with_error_report(interaction, lng, self.use_promocode_command_text[lng][1].format(promo_id))
+        if res is None:
+            await self.respond_with_error_report(interaction, lng, self.use_promocode_command_text[lng][1].format(promocode_name))
             return
 
+        promocode_id, new_member_cash, promo_money = res
         server_currency = await get_server_currency_async(guild_id)
         await interaction.response.send_message(embed=Embed(
-            description=self.use_promocode_command_text[lng][2].format(promo_id, promo_money, new_member_cash, server_currency),
+            description=self.use_promocode_command_text[lng][2].format(promocode_name, promo_money, new_member_cash, server_currency),
             colour=Colour.green()
         ))
 
@@ -2291,7 +2290,7 @@ class SlashCommandsCog(Cog):
             try:
                 await guild_log_channel.send(embed=Embed(
                     title=text_slash[server_lng][47],
-                    description=text_slash[server_lng][48].format(member_id, promo_id, promo_money, new_member_cash, server_currency)
+                    description=text_slash[server_lng][48].format(member_id, promocode_name, promocode_id, promo_money, new_member_cash, server_currency)
                 ))
             except:
                 return

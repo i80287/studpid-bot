@@ -44,6 +44,7 @@ class CommandId(IntEnum):
 
 PROMOCODE_FOR_ANY_USER_ID = -1
 PROMOCODE_INF_COUNT = -1
+PROMOCODE_NAME_MAX_LENGTH = 31
 
 
 @dataclass(frozen=True, match_args=False)
@@ -1052,10 +1053,35 @@ def check_db(guild_id: int, guild_locale: str | None) -> list[tuple[int, int, in
                 money INTEGER NOT NULL DEFAULT 0,
                 for_user_id INTEGER NOT NULL DEFAULT {PROMOCODE_FOR_ANY_USER_ID},
                 instances_count INTEGER NOT NULL DEFAULT {PROMOCODE_INF_COUNT}
-            )
+            );
             """)
             base.commit()
-            
+            cur.execute("SELECT sql FROM sqlite_master WHERE type = 'table' AND (name = 'promocodes' OR tbl_name = 'promocodes');")
+            promocodes_table_schema = str(cur.fetchone()[0])
+            if "promo_name" not in promocodes_table_schema:
+                cur.executescript(f"""
+                CREATE TABLE tmp_promocodes (
+                    promo_id INTEGER PRIMARY KEY,
+                    promo_name TEXT NOT NULL UNIQUE CHECK(length(promo_name) <= {PROMOCODE_NAME_MAX_LENGTH}),
+                    money INTEGER NOT NULL DEFAULT 0 CHECK (money >= 0),
+                    for_user_id INTEGER NOT NULL DEFAULT {PROMOCODE_FOR_ANY_USER_ID} CHECK (for_user_id >= 0 OR for_user_id = {PROMOCODE_FOR_ANY_USER_ID}),
+                    instances_count INTEGER NOT NULL DEFAULT {PROMOCODE_INF_COUNT} CHECK (instances_count >= 0 OR instances_count = {PROMOCODE_INF_COUNT})
+                );
+                INSERT INTO tmp_promocodes (promo_id, promo_name, money, for_user_id, instances_count)
+                SELECT promo_id, 'PROMO_' || CAST(promo_id AS TEXT), money, for_user_id, instances_count FROM promocodes;
+                DROP TABLE promocodes;
+                CREATE TABLE promocodes (
+                    promo_id INTEGER PRIMARY KEY,
+                    promo_name TEXT NOT NULL UNIQUE CHECK(length(promo_name) <= {PROMOCODE_NAME_MAX_LENGTH}),
+                    money INTEGER NOT NULL DEFAULT 0 CHECK (money >= 0),
+                    for_user_id INTEGER NOT NULL DEFAULT {PROMOCODE_FOR_ANY_USER_ID} CHECK (for_user_id >= 0 OR for_user_id = {PROMOCODE_FOR_ANY_USER_ID}),
+                    instances_count INTEGER NOT NULL DEFAULT {PROMOCODE_INF_COUNT} CHECK (instances_count >= 0 OR instances_count = {PROMOCODE_INF_COUNT})
+                );
+                INSERT INTO promocodes SELECT * FROM tmp_promocodes;
+                DROP TABLE tmp_promocodes;
+                """)
+                base.commit()
+
             db_guild_language: tuple[int] | None = cur.execute("SELECT value FROM server_info WHERE settings = 'lang';").fetchone()
             if db_guild_language: 
                 lng: int = db_guild_language[0]
@@ -1186,6 +1212,7 @@ async def set_member_message_async(guild_id: int, text: str, is_join: bool) -> N
 @dataclass(frozen=True, match_args=False)
 class Promocode:
     promo_id: int
+    promo_name: str
     money: int
     for_user_id: int
     count: int
@@ -1197,6 +1224,9 @@ class Promocode:
     def str_promo_id(self) -> str:
         return str(self.promo_id)
 
+    def str_promo_name(self) -> str:
+        return self.promo_name
+
     def str_money(self) -> str:
         return str(self.money)
 
@@ -1206,9 +1236,10 @@ class Promocode:
     def str_count(self) -> str:
         return str(self.count) if self.count != PROMOCODE_INF_COUNT else "+oo"
 
-    def str_components(self) -> tuple[str, str, str, str]:
+    def str_components(self) -> tuple[str, str, str, str, str]:
         return (
             self.str_promo_id(),
+            self.str_promo_name(),
             self.str_money(),
             self.str_for_user_id(),
             self.str_count(),
@@ -1217,44 +1248,64 @@ class Promocode:
 
 async def get_promocodes_async(guild_id: int) -> list[Promocode]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
-        return list(map(Promocode.from_row, await base.execute_fetchall("SELECT promo_id, money, for_user_id, instances_count FROM promocodes;")))
+        return list(map(Promocode.from_row, await base.execute_fetchall("SELECT promo_id, promo_name, money, for_user_id, instances_count FROM promocodes;")))
 
 
 async def get_promocode_async(guild_id: int, promocode_id: int) -> Promocode | None:
     async with connect_async(DB_PATH.format(guild_id)) as base:
-        async with base.execute(f"SELECT promo_id, money, for_user_id, instances_count FROM promocodes WHERE promo_id = {promocode_id};") as cur:
+        async with base.execute(f"SELECT promo_id, promo_name, money, for_user_id, instances_count FROM promocodes WHERE promo_id = {promocode_id};") as cur:
             row: Row | None = await cur.fetchone()
     return None if row is None else Promocode.from_row(row)
 
 
-async def add_promocode_async(guild_id: int, promocode_money: int, promocode_count: int, for_user_id: int) -> Promocode:
+async def get_promocode_by_name_async(guild_id: int, promo_name: str) -> Promocode | None:
+    async with connect_async(DB_PATH.format(guild_id)) as base:
+        async with base.execute(f"SELECT promo_id, promo_name, money, for_user_id, instances_count FROM promocodes WHERE promo_name = {promo_name};") as cur:
+            row: Row | None = await cur.fetchone()
+    return None if row is None else Promocode.from_row(row)
+
+
+async def add_promocode_async(guild_id: int, promo_name: str, promocode_money: int, promocode_count: int, for_user_id: int) -> Promocode:
     async with connect_async(DB_PATH.format(guild_id)) as base:
         async with base.execute(
-            "INSERT INTO promocodes (money, for_user_id, instances_count)"
-            f" VALUES({promocode_money}, {for_user_id}, {promocode_count})"
+            "INSERT INTO promocodes (promo_name, money, for_user_id, instances_count)"
+            f" VALUES(?, {promocode_money}, {for_user_id}, {promocode_count})"
             " ON CONFLICT (promo_id) DO UPDATE SET"
+            " promo_name=excluded.promo_name,"
             " money=excluded.money,"
             " for_user_id=excluded.for_user_id,"
-            " instances_count=excluded.instances_count;"
+            " instances_count=excluded.instances_count;",
+            (promo_name,)
         ) as cur:
             promo_id = cur.lastrowid
             await base.commit()
 
-    return Promocode(promo_id=promo_id, money=promocode_money, for_user_id=for_user_id, count=promocode_count)
+    return Promocode(promo_id=promo_id, promo_name=promo_name, money=promocode_money, for_user_id=for_user_id, count=promocode_count)
 
 
-async def update_promocode_async(guild_id: int, promocode_id: int, promocode_money: int, promocode_count: int, for_user_id: int) -> Promocode:
+async def update_promocode_async(guild_id: int, promocode_id: int, promo_name: str, promocode_money: int, promocode_count: int, for_user_id: int) -> Promocode | None:
     async with connect_async(DB_PATH.format(guild_id)) as base:
-        await base.execute(
-            f"UPDATE promocodes SET money = {promocode_money}, for_user_id = {for_user_id}, instances_count = {promocode_count} WHERE promo_id = {promocode_id};"
-        )
-        await base.commit()
+        async with base.execute(f"""\
+                UPDATE promocodes SET
+                promo_name = ?,
+                money = {promocode_money},
+                for_user_id = {for_user_id},
+                instances_count = {promocode_count}
+                WHERE promo_id = {promocode_id} RETURNING promo_id, promo_name, money, for_user_id, instances_count;""",
+                (promo_name,)) as cur:
+            row = await cur.fetchone()
+            await base.commit()
 
-    return Promocode(promo_id=promocode_id, money=promocode_money, for_user_id=for_user_id, count=promocode_count)
+    return Promocode.from_row(row) if row is not None else None
 
 async def delete_promocode_async(guild_id: int, promo_id: int):
     async with connect_async(DB_PATH.format(guild_id)) as conn:
         await conn.execute(f"DELETE FROM promocodes WHERE promo_id = {promo_id};")
+        await conn.commit()
+
+async def delete_promocode_by_name_async(guild_id: int, promo_name: str):
+    async with connect_async(DB_PATH.format(guild_id)) as conn:
+        await conn.execute(f"DELETE FROM promocodes WHERE promo_name = ?;", (promo_name,))
         await conn.commit()
 
 async def delete_and_return_promocode_async(guild_id: int, promo_id: int):
@@ -1262,30 +1313,38 @@ async def delete_and_return_promocode_async(guild_id: int, promo_id: int):
         async with conn.execute(f"DELETE FROM promocodes WHERE promo_id = {promo_id} RETURNING *;") as cur:
             deleted_promo = await cur.fetchone()
             await conn.commit()
+
+    return Promocode.from_row(deleted_promo) if deleted_promo is not None else None
+
+async def delete_and_return_promocode_by_name_async(guild_id: int, promo_name: str):
+    async with connect_async(DB_PATH.format(guild_id)) as conn:
+        async with conn.execute(f"DELETE FROM promocodes WHERE promo_name = ? RETURNING *;", (promo_name,)) as cur:
+            deleted_promo = await cur.fetchone()
+            await conn.commit()
+
     return Promocode.from_row(deleted_promo) if deleted_promo is not None else None
 
 async def get_member_promocodes_async(guild_id: int, member_id: int) -> list[Promocode]:
     async with connect_async(DB_PATH.format(guild_id)) as base:
-        rows = await base.execute_fetchall(f"SELECT promo_id, money, for_user_id, instances_count FROM promocodes WHERE for_user_id = {member_id};")
-    return list(map(
-        Promocode.from_row,
-        rows
-    ))
+        rows = await base.execute_fetchall(f"SELECT promo_id, promo_name, money, for_user_id, instances_count FROM promocodes WHERE for_user_id = {member_id};")
 
-async def use_promocode_async(guild_id: int, member_id: int, promocode_id: int):
+    return list(map(Promocode.from_row, rows))
+
+async def use_promocode_async(guild_id: int, member_id: int, promo_name: str):
     await check_member_async(guild_id, member_id)
     async with connect_async(DB_PATH.format(guild_id)) as conn:
         async with conn.execute(f"""\
-UPDATE promocodes \
-SET instances_count = CASE WHEN instances_count = {PROMOCODE_INF_COUNT} THEN instances_count ELSE instances_count - 1 END \
-WHERE promo_id = {promocode_id} \
-AND (for_user_id = {member_id} OR for_user_id = -1) \
-RETURNING instances_count, money""") as cur:
+                UPDATE promocodes
+                SET instances_count = CASE WHEN instances_count = {PROMOCODE_INF_COUNT} THEN instances_count ELSE instances_count - 1 END
+                WHERE promo_name = ?
+                AND (for_user_id = {member_id} OR for_user_id = -1)
+                RETURNING promo_id, instances_count, money""",
+                (promo_name,)) as cur:
             row = await cur.fetchone()
         if row is None:
-            return None, None
+            return None
 
-        promo_count, promo_money = tuple(row)
+        promocode_id, promo_count, promo_money = tuple(row)
         assert promo_count >= 0 or promo_count == PROMOCODE_INF_COUNT, "Invalid promo_count: {promo_count}"
 
         async with conn.execute(f"UPDATE users SET money = money + {promo_money} WHERE memb_id = {member_id} RETURNING money") as cur:
@@ -1293,9 +1352,10 @@ RETURNING instances_count, money""") as cur:
 
         assert row is not None
         cash_after_promo = int(row[0])
-        if not promo_count:
+        if promo_count <= 0 and promo_count != PROMOCODE_INF_COUNT:
+            assert promo_count == 0
             await conn.execute(f"DELETE FROM promocodes WHERE promo_id = {promocode_id}")
 
         await conn.commit()
 
-    return cash_after_promo, promo_money
+    return int(promocode_id), cash_after_promo, int(promo_money)

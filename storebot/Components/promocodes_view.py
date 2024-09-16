@@ -40,15 +40,15 @@ logger = logging.getLogger(__name__)
 promocodes_view_text = (
     (
         "Promocode id",
-        "**`Could not parse promocode id: integer number in [-2^63; 2^63) is expected`**",
-        "**`Promocode with id {0} not found`**",
-        "**`You deleted promocode with id {0}`**",
+        "**`Select promocode`**",
+        "**`Promocode not found. Please, call the promocodes managing menu once more`**",
+        "**`You deleted promocode {0} with id {1}`**",
     ),
     (
         "Id промокода",
-        "**`Не удалось распарсить id промокода: ожидалось целое число из полуинтервала [-2^63; 2^63)`**",
-        "**`Промокод с id {0} не найден`**",
-        "**`Вы удалили промокод с id {0}`**",
+        "**`Выберете промокод`**",
+        "**`Промокод не найден. Пожалуйста, вызовите это меню управления промокодами ещё раз`**",
+        "**`Вы удалили промокод {0} с id {1}`**",
     ),
 )
 
@@ -87,7 +87,7 @@ class PromocodesView(ViewBase):
             emoji="<:remove01:999663428689997844>",
             disabled=len(promocodes) == 0
         ))
-        pairs = [(str(promo.promo_id), str(promo.promo_id)) for promo in promocodes]
+        pairs = [(str(promo.promo_name), str(promo.promo_id)) for promo in promocodes]
         text = promocodes_view_text[self.lng][0]
         for i in range(min(((length := len(promocodes)) + 24) // 25, 4)):
             self.add_item(CustomSelect(
@@ -97,17 +97,6 @@ class PromocodesView(ViewBase):
             ))
         self.__selected_promocode_id = None
 
-    @staticmethod
-    def __parse_promocode_id(value) -> int | None:
-        try:
-            int_value = value if isinstance(value, int) else int(str(value))
-            if -((1 << 53) - 1) <= int_value <= ((1 << 53) - 1):
-                return int_value
-        except:
-            pass
-
-        return None
-
     def __handle_invalid_promocode_id(self, interaction: Interaction) -> Coroutine:
         return interaction.send(
             embed=Embed(description=promocodes_view_text[self.lng][1]),
@@ -116,12 +105,12 @@ class PromocodesView(ViewBase):
 
     def __handle_missing_promocode(self, interaction: Interaction, promocode_id: int) -> Coroutine:
         return interaction.send(
-            embed=Embed(description=promocodes_view_text[self.lng][2].format(promocode_id)),
+            embed=Embed(description=promocodes_view_text[self.lng][2]),
             ephemeral=True
         )
 
     async def __get_current_promocode(self, interaction: Interaction) -> None | Promocode:
-        if (promocode_id := self.__parse_promocode_id(self.__selected_promocode_id)) is None:
+        if (promocode_id := self.__selected_promocode_id) is None:
             await self.__handle_invalid_promocode_id(interaction)
             return None
         assert interaction.guild_id is not None
@@ -134,7 +123,7 @@ class PromocodesView(ViewBase):
         modal = AddPromocodeModal(lng=self.lng)
         await interaction.response.send_modal(modal)
         await modal.wait()
-        if modal.added_promocode is not None:
+        if modal.promocode is not None:
             assert interaction.guild_id is not None
             await self.__update_promocodes_message(interaction, await get_promocodes_async(interaction.guild_id))
 
@@ -145,7 +134,7 @@ class PromocodesView(ViewBase):
         modal = EditPromocodeModal(lng=self.lng, current_promocode=promocode)
         await interaction.response.send_modal(modal)
         await modal.wait()
-        if modal.edited_promocode is not None:
+        if modal.promocode is not None:
             assert interaction.guild_id is not None
             await self.__update_promocodes_message(interaction, await get_promocodes_async(interaction.guild_id))
 
@@ -156,7 +145,7 @@ class PromocodesView(ViewBase):
         assert interaction.guild_id is not None
         await delete_promocode_async(interaction.guild_id, promocode.promo_id)
         await interaction.send(
-            embed=Embed(description=promocodes_view_text[self.lng][3].format(promocode.promo_id)),
+            embed=Embed(description=promocodes_view_text[self.lng][3].format(promocode.promo_name, promocode.promo_id)),
             ephemeral=True,
         )
         await self.__update_promocodes_message(interaction, await get_promocodes_async(interaction.guild_id))
@@ -187,7 +176,7 @@ class PromocodesView(ViewBase):
 
     @staticmethod
     def format_promocodes(promocodes: list[Promocode]) -> str:
-        lines = ["**`id`** - **`money`** - **`for user (id)`** - **`count`**"]
+        lines = ["**`id`** - **`name`** - **`money`** - **`for user (id)`** - **`count`**"]
         lines.extend(map(PromocodesView.format_promocode, promocodes))
         return '\n'.join(lines)
 
