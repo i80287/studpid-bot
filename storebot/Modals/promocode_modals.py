@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from sqlite3 import IntegrityError
 
 from nextcord import (
     Embed,
@@ -42,6 +43,8 @@ promocode_modals_text = (
         "**`Promocode was deleted by the other command during the execution of the current command`**",
         "**`You added promocode: {pm_count} promocode[s] with id {pm_id} and name {pm_nm}, each one gives {pm_money} money, who can use:`** {pm_owner}",
         "**`You edited promocode: {pm_count} promocode[s] with id {pm_id} and name {pm_nm}, each one gives {pm_money} money, who can use:`** {pm_owner}",
+
+        "**`Promocode with name {0} already exists`**",
     ),
     (
         "Добавление промокода",
@@ -63,6 +66,8 @@ promocode_modals_text = (
         "**`Промокод был удалён вызовом другой команды во время изменения текущей командой`**",
         "**`Вы добавили промокод: {pm_count} промокод[ов] с id {pm_id} и именем {pm_nm}, каждый приносит {pm_money} валюты, кто может применить:`** {pm_owner}",
         "**`Вы изменили промокод: {pm_count} промокод[ов] с id {pm_id} и именем {pm_nm}, каждый приносит {pm_money} валюты, кто может применить:`** {pm_owner}",
+
+        "**`Промокод с именем {0} уже существует`**",
     ),
 )
 
@@ -187,28 +192,30 @@ class PromocodeModal(Modal):
                         promocode_for_user_id == current_promocode.for_user_id:
             await interaction.response.send_message(embed=Embed(description=locale_text[13]), ephemeral=True)
             return
-        print(promocode_name)
         assert interaction.guild_id is not None
-        self.promocode = new_promocode = await (
-                add_promocode_async(
-                    guild_id=interaction.guild_id,
-                    promo_name=promocode_name,
-                    promocode_money=promocode_money,
-                    promocode_count=promocode_count,
-                    for_user_id=promocode_for_user_id
-                )
-            if current_promocode is None
-            else
-                update_promocode_async(
-                    guild_id=interaction.guild_id,
-                    promocode_id=current_promocode.promo_id,
-                    promo_name=promocode_name,
-                    promocode_money=promocode_money,
-                    promocode_count=promocode_count,
-                    for_user_id=promocode_for_user_id,
-                )
-        )
-        print(promocode_name)
+        try:
+            self.promocode = new_promocode = await (
+                    add_promocode_async(
+                        guild_id=interaction.guild_id,
+                        promo_name=promocode_name,
+                        promocode_money=promocode_money,
+                        promocode_count=promocode_count,
+                        for_user_id=promocode_for_user_id
+                    )
+                if current_promocode is None
+                else
+                    update_promocode_async(
+                        guild_id=interaction.guild_id,
+                        promocode_id=current_promocode.promo_id,
+                        promo_name=promocode_name,
+                        promocode_money=promocode_money,
+                        promocode_count=promocode_count,
+                        for_user_id=promocode_for_user_id,
+                    )
+            )
+        except IntegrityError:
+            await interaction.response.send_message(embed=Embed(description=locale_text[17].format(promocode_name)), ephemeral=True)
+            return
 
         if new_promocode is None:
             await interaction.response.send_message(embed=Embed(description=locale_text[14]), ephemeral=True)
